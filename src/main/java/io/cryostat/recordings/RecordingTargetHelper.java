@@ -43,15 +43,22 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.inject.Named;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -70,7 +77,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String CREATE_NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String STOP_NOTIFICATION_CATEGORY = "RecordingStopped";
+    private static final long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
@@ -81,7 +90,9 @@ public class RecordingTargetHelper {
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
+    private final ScheduledExecutorService scheduler;
     private final Logger logger;
+    private final Map<Pair<String, String>, Future<?>> scheduledStopNotifications;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
@@ -90,6 +101,7 @@ public class RecordingTargetHelper {
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
+            @Named(RecordingsModule.NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
@@ -97,7 +109,9 @@ public class RecordingTargetHelper {
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
+        this.scheduler = scheduler;
         this.logger = logger;
+        this.scheduledStopNotifications = new ConcurrentHashMap<>();
     }
 
     public IRecordingDescriptor startRecording(
@@ -131,7 +145,7 @@ public class RecordingTargetHelper {
                                             enableEvents(connection, templateName, templateType));
                     notificationFactory
                             .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaCategory(CREATE_NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
                             .message(
                                     Map.of(
@@ -141,6 +155,17 @@ public class RecordingTargetHelper {
                                             connectionDescriptor.getTargetId()))
                             .build()
                             .send();
+
+                    Object fixedDuration =
+                            recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
+                    if (fixedDuration != null) {
+                        Long delay =
+                                Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
+
+                        scheduleRecordingStopNotification(
+                                recordingName, delay, connectionDescriptor);
+                    }
+
                     return desc;
                 },
                 false);
@@ -206,10 +231,41 @@ public class RecordingTargetHelper {
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
                             reportService.delete(connectionDescriptor, recordingName);
+                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
                         }
                         return null;
+                    });
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public Future<Void> stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        String targetId = connectionDescriptor.getTargetId();
+        try {
+            targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                connection.getService().getAvailableRecordings().stream()
+                                        .filter(
+                                                recording ->
+                                                        recording.getName().equals(recordingName))
+                                        .findFirst();
+                        if (descriptor.isPresent()) {
+                            connection.getService().stop(descriptor.get());
+                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                            this.notifyRecordingStopped(targetId, recordingName);
+                            return null;
+                        } else {
+                            throw new RecordingNotFoundException(targetId, recordingName);
+                        }
                     });
             future.complete(null);
         } catch (Exception e) {
@@ -314,6 +370,23 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
+    private void notifyRecordingStopped(String targetId, String recordingName) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(STOP_NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", recordingName, "target", targetId))
+                .build()
+                .send();
+    }
+
+    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName) {
+        var f = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
+        if (f != null) {
+            f.cancel(true);
+        }
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
@@ -365,6 +438,41 @@ public class RecordingTargetHelper {
 
         return builder.build();
     }
+
+    private void scheduleRecordingStopNotification(
+            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
+        String targetId = connectionDescriptor.getTargetId();
+        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
+                this.scheduler.schedule(
+                        () -> {
+                            return targetConnectionManager.executeConnectedTask(
+                                    connectionDescriptor,
+                                    connection -> {
+                                        Optional<IRecordingDescriptor> desc =
+                                                getDescriptorByName(connection, recordingName);
+
+                                        long recordingStopped =
+                                                desc.stream()
+                                                        .map(IRecordingDescriptor::getState)
+                                                        .filter(
+                                                                s ->
+                                                                        s.equals(
+                                                                                RecordingState
+                                                                                        .STOPPED))
+                                                        .count();
+                                        if (recordingStopped > 0) {
+                                            this.notifyRecordingStopped(targetId, recordingName);
+                                        }
+
+                                        return desc;
+                                    });
+                        },
+                        delay + TIMESTAMP_DRIFT_SAFEGUARD,
+                        TimeUnit.MILLISECONDS);
+
+        scheduledStopNotifications.put(Pair.of(targetId, recordingName), scheduledFuture);
+    }
+
     /**
      * This method will consume the first byte of the {@link InputStream} it is verifying, so
      * verification should only be done if the @param snapshot stream in question will not be used

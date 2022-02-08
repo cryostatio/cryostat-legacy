@@ -38,6 +38,8 @@
 package io.cryostat.recordings;
 
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -66,6 +68,8 @@ import org.apache.commons.codec.binary.Base32;
 @Module
 public abstract class RecordingsModule {
 
+    static final String NOTIFICATION_SCHEDULER = "NOTIFICATION_SCHEDULER";
+
     @Provides
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
@@ -75,6 +79,7 @@ public abstract class RecordingsModule {
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
+            @Named(NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
             Logger logger) {
         return new RecordingTargetHelper(
                 targetConnectionManager,
@@ -83,6 +88,7 @@ public abstract class RecordingsModule {
                 notificationFactory,
                 recordingOptionsBuilderFactory,
                 reportService,
+                scheduler,
                 logger);
     }
 
@@ -127,5 +133,19 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
         return new RecordingOptionsCustomizer(cw);
+    }
+
+    @Provides
+    @Named(NOTIFICATION_SCHEDULER)
+    static ScheduledExecutorService provideNotificationScheduler() {
+        ScheduledExecutorService ses =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            Thread t = Executors.defaultThreadFactory().newThread(r);
+                            t.setDaemon(true);
+                            return t;
+                        });
+        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
+        return ses;
     }
 }

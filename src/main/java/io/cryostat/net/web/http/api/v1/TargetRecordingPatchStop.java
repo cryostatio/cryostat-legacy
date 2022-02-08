@@ -37,70 +37,33 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.util.Map;
-import java.util.Optional;
-
 import javax.inject.Inject;
 
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchStop {
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final NotificationFactory notificationFactory;
-
-    private static final String NOTIFICATION_CATEGORY = "RecordingStopped";
+    private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
-    TargetRecordingPatchStop(
-            TargetConnectionManager targetConnectionManager,
-            NotificationFactory notificationFactory) {
-        this.targetConnectionManager = targetConnectionManager;
-        this.notificationFactory = notificationFactory;
+    TargetRecordingPatchStop(RecordingTargetHelper recordingTargetHelper) {
+        this.recordingTargetHelper = recordingTargetHelper;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
 
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor =
-                            connection.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recording.getName().equals(recordingName))
-                                    .findFirst();
-                    if (descriptor.isPresent()) {
-                        connection.getService().stop(descriptor.get());
-                        return null;
-                    } else {
-                        throw new HttpStatusException(
-                                404,
-                                String.format(
-                                        "Recording with name \"%s\" not found", recordingName));
-                    }
-                });
+        try {
+            recordingTargetHelper.stopRecording(connectionDescriptor, recordingName).get();
+        } catch (RecordingNotFoundException e) {
+            throw new HttpStatusException(404, e);
+        }
         ctx.response().setStatusCode(200);
         ctx.response().end();
-
-        notificationFactory
-                .createBuilder()
-                .metaCategory(NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(
-                        Map.of(
-                                "recording",
-                                recordingName,
-                                "target",
-                                connectionDescriptor.getTargetId()))
-                .build()
-                .send();
     }
 }

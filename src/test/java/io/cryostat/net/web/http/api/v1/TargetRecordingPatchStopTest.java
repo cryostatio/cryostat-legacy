@@ -37,17 +37,17 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -61,15 +61,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingPatchStopTest {
 
     TargetRecordingPatchStop patchStop;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
     @Mock JFRConnection connection;
@@ -77,6 +74,7 @@ class TargetRecordingPatchStopTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @BeforeEach
     void setup() {
@@ -95,30 +93,20 @@ class TargetRecordingPatchStopTest {
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
-        this.patchStop = new TargetRecordingPatchStop(targetConnectionManager, notificationFactory);
+        this.patchStop = new TargetRecordingPatchStop(recordingTargetHelper);
     }
 
     @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-        Mockito.when(connection.getService()).thenReturn(service);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        Mockito.when(recordingTargetHelper.stopRecording(connectionDescriptor, "someRecording"))
+                .thenThrow(RecordingNotFoundException.class);
 
         HttpStatusException ex =
                 Assertions.assertThrows(
                         HttpStatusException.class,
-                        () -> patchStop.handle(ctx, new ConnectionDescriptor("fooTarget")));
+                        () -> patchStop.handle(ctx, connectionDescriptor));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -126,25 +114,17 @@ class TargetRecordingPatchStopTest {
     void shouldStopRecording() throws Exception {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-        Mockito.when(connection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(descriptor.getName()).thenReturn("someRecording");
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        patchStop.handle(ctx, new ConnectionDescriptor("fooTarget"));
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        future.complete(null);
 
-        Mockito.verify(service).stop(descriptor);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        Mockito.when(recordingTargetHelper.stopRecording(connectionDescriptor, "someRecording"))
+                .thenReturn(future);
+
+        patchStop.handle(ctx, connectionDescriptor);
+
+        Mockito.verify(recordingTargetHelper).stopRecording(connectionDescriptor, "someRecording");
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end();

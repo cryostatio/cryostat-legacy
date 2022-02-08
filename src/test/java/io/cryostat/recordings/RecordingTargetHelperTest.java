@@ -43,21 +43,29 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.TemplateService;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -93,6 +101,7 @@ public class RecordingTargetHelperTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
+    @Mock ScheduledExecutorService scheduler;
     @Mock Logger logger;
 
     @Mock JFRConnection connection;
@@ -120,6 +129,7 @@ public class RecordingTargetHelperTest {
                         notificationFactory,
                         recordingOptionsBuilderFactory,
                         reportService,
+                        scheduler,
                         logger);
     }
 
@@ -431,6 +441,117 @@ public class RecordingTargetHelperTest {
                 recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
 
         Assertions.assertFalse(verified);
+    }
+
+    @Test
+    void shouldStartRecordingWithFixedDuration() throws Exception {
+        String recordingName = "someRecording";
+        String targetId = "fooTarget";
+        String duration = "3000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordings())
+                .thenReturn(Collections.emptyList(), List.of(recordingDescriptor));
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(recordingDescriptor);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
+                Mockito.mock(ScheduledFuture.class);
+        Mockito.when(
+                        scheduler.schedule(
+                                Mockito.any(Callable.class), Mockito.anyLong(), Mockito.any()))
+                .thenReturn(scheduledFuture);
+
+        recordingTargetHelper.startRecording(
+                false, connectionDescriptor, recordingOptions, templateName, templateType);
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", recordingName, "target", targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
+    }
+
+    @Test
+    void shouldStopRecording() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn("someRecording");
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        recordingTargetHelper
+                .stopRecording(new ConnectionDescriptor("fooTarget"), "someRecording")
+                .get();
+
+        Mockito.verify(service).stop(descriptor);
+    }
+
+    @Test
+    void shouldThrowWhenStopRecordingNotFound() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
+
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () ->
+                                recordingTargetHelper
+                                        .stopRecording(
+                                                new ConnectionDescriptor("fooTarget"),
+                                                "someRecording")
+                                        .get());
+        MatcherAssert.assertThat(
+                ee.getCause(), Matchers.instanceOf(RecordingNotFoundException.class));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
