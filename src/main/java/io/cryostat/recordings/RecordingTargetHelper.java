@@ -231,7 +231,7 @@ public class RecordingTargetHelper {
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
                             reportService.delete(connectionDescriptor, recordingName);
-                            this.cancelScheduledNotificationIfExists(recordingName);
+                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
                         }
@@ -247,6 +247,7 @@ public class RecordingTargetHelper {
     public Future<Void> stopRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
         CompletableFuture<Void> future = new CompletableFuture<>();
+        String targetId = connectionDescriptor.getTargetId();
         try {
             targetConnectionManager.executeConnectedTask(
                     connectionDescriptor,
@@ -259,13 +260,11 @@ public class RecordingTargetHelper {
                                         .findFirst();
                         if (descriptor.isPresent()) {
                             connection.getService().stop(descriptor.get());
-                            this.cancelScheduledNotificationIfExists(recordingName);
-                            this.notifyRecordingStopped(
-                                    recordingName, connectionDescriptor.getTargetId());
+                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                            this.notifyRecordingStopped(targetId, recordingName);
                             return null;
                         } else {
-                            throw new RecordingNotFoundException(
-                                    connectionDescriptor.getTargetId(), recordingName);
+                            throw new RecordingNotFoundException(targetId, recordingName);
                         }
                     });
             future.complete(null);
@@ -371,7 +370,7 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-    private void notifyRecordingStopped(String recordingName, String targetId) {
+    private void notifyRecordingStopped(String targetId, String recordingName) {
         notificationFactory
                 .createBuilder()
                 .metaCategory(STOP_NOTIFICATION_CATEGORY)
@@ -381,8 +380,8 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    private void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
-        var f = scheduledStopNotifications.remove(stoppedRecordingName);
+    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName) {
+        var f = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
         if (f != null) {
             f.cancel(true);
         }
@@ -442,6 +441,7 @@ public class RecordingTargetHelper {
 
     private void scheduleRecordingStopNotification(
             String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
+        String targetId = connectionDescriptor.getTargetId();
         ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
                 this.scheduler.schedule(
                         () -> {
@@ -461,9 +461,7 @@ public class RecordingTargetHelper {
                                                                                         .STOPPED))
                                                         .count();
                                         if (recordingStopped > 0) {
-                                            this.notifyRecordingStopped(
-                                                    recordingName,
-                                                    connectionDescriptor.getTargetId());
+                                            this.notifyRecordingStopped(targetId, recordingName);
                                         }
 
                                         return desc;
@@ -472,8 +470,7 @@ public class RecordingTargetHelper {
                         delay + TIMESTAMP_DRIFT_SAFEGUARD,
                         TimeUnit.MILLISECONDS);
 
-        scheduledStopNotifications.put(
-                Pair.of(connectionDescriptor.getTargetId(), recordingName), scheduledFuture);
+        scheduledStopNotifications.put(Pair.of(targetId, recordingName), scheduledFuture);
     }
 
     /**
