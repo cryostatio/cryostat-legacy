@@ -79,6 +79,7 @@ public class RecordingTargetHelper {
 
     private static final String CREATE_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
     private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
+    private static final String DELETION_NOTIFICATION_CATEGORY = "ActiveRecordingDeleted";
     private static final long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
 
     private static final Pattern TEMPLATE_PATTERN =
@@ -143,6 +144,11 @@ public class RecordingTargetHelper {
                                     .start(
                                             recordingOptions,
                                             enableEvents(connection, templateName, templateType));
+                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                            new HyperlinkedSerializableRecordingDescriptor(
+                                    desc,
+                                    webServer.get().getDownloadURL(connection, desc.getName()),
+                                    webServer.get().getReportURL(connection, desc.getName()));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)
@@ -150,7 +156,7 @@ public class RecordingTargetHelper {
                             .message(
                                     Map.of(
                                             "recording",
-                                            recordingName,
+                                            linkedDesc,
                                             "target",
                                             connectionDescriptor.getTargetId()))
                             .build()
@@ -229,9 +235,27 @@ public class RecordingTargetHelper {
                         Optional<IRecordingDescriptor> descriptor =
                                 getDescriptorByName(connection, recordingName);
                         if (descriptor.isPresent()) {
-                            connection.getService().close(descriptor.get());
+                            IRecordingDescriptor d = descriptor.get();
+                            connection.getService().close(d);
                             reportService.delete(connectionDescriptor, recordingName);
                             this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                    new HyperlinkedSerializableRecordingDescriptor(
+                                            d,
+                                            webServer.get().getDownloadURL(connection, d.getName()),
+                                            webServer.get().getReportURL(connection, d.getName()));
+                            notificationFactory
+                                    .createBuilder()
+                                    .metaCategory(DELETION_NOTIFICATION_CATEGORY)
+                                    .metaType(HttpMimeType.JSON)
+                                    .message(
+                                            Map.of(
+                                                    "recording",
+                                                    linkedDesc,
+                                                    "target",
+                                                    connectionDescriptor.getTargetId()))
+                                    .build()
+                                    .send();
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
                         }
@@ -259,9 +283,15 @@ public class RecordingTargetHelper {
                                                         recording.getName().equals(recordingName))
                                         .findFirst();
                         if (descriptor.isPresent()) {
-                            connection.getService().stop(descriptor.get());
+                            IRecordingDescriptor d = descriptor.get();
+                            connection.getService().stop(d);
                             this.cancelScheduledNotificationIfExists(targetId, recordingName);
-                            this.notifyRecordingStopped(targetId, recordingName);
+                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                    new HyperlinkedSerializableRecordingDescriptor(
+                                            d,
+                                            webServer.get().getDownloadURL(connection, d.getName()),
+                                            webServer.get().getReportURL(connection, d.getName()));
+                            this.notifyRecordingStopped(targetId, linkedDesc);
                             return null;
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
@@ -370,12 +400,13 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-    private void notifyRecordingStopped(String targetId, String recordingName) {
+    private void notifyRecordingStopped(
+            String targetId, HyperlinkedSerializableRecordingDescriptor desc) {
         notificationFactory
                 .createBuilder()
                 .metaCategory(STOP_NOTIFICATION_CATEGORY)
                 .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", recordingName, "target", targetId))
+                .message(Map.of("recording", desc, "target", targetId))
                 .build()
                 .send();
     }
@@ -451,17 +482,29 @@ public class RecordingTargetHelper {
                                         Optional<IRecordingDescriptor> desc =
                                                 getDescriptorByName(connection, recordingName);
 
-                                        long recordingStopped =
+                                        desc =
                                                 desc.stream()
-                                                        .map(IRecordingDescriptor::getState)
                                                         .filter(
-                                                                s ->
-                                                                        s.equals(
-                                                                                RecordingState
-                                                                                        .STOPPED))
-                                                        .count();
-                                        if (recordingStopped > 0) {
-                                            this.notifyRecordingStopped(targetId, recordingName);
+                                                                r ->
+                                                                        r.getState()
+                                                                                .equals(
+                                                                                        RecordingState
+                                                                                                .STOPPED))
+                                                        .findFirst();
+                                        if (desc.isPresent()) {
+                                            String name = desc.get().getName();
+                                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                                    new HyperlinkedSerializableRecordingDescriptor(
+                                                            desc.get(),
+                                                            webServer
+                                                                    .get()
+                                                                    .getDownloadURL(
+                                                                            connection, name),
+                                                            webServer
+                                                                    .get()
+                                                                    .getReportURL(
+                                                                            connection, name));
+                                            this.notifyRecordingStopped(targetId, linkedDesc);
                                         }
 
                                         return desc;
