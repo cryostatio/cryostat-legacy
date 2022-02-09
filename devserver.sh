@@ -49,7 +49,7 @@ function createPod() {
     podman pod create \
         --replace \
         --hostname cryostat \
-        --name "${podname}"
+        --name "${podname}" \
         --publish 3000:3000 \
         --publish 8080:8080 \
         --publish 10001:10001
@@ -58,7 +58,7 @@ function createPod() {
 function runReportGenerator() {
     podman run \
         --name "${reports_container}" \
-        --pod "${podname}"
+        --pod "${podname}" \
         --restart on-failure \
         --env QUARKUS_HTTP_PORT=10001 \
         --rm -d quay.io/cryostat/cryostat-reports:latest
@@ -69,7 +69,7 @@ function runJfrDatasource() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name "${datasource_container}" \
-        --pod "${podname}"
+        --pod "${podname}" \
         --rm -d "${stream}:${tag}"
 }
 
@@ -78,7 +78,7 @@ function runGrafana() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
     podman run \
         --name "${grafana_container}" \
-        --pod "${podname}"
+        --pod "${podname}" \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://localhost:8080" \
