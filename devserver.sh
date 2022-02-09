@@ -2,13 +2,11 @@
 
 work_dir="$(mktemp -d)"
 
-reports_container="cryostat-devserver-reports"
-datasource_container="cryostat-devserver-jfr-datasource"
-grafana_container="cryostat-devserver-grafana-dashboard"
+podname="cryostat-devserver"
 
 function cleanup() {
-    podman pod stop cryostat-devserver
-    podman pod rm cryostat-devserver
+    podman pod stop "${podname}"
+    podman pod rm "${podname}"
     rm -rf "${work_dir}"
 }
 trap cleanup EXIT
@@ -51,7 +49,7 @@ function createPod() {
     podman pod create \
         --replace \
         --hostname cryostat \
-        --name cryostat-devserver \
+        --name "${podname}"
         --publish 3000:3000 \
         --publish 8080:8080 \
         --publish 10001:10001
@@ -60,7 +58,7 @@ function createPod() {
 function runReportGenerator() {
     podman run \
         --name "${reports_container}" \
-        --pod cryostat-devserver \
+        --pod "${podname}"
         --restart on-failure \
         --env QUARKUS_HTTP_PORT=10001 \
         --rm -d quay.io/cryostat/cryostat-reports:latest
@@ -71,7 +69,7 @@ function runJfrDatasource() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name "${datasource_container}" \
-        --pod cryostat-devserver \
+        --pod "${podname}"
         --rm -d "${stream}:${tag}"
 }
 
@@ -80,7 +78,7 @@ function runGrafana() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
     podman run \
         --name "${grafana_container}" \
-        --pod cryostat-devserver \
+        --pod "${podname}"
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://localhost:8080" \
