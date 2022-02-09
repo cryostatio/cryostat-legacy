@@ -64,7 +64,10 @@ class TargetRecordingPatchSave {
 
         try {
             String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+                    recordingArchiveHelper
+                            .saveRecording(connectionDescriptor, recordingName)
+                            .get()
+                            .getName();
             ctx.response().end(saveName);
         } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {

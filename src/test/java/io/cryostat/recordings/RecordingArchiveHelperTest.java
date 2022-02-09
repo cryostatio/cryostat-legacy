@@ -81,6 +81,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -232,26 +233,26 @@ class RecordingArchiveHelperTest {
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
 
-        String saveName =
+        ArchivedRecordingInfo info =
                 recordingArchiveHelper
                         .saveRecording(new ConnectionDescriptor(targetId), recordingName)
                         .get();
 
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        MatcherAssert.assertThat(
-                saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
-                                "target",
-                                targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -307,28 +308,34 @@ class RecordingArchiveHelperTest {
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
-
-        String saveName =
-                recordingArchiveHelper
-                        .saveRecording(new ConnectionDescriptor(serviceRef1), recordingName)
-                        .get();
-
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        String recordingName =
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        String savedName =
                 URLEncoder.encode(alias.replaceAll("[\\._]+", "-"), StandardCharsets.UTF_8)
                         + "_someRecording_"
                         + timestamp
                         + ".jfr";
-        MatcherAssert.assertThat(saveName, Matchers.equalTo(recordingName));
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+
+        ArchivedRecordingInfo info =
+                recordingArchiveHelper
+                        .saveRecording(new ConnectionDescriptor(serviceRef1), recordingName)
+                        .get();
+
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
                 .message(
                         Map.of(
                                 "recording",
-                                recordingName,
+                                info,
                                 "target",
                                 serviceRef1.getServiceUri().toString()));
         Mockito.verify(notificationBuilder).build();
@@ -394,27 +401,26 @@ class RecordingArchiveHelperTest {
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
 
-        String saveName =
+        ArchivedRecordingInfo info =
                 recordingArchiveHelper
                         .saveRecording(new ConnectionDescriptor(targetId), recordingName)
                         .get();
 
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        MatcherAssert.assertThat(
-                saveName,
-                Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-hostname-local_someRecording_" + timestamp + ".jfr",
-                                "target",
-                                targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -470,29 +476,28 @@ class RecordingArchiveHelperTest {
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
 
-        String saveName =
+        ArchivedRecordingInfo info =
                 recordingArchiveHelper
                         .saveRecording(new ConnectionDescriptor(targetId), recordingName)
                         .get();
 
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        MatcherAssert.assertThat(
-                saveName,
-                Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-hostname-local_someRecording_" + timestamp + ".jfr",
-                                "target",
-                                targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -556,26 +561,26 @@ class RecordingArchiveHelperTest {
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
 
-        String saveName =
+        ArchivedRecordingInfo info =
                 recordingArchiveHelper
                         .saveRecording(new ConnectionDescriptor(targetId), recordingName)
                         .get();
 
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        MatcherAssert.assertThat(
-                saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
-                                "target",
-                                targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -690,26 +695,26 @@ class RecordingArchiveHelperTest {
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
+        Path filenamePath = Mockito.mock(Path.class);
+        Path parentPath = Mockito.mock(Path.class);
+        Mockito.when(destination.getParent()).thenReturn(parentPath);
+        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
+        Mockito.when(filenamePath.toString()).thenReturn(savedName);
+        Mockito.when(destination.getFileName()).thenReturn(filenamePath);
 
-        String saveName =
+        ArchivedRecordingInfo info =
                 recordingArchiveHelper
                         .saveRecording(new ConnectionDescriptor(targetId), recordingName)
                         .get();
 
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        MatcherAssert.assertThat(
-                saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".1.jfr"));
+        MatcherAssert.assertThat(info.getName(), Matchers.equalTo(savedName));
         Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-Alias-2_someRecording_" + timestamp + ".1.jfr",
-                                "target",
-                                targetId));
+        Mockito.verify(notificationBuilder).message(Map.of("recording", info, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -740,15 +745,47 @@ class RecordingArchiveHelperTest {
         Mockito.when(archivedRecordingsReportPath.toAbsolutePath())
                 .thenReturn(archivedRecordingsReportPath);
 
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/archive/" + name;
+                            }
+                        });
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/download/" + name;
+                            }
+                        });
+
         recordingArchiveHelper.deleteRecording(recordingName);
+
+        ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
 
         Mockito.verify(fs, Mockito.times(2)).deleteIfExists(Mockito.any());
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
+        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+
+        MatcherAssert.assertThat(
+                messageCaptor.getValue(),
+                Matchers.equalTo(
+                        Map.of(
+                                "recording",
+                                new ArchivedRecordingInfo(
+                                        Path.of(subdirectories.get(1)).toAbsolutePath().toString(),
+                                        recordingName,
+                                        "/some/path/download/" + recordingName,
+                                        "/some/path/archive/" + recordingName))));
     }
 
     @ParameterizedTest
@@ -823,13 +860,13 @@ class RecordingArchiveHelperTest {
                 List.of(
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriA",
-                                "/some/path/download/recordingA",
                                 "recordingA",
+                                "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA"),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUri123",
-                                "/some/path/download/123recording",
                                 "123recording",
+                                "/some/path/download/123recording",
                                 "/some/path/archive/123recording"));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }

@@ -137,7 +137,7 @@ class TargetRecordingDeleteHandlerTest {
         handler.handleAuthenticated(ctx);
 
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
                 .message(Map.of("recording", "someRecording", "target", "someTarget"));

@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +45,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -99,7 +99,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
@@ -126,7 +126,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(recordingName)).thenReturn(future);
 
         handler.handle(ctx);

@@ -150,9 +150,9 @@ class PeriodicArchiver implements Runnable {
         ConnectionDescriptor connectionDescriptor =
                 new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
 
-        String saveName =
+        ArchivedRecordingInfo archivedRecordingInfo =
                 recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
-        previousRecordings.add(saveName);
+        previousRecordings.add(archivedRecordingInfo.getName());
     }
 
     private void pruneArchive(String recordingName) throws Exception {

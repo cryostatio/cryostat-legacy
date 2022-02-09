@@ -40,6 +40,9 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -50,6 +53,7 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
@@ -62,9 +66,11 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
@@ -87,10 +93,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final FileSystem fs;
     private final Path savedRecordingsPath;
     private final Gson gson;
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final Provider<WebServer> webServer;
+    private final Logger logger;
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
+    private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
     @Inject
     RecordingsPostHandler(
@@ -99,15 +106,17 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
-            Logger logger,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            Provider<WebServer> webServer,
+            Logger logger) {
         super(auth);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
+        this.webServer = webServer;
+        this.logger = logger;
     }
 
     @Override
@@ -206,19 +215,39 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         return;
                                     }
 
+                                    String fsName = res2.result();
                                     ctx.response()
                                             .putHeader(
                                                     HttpHeaders.CONTENT_TYPE,
                                                     HttpMimeType.JSON.mime())
-                                            .end(gson.toJson(Map.of("name", res2.result())));
+                                            .end(gson.toJson(Map.of("name", fsName)));
 
-                                    notificationFactory
-                                            .createBuilder()
-                                            .metaCategory(NOTIFICATION_CATEGORY)
-                                            .metaType(HttpMimeType.JSON)
-                                            .message(Map.of("recording", res2.result()))
-                                            .build()
-                                            .send();
+                                    try {
+                                        notificationFactory
+                                                .createBuilder()
+                                                .metaCategory(NOTIFICATION_CATEGORY)
+                                                .metaType(HttpMimeType.JSON)
+                                                .message(
+                                                        Map.of(
+                                                                "recording",
+                                                                new ArchivedRecordingInfo(
+                                                                        "archive",
+                                                                        fsName,
+                                                                        webServer
+                                                                                .get()
+                                                                                .getArchivedDownloadURL(
+                                                                                        fsName),
+                                                                        webServer
+                                                                                .get()
+                                                                                .getArchivedReportURL(
+                                                                                        fsName))))
+                                                .build()
+                                                .send();
+                                    } catch (UnknownHostException
+                                            | SocketException
+                                            | URISyntaxException e) {
+                                        logger.error(e);
+                                    }
                                 }));
     }
 
@@ -259,6 +288,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                 });
     }
 
+    // FIXME refactor into RecordingArchiveHelper
     private void saveRecording(
             String subdirectoryName,
             String basename,

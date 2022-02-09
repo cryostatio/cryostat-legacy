@@ -77,7 +77,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String CREATE_NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String CREATE_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
     private static final String STOP_NOTIFICATION_CATEGORY = "RecordingStopped";
     private static final long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
 

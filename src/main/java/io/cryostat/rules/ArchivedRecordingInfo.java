@@ -41,16 +41,17 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class ArchivedRecordingInfo {
+
     private final transient String encodedServiceUri;
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
 
     public ArchivedRecordingInfo(
-            String encodedServiceUri, String downloadUrl, String name, String reportUrl) {
+            String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
         this.encodedServiceUri = encodedServiceUri;
-        this.downloadUrl = downloadUrl;
         this.name = name;
+        this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
     }
 
@@ -58,12 +59,12 @@ public class ArchivedRecordingInfo {
         return this.encodedServiceUri;
     }
 
-    public String getDownloadUrl() {
-        return this.downloadUrl;
-    }
-
     public String getName() {
         return this.name;
+    }
+
+    public String getDownloadUrl() {
+        return this.downloadUrl;
     }
 
     public String getReportUrl() {
@@ -85,8 +86,8 @@ public class ArchivedRecordingInfo {
         return new EqualsBuilder()
                 .append(encodedServiceUri, ari.encodedServiceUri)
                 .append(name, ari.name)
-                .append(reportUrl, ari.reportUrl)
                 .append(downloadUrl, ari.downloadUrl)
+                .append(reportUrl, ari.reportUrl)
                 .isEquals();
     }
 
@@ -95,8 +96,8 @@ public class ArchivedRecordingInfo {
         return new HashCodeBuilder()
                 .append(encodedServiceUri)
                 .append(name)
-                .append(reportUrl)
                 .append(downloadUrl)
+                .append(reportUrl)
                 .hashCode();
     }
 }
