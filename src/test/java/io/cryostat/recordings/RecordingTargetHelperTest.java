@@ -491,11 +491,14 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.startRecording(
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
 
+        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                new HyperlinkedSerializableRecordingDescriptor(recordingDescriptor, null, null);
+
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", recordingName, "target", targetId));
+                .message(Map.of("recording", linkedDesc, "target", targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
@@ -514,8 +517,7 @@ public class RecordingTargetHelperTest {
                             }
                         });
         Mockito.when(connection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(descriptor.getName()).thenReturn("someRecording");
+        IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
         recordingTargetHelper
