@@ -89,6 +89,7 @@ podman run \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
+    -e CRYOSTAT_ENABLE_JDP_BROADCAST=true \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \

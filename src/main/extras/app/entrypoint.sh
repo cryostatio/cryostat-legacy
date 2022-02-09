@@ -106,12 +106,25 @@ fi
 
 FLAGS=(
     "-XX:+CrashOnOutOfMemoryError"
-    "-Dcom.sun.management.jmxremote.autodiscovery=true"
     "-Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT"
     "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
     "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
+
+if [ -z "$CRYOSTAT_ENABLE_JDP_BROADCAST" ]; then
+    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=true")
+else
+    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST")
+fi
+
+if [ -n "$CRYOSTAT_JDP_ADDRESS" ]; then
+    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS")
+fi
+
+if [ -n "$CRYOSTAT_JDP_PORT" ]; then
+    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT")
+fi
 
 importTrustStores
 
