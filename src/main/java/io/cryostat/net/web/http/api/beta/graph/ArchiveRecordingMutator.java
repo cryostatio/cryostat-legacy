@@ -37,9 +37,6 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.NoSuchElementException;
-import java.util.Objects;
-
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -71,13 +68,6 @@ class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
-        String archivedName = recordingArchiveHelper.saveRecording(cd, source.getName()).get();
-        for (ArchivedRecordingInfo info :
-                recordingArchiveHelper.getRecordings(target.getServiceUri().toString()).get()) {
-            if (Objects.equals(info.getName(), archivedName)) {
-                return info;
-            }
-        }
-        throw new NoSuchElementException();
+        return recordingArchiveHelper.saveRecording(cd, source.getName()).get();
     }
 }

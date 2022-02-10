@@ -532,6 +532,7 @@ public class RecordingTargetHelperTest {
                         });
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
+        Mockito.when(descriptor.getName()).thenReturn("someRecording");
         Mockito.when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
