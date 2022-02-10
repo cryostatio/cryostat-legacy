@@ -60,6 +60,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -93,6 +94,7 @@ class TargetRecordingsPostHandlerTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock WebServer webServer;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -112,6 +114,7 @@ class TargetRecordingsPostHandlerTest {
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
+                        recordingMetadataManager,
                         gson);
     }
 

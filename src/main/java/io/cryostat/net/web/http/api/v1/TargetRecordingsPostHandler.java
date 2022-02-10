@@ -64,6 +64,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -83,6 +84,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Gson gson;
 
     @Inject
@@ -92,12 +94,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
+            RecordingMetadataManager recordingMetadataManager,
             Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.gson = gson;
     }
 
@@ -181,6 +185,18 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 builder.build(),
                                                 template.getLeft(),
                                                 template.getRight());
+
+                                String labels = attrs.get("labels");
+
+                                if (!labels.isBlank()) {
+                                    recordingMetadataManager
+                                            .addRecordingLabels(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName,
+                                                    labels)
+                                            .get();
+                                }
+
                                 try {
                                     WebServer webServer = webServerProvider.get();
                                     return new HyperlinkedSerializableRecordingDescriptor(
