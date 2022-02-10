@@ -2,6 +2,9 @@
 
 work_dir="$(mktemp -d)"
 
+reports_container="cryostat-devserver-reports"
+datasource_container="cryostat-devserver-jfr-datasource"
+grafana_container="cryostat-devserver-grafana-dashboard"
 podname="cryostat-devserver"
 
 function cleanup() {
