@@ -37,18 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -76,28 +71,13 @@ class TargetRecordingDeleteHandlerTest {
     @Mock AuthManager auth;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.handler =
-                new TargetRecordingDeleteHandler(auth, recordingTargetHelper, notificationFactory);
+        this.handler = new TargetRecordingDeleteHandler(auth, recordingTargetHelper);
     }
 
     @Test
@@ -135,14 +115,6 @@ class TargetRecordingDeleteHandlerTest {
                 .thenReturn(future);
 
         handler.handleAuthenticated(ctx);
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "someRecording", "target", "someTarget"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
