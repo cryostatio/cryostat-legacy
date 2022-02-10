@@ -491,6 +491,8 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.startRecording(
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
 
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(recordingDescriptor, null, null);
 
