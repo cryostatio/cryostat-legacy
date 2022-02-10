@@ -221,6 +221,17 @@ public class RecordingTargetHelperTest {
                                         arg.getTargetId()
                                                 .equals(connectionDescriptor.getTargetId())),
                         Mockito.eq(recordingName));
+
+        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null);
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
