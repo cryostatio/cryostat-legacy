@@ -527,6 +527,17 @@ public class RecordingTargetHelperTest {
                 .get();
 
         Mockito.verify(service).stop(descriptor);
+
+        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null);
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
