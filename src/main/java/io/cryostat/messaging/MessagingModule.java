@@ -65,9 +65,6 @@ public abstract class MessagingModule {
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
     static final String LIMBO_PRUNER = "LIMBO_PRUNER";
     static final String KEEPALIVE_PINGER = "KEEPALIVE_PINGER";
-    static final int MIN_CONNECTIONS = 1;
-    static final int MAX_CONNECTIONS = 64;
-    static final int DEFAULT_MAX_CONNECTIONS = 2;
 
     @Provides
     @Singleton
@@ -99,23 +96,12 @@ public abstract class MessagingModule {
     @Named(WS_MAX_CONNECTIONS)
     static int provideWebSocketMaxConnections(Environment env, Logger logger) {
         try {
-            int maxConn =
-                    Integer.parseInt(
-                            env.getEnv(
-                                    Variables.MAX_CONNECTIONS_ENV_VAR,
-                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
-            if (maxConn > MAX_CONNECTIONS) {
-                logger.info("Requested maximum WebSocket connections {} is too large.", maxConn);
-                return MAX_CONNECTIONS;
-            }
-            if (maxConn < MIN_CONNECTIONS) {
-                logger.info("Requested maximum WebSocket connections {} is too small.", maxConn);
-                return MIN_CONNECTIONS;
-            }
-            return maxConn;
+            return Integer.parseInt(
+                    env.getEnv(
+                            Variables.MAX_CONNECTIONS_ENV_VAR, String.valueOf(Integer.MAX_VALUE)));
         } catch (NumberFormatException nfe) {
             logger.warn(nfe);
-            return DEFAULT_MAX_CONNECTIONS;
+            return Integer.MAX_VALUE;
         }
     }
 
