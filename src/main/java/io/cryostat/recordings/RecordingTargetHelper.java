@@ -264,7 +264,14 @@ public class RecordingTargetHelper {
                                                                     connection, d.getName()),
                                                     webServer
                                                             .get()
-                                                            .getReportURL(connection, d.getName()));
+                                                            .getReportURL(connection, d.getName()),
+                                                    recordingMetadataManager
+                                                            .getRecordingLabelsAsString(
+                                                                    connectionDescriptor
+                                                                            .getTargetId(),
+                                                                    recordingName));
+                                    recordingMetadataManager.deleteRecordingLabelsIfExists(
+                                            connectionDescriptor.getTargetId(), recordingName);
                                     notificationFactory
                                             .createBuilder()
                                             .metaCategory(DELETION_NOTIFICATION_CATEGORY)

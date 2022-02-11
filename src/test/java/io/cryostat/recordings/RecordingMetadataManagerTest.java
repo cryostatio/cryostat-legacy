@@ -108,6 +108,24 @@ public class RecordingMetadataManagerTest {
     }
 
     @Test
+    void shouldDeleteLabels() throws Exception {
+        String targetId = "someTarget";
+        String recordingName = "someRecording";
+
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, "key=value").get();
+
+        Map<String, String> actualLabelsMap =
+                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(Map.of("key", "value")));
+
+        recordingMetadataManager.deleteRecordingLabelsIfExists(targetId, recordingName);
+
+        Assertions.assertThrows(
+                RecordingNotFoundException.class,
+                () -> recordingMetadataManager.getRecordingLabels(targetId, recordingName));
+    }
+
+    @Test
     void shouldThrowWhenRecordingMetadataEntryDoesNotExist() throws Exception {
 
         Assertions.assertThrows(
@@ -121,11 +139,5 @@ public class RecordingMetadataManagerTest {
                 () ->
                         recordingMetadataManager.updateRecordingLabels(
                                 "someTarget", "nonExistentRecording", "someKey=someValue"));
-
-        Assertions.assertThrows(
-                RecordingNotFoundException.class,
-                () ->
-                        recordingMetadataManager.deleteRecordingLabels(
-                                "someTarget", "nonExistentRecording"));
     }
 }

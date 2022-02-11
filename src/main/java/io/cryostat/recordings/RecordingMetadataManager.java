@@ -79,7 +79,7 @@ public class RecordingMetadataManager {
         Pair<String, String> key = Pair.of(targetId, recordingName);
         Map<String, String> newLabels = parseRecordingLabels(labels);
 
-        recordingLabelsMap.put(key, newLabels);
+        this.recordingLabelsMap.put(key, newLabels);
 
         return CompletableFuture.completedFuture(null);
     }
@@ -90,7 +90,7 @@ public class RecordingMetadataManager {
         Map<String, String> newLabels = parseRecordingLabels(labels);
 
         Map<String, String> existingMap =
-                Optional.ofNullable(recordingLabelsMap.get(key))
+                Optional.ofNullable(this.recordingLabelsMap.get(key))
                         .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
 
         newLabels.putAll(existingMap);
@@ -100,20 +100,19 @@ public class RecordingMetadataManager {
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName)
             throws RecordingNotFoundException {
-        return Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
+        return Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)))
                 .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
     }
 
     public String getRecordingLabelsAsString(String targetId, String recordingName) {
-        return Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
+        return Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)))
                 .map(m -> m.toString())
                 .orElse("");
     }
 
-    public Map<String, String> deleteRecordingLabels(String targetId, String recordingName)
+    public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
             throws RecordingNotFoundException {
-        return Optional.ofNullable(recordingLabelsMap.remove(Pair.of(targetId, recordingName)))
-                .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
+        this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
     }
 
     private Map<String, String> parseRecordingLabels(String labels)
