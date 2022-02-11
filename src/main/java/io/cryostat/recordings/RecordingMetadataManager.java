@@ -104,6 +104,12 @@ public class RecordingMetadataManager {
                 .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
     }
 
+    public String getRecordingLabelsAsString(String targetId, String recordingName) {
+        return Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
+                .map(m -> m.toString())
+                .orElse("");
+    }
+
     public Map<String, String> deleteRecordingLabels(String targetId, String recordingName)
             throws RecordingNotFoundException {
         return Optional.ofNullable(recordingLabelsMap.remove(Pair.of(targetId, recordingName)))

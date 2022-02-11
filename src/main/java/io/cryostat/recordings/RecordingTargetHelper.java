@@ -93,6 +93,7 @@ public class RecordingTargetHelper {
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
     private final ScheduledExecutorService scheduler;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
     private final Map<Pair<String, String>, Future<?>> scheduledStopNotifications;
 
@@ -104,6 +105,7 @@ public class RecordingTargetHelper {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             @Named(RecordingsModule.NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
@@ -112,6 +114,7 @@ public class RecordingTargetHelper {
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
         this.scheduler = scheduler;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
         this.scheduledStopNotifications = new ConcurrentHashMap<>();
     }
@@ -157,7 +160,9 @@ public class RecordingTargetHelper {
                             new HyperlinkedSerializableRecordingDescriptor(
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
-                                    webServer.get().getReportURL(connection, desc.getName()));
+                                    webServer.get().getReportURL(connection, desc.getName()),
+                                    recordingMetadataManager.getRecordingLabelsAsString(
+                                            connectionDescriptor.getTargetId(), recordingName));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)

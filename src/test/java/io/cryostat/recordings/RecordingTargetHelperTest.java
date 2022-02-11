@@ -103,6 +103,7 @@ public class RecordingTargetHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
     @Mock ScheduledExecutorService scheduler;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
 
     @Mock JFRConnection connection;
@@ -131,6 +132,7 @@ public class RecordingTargetHelperTest {
                         recordingOptionsBuilderFactory,
                         reportService,
                         scheduler,
+                        recordingMetadataManager,
                         logger);
     }
 

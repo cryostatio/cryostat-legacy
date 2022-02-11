@@ -176,6 +176,16 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
+
+                                if (attrs.contains("labels")) {
+                                    recordingMetadataManager
+                                            .addRecordingLabels(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName,
+                                                    attrs.get("labels"))
+                                            .get();
+                                }
+
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);
@@ -186,17 +196,6 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 template.getLeft(),
                                                 template.getRight());
 
-                                String labels = attrs.get("labels");
-
-                                if (!labels.isBlank()) {
-                                    recordingMetadataManager
-                                            .addRecordingLabels(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName,
-                                                    labels)
-                                            .get();
-                                }
-
                                 try {
                                     WebServer webServer = webServerProvider.get();
                                     return new HyperlinkedSerializableRecordingDescriptor(
@@ -204,7 +203,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             webServer.getDownloadURL(
                                                     connection, descriptor.getName()),
                                             webServer.getReportURL(
-                                                    connection, descriptor.getName()));
+                                                    connection, descriptor.getName()),
+                                            recordingMetadataManager.getRecordingLabelsAsString(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName));
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {

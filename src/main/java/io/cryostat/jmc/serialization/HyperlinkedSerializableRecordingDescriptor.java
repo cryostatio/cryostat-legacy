@@ -48,6 +48,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     protected String downloadUrl;
     protected String reportUrl;
+    protected String labels;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -55,6 +56,15 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original, String downloadUrl, String reportUrl, String labels)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.labels = labels;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(

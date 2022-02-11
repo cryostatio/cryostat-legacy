@@ -87,6 +87,7 @@ public abstract class RecordingsModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             @Named(NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         return new RecordingTargetHelper(
                 targetConnectionManager,
@@ -96,6 +97,7 @@ public abstract class RecordingsModule {
                 recordingOptionsBuilderFactory,
                 reportService,
                 scheduler,
+                recordingMetadataManager,
                 logger);
     }
 
