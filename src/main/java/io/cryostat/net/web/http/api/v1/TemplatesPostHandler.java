@@ -129,7 +129,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("template", t.getName()))
+                            .message(Map.of("template", t))
                             .build()
                             .send();
                 } finally {

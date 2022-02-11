@@ -40,10 +40,13 @@ package io.cryostat.net.web.http.api.v1;
 import static org.mockito.Mockito.lenient;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.core.templates.LocalStorageTemplateService;
+import io.cryostat.core.templates.Template;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -53,6 +56,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -112,9 +116,26 @@ class TemplateDeleteHandlerTest {
     void shouldThrowIfServiceThrows() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
-        Mockito.doThrow(IOException.class).when(templateService).deleteTemplate("FooTemplate");
+        Template template =
+                new Template("FooTemplate", "unit test template", "UnitTest", TemplateType.CUSTOM);
+        Mockito.when(templateService.getTemplates()).thenReturn(List.of(template));
+        Mockito.doThrow(IOException.class)
+                .when(templateService)
+                .deleteTemplate(Mockito.any(Template.class));
 
         Assertions.assertThrows(IOException.class, () -> handler.handleAuthenticated(ctx));
+    }
+
+    @Test
+    void shouldThrowIfTemplateDoesNotExist() throws Exception {
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
+        Mockito.when(templateService.getTemplates()).thenReturn(List.of());
+
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
     @Test
@@ -124,16 +145,20 @@ class TemplateDeleteHandlerTest {
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(ctx.response()).thenReturn(resp);
 
+        Template template =
+                new Template("FooTemplate", "unit test template", "UnitTest", TemplateType.CUSTOM);
+        Mockito.when(templateService.getTemplates()).thenReturn(List.of(template));
+
         handler.handleAuthenticated(ctx);
 
-        Mockito.verify(templateService).deleteTemplate("FooTemplate");
+        Mockito.verify(templateService).deleteTemplate(template);
         Mockito.verify(ctx).response();
         Mockito.verify(resp).end();
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("TemplateDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("template", "FooTemplate"));
+        Mockito.verify(notificationBuilder).message(Map.of("template", template));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
