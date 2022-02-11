@@ -69,7 +69,7 @@ public class RecordingMetadataManagerTest {
     }
 
     @Test
-    void shouldParseKeyValuePairsFromString() throws Exception {
+    void shouldParseAndStoreLabelsInRecordingLabelsMap() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
 
@@ -105,5 +105,27 @@ public class RecordingMetadataManagerTest {
                 () ->
                         recordingMetadataManager.addRecordingLabels(
                                 "someTarget", "someRecording", labels));
+    }
+
+    @Test
+    void shouldThrowWhenRecordingMetadataEntryDoesNotExist() throws Exception {
+
+        Assertions.assertThrows(
+                RecordingNotFoundException.class,
+                () ->
+                        recordingMetadataManager.getRecordingLabels(
+                                "someTarget", "nonExistentRecording"));
+
+        Assertions.assertThrows(
+                RecordingNotFoundException.class,
+                () ->
+                        recordingMetadataManager.updateRecordingLabels(
+                                "someTarget", "nonExistentRecording", "someKey=someValue"));
+
+        Assertions.assertThrows(
+                RecordingNotFoundException.class,
+                () ->
+                        recordingMetadataManager.deleteRecordingLabels(
+                                "someTarget", "nonExistentRecording"));
     }
 }
