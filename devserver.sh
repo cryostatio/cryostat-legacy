@@ -2,8 +2,14 @@
 
 work_dir="$(mktemp -d)"
 
+reports_container="cryostat-devserver-reports"
+datasource_container="cryostat-devserver-jfr-datasource"
+grafana_container="cryostat-devserver-grafana-dashboard"
+podname="cryostat-devserver"
+
 function cleanup() {
-    podman stop cryostat-devserver-reports
+    podman pod stop "${podname}"
+    podman pod rm "${podname}"
     rm -rf "${work_dir}"
 }
 trap cleanup EXIT
@@ -24,9 +30,9 @@ for i in archive clientlib conf templates probes; do
 done
 
 if [ -z "$CRYOSTAT_CORS_ORIGIN" ]; then
-    "${MVN}" -DskipTests=true prepare-package
+    "${MVN}" -DskipTests=true clean prepare-package
 else
-    "${MVN}" -DskipTests=true -Dcryostat.minimal=true prepare-package
+    "${MVN}" -DskipTests=true -Dcryostat.minimal=true clean prepare-package
 fi
 
 # HACK. The vertx-maven-plugin doesn't include target/assets on the classpath, so copy its contents into target/classes which is included
@@ -41,12 +47,51 @@ flags=(
     "-Dcom.sun.management.jmxremote.registry.ssl=false"
 )
 
-podman run \
-    --name cryostat-devserver-reports \
-    --restart on-failure \
-    --env QUARKUS_HTTP_PORT=10001 \
-    --publish 10001:10001 \
-    --rm -d quay.io/cryostat/cryostat-reports:latest
+
+function createPod() {
+    podman pod create \
+        --replace \
+        --hostname cryostat \
+        --name "${podname}" \
+        --publish 3000:3000 \
+        --publish 8080:8080 \
+        --publish 10001:10001
+}
+
+function runReportGenerator() {
+    podman run \
+        --name "${reports_container}" \
+        --pod "${podname}" \
+        --restart on-failure \
+        --env QUARKUS_HTTP_PORT=10001 \
+        --rm -d quay.io/cryostat/cryostat-reports:latest
+}
+
+function runJfrDatasource() {
+    local stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
+    local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
+    podman run \
+        --name "${datasource_container}" \
+        --pod "${podname}" \
+        --rm -d "${stream}:${tag}"
+}
+
+function runGrafana() {
+    local stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
+    local tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
+    podman run \
+        --name "${grafana_container}" \
+        --pod "${podname}" \
+        --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
+        --env GF_AUTH_ANONYMOUS_ENABLED=true \
+        --env JFR_DATASOURCE_URL="http://localhost:8080" \
+        --rm -d "${stream}:${tag}"
+}
+
+createPod
+runReportGenerator
+runJfrDatasource
+runGrafana
 
 MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_PLATFORM=io.cryostat.platform.internal.DefaultPlatformStrategy \
@@ -56,6 +101,8 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_WEB_PORT=8181 \
     CRYOSTAT_CORS_ORIGIN="${CRYOSTAT_CORS_ORIGIN}" \
     CRYOSTAT_REPORT_GENERATOR="http://localhost:10001" \
+    GRAFANA_DATASOURCE_URL="http://localhost:8080" \
+    GRAFANA_DASHBOARD_URL="http://localhost:3000" \
     CRYOSTAT_AUTH_MANAGER=io.cryostat.net.NoopAuthManager \
     CRYOSTAT_ARCHIVE_PATH="${work_dir}/archive" \
     CRYOSTAT_CLIENTLIB_PATH="${work_dir}/clientlib" \
