@@ -41,9 +41,11 @@ package io.cryostat.recordings;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 import io.cryostat.core.log.Logger;
@@ -62,49 +64,59 @@ public class RecordingMetadataManager {
     private final Gson gson;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Map<String, String>> recordingMetadataMap;
+    private final Map<Pair<String, String>, Map<String, String>> recordingLabelsMap;
 
     RecordingMetadataManager(Path recordingMetadataDir, FileSystem fs, Gson gson, Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
-        this.recordingMetadataMap = new HashMap<>();
+        this.recordingLabelsMap = new ConcurrentHashMap<>();
     }
 
-    public Optional<Boolean> addRecordingLabels(
-            String targetId, String recordingName, String labels) {
-        recordingMetadataMap.put(Pair.of(targetId, recordingName), parseRecordingLabels(labels));
-        return Optional.of(true);
+    public Future<Void> addRecordingLabels(String targetId, String recordingName, String labels)
+            throws IllegalArgumentException {
+        Pair<String, String> key = Pair.of(targetId, recordingName);
+        Map<String, String> newLabels = parseRecordingLabels(labels);
+
+        recordingLabelsMap.put(key, newLabels);
+
+        return CompletableFuture.completedFuture(null);
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
-        return recordingMetadataMap.get(Pair.of(targetId, recordingName));
+        return recordingLabelsMap.get(Pair.of(targetId, recordingName));
     }
 
-    public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
+    private Map<String, String> parseRecordingLabels(String labels)
+            throws IllegalArgumentException {
+        if (labels == null) {
+            throw new IllegalArgumentException(labels);
+        }
+
         if (LABELS_PATTERN.matcher(labels).matches()) {
             Map<String, String> labelMap = new HashMap<>();
 
-            List<String> labelList = Arrays.asList(labels.split(","));
-            for (var l : labelList) {
-                Pair<String, String> recordingLabel = this.splitRecordingLabels(l);
-                labelMap.put(recordingLabel.getLeft(), recordingLabel.getRight());
-            }
+            Arrays.asList(labels.split(",")).stream()
+                    .forEach(
+                            pair -> {
+                                Optional<Pair<String, String>> label = this.splitLabelPairs(pair);
+                                label.ifPresent(l -> labelMap.put(l.getLeft(), l.getRight()));
+                            });
             return labelMap;
         }
         throw new IllegalArgumentException(labels);
     }
 
-    private Pair<String, String> splitRecordingLabels(String label) {
+    private Optional<Pair<String, String>> splitLabelPairs(String label) {
         if (label == null) {
-            return null;
+            return Optional.empty();
         }
         String[] pair = label.split("=");
         String key = pair[0];
         String value = pair[1];
 
-        return Pair.of(key, value);
+        return Optional.of(Pair.of(key, value));
     }
 
     public static class StoredRecordingMetadata {
