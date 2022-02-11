@@ -96,9 +96,14 @@ public abstract class MessagingModule {
     @Named(WS_MAX_CONNECTIONS)
     static int provideWebSocketMaxConnections(Environment env, Logger logger) {
         try {
-            return Integer.parseInt(
+            int count = Integer.parseInt(
                     env.getEnv(
                             Variables.MAX_CONNECTIONS_ENV_VAR, String.valueOf(Integer.MAX_VALUE)));
+            if (count <= 0) {
+                logger.warn("{} was set to {} - ignoring", Variables.MAX_CONNECTIONS_ENV_VAR, count);
+                count = Integer.MAX_VALUE;
+            }
+            return count;
         } catch (NumberFormatException nfe) {
             logger.warn(nfe);
             return Integer.MAX_VALUE;
