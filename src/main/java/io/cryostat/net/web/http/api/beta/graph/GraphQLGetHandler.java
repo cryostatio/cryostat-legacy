@@ -35,71 +35,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+import graphql.GraphQL;
+import io.vertx.core.http.HttpMethod;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+class GraphQLGetHandler extends GraphQLPostHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+    @Inject
+    GraphQLGetHandler(GraphQL graph, AuthManager auth, Logger logger) {
+        super(graph, auth, logger);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 }

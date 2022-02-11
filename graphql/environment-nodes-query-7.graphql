@@ -1,0 +1,13 @@
+query {
+    environmentNodes(filter: { nodeName: "JDP" }) {
+        descendantTargets {
+            recordings {
+                archived {
+                    delete {
+                        name
+                    }
+                }
+            }
+        }
+    }
+}

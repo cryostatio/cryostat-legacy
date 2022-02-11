@@ -1,0 +1,102 @@
+scalar Object
+scalar ServiceURI
+scalar NodeType
+scalar Url
+scalar Boolean
+scalar Long
+
+type ServiceRef {
+    serviceUri: ServiceURI!
+    alias: String
+    labels: Object!
+    annotations: Annotations!
+}
+
+type Annotations {
+    platform: Object!
+    cryostat: Object!
+}
+
+type TargetNode implements Node {
+    target: ServiceRef!
+    recordings: Recordings!
+
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+
+    startRecording(recording: RecordingSettings!): ActiveRecording!
+    snapshot: ActiveRecording! # mutation
+}
+
+type EnvironmentNode implements Node {
+    children: [Node!]!
+
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+
+    descendantTargets: [TargetNode!]! # TODO add some kind of filters
+}
+
+input EnvironmentNodeFilterInput {
+    nodeName: String
+    nodeType: String
+    labelKey: String
+    labelValue: String
+}
+
+interface Node {
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+}
+
+type Recordings {
+    active(names: [String!]): [ActiveRecording!]! # TODO better filtering, not just on name
+    archived(names: [String!]): [ArchivedRecording!]!
+}
+
+type ActiveRecording implements Recording {
+    state: String!
+    startTime: Long!
+
+    duration: Long!
+    continuous: Boolean!
+    toDisk: Boolean!
+    maxSize: Long!
+    maxAge: Long!
+
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+
+    archive: ArchivedRecording! # mutation
+    stop: ActiveRecording! # mutation
+    delete: ActiveRecording! # mutation
+}
+
+type ArchivedRecording implements Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+
+    delete: ArchivedRecording! # mutation
+}
+
+interface Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+}
+
+input RecordingSettings {
+    name: String!
+    template: String!
+    templateType: String!
+    duration: Long
+    continuous: Boolean
+    toDisk: Boolean
+    maxSize: Long
+    maxAge: Long
+}

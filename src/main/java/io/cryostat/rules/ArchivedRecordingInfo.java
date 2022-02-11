@@ -40,6 +40,7 @@ package io.cryostat.rules;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+// FIXME move to a more appropriate package
 public class ArchivedRecordingInfo {
 
     private final transient String encodedServiceUri;

@@ -1,0 +1,11 @@
+query {
+    targetNodes {
+        name
+        nodeType
+        labels
+        target {
+            alias
+            serviceUri
+        }
+    }
+}

@@ -61,6 +61,7 @@ import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -531,11 +532,11 @@ public class RecordingTargetHelperTest {
                         });
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
+        Mockito.when(descriptor.getName()).thenReturn("someRecording");
+        Mockito.when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        recordingTargetHelper
-                .stopRecording(new ConnectionDescriptor("fooTarget"), "someRecording")
-                .get();
+        recordingTargetHelper.stopRecording(new ConnectionDescriptor("fooTarget"), "someRecording");
 
         Mockito.verify(service).stop(descriptor);
 
@@ -567,17 +568,15 @@ public class RecordingTargetHelperTest {
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-        ExecutionException ee =
+        RecordingNotFoundException rnfe =
                 Assertions.assertThrows(
-                        ExecutionException.class,
+                        RecordingNotFoundException.class,
                         () ->
-                                recordingTargetHelper
-                                        .stopRecording(
-                                                new ConnectionDescriptor("fooTarget"),
-                                                "someRecording")
-                                        .get());
+                                recordingTargetHelper.stopRecording(
+                                        new ConnectionDescriptor("fooTarget"), "someRecording"));
         MatcherAssert.assertThat(
-                ee.getCause(), Matchers.instanceOf(RecordingNotFoundException.class));
+                rnfe.getMessage(),
+                Matchers.equalTo("Recording someRecording not found in target fooTarget"));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

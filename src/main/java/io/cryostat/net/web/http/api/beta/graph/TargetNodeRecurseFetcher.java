@@ -35,56 +35,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-    protected String downloadUrl;
-    protected String reportUrl;
-
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
-
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
-
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getReportUrl() {
-        return reportUrl;
-    }
+class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
 
     @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+        AbstractNode node = environment.getSource();
+        if (node instanceof TargetNode) {
+            return List.of((TargetNode) node);
+        } else if (node instanceof EnvironmentNode) {
+            List<TargetNode> result = new ArrayList<>();
+            for (AbstractNode child : ((EnvironmentNode) node).getChildren()) {
+                DataFetchingEnvironment newEnv =
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                .source(child)
+                                .build();
+                result.addAll(get(newEnv));
+            }
+            return result;
+        } else {
+            throw new IllegalStateException(node.getClass().toString());
+        }
     }
 }

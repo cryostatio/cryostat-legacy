@@ -35,71 +35,71 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.beta.graph;
 
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
+import javax.inject.Inject;
+
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import graphql.GraphQL;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+class GraphQLPostHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+    private final GraphQLHandler handler;
+    private final AuthManager auth;
+    private final Logger logger;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+    @Inject
+    GraphQLPostHandler(GraphQL graph, AuthManager auth, Logger logger) {
+        this.handler = GraphQLHandler.create(graph);
+        this.auth = auth;
+        this.logger = logger;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+    @Override
+    public String path() {
+        return basePath() + "graphql";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public void handle(RoutingContext ctx) {
+        try {
+            if (!auth.validateHttpHeader(
+                            () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                            ResourceAction.ALL)
+                    .get()) {
+                throw new ApiException(401);
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ApiException(500, e);
+        }
+        this.handler.handle(ctx);
+    }
 }

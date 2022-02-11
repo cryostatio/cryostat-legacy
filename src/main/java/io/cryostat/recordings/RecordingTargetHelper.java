@@ -39,6 +39,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -113,6 +114,14 @@ public class RecordingTargetHelper {
         this.scheduler = scheduler;
         this.logger = logger;
         this.scheduledStopNotifications = new ConcurrentHashMap<>();
+    }
+
+    public List<IRecordingDescriptor> getRecordings(ConnectionDescriptor connectionDescriptor)
+            throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> connection.getService().getAvailableRecordings(),
+                false);
     }
 
     public IRecordingDescriptor startRecording(
@@ -229,79 +238,86 @@ public class RecordingTargetHelper {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             String targetId = connectionDescriptor.getTargetId();
-            targetConnectionManager.executeConnectedTask(
-                    connectionDescriptor,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(connection, recordingName);
-                        if (descriptor.isPresent()) {
-                            IRecordingDescriptor d = descriptor.get();
-                            connection.getService().close(d);
-                            reportService.delete(connectionDescriptor, recordingName);
-                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
-                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                                    new HyperlinkedSerializableRecordingDescriptor(
-                                            d,
-                                            webServer.get().getDownloadURL(connection, d.getName()),
-                                            webServer.get().getReportURL(connection, d.getName()));
-                            notificationFactory
-                                    .createBuilder()
-                                    .metaCategory(DELETION_NOTIFICATION_CATEGORY)
-                                    .metaType(HttpMimeType.JSON)
-                                    .message(
-                                            Map.of(
-                                                    "recording",
-                                                    linkedDesc,
-                                                    "target",
-                                                    connectionDescriptor.getTargetId()))
-                                    .build()
-                                    .send();
-                        } else {
-                            throw new RecordingNotFoundException(targetId, recordingName);
-                        }
-                        return null;
-                    });
-            future.complete(null);
+            Void v =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> descriptor =
+                                        getDescriptorByName(connection, recordingName);
+                                if (descriptor.isPresent()) {
+                                    IRecordingDescriptor d = descriptor.get();
+                                    connection.getService().close(d);
+                                    reportService.delete(connectionDescriptor, recordingName);
+                                    this.cancelScheduledNotificationIfExists(
+                                            targetId, recordingName);
+                                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                            new HyperlinkedSerializableRecordingDescriptor(
+                                                    d,
+                                                    webServer
+                                                            .get()
+                                                            .getDownloadURL(
+                                                                    connection, d.getName()),
+                                                    webServer
+                                                            .get()
+                                                            .getReportURL(connection, d.getName()));
+                                    notificationFactory
+                                            .createBuilder()
+                                            .metaCategory(DELETION_NOTIFICATION_CATEGORY)
+                                            .metaType(HttpMimeType.JSON)
+                                            .message(
+                                                    Map.of(
+                                                            "recording",
+                                                            linkedDesc,
+                                                            "target",
+                                                            connectionDescriptor.getTargetId()))
+                                            .build()
+                                            .send();
+                                } else {
+                                    throw new RecordingNotFoundException(targetId, recordingName);
+                                }
+                                return null;
+                            });
+            future.complete(v);
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
         return future;
     }
 
-    public Future<Void> stopRecording(
+    public IRecordingDescriptor stopRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        return stopRecording(connectionDescriptor, recordingName, false);
+    }
+
+    public IRecordingDescriptor stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean quiet)
+            throws Exception {
         String targetId = connectionDescriptor.getTargetId();
-        try {
-            targetConnectionManager.executeConnectedTask(
-                    connectionDescriptor,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                connection.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                recording ->
-                                                        recording.getName().equals(recordingName))
-                                        .findFirst();
-                        if (descriptor.isPresent()) {
-                            IRecordingDescriptor d = descriptor.get();
-                            connection.getService().stop(d);
-                            this.cancelScheduledNotificationIfExists(targetId, recordingName);
-                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                                    new HyperlinkedSerializableRecordingDescriptor(
-                                            d,
-                                            webServer.get().getDownloadURL(connection, d.getName()),
-                                            webServer.get().getReportURL(connection, d.getName()));
-                            this.notifyRecordingStopped(targetId, linkedDesc);
-                            return null;
-                        } else {
-                            throw new RecordingNotFoundException(targetId, recordingName);
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        IRecordingDescriptor d = descriptor.get();
+                        if (d.getState().equals(RecordingState.STOPPED) && quiet) {
+                            return d;
                         }
-                    });
-            future.complete(null);
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+                        connection.getService().stop(d);
+                        this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                new HyperlinkedSerializableRecordingDescriptor(
+                                        d,
+                                        webServer.get().getDownloadURL(connection, d.getName()),
+                                        webServer.get().getReportURL(connection, d.getName()));
+                        this.notifyRecordingStopped(targetId, linkedDesc);
+                        return getDescriptorByName(connection, recordingName).get();
+                    } else {
+                        throw new RecordingNotFoundException(targetId, recordingName);
+                    }
+                });
     }
 
     public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(

@@ -35,35 +35,62 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta.graph;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-class TargetRecordingPatchStop {
+class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
 
+    private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
+    private final CredentialsManager credentialsManager;
+    private final Provider<WebServer> webServer;
 
     @Inject
-    TargetRecordingPatchStop(RecordingTargetHelper recordingTargetHelper) {
+    StopRecordingMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager,
+            Provider<WebServer> webServer) {
+        this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
+        this.credentialsManager = credentialsManager;
+        this.webServer = webServer;
     }
 
-    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
+    @Override
+    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
-        try {
-            recordingTargetHelper.stopRecording(connectionDescriptor, recordingName);
-        } catch (RecordingNotFoundException rnfe) {
-            throw new HttpStatusException(404, rnfe);
-        }
-        ctx.response().setStatusCode(200);
-        ctx.response().end();
+        return targetConnectionManager.executeConnectedTask(
+                cd,
+                conn -> {
+                    IRecordingDescriptor desc =
+                            recordingTargetHelper.stopRecording(cd, source.getName(), true);
+                    WebServer ws = webServer.get();
+                    return new GraphRecordingDescriptor(
+                            target,
+                            desc,
+                            ws.getDownloadURL(conn, desc.getName()),
+                            ws.getReportURL(conn, desc.getName()));
+                },
+                true);
     }
 }

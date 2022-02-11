@@ -35,56 +35,51 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import javax.inject.Inject;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.TargetNode;
 
-    protected String downloadUrl;
-    protected String reportUrl;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+class TargetDescendentsFetcher implements DataFetcher<List<TargetNode>> {
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+    private final TargetNodeRecurseFetcher recurseFetcher;
+    private final NodeFetcher nodeFetcher;
 
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getReportUrl() {
-        return reportUrl;
+    @Inject
+    TargetDescendentsFetcher(TargetNodeRecurseFetcher recurseFetcher, NodeFetcher nodeFetcher) {
+        this.recurseFetcher = recurseFetcher;
+        this.nodeFetcher = nodeFetcher;
     }
 
     @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
+    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+        List<Map<String, String>> selectors = environment.getArgument("nodes");
+        List<TargetNode> result = new ArrayList<>();
+        for (Map<String, String> selector : selectors) {
+            String name = selector.get("name");
+            String nodeType = selector.get("nodeType");
 
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+            AbstractNode parent =
+                    nodeFetcher.get(
+                            DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                    .arguments(Map.of("name", name, "nodeType", nodeType))
+                                    .build());
+            result.addAll(
+                    recurseFetcher.get(
+                            DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                    .source(parent)
+                                    .build()));
+        }
+        return result;
     }
 }

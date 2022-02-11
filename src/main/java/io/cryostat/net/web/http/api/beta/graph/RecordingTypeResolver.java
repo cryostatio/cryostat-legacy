@@ -35,71 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+import graphql.TypeResolutionEnvironment;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.TypeResolver;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+class RecordingTypeResolver implements TypeResolver {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+    @Inject
+    RecordingTypeResolver() {}
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
+        Object o = env.getObject();
+        if (o instanceof HyperlinkedSerializableRecordingDescriptor) {
+            return env.getSchema().getObjectType("ActiveRecording");
+        } else {
+            return env.getSchema().getObjectType("ArchivedRecording");
+        }
+    }
 }

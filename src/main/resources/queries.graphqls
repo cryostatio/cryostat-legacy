@@ -1,0 +1,5 @@
+type Query {
+    discovery: EnvironmentNode! # TODO rename as rootNode
+    environmentNodes(filter: EnvironmentNodeFilterInput): [EnvironmentNode!]!
+    targetNodes: [TargetNode!]! # TODO add filters for names, labels, annotations
+}

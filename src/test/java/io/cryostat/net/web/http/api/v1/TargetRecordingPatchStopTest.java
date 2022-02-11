@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.core.net.JFRConnection;
@@ -100,8 +98,8 @@ class TargetRecordingPatchStopTest {
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
-        Mockito.when(recordingTargetHelper.stopRecording(connectionDescriptor, "someRecording"))
-                .thenThrow(RecordingNotFoundException.class);
+        Mockito.when(recordingTargetHelper.stopRecording(Mockito.any(), Mockito.anyString()))
+                .thenThrow(new RecordingNotFoundException("myTarget", "someRecording"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(
@@ -115,13 +113,7 @@ class TargetRecordingPatchStopTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.response()).thenReturn(resp);
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        future.complete(null);
-
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
-        Mockito.when(recordingTargetHelper.stopRecording(connectionDescriptor, "someRecording"))
-                .thenReturn(future);
-
         patchStop.handle(ctx, connectionDescriptor);
 
         Mockito.verify(recordingTargetHelper).stopRecording(connectionDescriptor, "someRecording");

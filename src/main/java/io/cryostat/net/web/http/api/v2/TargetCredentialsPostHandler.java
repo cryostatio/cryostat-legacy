@@ -115,6 +115,7 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
         String targetId = params.getPathParams().get("targetId");
         String username = params.getFormAttributes().get("username");
         String password = params.getFormAttributes().get("password");
+        boolean persist = Boolean.valueOf(params.getFormAttributes().get("persist"));
 
         if (StringUtils.isAnyBlank(username, password)) {
             StringBuilder sb = new StringBuilder();
@@ -129,7 +130,8 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
         }
 
         try {
-            this.credentialsManager.addCredentials(targetId, new Credentials(username, password));
+            this.credentialsManager.addCredentials(
+                    targetId, new Credentials(username, password), persist);
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }

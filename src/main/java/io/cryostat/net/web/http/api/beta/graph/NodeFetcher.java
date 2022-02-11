@@ -35,56 +35,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import javax.inject.Inject;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-    protected String downloadUrl;
-    protected String reportUrl;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+class NodeFetcher implements DataFetcher<AbstractNode> {
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+    private final DiscoveryFetcher discoveryFetcher;
 
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getReportUrl() {
-        return reportUrl;
+    @Inject
+    NodeFetcher(DiscoveryFetcher discoveryFetcher) {
+        this.discoveryFetcher = discoveryFetcher;
     }
 
     @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+    public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
+        EnvironmentNode root = discoveryFetcher.get(environment);
+        String name = environment.getArgument("name");
+        String nodeType = environment.getArgument("nodeType");
+        AbstractNode node = findNode(name, nodeType, root);
+        if (node == null) {
+            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+        }
+        return node;
     }
 
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
+        if (Objects.equals(name, root.getName())
+                && root.getNodeType().getKind().equalsIgnoreCase(nodeType)) {
+            return root;
+        }
+        if (root instanceof EnvironmentNode) {
+            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
+                AbstractNode found = findNode(name, nodeType, child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 }

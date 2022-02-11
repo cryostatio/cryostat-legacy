@@ -63,7 +63,7 @@ import io.cryostat.util.URIUtil;
 public class DefaultPlatformClient extends AbstractPlatformClient
         implements Consumer<JvmDiscoveryEvent> {
 
-    public static final JDPNodeType NODE_TYPE = new JDPNodeType();
+    public static final JDPNodeType NODE_TYPE = JDPNodeType.JVM;
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
@@ -128,18 +128,13 @@ public class DefaultPlatformClient extends AbstractPlatformClient
         return root;
     }
 
-    public static class JDPNodeType implements NodeType {
-
-        public static final String KIND = "JVM";
+    public enum JDPNodeType implements NodeType {
+        JVM,
+        ;
 
         @Override
         public String getKind() {
-            return KIND;
-        }
-
-        @Override
-        public int ordinal() {
-            return 0;
+            return "JVM";
         }
     }
 }

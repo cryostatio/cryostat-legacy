@@ -243,6 +243,65 @@ public class RecordingArchiveHelper {
         return archivedRecordingsReportPath.resolve(fileName).toAbsolutePath();
     }
 
+    public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
+        CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
+
+        String encodedServiceUri = base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8));
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(encodedServiceUri);
+
+        try {
+            if (!fs.exists(archivedRecordingsPath)) {
+                throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
+            }
+            if (!fs.isReadable(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not readable");
+            }
+            if (!fs.isDirectory(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not a directory");
+            }
+
+            if (!fs.exists(specificRecordingsPath)) {
+                future.complete(List.of());
+                return future;
+            }
+            if (!fs.isReadable(specificRecordingsPath)) {
+                throw new ArchivePathException(
+                        specificRecordingsPath.toString(), "is not readable");
+            }
+            if (!fs.isDirectory(specificRecordingsPath)) {
+                throw new ArchivePathException(
+                        specificRecordingsPath.toString(), "is not a directory");
+            }
+            WebServer webServer = webServerProvider.get();
+            List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
+            this.fs.listDirectoryChildren(specificRecordingsPath).stream()
+                    .map(
+                            file -> {
+                                try {
+                                    return new ArchivedRecordingInfo(
+                                            encodedServiceUri,
+                                            webServer.getArchivedDownloadURL(file),
+                                            file,
+                                            webServer.getArchivedReportURL(file));
+                                } catch (SocketException
+                                        | UnknownHostException
+                                        | URISyntaxException e) {
+                                    logger.warn(e);
+                                    return null;
+                                }
+                            })
+                    .filter(Objects::nonNull)
+                    .forEach(archivedRecordings::add);
+            future.complete(archivedRecordings);
+        } catch (ArchivePathException | IOException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
     public Future<List<ArchivedRecordingInfo>> getRecordings() {
 
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();

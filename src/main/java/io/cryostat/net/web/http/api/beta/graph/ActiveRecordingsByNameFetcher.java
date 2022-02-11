@@ -35,56 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import javax.inject.Inject;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
 
-    protected String downloadUrl;
-    protected String reportUrl;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+class ActiveRecordingsByNameFetcher implements DataFetcher<List<GraphRecordingDescriptor>> {
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+    @Inject
+    ActiveRecordingsByNameFetcher() {}
 
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
+    public List<GraphRecordingDescriptor> get(DataFetchingEnvironment environment)
+            throws Exception {
+        Recordings source = environment.getSource();
 
-    public String getReportUrl() {
-        return reportUrl;
-    }
+        List<String> names = environment.getArgument("names");
+        if (names == null || names.isEmpty()) {
+            return source.active;
+        }
 
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+        return source.active.stream()
+                .filter(r -> names.contains(r.getName()))
+                .collect(Collectors.toList());
     }
 }

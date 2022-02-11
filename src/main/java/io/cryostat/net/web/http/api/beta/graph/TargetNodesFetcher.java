@@ -35,56 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import java.util.List;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import javax.inject.Inject;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import io.cryostat.platform.discovery.TargetNode;
 
-    protected String downloadUrl;
-    protected String reportUrl;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+    private final DiscoveryFetcher discoveryFetcher;
+    private final TargetNodeRecurseFetcher recurseFetcher;
 
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getReportUrl() {
-        return reportUrl;
+    @Inject
+    TargetNodesFetcher(DiscoveryFetcher discoveryFetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        this.discoveryFetcher = discoveryFetcher;
+        this.recurseFetcher = recurseFetcher;
     }
 
     @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+        return recurseFetcher.get(
+                DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
+                        .source(discoveryFetcher.get(environment))
+                        .build());
     }
 }
