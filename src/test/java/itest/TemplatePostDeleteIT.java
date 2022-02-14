@@ -124,6 +124,6 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
-        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 }
