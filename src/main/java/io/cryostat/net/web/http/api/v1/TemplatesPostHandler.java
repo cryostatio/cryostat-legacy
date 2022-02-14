@@ -50,6 +50,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
+import io.cryostat.core.templates.Template;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -123,14 +124,14 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 }
                 handledUpload = true;
                 try (InputStream is = fs.newInputStream(path)) {
+                    Template t = templateService.addTemplate(is);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("template", u.uploadedFileName()))
+                            .message(Map.of("template", t))
                             .build()
                             .send();
-                    templateService.addTemplate(is);
                 } finally {
                     fs.deleteIfExists(path);
                 }
