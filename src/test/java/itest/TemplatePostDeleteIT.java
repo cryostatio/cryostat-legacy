@@ -110,7 +110,7 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
     }
 
     @Test
-    public void testDeleteRecordingThrowsOnNonExistentRecording() throws Exception {
+    public void testDeleteRecordingThrowsOnNonExistentTemplate() throws Exception {
 
         CompletableFuture<Void> response = new CompletableFuture<>();
 
@@ -123,7 +123,7 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 }
