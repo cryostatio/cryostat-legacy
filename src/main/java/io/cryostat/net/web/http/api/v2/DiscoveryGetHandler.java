@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -46,9 +46,6 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -72,7 +69,7 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override

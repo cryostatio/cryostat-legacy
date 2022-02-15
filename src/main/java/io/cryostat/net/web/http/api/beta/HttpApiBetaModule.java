@@ -46,9 +46,6 @@ import dagger.multibindings.IntoSet;
 
 @Module(includes = {GraphModule.class})
 public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
 
     @Binds
     @IntoSet
