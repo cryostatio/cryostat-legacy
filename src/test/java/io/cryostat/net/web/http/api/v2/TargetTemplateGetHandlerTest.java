@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Optional;
@@ -93,8 +93,8 @@ class TargetTemplateGetHandlerTest {
     class ApiSpec {
 
         @Test
-        void shouldUseApiVersionBeta() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
+        void shouldUseApiVersion2_1() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
@@ -107,7 +107,7 @@ class TargetTemplateGetHandlerTest {
             MatcherAssert.assertThat(
                     handler.path(),
                     Matchers.equalTo(
-                            "/api/beta/targets/:targetId/templates/:templateName/type/:templateType"));
+                            "/api/v2.1/targets/:targetId/templates/:templateName/type/:templateType"));
         }
 
         @Test

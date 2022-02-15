@@ -35,23 +35,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -60,25 +64,29 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class RecordingGetHandler extends AbstractJwtConsumingHandler {
+class ReportGetHandler extends AbstractJwtConsumingHandler {
 
-    private final RecordingArchiveHelper recordingArchiveHelper;
+    private final ReportService reportService;
+    private final long generationTimeoutSeconds;
 
     @Inject
-    RecordingGetHandler(
+    ReportGetHandler(
             AuthManager auth,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
-            RecordingArchiveHelper recordingArchiveHelper,
+            ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
-        this.recordingArchiveHelper = recordingArchiveHelper;
+        this.reportService = reportService;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
@@ -88,12 +96,15 @@ class RecordingGetHandler extends AbstractJwtConsumingHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_RECORDING);
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.CREATE_REPORT,
+                ResourceAction.READ_REPORT);
     }
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName";
+        return basePath() + "reports/:recordingName";
     }
 
     @Override
@@ -102,25 +113,28 @@ class RecordingGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
+    public boolean isOrdered() {
+        return false;
+    }
+
+    @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            Path report =
+                    reportService
+                            .get(recordingName)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            String.format("attachment; filename=\"%s\"", recordingName));
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()));
-            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, ee);
             }
-            throw e;
+            throw ee;
         }
     }
 }

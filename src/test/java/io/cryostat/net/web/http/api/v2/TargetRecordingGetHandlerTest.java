@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -101,8 +101,8 @@ class TargetRecordingGetHandlerTest {
     class ApiSpec {
 
         @Test
-        void shouldUseApiVersionBeta() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
+        void shouldUseApiVersion2_1() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
@@ -114,7 +114,7 @@ class TargetRecordingGetHandlerTest {
         void shouldUseExpectedPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/targets/:targetId/recordings/:recordingName"));
+                    Matchers.equalTo("/api/v2.1/targets/:targetId/recordings/:recordingName"));
         }
 
         @Test

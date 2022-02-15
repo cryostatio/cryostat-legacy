@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,7 +82,7 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override

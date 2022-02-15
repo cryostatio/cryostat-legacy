@@ -35,27 +35,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.reports.ReportsModule;
-import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -64,30 +60,25 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class TargetReportGetHandler extends AbstractJwtConsumingHandler {
+class RecordingGetHandler extends AbstractJwtConsumingHandler {
 
-    protected final ReportService reportService;
-    protected final long reportGenerationTimeoutSeconds;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    TargetReportGetHandler(
+    RecordingGetHandler(
             AuthManager auth,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
-            ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
-                    long reportGenerationTimeoutSeconds,
+            RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
-        this.reportService = reportService;
-        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
@@ -96,69 +87,40 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
-    public String path() {
-        return basePath() + "targets/:targetId/reports/:recordingName";
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_TARGET,
-                ResourceAction.READ_RECORDING,
-                ResourceAction.CREATE_REPORT,
-                ResourceAction.READ_REPORT);
+    public String path() {
+        return basePath() + "recordings/:recordingName";
     }
 
     @Override
     public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    public boolean isOrdered() {
         return true;
     }
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             ctx.response()
-                    .end(
-                            reportService
-                                    .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
-                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
-        } catch (CompletionException | ExecutionException ee) {
-
-            Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
-
-            if (targetRecordingNotFound(rootCause)) {
-                throw new HttpStatusException(404, ee);
+                    .putHeader(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            String.format("attachment; filename=\"%s\"", recordingName));
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_LENGTH,
+                            Long.toString(archivedRecording.toFile().length()));
+            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, e.getMessage(), e);
             }
-            throw ee;
+            throw e;
         }
-    }
-
-    // TODO this needs to also handle the case where sidecar report generator container responds 404
-    private boolean targetRecordingNotFound(Exception rootCause) {
-        if (rootCause instanceof RecordingNotFoundException) {
-            return true;
-        }
-        boolean isReportGenerationException =
-                rootCause instanceof SubprocessReportGenerator.SubprocessReportGenerationException;
-        if (!isReportGenerationException) {
-            return false;
-        }
-        SubprocessReportGenerator.SubprocessReportGenerationException generationException =
-                (SubprocessReportGenerator.SubprocessReportGenerationException) rootCause;
-        boolean isTargetConnectionFailure =
-                generationException.getStatus()
-                        == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;
-        boolean isNoSuchRecording =
-                generationException.getStatus()
-                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING;
-        return isTargetConnectionFailure || isNoSuchRecording;
     }
 }

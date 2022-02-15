@@ -164,4 +164,24 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
 }

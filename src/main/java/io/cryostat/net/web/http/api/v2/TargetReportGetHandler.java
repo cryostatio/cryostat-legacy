@@ -35,9 +35,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
@@ -51,6 +50,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
+import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -66,27 +66,28 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class ReportGetHandler extends AbstractJwtConsumingHandler {
+class TargetReportGetHandler extends AbstractJwtConsumingHandler {
 
-    private final ReportService reportService;
-    private final long generationTimeoutSeconds;
+    protected final ReportService reportService;
+    protected final long reportGenerationTimeoutSeconds;
 
     @Inject
-    ReportGetHandler(
+    TargetReportGetHandler(
             AuthManager auth,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
         this.reportService = reportService;
-        this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
@@ -95,46 +96,69 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
+    public String path() {
+        return basePath() + "targets/:targetId/reports/:recordingName";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
+                ResourceAction.READ_TARGET,
                 ResourceAction.READ_RECORDING,
                 ResourceAction.CREATE_REPORT,
                 ResourceAction.READ_REPORT);
     }
 
     @Override
-    public String path() {
-        return basePath() + "reports/:recordingName";
-    }
-
-    @Override
     public boolean isAsync() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean isOrdered() {
-        return false;
+        return true;
     }
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
-            Path report =
-                    reportService
-                            .get(recordingName)
-                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
-            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
-            ctx.response().sendFile(report.toAbsolutePath().toString());
-        } catch (ExecutionException | CompletionException ee) {
-            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                    .end(
+                            reportService
+                                    .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+        } catch (CompletionException | ExecutionException ee) {
+
+            Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
+
+            if (targetRecordingNotFound(rootCause)) {
                 throw new HttpStatusException(404, ee);
             }
             throw ee;
         }
+    }
+
+    // TODO this needs to also handle the case where sidecar report generator container responds 404
+    private boolean targetRecordingNotFound(Exception rootCause) {
+        if (rootCause instanceof RecordingNotFoundException) {
+            return true;
+        }
+        boolean isReportGenerationException =
+                rootCause instanceof SubprocessReportGenerator.SubprocessReportGenerationException;
+        if (!isReportGenerationException) {
+            return false;
+        }
+        SubprocessReportGenerator.SubprocessReportGenerationException generationException =
+                (SubprocessReportGenerator.SubprocessReportGenerationException) rootCause;
+        boolean isTargetConnectionFailure =
+                generationException.getStatus()
+                        == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;
+        boolean isNoSuchRecording =
+                generationException.getStatus()
+                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING;
+        return isTargetConnectionFailure || isNoSuchRecording;
     }
 }
