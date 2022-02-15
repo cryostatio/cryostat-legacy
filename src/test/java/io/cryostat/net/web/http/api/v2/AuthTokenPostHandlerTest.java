@@ -35,26 +35,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.net.URL;
 import java.util.Map;
 import java.util.Set;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
-
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -67,6 +55,16 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class AuthTokenPostHandlerTest {
@@ -86,13 +84,13 @@ class AuthTokenPostHandlerTest {
     @Nested
     class ApiSpec {
         @Test
-        void shouldBeBetaApi() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
+        void shouldBeV2_1Api() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
         void shouldUseExpectedPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/beta/auth/token"));
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.1/auth/token"));
         }
 
         @Test

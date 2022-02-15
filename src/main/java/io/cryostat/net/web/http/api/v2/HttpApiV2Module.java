@@ -156,4 +156,12 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
 }
