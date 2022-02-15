@@ -55,6 +55,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -65,6 +66,7 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager connectionManager;
     private final Provider<WebServer> webServerProvider;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Gson gson;
 
     @Inject
@@ -72,10 +74,12 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             TargetConnectionManager connectionManager,
             Provider<WebServer> webServerProvider,
+            RecordingMetadataManager recordingMetadataManager,
             Gson gson) {
         super(auth);
         this.connectionManager = connectionManager;
         this.webServerProvider = webServerProvider;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.gson = gson;
     }
 
@@ -121,8 +125,11 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                 desc,
                                                 webServer.getDownloadURL(
                                                         connection, desc.getName()),
-                                                webServer.getReportURL(
-                                                        connection, desc.getName())));
+                                                webServer.getReportURL(connection, desc.getName()),
+                                                recordingMetadataManager.getRecordingLabelsAsString(
+                                                        getConnectionDescriptorFromContext(ctx)
+                                                                .getTargetId(),
+                                                        desc.getName())));
                             }
                             return list;
                         });

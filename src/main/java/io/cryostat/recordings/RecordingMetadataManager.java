@@ -40,7 +40,6 @@ package io.cryostat.recordings;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -76,10 +75,8 @@ public class RecordingMetadataManager {
 
     public Future<Void> addRecordingLabels(String targetId, String recordingName, String labels)
             throws IllegalArgumentException {
-        Pair<String, String> key = Pair.of(targetId, recordingName);
-        Map<String, String> newLabels = parseRecordingLabels(labels);
-
-        this.recordingLabelsMap.put(key, newLabels);
+ 
+        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), parseRecordingLabels(labels));
 
         return CompletableFuture.completedFuture(null);
     }
@@ -105,9 +102,9 @@ public class RecordingMetadataManager {
     }
 
     public String getRecordingLabelsAsString(String targetId, String recordingName) {
-        return Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)))
-                .map(m -> m.toString())
-                .orElse("");
+        Optional<Map<String, String>> opt =
+                Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)));
+        return opt.map(m -> gson.toJson(m)).orElse("");
     }
 
     public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
@@ -122,13 +119,17 @@ public class RecordingMetadataManager {
         }
 
         if (LABELS_PATTERN.matcher(labels).matches()) {
-            Map<String, String> labelMap = new HashMap<>();
+            Map<String, String> labelMap = new ConcurrentHashMap<>();
 
             Arrays.asList(labels.split(",")).stream()
                     .forEach(
                             pair -> {
                                 Optional<Pair<String, String>> label = this.splitLabelPairs(pair);
-                                label.ifPresent(l -> labelMap.put(l.getLeft(), l.getRight()));
+                                label.ifPresent(
+                                        l ->
+                                                labelMap.put(
+                                                        new String(l.getLeft()),
+                                                        new String(l.getRight())));
                             });
             return labelMap;
         }
