@@ -41,8 +41,17 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.gson.Gson;
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -55,16 +64,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class AuthTokenPostHandlerTest {

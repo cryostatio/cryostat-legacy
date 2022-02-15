@@ -73,7 +73,7 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
                                     .setPath(
                                             archivedResource
                                                     .getPath()
-                                                    .replace("/api/v1/", "/api/beta/"))
+                                                    .replace("/api/v1/", "/api/v2.1/"))
                                     .build()
                                     .toURL());
             assetDownload =
