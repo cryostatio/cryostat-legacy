@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.URI;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -46,7 +47,10 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -58,6 +62,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -125,9 +130,35 @@ class DiscoveryGetHandlerTest {
         EnvironmentNode expected;
 
         @BeforeEach
-        void setup() throws Exception {}
+        void setup() throws Exception {
+            EnvironmentNode project =
+                    new EnvironmentNode("myProject", KubernetesNodeType.NAMESPACE);
+            EnvironmentNode deployment =
+                    new EnvironmentNode("appDeployment", KubernetesNodeType.DEPLOYMENT);
+            project.addChildNode(deployment);
+            EnvironmentNode pod = new EnvironmentNode("appPod-1", KubernetesNodeType.POD);
+            deployment.addChildNode(pod);
+            ServiceRef serviceRef =
+                    new ServiceRef(
+                            new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                            "appReplica-1-1");
+            TargetNode endpoint = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);
+            deployment.addChildNode(endpoint);
+
+            expected = project;
+        }
 
         @Test
-        void shouldRespondWithEnvironmentNode() throws Exception {}
+        void shouldRespondWithEnvironmentNode() throws Exception {
+            Mockito.when(platformClient.getDiscoveryTree()).thenReturn(expected);
+
+            IntermediateResponse<EnvironmentNode> response = handler.handle(params);
+
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+            EnvironmentNode actual = response.getBody();
+
+            MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
+        }
     }
 }
