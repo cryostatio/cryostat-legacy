@@ -73,7 +73,7 @@ type ActiveRecording implements Recording {
 
     doArchive: ArchivedRecording!
     doStop: ActiveRecording!
-    delete: ActiveRecording! # mutation
+    doDelete: ActiveRecording!
 }
 
 type ArchivedRecording implements Recording {
@@ -81,7 +81,7 @@ type ArchivedRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
 
-    delete: ArchivedRecording! # mutation
+    doDelete: ArchivedRecording!
 }
 
 interface Recording {
