@@ -7,7 +7,7 @@ query {
             }
             recordings {
                 active {
-                    archive {
+                    doArchive {
                         name
                     }
                 }
