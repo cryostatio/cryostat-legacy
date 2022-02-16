@@ -35,44 +35,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.discovery.EnvironmentNode;
 
-import com.google.gson.Gson;
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
+class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
 
-    private final PlatformClient platformClient;
+    private final TargetConnectionManager targetConnectionManager;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
-        super(auth, gson);
-        this.platformClient = platformClient;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
+    TargetTemplateGetHandler(
+            AuthManager auth,
+            AssetJwtHelper jwt,
+            Lazy<WebServer> webServer,
+            TargetConnectionManager targetConnectionManager,
+            Logger logger) {
+        super(auth, jwt, webServer, logger);
+        this.targetConnectionManager = targetConnectionManager;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
@@ -82,17 +86,12 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public String path() {
-        return basePath() + "discovery";
+        return basePath() + "targets/:targetId/templates/:templateName/type/:templateType";
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
-    }
-
-    @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_TEMPLATE);
     }
 
     @Override
@@ -101,7 +100,21 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(platformClient.getDiscoveryTree());
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+        String templateName = ctx.pathParam("templateName");
+        TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
+        targetConnectionManager
+                .executeConnectedTask(
+                        getConnectionDescriptorFromJwt(ctx, jwt),
+                        conn -> conn.getTemplateService().getXml(templateName, templateType))
+                .ifPresentOrElse(
+                        doc -> {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
+                            ctx.response().end(doc.toString());
+                        },
+                        () -> {
+                            throw new HttpStatusException(404);
+                        });
     }
 }

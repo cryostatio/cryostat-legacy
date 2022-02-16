@@ -35,23 +35,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -64,31 +65,32 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TargetReportGetHandlerTest {
+class RecordingGetHandlerTest {
 
-    TargetReportGetHandler handler;
+    RecordingGetHandler handler;
     @Mock AuthManager auth;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
-    @Mock ReportService reports;
+    @Mock RecordingArchiveHelper archive;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(auth, jwt, () -> webServer, reports, 30, logger);
+        this.handler = new RecordingGetHandler(auth, jwt, () -> webServer, archive, logger);
     }
 
     @Nested
     class ApiSpec {
 
         @Test
-        void shouldUseApiVersionBeta() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
+        void shouldUseApiVersion2_1() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
@@ -99,25 +101,19 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldUseExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(),
-                    Matchers.equalTo("/api/beta/targets/:targetId/reports/:recordingName"));
+                    handler.path(), Matchers.equalTo("/api/v2.1/recordings/:recordingName"));
         }
 
         @Test
         void shouldRequireResourceActions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(
-                            EnumSet.of(
-                                    ResourceAction.READ_TARGET,
-                                    ResourceAction.READ_RECORDING,
-                                    ResourceAction.CREATE_REPORT,
-                                    ResourceAction.READ_REPORT)));
+                    Matchers.equalTo(EnumSet.of(ResourceAction.READ_RECORDING)));
         }
 
         @Test
-        void shouldNotBeAsync() {
-            Assertions.assertFalse(handler.isAsync());
+        void shouldBeAsync() {
+            Assertions.assertTrue(handler.isAsync());
         }
 
         @Test
@@ -134,16 +130,11 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-            Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
-            Future<String> future =
+            Future<Path> future =
                     CompletableFuture.failedFuture(
-                            new RecordingNotFoundException("target", "myrecording"));
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString())).thenReturn(future);
+                            new RecordingNotFoundException("archive", "myrecording"));
+            Mockito.when(archive.getRecordingPath(Mockito.anyString())).thenReturn(future);
             HttpStatusException ex =
                     Assertions.assertThrows(
                             HttpStatusException.class,
@@ -156,16 +147,21 @@ class TargetReportGetHandlerTest {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
-            Future<String> future = CompletableFuture.completedFuture("report text");
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString())).thenReturn(future);
+            Path path = Mockito.mock(Path.class);
+            Mockito.when(path.toAbsolutePath()).thenReturn(path);
+            Mockito.when(path.toString()).thenReturn("foo.jfr");
+            File file = Mockito.mock(File.class);
+            Mockito.when(path.toFile()).thenReturn(file);
+            Mockito.when(file.length()).thenReturn(1234L);
+            Future<Path> future = CompletableFuture.completedFuture(path);
+            Mockito.when(archive.getRecordingPath(Mockito.anyString())).thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            Mockito.verify(resp).end("report text");
+            InOrder inOrder = Mockito.inOrder(resp);
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
+            inOrder.verify(resp).sendFile("foo.jfr");
         }
     }
 }

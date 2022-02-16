@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.net.MalformedURLException;
 import java.net.SocketException;
@@ -63,7 +63,6 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.v2.ApiException;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWT;

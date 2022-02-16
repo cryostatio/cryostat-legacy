@@ -72,7 +72,7 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
             URL reportUrl = new URL(creationResponse.getString("reportUrl"));
             String downloadUrl =
                     getTokenDownloadUrl(
-                            new URL(reportUrl.toString().replace("/api/v1/", "/api/beta/")));
+                            new URL(reportUrl.toString().replace("/api/v1/", "/api/v2.1/")));
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

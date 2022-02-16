@@ -65,7 +65,7 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
             Thread.sleep(10_000L);
             assetDownload =
                     downloadFileAbs(
-                                    downloadUrl.replace("/api/v1/", "/api/beta"),
+                                    downloadUrl.replace("/api/v1/", "/api/v2.1"),
                                     TEST_RECORDING_NAME,
                                     ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

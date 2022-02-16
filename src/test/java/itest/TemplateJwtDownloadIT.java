@@ -59,7 +59,7 @@ public class TemplateJwtDownloadIT extends JwtAssetsSelfTest {
             resource =
                     new URL(
                             String.format(
-                                    "http://%s:%d/api/beta/targets/%s/templates/Profiling/type/TARGET",
+                                    "http://%s:%d/api/v2.1/targets/%s/templates/Profiling/type/TARGET",
                                     Utils.WEB_HOST, Utils.WEB_PORT, SELF_REFERENCE_TARGET_ID));
             String downloadUrl = getTokenDownloadUrl(resource);
             assetDownload =

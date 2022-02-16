@@ -35,57 +35,70 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 
-class AuthTokenPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    private final PlatformClient platformClient;
 
     @Inject
-    AuthTokenPostBodyHandler(AuthManager auth) {
-        super(auth);
+    DiscoveryGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+        super(auth, gson);
+        this.platformClient = platformClient;
     }
 
     @Override
-    public int getPriority() {
-        return DEFAULT_PRIORITY - 1;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
+        return HttpMethod.GET;
     }
 
     @Override
     public String path() {
-        return basePath() + AuthTokenPostHandler.PATH;
+        return basePath() + "discovery";
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        BODY_HANDLER.handle(ctx);
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
+        return new IntermediateResponse<EnvironmentNode>().body(platformClient.getDiscoveryTree());
     }
 }

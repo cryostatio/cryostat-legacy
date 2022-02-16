@@ -53,7 +53,7 @@ public class JwtAssetsSelfTest extends StandardSelfTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("resource", resource.toString());
         webClient
-                .post("/api/beta/auth/token")
+                .post("/api/v2.1/auth/token")
                 .sendForm(
                         form,
                         ar -> {

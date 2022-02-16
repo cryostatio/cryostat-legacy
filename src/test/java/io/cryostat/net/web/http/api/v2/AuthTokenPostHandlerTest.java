@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.net.URL;
 import java.util.Map;
@@ -48,9 +48,6 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -86,13 +83,13 @@ class AuthTokenPostHandlerTest {
     @Nested
     class ApiSpec {
         @Test
-        void shouldBeBetaApi() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
+        void shouldBeV2_1Api() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
         void shouldUseExpectedPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/beta/auth/token"));
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.1/auth/token"));
         }
 
         @Test

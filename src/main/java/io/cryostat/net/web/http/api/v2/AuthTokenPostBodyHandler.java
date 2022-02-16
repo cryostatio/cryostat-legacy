@@ -35,92 +35,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
-import java.nio.file.Path;
-import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 
-import com.nimbusds.jwt.JWT;
-import dagger.Lazy;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class RecordingGetHandler extends AbstractJwtConsumingHandler {
+class AuthTokenPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final RecordingArchiveHelper recordingArchiveHelper;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    RecordingGetHandler(
-            AuthManager auth,
-            AssetJwtHelper jwtFactory,
-            Lazy<WebServer> webServer,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, jwtFactory, webServer, logger);
-        this.recordingArchiveHelper = recordingArchiveHelper;
+    AuthTokenPostBodyHandler(AuthManager auth) {
+        super(auth);
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_RECORDING);
+        return ResourceAction.NONE;
     }
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName";
+        return basePath() + AuthTokenPostHandler.PATH;
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
-    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        try {
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            String.format("attachment; filename=\"%s\"", recordingName));
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()));
-            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
-            }
-            throw e;
-        }
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

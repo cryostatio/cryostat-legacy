@@ -35,86 +35,113 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.EnumSet;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
-import com.nimbusds.jwt.JWT;
+import com.google.gson.Gson;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.http.client.utils.URIBuilder;
 
-class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
+class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
-    private final TargetConnectionManager targetConnectionManager;
+    static final String PATH = "auth/token";
+
+    private final AssetJwtHelper jwt;
+    private final Lazy<WebServer> webServer;
 
     @Inject
-    TargetTemplateGetHandler(
+    AuthTokenPostHandler(
             AuthManager auth,
+            Gson gson,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
-            TargetConnectionManager targetConnectionManager,
             Logger logger) {
-        super(auth, jwt, webServer, logger);
-        this.targetConnectionManager = targetConnectionManager;
+        super(auth, gson);
+        this.jwt = jwt;
+        this.webServer = webServer;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return ApiVersion.V2_1;
     }
 
     @Override
     public String path() {
-        return basePath() + "targets/:targetId/templates/:templateName/type/:templateType";
+        return basePath() + PATH;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_TEMPLATE);
+        return ResourceAction.NONE;
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String templateName = ctx.pathParam("templateName");
-        TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
-        targetConnectionManager
-                .executeConnectedTask(
-                        getConnectionDescriptorFromJwt(ctx, jwt),
-                        conn -> conn.getTemplateService().getXml(templateName, templateType))
-                .ifPresentOrElse(
-                        doc -> {
-                            ctx.response()
-                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
-                            ctx.response().end(doc.toString());
-                        },
-                        () -> {
-                            throw new HttpStatusException(404);
-                        });
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)
+            throws Exception {
+        String resource = requestParams.getFormAttributes().get(AssetJwtHelper.RESOURCE_CLAIM);
+        if (resource == null) {
+            throw new ApiException(
+                    400,
+                    String.format(
+                            "\"%s\" form attribute is required", AssetJwtHelper.RESOURCE_CLAIM));
+        }
+        String resourcePrefix = webServer.get().getHostUrl().toString();
+        URI resourceUri;
+        try {
+            resourceUri = new URI(resource);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
+        if (resourceUri.isAbsolute() && !resource.startsWith(resourcePrefix)) {
+            throw new ApiException(
+                    400, String.format("\"%s\" URL is invalid", AssetJwtHelper.RESOURCE_CLAIM));
+        }
+
+        String authzHeader = requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION);
+        String jmxauth =
+                requestParams
+                        .getHeaders()
+                        .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER);
+        String token = jwt.createAssetDownloadJwt(authzHeader, resource, jmxauth);
+        try {
+            URI finalUri = new URIBuilder(resourceUri).setParameter("token", token).build();
+            return new IntermediateResponse<Map<String, String>>()
+                    .body(Map.of("resourceUrl", finalUri.toString()));
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
     }
 }
