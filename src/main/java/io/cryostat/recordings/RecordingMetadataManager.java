@@ -39,31 +39,27 @@
 package io.cryostat.recordings;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.regex.Pattern;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
-
-    private static final Pattern LABELS_PATTERN =
-            Pattern.compile("^([A-Za-z0-9.-]+=[A-Za-z0-9.-]+,)*[A-Za-z0-9.-]+=[A-Za-z0-9.-]+$");
 
     private final Path recordingMetadataDir;
     private final FileSystem fs;
     private final Gson gson;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Map<String, String>> recordingLabelsMap;
+    private final Map<Pair<String, String>, String> recordingLabelsMap;
 
     RecordingMetadataManager(Path recordingMetadataDir, FileSystem fs, Gson gson, Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
@@ -76,37 +72,44 @@ public class RecordingMetadataManager {
     public Future<Void> addRecordingLabels(String targetId, String recordingName, String labels)
             throws IllegalArgumentException {
 
-        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), parseRecordingLabels(labels));
+        validatedRecordingLabels(labels);
+
+        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), new String(labels));
 
         return CompletableFuture.completedFuture(null);
     }
 
-    public Future<Void> updateRecordingLabels(String targetId, String recordingName, String labels)
+    public Future<Void> updateRecordingLabels(
+            String targetId, String recordingName, String newLabels)
             throws IllegalArgumentException, RecordingNotFoundException {
         Pair<String, String> key = Pair.of(targetId, recordingName);
-        Map<String, String> newLabels = parseRecordingLabels(labels);
 
-        Map<String, String> oldLabels =
+        String existingLabels =
                 Optional.ofNullable(this.recordingLabelsMap.get(key))
                         .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
 
-        oldLabels.putAll(newLabels);
+        Map<String, String> existingMap = validatedRecordingLabels(existingLabels);
+        Map<String, String> newMap = validatedRecordingLabels(newLabels);
 
-        this.recordingLabelsMap.put(key, newLabels);
+        existingMap.putAll(newMap);
+
+        this.recordingLabelsMap.put(key, gson.toJson(existingMap, Map.class));
 
         return CompletableFuture.completedFuture(null);
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName)
             throws RecordingNotFoundException {
-        return Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)))
-                .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
+        String labels =
+                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
+                        .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
+        return validatedRecordingLabels(labels);
     }
 
     public String getRecordingLabelsAsString(String targetId, String recordingName) {
-        Optional<Map<String, String>> opt =
+        Optional<String> opt =
                 Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)));
-        return opt.map(m -> gson.toJson(m)).orElse("");
+        return opt.orElse("");
     }
 
     public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
@@ -114,39 +117,17 @@ public class RecordingMetadataManager {
         this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
     }
 
-    private Map<String, String> parseRecordingLabels(String labels)
+    private Map<String, String> validatedRecordingLabels(String labels)
             throws IllegalArgumentException {
         if (labels == null) {
             throw new IllegalArgumentException(labels);
         }
 
-        if (LABELS_PATTERN.matcher(labels).matches()) {
-            Map<String, String> labelMap = new ConcurrentHashMap<>();
-
-            Arrays.asList(labels.split(",")).stream()
-                    .forEach(
-                            pair -> {
-                                Optional<Pair<String, String>> label = this.splitLabelPairs(pair);
-                                label.ifPresent(
-                                        l ->
-                                                labelMap.put(
-                                                        new String(l.getLeft()),
-                                                        new String(l.getRight())));
-                            });
-            return labelMap;
+        try {
+            return gson.fromJson(labels, Map.class);
+        } catch (JsonSyntaxException e) {
+            throw new IllegalArgumentException(e);
         }
-        throw new IllegalArgumentException(labels);
-    }
-
-    private Optional<Pair<String, String>> splitLabelPairs(String label) {
-        if (label == null) {
-            return Optional.empty();
-        }
-        String[] pair = label.split("=");
-        String key = pair[0];
-        String value = pair[1];
-
-        return Optional.of(Pair.of(key, value));
     }
 
     public static class StoredRecordingMetadata {

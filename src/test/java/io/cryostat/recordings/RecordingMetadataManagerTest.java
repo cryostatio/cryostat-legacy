@@ -59,11 +59,11 @@ public class RecordingMetadataManagerTest {
     RecordingMetadataManager recordingMetadataManager;
     @Mock Path recordingMetadataDir;
     @Mock FileSystem fs;
-    @Mock Gson gson;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
+        Gson gson = new Gson();
         this.recordingMetadataManager =
                 new RecordingMetadataManager(recordingMetadataDir, fs, gson, logger);
     }
@@ -72,32 +72,32 @@ public class RecordingMetadataManagerTest {
     void shouldParseAndStoreLabelsInRecordingLabelsMap() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
+        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
 
-        recordingMetadataManager
-                .addRecordingLabels(targetId, recordingName, "KEY=VALUE,key.2=some.value,key3=1234")
-                .get();
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
                         "KEY", "VALUE",
                         "key.2", "some.value",
                         "key3", "1234");
+        String expectedLabelsAsString = labels;
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+        String actualLabelsMapAsString =
+                recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName);
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
+        MatcherAssert.assertThat(actualLabelsMapAsString, Matchers.equalTo(expectedLabelsAsString));
     }
 
     @ParameterizedTest
     @NullSource
     @ValueSource(
             strings = {
-                "",
-                "key=valueWithExtraComma,",
-                "invalidKey!;=value",
-                "key=invalid/value",
-                "=,="
+                "12345",
+                "thisIsNotJson",
             })
     void shouldThrowOnInvalidLabels(String labels) throws Exception {
         Assertions.assertThrows(
@@ -112,7 +112,9 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
 
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, "key=value").get();
+        recordingMetadataManager
+                .addRecordingLabels(targetId, recordingName, "{\"key\":\"value\"}")
+                .get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
@@ -129,16 +131,13 @@ public class RecordingMetadataManagerTest {
     void shouldUpdateLabelsForExistingRecording() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
+        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        String updatedLabels = "{\"key.2\":\"updated.value\",\"key4\":\"NEWVALUE\"}";
+
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
         recordingMetadataManager
-                .addRecordingLabels(targetId, recordingName, "KEY=VALUE,key.2=some.value,key3=1234")
-                .get();
-
-        recordingMetadataManager
-                .updateRecordingLabels(
-                        targetId,
-                        recordingName,
-                        "KEY=UPDATEDVALUE,key.2=some.updated.value,key3=1234,key4=newValue")
+                .updateRecordingLabels(targetId, recordingName, updatedLabels)
                 .get();
 
         Map<String, String> actualLabelsMap =
@@ -146,10 +145,10 @@ public class RecordingMetadataManagerTest {
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
-                        "KEY", "UPDATEDVALUE",
-                        "key.2", "some.updated.value",
+                        "KEY", "VALUE",
+                        "key.2", "updated.value",
                         "key3", "1234",
-                        "key4", "newValue");
+                        "key4", "NEWVALUE");
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
     }
