@@ -145,7 +145,7 @@ public abstract class GraphModule {
                                                 "startRecording", startRecordingOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher("snapshot", snapshotOnTargetMutator))
+                                        .dataFetcher("doSnapshot", snapshotOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("archive", archiveRecordingMutator))

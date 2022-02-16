@@ -26,7 +26,7 @@ type TargetNode implements Node {
     labels: Object!
 
     startRecording(recording: RecordingSettings!): ActiveRecording!
-    snapshot: ActiveRecording! # mutation
+    doSnapshot: ActiveRecording!
 }
 
 type EnvironmentNode implements Node {
