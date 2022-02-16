@@ -72,7 +72,7 @@ type ActiveRecording implements Recording {
     downloadUrl: Url!
 
     doArchive: ArchivedRecording!
-    stop: ActiveRecording! # mutation
+    doStop: ActiveRecording!
     delete: ActiveRecording! # mutation
 }
 

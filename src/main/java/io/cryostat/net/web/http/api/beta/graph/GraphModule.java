@@ -151,7 +151,7 @@ public abstract class GraphModule {
                                         .dataFetcher("doArchive", archiveRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("stop", stopRecordingMutator))
+                                        .dataFetcher("doStop", stopRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("delete", deleteActiveRecordingMutator))
