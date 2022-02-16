@@ -45,12 +45,12 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class DiscoveryFetcher implements DataFetcher<EnvironmentNode> {
+class RootNodeFetcher implements DataFetcher<EnvironmentNode> {
 
     private final PlatformClient client;
 
     @Inject
-    DiscoveryFetcher(PlatformClient client) {
+    RootNodeFetcher(PlatformClient client) {
         this.client = client;
     }
 

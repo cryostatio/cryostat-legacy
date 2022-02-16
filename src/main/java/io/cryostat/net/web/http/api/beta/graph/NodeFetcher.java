@@ -50,16 +50,16 @@ import graphql.schema.DataFetchingEnvironment;
 
 class NodeFetcher implements DataFetcher<AbstractNode> {
 
-    private final DiscoveryFetcher discoveryFetcher;
+    private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
-    NodeFetcher(DiscoveryFetcher discoveryFetcher) {
-        this.discoveryFetcher = discoveryFetcher;
+    NodeFetcher(RootNodeFetcher rootNodeFetcher) {
+        this.rootNodeFetcher = rootNodeFetcher;
     }
 
     @Override
     public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
-        EnvironmentNode root = discoveryFetcher.get(environment);
+        EnvironmentNode root = rootNodeFetcher.get(environment);
         String name = environment.getArgument("name");
         String nodeType = environment.getArgument("nodeType");
         AbstractNode node = findNode(name, nodeType, root);

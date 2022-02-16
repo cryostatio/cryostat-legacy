@@ -56,20 +56,20 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 
 class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
-    private final DiscoveryFetcher discoveryFetcher;
+    private final RootNodeFetcher rootNodeFetcher;
     private final EnvironmentNodeRecurseFetcher recurseFetcher;
 
     @Inject
     EnvironmentNodesFetcher(
-            DiscoveryFetcher discoveryFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
-        this.discoveryFetcher = discoveryFetcher;
+            RootNodeFetcher rootNodeFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
+        this.rootNodeFetcher = rootNodeFetcher;
         this.recurseFetcher = recurseFetcher;
     }
 
     @Override
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
         Map<String, String> filter = environment.getArgument("filter");
-        EnvironmentNode root = discoveryFetcher.get(environment);
+        EnvironmentNode root = rootNodeFetcher.get(environment);
         List<EnvironmentNode> nodes =
                 recurseFetcher.get(
                         DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)

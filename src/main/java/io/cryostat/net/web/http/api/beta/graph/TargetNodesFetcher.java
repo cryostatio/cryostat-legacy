@@ -49,12 +49,12 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 
 class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
 
-    private final DiscoveryFetcher discoveryFetcher;
+    private final RootNodeFetcher rootNodeFetcher;
     private final TargetNodeRecurseFetcher recurseFetcher;
 
     @Inject
-    TargetNodesFetcher(DiscoveryFetcher discoveryFetcher, TargetNodeRecurseFetcher recurseFetcher) {
-        this.discoveryFetcher = discoveryFetcher;
+    TargetNodesFetcher(RootNodeFetcher rootNodefetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;
     }
 
@@ -62,7 +62,7 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
     public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
         return recurseFetcher.get(
                 DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                        .source(discoveryFetcher.get(environment))
+                        .source(rootNodeFetcher.get(environment))
                         .build());
     }
 }

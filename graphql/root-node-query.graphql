@@ -58,7 +58,7 @@ fragment ChildrenRecursive on EnvironmentNode {
 }
 
 {
-    discovery {
+    rootNode {
         ... TargetFields
         ... ChildrenRecursive
     }
