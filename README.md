@@ -111,7 +111,7 @@ Cryostat can be configured via the following environment variables:
 * `CRYOSTAT_WEB_PORT`: the internal port used by the cryostat web server. Defaults to 8181.
 * `CRYOSTAT_EXT_WEB_PORT`: the external port used by the cryostat web server. Defaults to be equal to `CRYOSTAT_WEB_PORT`.
 * `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance. Defaults to the empty string, which disables CORS.
-* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of websocket client connections allowed (minimum 1, maximum 64, default 2)
+* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of websocket client connections allowed (minimum 1, maximum `Integer.MAX_VALUE`, default `Integer.MAX_VALUE`)
 * `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`. Defaults to an AuthManager corresponding to the selected deployment platform, whether explicit or automatic (see below).
 * `CRYOSTAT_PLATFORM`: the platform client used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
 * `CRYOSTAT_ENABLE_JDP_BROADCAST`: enable the Cryostat JVM to broadcast itself via JDP (Java Discovery Protocol). Defaults to `true`.
