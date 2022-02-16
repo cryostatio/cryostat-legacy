@@ -75,7 +75,7 @@ public class RecordingMetadataManager {
 
     public Future<Void> addRecordingLabels(String targetId, String recordingName, String labels)
             throws IllegalArgumentException {
- 
+
         this.recordingLabelsMap.put(Pair.of(targetId, recordingName), parseRecordingLabels(labels));
 
         return CompletableFuture.completedFuture(null);
@@ -86,11 +86,13 @@ public class RecordingMetadataManager {
         Pair<String, String> key = Pair.of(targetId, recordingName);
         Map<String, String> newLabels = parseRecordingLabels(labels);
 
-        Map<String, String> existingMap =
+        Map<String, String> oldLabels =
                 Optional.ofNullable(this.recordingLabelsMap.get(key))
                         .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
 
-        newLabels.putAll(existingMap);
+        oldLabels.putAll(newLabels);
+
+        this.recordingLabelsMap.put(key, newLabels);
 
         return CompletableFuture.completedFuture(null);
     }

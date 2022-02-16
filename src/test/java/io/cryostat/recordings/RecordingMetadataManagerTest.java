@@ -126,6 +126,35 @@ public class RecordingMetadataManagerTest {
     }
 
     @Test
+    void shouldUpdateLabelsForExistingRecording() throws Exception {
+        String targetId = "someTarget";
+        String recordingName = "someRecording";
+
+        recordingMetadataManager
+                .addRecordingLabels(targetId, recordingName, "KEY=VALUE,key.2=some.value,key3=1234")
+                .get();
+
+        recordingMetadataManager
+                .updateRecordingLabels(
+                        targetId,
+                        recordingName,
+                        "KEY=UPDATEDVALUE,key.2=some.updated.value,key3=1234,key4=newValue")
+                .get();
+
+        Map<String, String> actualLabelsMap =
+                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+
+        Map<String, String> expectedLabelsMap =
+                Map.of(
+                        "KEY", "UPDATEDVALUE",
+                        "key.2", "some.updated.value",
+                        "key3", "1234",
+                        "key4", "newValue");
+
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
+    }
+
+    @Test
     void shouldThrowWhenRecordingMetadataEntryDoesNotExist() throws Exception {
 
         Assertions.assertThrows(
