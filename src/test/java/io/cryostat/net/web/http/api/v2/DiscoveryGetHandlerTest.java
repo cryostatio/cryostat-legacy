@@ -159,6 +159,8 @@ class DiscoveryGetHandlerTest {
             EnvironmentNode actual = response.getBody();
 
             MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
+            Mockito.verify(platformClient).getDiscoveryTree();
+            Mockito.verifyNoMoreInteractions(platformClient);
         }
     }
 }
