@@ -333,7 +333,8 @@ public class SnapshotIT extends StandardSelfTest {
                                                                     Map.entry("continuous", true),
                                                                     Map.entry("toDisk", true),
                                                                     Map.entry("maxSize", 0),
-                                                                    Map.entry("maxAge", 0))))));
+                                                                    Map.entry("maxAge", 0),
+                                                                    Map.entry("labels", ""))))));
 
             MatcherAssert.assertThat(
                     createResponse.get(), Matchers.equalToObject(expectedCreateResponse));

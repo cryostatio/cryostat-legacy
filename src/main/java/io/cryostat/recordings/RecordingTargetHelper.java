@@ -371,7 +371,9 @@ public class RecordingTargetHelper {
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
-                                        webServer.get().getReportURL(connection, rename));
+                                        webServer.get().getReportURL(connection, rename),
+                                        recordingMetadataManager.getRecordingLabelsAsString(
+                                                connectionDescriptor.getTargetId(), rename));
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {
