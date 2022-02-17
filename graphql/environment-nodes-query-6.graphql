@@ -3,7 +3,7 @@ query {
         descendantTargets {
             recordings {
                 active {
-                    delete {
+                    doDelete {
                         name
                         state
                     }

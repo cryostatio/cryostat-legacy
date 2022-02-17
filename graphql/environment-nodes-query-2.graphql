@@ -1,7 +1,7 @@
 query {
     environmentNodes(filter: { nodeName: "JDP" }) {
         descendantTargets {
-            startRecording(recording: {
+            doStartRecording(recording: {
                 name: "bar",
                 template: "Continuous",
                 templateType: "TARGET",

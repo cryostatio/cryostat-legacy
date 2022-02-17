@@ -87,7 +87,7 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             NodeTypeResolver nodeTypeResolver,
             RecordingTypeResolver recordingTypeResolver,
-            DiscoveryFetcher discoveryFetcher,
+            RootNodeFetcher rootNodeFetcher,
             EnvironmentNodesFetcher environmentNodesFetcher,
             TargetNodesFetcher targetNodesFetcher,
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
@@ -117,7 +117,7 @@ public abstract class GraphModule {
                                         .build())
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("discovery", discoveryFetcher))
+                                        .dataFetcher("rootNode", rootNodeFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher("environmentNodes", environmentNodesFetcher))
@@ -142,22 +142,22 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher(
-                                                "startRecording", startRecordingOnTargetMutator))
+                                                "doStartRecording", startRecordingOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher("snapshot", snapshotOnTargetMutator))
+                                        .dataFetcher("doSnapshot", snapshotOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("archive", archiveRecordingMutator))
+                                        .dataFetcher("doArchive", archiveRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("stop", stopRecordingMutator))
+                                        .dataFetcher("doStop", stopRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("delete", deleteActiveRecordingMutator))
+                                        .dataFetcher("doDelete", deleteActiveRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
-                                        .dataFetcher("delete", deleteArchivedRecordingMutator))
+                                        .dataFetcher("doDelete", deleteArchivedRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -180,8 +180,8 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static DiscoveryFetcher provideDiscoveryFetcher(PlatformClient client) {
-        return new DiscoveryFetcher(client);
+    static RootNodeFetcher provideRootNodeFetcher(PlatformClient client) {
+        return new RootNodeFetcher(client);
     }
 
     @Provides
@@ -226,20 +226,20 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static NodeFetcher provideNodeFetcher(DiscoveryFetcher discoveryFetcher) {
-        return new NodeFetcher(discoveryFetcher);
+    static NodeFetcher provideNodeFetcher(RootNodeFetcher rootNodeFetcher) {
+        return new NodeFetcher(rootNodeFetcher);
     }
 
     @Provides
     static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(
-            DiscoveryFetcher discoveryFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
-        return new EnvironmentNodesFetcher(discoveryFetcher, recurseFetcher);
+            RootNodeFetcher rootNodeFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
+        return new EnvironmentNodesFetcher(rootNodeFetcher, recurseFetcher);
     }
 
     @Provides
     static TargetNodesFetcher provideTargetNodesFetcher(
-            DiscoveryFetcher discoveryFetcher, TargetNodeRecurseFetcher recurseFetcher) {
-        return new TargetNodesFetcher(discoveryFetcher, recurseFetcher);
+            RootNodeFetcher rootNodeFetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        return new TargetNodesFetcher(rootNodeFetcher, recurseFetcher);
     }
 
     @Provides

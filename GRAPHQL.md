@@ -68,13 +68,13 @@ content-type: application/json
         "alias": "org.codehaus.plexus.classworlds.launcher.Launcher",
         "annotations": {
             "cryostat": {
-                "HOST": "vengeance",
+                "HOST": "localhost",
                 "JAVA_MAIN": "org.codehaus.plexus.classworlds.launcher.Launcher",
                 "PORT": "9091"
             },
             "platform": {}
         },
-        "connectUrl": "service:jmx:rmi:///jndi/rmi://vengeance:9091/jmxrmi",
+        "connectUrl": "service:jmx:rmi:///jndi/rmi://localhost/jmxrmi",
         "labels": {}
     }
 ]
@@ -115,11 +115,11 @@ content-type: application/json
             },
             {
                 "labels": {},
-                "name": "service:jmx:rmi:///jndi/rmi://vengeance:9091/jmxrmi",
+                "name": "service:jmx:rmi:///jndi/rmi://localhost/jmxrmi",
                 "nodeType": "JVM",
                 "target": {
                     "alias": "org.codehaus.plexus.classworlds.launcher.Launcher",
-                    "serviceUri": "service:jmx:rmi:///jndi/rmi://vengeance:9091/jmxrmi"
+                    "serviceUri": "service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"
                 }
             }
         ]

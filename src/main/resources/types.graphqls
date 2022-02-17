@@ -25,8 +25,8 @@ type TargetNode implements Node {
     nodeType: NodeType!
     labels: Object!
 
-    startRecording(recording: RecordingSettings!): ActiveRecording!
-    snapshot: ActiveRecording! # mutation
+    doStartRecording(recording: RecordingSettings!): ActiveRecording!
+    doSnapshot: ActiveRecording!
 }
 
 type EnvironmentNode implements Node {
@@ -71,9 +71,9 @@ type ActiveRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
 
-    archive: ArchivedRecording! # mutation
-    stop: ActiveRecording! # mutation
-    delete: ActiveRecording! # mutation
+    doArchive: ArchivedRecording!
+    doStop: ActiveRecording!
+    doDelete: ActiveRecording!
 }
 
 type ArchivedRecording implements Recording {
@@ -81,7 +81,7 @@ type ArchivedRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
 
-    delete: ArchivedRecording! # mutation
+    doDelete: ArchivedRecording!
 }
 
 interface Recording {
