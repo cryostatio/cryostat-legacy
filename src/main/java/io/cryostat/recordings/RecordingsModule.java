@@ -159,6 +159,7 @@ public abstract class RecordingsModule {
     }
 
     @Provides
+    @Singleton
     // FIXME which path to use?
     static RecordingMetadataManager provideRecordingMetadataManager(
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
