@@ -44,6 +44,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -60,15 +61,23 @@ import io.vertx.core.http.HttpMethod;
 
 class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
+    private static final String CREATE_RULE_CATEGORY = "RuleCreated";
     static final String PATH = "rules";
 
     private final RuleRegistry ruleRegistry;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     @Inject
-    RulesPostHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
+    RulesPostHandler(
+            AuthManager auth,
+            RuleRegistry ruleRegistry,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Logger logger) {
         super(auth, gson);
         this.ruleRegistry = ruleRegistry;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
@@ -164,6 +173,13 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                     "IOException occurred while writing rule definition: " + e.getMessage(),
                     e);
         }
+        notificationFactory
+                .createBuilder()
+                .metaCategory(CREATE_RULE_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(rule)
+                .build()
+                .send();
 
         return new IntermediateResponse<String>()
                 .statusCode(201)

@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -64,6 +65,7 @@ import io.vertx.core.http.HttpMethod;
 
 class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.CleanupFailure>> {
 
+    private static final String DELETE_RULE_CATEGORY = "RuleDeleted";
     static final String PATH = RuleGetHandler.PATH;
     static final String CLEAN_PARAM = "clean";
 
@@ -71,6 +73,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
     private final TargetConnectionManager targetConnectionManager;
     private final PlatformClient platformClient;
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     @Inject
@@ -80,6 +83,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
             TargetConnectionManager targetConnectionManager,
             PlatformClient platformClient,
             CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
         super(auth, gson);
@@ -87,6 +91,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
         this.targetConnectionManager = targetConnectionManager;
         this.platformClient = platformClient;
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
@@ -133,6 +138,13 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while deleting rule", e);
         }
+        notificationFactory
+                .createBuilder()
+                .metaCategory(DELETE_RULE_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(rule)
+                .build()
+                .send();
         List<CleanupFailure> failures = new ArrayList<>();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
             for (ServiceRef ref : platformClient.listDiscoverableServices()) {

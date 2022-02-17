@@ -51,6 +51,8 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -84,11 +86,28 @@ class RuleDeleteHandlerTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock PlatformClient platformClient;
     @Mock CredentialsManager credentialsManager;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new RuleDeleteHandler(
                         auth,
@@ -96,6 +115,7 @@ class RuleDeleteHandlerTest {
                         targetConnectionManager,
                         platformClient,
                         credentialsManager,
+                        notificationFactory,
                         gson,
                         logger);
     }
@@ -167,6 +187,13 @@ class RuleDeleteHandlerTest {
             IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
                     handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("RuleDeleted");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder).message(rule);
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
         }
 
         @Test
