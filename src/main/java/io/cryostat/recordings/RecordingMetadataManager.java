@@ -84,11 +84,12 @@ public class RecordingMetadataManager {
             throws IllegalArgumentException, RecordingNotFoundException {
         Pair<String, String> key = Pair.of(targetId, recordingName);
 
-        String existingLabels =
-                Optional.ofNullable(this.recordingLabelsMap.get(key))
-                        .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
+        Optional<String> existingLabels = Optional.ofNullable(this.recordingLabelsMap.get(key));
 
-        Map<String, String> existingMap = validatedRecordingLabels(existingLabels);
+        Map<String, String> existingMap =
+                existingLabels
+                        .map(l -> validatedRecordingLabels(l))
+                        .orElse(new ConcurrentHashMap<>());
         Map<String, String> newMap = validatedRecordingLabels(newLabels);
 
         existingMap.putAll(newMap);

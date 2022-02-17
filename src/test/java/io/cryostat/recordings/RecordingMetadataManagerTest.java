@@ -128,7 +128,7 @@ public class RecordingMetadataManagerTest {
     }
 
     @Test
-    void shouldUpdateLabelsForExistingRecording() throws Exception {
+    void shouldUpdateLabelsForExistingLabelEntries() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
@@ -154,6 +154,26 @@ public class RecordingMetadataManagerTest {
     }
 
     @Test
+    void shouldUpdateLabelsWhenLabelsNotPreviouslyCreated() throws Exception {
+        String targetId = "someTarget";
+        String recordingName = "someRecording";
+        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+
+        recordingMetadataManager.updateRecordingLabels(targetId, recordingName, labels).get();
+
+        Map<String, String> actualLabelsMap =
+                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+
+        Map<String, String> expectedLabelsMap =
+                Map.of(
+                        "KEY", "VALUE",
+                        "key.2", "some.value",
+                        "key3", "1234");
+
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
+    }
+
+    @Test
     void shouldThrowWhenRecordingMetadataEntryDoesNotExist() throws Exception {
 
         Assertions.assertThrows(
@@ -161,11 +181,5 @@ public class RecordingMetadataManagerTest {
                 () ->
                         recordingMetadataManager.getRecordingLabels(
                                 "someTarget", "nonExistentRecording"));
-
-        Assertions.assertThrows(
-                RecordingNotFoundException.class,
-                () ->
-                        recordingMetadataManager.updateRecordingLabels(
-                                "someTarget", "nonExistentRecording", "someKey=someValue"));
     }
 }
