@@ -122,9 +122,7 @@ public class RecordingMetadataManagerTest {
 
         recordingMetadataManager.deleteRecordingLabelsIfExists(targetId, recordingName);
 
-        Assertions.assertThrows(
-                RecordingNotFoundException.class,
-                () -> recordingMetadataManager.getRecordingLabels(targetId, recordingName));
+        MatcherAssert.assertThat(recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName), Matchers.equalTo(""));
     }
 
     @Test
@@ -171,15 +169,5 @@ public class RecordingMetadataManagerTest {
                         "key3", "1234");
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
-    }
-
-    @Test
-    void shouldThrowWhenRecordingMetadataEntryDoesNotExist() throws Exception {
-
-        Assertions.assertThrows(
-                RecordingNotFoundException.class,
-                () ->
-                        recordingMetadataManager.getRecordingLabels(
-                                "someTarget", "nonExistentRecording"));
     }
 }

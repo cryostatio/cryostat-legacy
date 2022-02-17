@@ -81,7 +81,7 @@ public class RecordingMetadataManager {
 
     public Future<Void> updateRecordingLabels(
             String targetId, String recordingName, String newLabels)
-            throws IllegalArgumentException, RecordingNotFoundException {
+            throws IllegalArgumentException {
         Pair<String, String> key = Pair.of(targetId, recordingName);
 
         Optional<String> existingLabels = Optional.ofNullable(this.recordingLabelsMap.get(key));
@@ -99,12 +99,11 @@ public class RecordingMetadataManager {
         return CompletableFuture.completedFuture(null);
     }
 
-    public Map<String, String> getRecordingLabels(String targetId, String recordingName)
-            throws RecordingNotFoundException {
-        String labels =
-                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
-                        .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
-        return validatedRecordingLabels(labels);
+    public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
+        Optional<String> opt =
+                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)));
+        return opt.map((labels) -> validatedRecordingLabels(labels))
+                .orElse(new ConcurrentHashMap<>());
     }
 
     public String getRecordingLabelsAsString(String targetId, String recordingName) {
@@ -113,8 +112,7 @@ public class RecordingMetadataManager {
         return opt.orElse("");
     }
 
-    public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
-            throws RecordingNotFoundException {
+    public void deleteRecordingLabelsIfExists(String targetId, String recordingName) {
         this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
     }
 
