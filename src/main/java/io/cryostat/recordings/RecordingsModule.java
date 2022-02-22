@@ -53,6 +53,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
@@ -75,7 +76,7 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class RecordingsModule {
 
     static final String NOTIFICATION_SCHEDULER = "NOTIFICATION_SCHEDULER";
-    static final String RECORDING_METADATA_SUBDIRECTORY = "recordingMetadata";
+    public static final String METADATA_SUBDIRECTORY = "metadata";
 
     @Provides
     @Singleton
@@ -157,28 +158,28 @@ public abstract class RecordingsModule {
         Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
         return ses;
     }
-
+    
     @Provides
     @Singleton
-    // FIXME which path to use?
     static RecordingMetadataManager provideRecordingMetadataManager(
-            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             FileSystem fs,
             Gson gson,
+            Base32 base32,
             Logger logger) {
         try {
-            Path recordingMetadataDir =
-                    archivedRecordingsPath.resolve(RECORDING_METADATA_SUBDIRECTORY);
-            if (!fs.isDirectory(recordingMetadataDir)) {
+            Path metadataDir = confDir.resolve(METADATA_SUBDIRECTORY);
+            if (!fs.isDirectory(metadataDir)) {
                 Files.createDirectory(
-                        recordingMetadataDir,
+                    metadataDir,
                         PosixFilePermissions.asFileAttribute(
                                 Set.of(
                                         PosixFilePermission.OWNER_READ,
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(recordingMetadataDir, fs, gson, logger);
+            return new RecordingMetadataManager(
+                metadataDir, fs, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

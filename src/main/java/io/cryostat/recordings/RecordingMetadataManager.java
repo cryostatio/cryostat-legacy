@@ -39,19 +39,26 @@
 package io.cryostat.recordings;
 
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
@@ -59,22 +66,49 @@ public class RecordingMetadataManager {
     private final Path recordingMetadataDir;
     private final FileSystem fs;
     private final Gson gson;
+    private final Base32 base32;
     private final Logger logger;
 
     private final Map<Pair<String, String>, String> recordingLabelsMap;
 
-    RecordingMetadataManager(Path recordingMetadataDir, FileSystem fs, Gson gson, Logger logger) {
+    RecordingMetadataManager(
+            Path recordingMetadataDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
         this.fs = fs;
         this.gson = gson;
+        this.base32 = base32;
         this.logger = logger;
         this.recordingLabelsMap = new ConcurrentHashMap<>();
     }
 
+    public void load() throws IOException {
+        this.fs.listDirectoryChildren(recordingMetadataDir).stream()
+                .peek(n -> logger.trace("Recording Metadata file: {}", n))
+                .map(recordingMetadataDir::resolve)
+                .map(
+                        path -> {
+                            try {
+                                return fs.readFile(path);
+                            } catch (IOException e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .map(reader -> gson.fromJson(reader, StoredRecordingMetadata.class))
+                .forEach(srm -> recordingLabelsMap.put(Pair.of(srm.getTargetId(), srm.getRecordingName()), srm.getLabels()));
+    }
+
     public Future<String> addRecordingLabels(String targetId, String recordingName, String labels)
-            throws IllegalArgumentException {
+            throws IllegalArgumentException, IOException {
         this.recordingLabelsMap.put(
                 Pair.of(targetId, recordingName), validateRecordingLabels(labels));
+        fs.writeString(
+                this.getMetadataPath(targetId, recordingName),
+                gson.toJson(new StoredRecordingMetadata(targetId, recordingName, labels)),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
         return CompletableFuture.completedFuture(labels);
     }
 
@@ -92,8 +126,9 @@ public class RecordingMetadataManager {
         return opt.orElse("");
     }
 
-    public void deleteRecordingLabelsIfExists(String targetId, String recordingName) {
+    public void deleteRecordingLabelsIfExists(String targetId, String recordingName) throws IOException {
         this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
+        fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
     }
 
     private String validateRecordingLabels(String labels) throws IllegalArgumentException {
@@ -113,12 +148,18 @@ public class RecordingMetadataManager {
         }
     }
 
+    private Path getMetadataPath(String targetId, String recordingName) {
+        String filename = String.format("%s%s", targetId, recordingName);
+        return recordingMetadataDir.resolve(
+                base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
+    }
+
     public static class StoredRecordingMetadata {
         private final String targetId;
         private final String recordingName;
-        private final Map<String, String> labels;
+        private final String labels;
 
-        StoredRecordingMetadata(String targetId, String recordingName, Map<String, String> labels) {
+        StoredRecordingMetadata(String targetId, String recordingName, String labels) {
             this.targetId = targetId;
             this.recordingName = recordingName;
             this.labels = labels;
@@ -132,7 +173,7 @@ public class RecordingMetadataManager {
             return this.recordingName;
         }
 
-        public Map<String, String> getLabels() {
+        public String getLabels() {
             return this.labels;
         }
     }

@@ -185,7 +185,6 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     attrs.get("labels"))
                                             .get();
                                 }
-
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);

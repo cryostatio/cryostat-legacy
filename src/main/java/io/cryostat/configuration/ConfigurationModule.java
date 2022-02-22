@@ -48,9 +48,11 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.recordings.RecordingMetadataManager;
 
 import com.google.gson.Gson;
 import dagger.Module;

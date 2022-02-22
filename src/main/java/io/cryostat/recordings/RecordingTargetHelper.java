@@ -439,7 +439,7 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName) {
+    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName) throws IOException {
         var f = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
         if (f != null) {
             f.cancel(true);

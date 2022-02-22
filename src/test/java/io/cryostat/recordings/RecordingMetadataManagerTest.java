@@ -37,13 +37,17 @@
  */
 package io.cryostat.recordings;
 
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
+
+import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -53,19 +57,23 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 public class RecordingMetadataManagerTest {
 
     RecordingMetadataManager recordingMetadataManager;
     @Mock Path recordingMetadataDir;
     @Mock FileSystem fs;
+    @Mock Base32 base32;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         Gson gson = new Gson();
+        Base32 base32 = new Base32();
+
         this.recordingMetadataManager =
-                new RecordingMetadataManager(recordingMetadataDir, fs, gson, logger);
+                new RecordingMetadataManager(recordingMetadataDir, fs, gson, base32, logger);
     }
 
     @Test
@@ -73,8 +81,18 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        Path mockPath = Mockito.mock(Path.class);
+        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+
+        Mockito.verify(
+                fs.writeString(
+                        Mockito.any(Path.class),
+                        Mockito.anyString(),
+                        Mockito.any(OpenOption.class),
+                        Mockito.any(OpenOption.class),
+                        Mockito.any(OpenOption.class)));
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
@@ -125,6 +143,7 @@ public class RecordingMetadataManagerTest {
         MatcherAssert.assertThat(
                 recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName),
                 Matchers.equalTo(""));
+        Mockito.verify(fs.deleteIfExists(Mockito.any(Path.class)));
     }
 
     @Test
@@ -132,8 +151,7 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-        String updatedLabels =
-                "{\"KEY\":\"UPDATED_VALUE\",\"key.2\":\"updated.value\",\"key3\":\"1234\"}";
+        String updatedLabels = "{\"KEY\":\"UPDATED_VALUE\",\"key.2\":\"updated.value\"}";
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
@@ -145,30 +163,7 @@ public class RecordingMetadataManagerTest {
         Map<String, String> expectedLabelsMap =
                 Map.of(
                         "KEY", "UPDATED_VALUE",
-                        "key.2", "updated.value",
-                        "key3", "1234");
-
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
-    }
-
-    @Test
-    void shouldRemoveExistingLabel() throws Exception {
-        String targetId = "someTarget";
-        String recordingName = "someRecording";
-        String labels = "{\"KEY\":\"VALUE_TO_DELETE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-        String updatedLabels = "{\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
-
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, updatedLabels).get();
-
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
-
-        Map<String, String> expectedLabelsMap =
-                Map.of(
-                        "key.2", "some.value",
-                        "key3", "1234");
+                        "key.2", "updated.value");
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
     }
