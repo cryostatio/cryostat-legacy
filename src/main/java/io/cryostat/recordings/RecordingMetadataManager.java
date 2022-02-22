@@ -38,6 +38,7 @@
 
 package io.cryostat.recordings;
 
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,7 @@ import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
@@ -69,41 +71,19 @@ public class RecordingMetadataManager {
         this.recordingLabelsMap = new ConcurrentHashMap<>();
     }
 
-    public Future<Void> addRecordingLabels(String targetId, String recordingName, String labels)
+    public Future<String> addRecordingLabels(String targetId, String recordingName, String labels)
             throws IllegalArgumentException {
-
-        validatedRecordingLabels(labels);
-
-        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), new String(labels));
-
-        return CompletableFuture.completedFuture(null);
-    }
-
-    public Future<Void> updateRecordingLabels(
-            String targetId, String recordingName, String newLabels)
-            throws IllegalArgumentException {
-        Pair<String, String> key = Pair.of(targetId, recordingName);
-
-        Optional<String> existingLabels = Optional.ofNullable(this.recordingLabelsMap.get(key));
-
-        Map<String, String> existingMap =
-                existingLabels
-                        .map(l -> validatedRecordingLabels(l))
-                        .orElse(new ConcurrentHashMap<>());
-        Map<String, String> newMap = validatedRecordingLabels(newLabels);
-
-        existingMap.putAll(newMap);
-
-        this.recordingLabelsMap.put(key, gson.toJson(existingMap, Map.class));
-
-        return CompletableFuture.completedFuture(null);
+        this.recordingLabelsMap.put(
+                Pair.of(targetId, recordingName), validateRecordingLabels(labels));
+        return CompletableFuture.completedFuture(labels);
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
-        Optional<String> opt =
-                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)));
-        return opt.map((labels) -> validatedRecordingLabels(labels))
-                .orElse(new ConcurrentHashMap<>());
+        String opt =
+                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
+                        .orElse("");
+        Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+        return gson.fromJson(opt, mapType);
     }
 
     public String getRecordingLabelsAsString(String targetId, String recordingName) {
@@ -116,14 +96,18 @@ public class RecordingMetadataManager {
         this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
     }
 
-    private Map<String, String> validatedRecordingLabels(String labels)
-            throws IllegalArgumentException {
+    private String validateRecordingLabels(String labels) throws IllegalArgumentException {
         if (labels == null) {
             throw new IllegalArgumentException(labels);
         }
 
         try {
-            return gson.fromJson(labels, Map.class);
+            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+            Map<String, String> map = gson.fromJson(labels, mapType);
+            if (map == null) {
+                throw new IllegalArgumentException(labels);
+            }
+            return labels;
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
         }

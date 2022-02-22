@@ -50,9 +50,11 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
 public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -98,15 +100,17 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String targetId = getConnectionDescriptorFromContext(ctx).getTargetId();
+        String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
-        String labels = ctx.getBodyAsString();
+        MultiMap attrs = ctx.request().formAttributes();
+        String labels = attrs.get("labels");
 
-        if (labels == null) {
-            throw new HttpStatusException(400, "Labels must be provided as body string");
+        if (StringUtils.isBlank(labels)) {
+            throw new HttpStatusException(400, "\"labels\" form parameter must be provided");
         }
 
-        recordingMetadataManager.updateRecordingLabels(targetId, recordingName, labels);
+        String updatedLabels =
+                recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
         notificationFactory
                 .createBuilder()
@@ -115,7 +119,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
                 .message(Map.of("recording", recordingName, "target", targetId))
                 .build()
                 .send();
-        ctx.response().setStatusCode(204);
-        ctx.response().end();
+        ctx.response().setStatusCode(200);
+        ctx.response().end(updatedLabels);
     }
 }

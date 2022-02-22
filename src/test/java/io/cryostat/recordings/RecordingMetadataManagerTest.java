@@ -122,49 +122,51 @@ public class RecordingMetadataManagerTest {
 
         recordingMetadataManager.deleteRecordingLabelsIfExists(targetId, recordingName);
 
-        MatcherAssert.assertThat(recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName), Matchers.equalTo(""));
+        MatcherAssert.assertThat(
+                recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName),
+                Matchers.equalTo(""));
     }
 
     @Test
-    void shouldUpdateLabelsForExistingLabelEntries() throws Exception {
+    void shouldOverwriteLabelsForExistingLabelEntries() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-        String updatedLabels = "{\"key.2\":\"updated.value\",\"key4\":\"NEWVALUE\"}";
+        String updatedLabels =
+                "{\"KEY\":\"UPDATED_VALUE\",\"key.2\":\"updated.value\",\"key3\":\"1234\"}";
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
-        recordingMetadataManager
-                .updateRecordingLabels(targetId, recordingName, updatedLabels)
-                .get();
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, updatedLabels).get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
-                        "KEY", "VALUE",
+                        "KEY", "UPDATED_VALUE",
                         "key.2", "updated.value",
-                        "key3", "1234",
-                        "key4", "NEWVALUE");
+                        "key3", "1234");
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
     }
 
     @Test
-    void shouldUpdateLabelsWhenLabelsNotPreviouslyCreated() throws Exception {
+    void shouldRemoveExistingLabel() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
-        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        String labels = "{\"KEY\":\"VALUE_TO_DELETE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        String updatedLabels = "{\"key.2\":\"some.value\",\"key3\":\"1234\"}";
 
-        recordingMetadataManager.updateRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, updatedLabels).get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
-                        "KEY", "VALUE",
                         "key.2", "some.value",
                         "key3", "1234");
 
