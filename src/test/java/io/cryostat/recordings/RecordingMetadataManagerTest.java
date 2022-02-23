@@ -82,6 +82,7 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
@@ -131,6 +132,8 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
 
+        Path mockPath = Mockito.mock(Path.class);
+        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         recordingMetadataManager
                 .addRecordingLabels(targetId, recordingName, "{\"key\":\"value\"}")
                 .get();
@@ -153,6 +156,9 @@ public class RecordingMetadataManagerTest {
         String recordingName = "someRecording";
         String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
         String updatedLabels = "{\"KEY\":\"UPDATED_VALUE\",\"key.2\":\"updated.value\"}";
+
+        Path mockPath = Mockito.mock(Path.class);
+        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
