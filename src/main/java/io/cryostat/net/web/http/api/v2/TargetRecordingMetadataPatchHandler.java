@@ -38,17 +38,24 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -60,15 +67,21 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
 
     static final String PATH = "targets/:targetId/recordings/:recordingName";
 
+    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final NotificationFactory notificationFactory;
 
     @Inject
     TargetRecordingMetadataPatchHandler(
             AuthManager auth,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
         super(auth);
+        this.targetConnectionManager = targetConnectionManager;
+        this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.notificationFactory = notificationFactory;
     }
@@ -90,7 +103,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
+        return Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING);
     }
 
     @Override
@@ -109,6 +122,11 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
             throw new HttpStatusException(400, "\"labels\" form parameter must be provided");
         }
 
+        if (this.isRecordingNotFound(getConnectionDescriptorFromContext(ctx), recordingName)) {
+            throw new HttpStatusException(
+                    404, new RecordingNotFoundException(targetId, recordingName));
+        }
+
         String updatedLabels =
                 recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
@@ -121,5 +139,17 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
                 .send();
         ctx.response().setStatusCode(200);
         ctx.response().end(updatedLabels);
+    }
+
+    private boolean isRecordingNotFound(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            recordingTargetHelper.getDescriptorByName(connection, recordingName);
+                    return !descriptor.isPresent();
+                },
+                false);
     }
 }

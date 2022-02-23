@@ -38,11 +38,11 @@
 
 package io.cryostat.recordings;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,14 +50,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import io.cryostat.configuration.CredentialsManager.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
-
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -96,7 +94,11 @@ public class RecordingMetadataManager {
                         })
                 .filter(Objects::nonNull)
                 .map(reader -> gson.fromJson(reader, StoredRecordingMetadata.class))
-                .forEach(srm -> recordingLabelsMap.put(Pair.of(srm.getTargetId(), srm.getRecordingName()), srm.getLabels()));
+                .forEach(
+                        srm ->
+                                recordingLabelsMap.put(
+                                        Pair.of(srm.getTargetId(), srm.getRecordingName()),
+                                        srm.getLabels()));
     }
 
     public Future<String> addRecordingLabels(String targetId, String recordingName, String labels)
@@ -126,7 +128,8 @@ public class RecordingMetadataManager {
         return opt.orElse("");
     }
 
-    public void deleteRecordingLabelsIfExists(String targetId, String recordingName) throws IOException {
+    public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
+            throws IOException {
         this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
     }

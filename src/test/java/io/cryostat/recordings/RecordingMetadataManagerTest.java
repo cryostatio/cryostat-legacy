@@ -44,9 +44,9 @@ import java.util.Map;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.TargetConnectionManager;
 
 import com.google.gson.Gson;
-
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -73,7 +73,8 @@ public class RecordingMetadataManagerTest {
         Base32 base32 = new Base32();
 
         this.recordingMetadataManager =
-                new RecordingMetadataManager(recordingMetadataDir, fs, gson, base32, logger);
+                new RecordingMetadataManager(
+                        recordingMetadataDir, fs, gson, base32, logger);
     }
 
     @Test
