@@ -187,11 +187,11 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataPatchHandler(
-            TargetRecordingMetadataPatchHandler handler);
+    abstract RequestHandler bindRecordingMetadataPatchHandler(
+            RecordingMetadataPatchHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataPatchBodyHandler(
-            TargetRecordingMetadataPatchBodyHandler handler);
+    abstract RequestHandler bindTargetRecordingMetadataPatchHandler(
+            TargetRecordingMetadataPatchHandler handler);
 }

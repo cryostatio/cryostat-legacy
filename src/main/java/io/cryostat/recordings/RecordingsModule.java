@@ -158,7 +158,7 @@ public abstract class RecordingsModule {
         Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
         return ses;
     }
-    
+
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
@@ -171,15 +171,14 @@ public abstract class RecordingsModule {
             Path metadataDir = confDir.resolve(METADATA_SUBDIRECTORY);
             if (!fs.isDirectory(metadataDir)) {
                 Files.createDirectory(
-                    metadataDir,
+                        metadataDir,
                         PosixFilePermissions.asFileAttribute(
                                 Set.of(
                                         PosixFilePermission.OWNER_READ,
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(
-                metadataDir, fs, gson, base32, logger);
+            return new RecordingMetadataManager(metadataDir, fs, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

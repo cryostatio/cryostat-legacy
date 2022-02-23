@@ -38,24 +38,20 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -63,25 +59,22 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
-public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "targets/:targetId/recordings/:recordingName/labels";
+    static final String PATH = "recordings/:recordingName/labels";
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final RecordingTargetHelper recordingTargetHelper;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final NotificationFactory notificationFactory;
 
     @Inject
-    TargetRecordingMetadataPatchHandler(
+    RecordingMetadataPatchHandler(
             AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
+            RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
         super(auth);
-        this.targetConnectionManager = targetConnectionManager;
-        this.recordingTargetHelper = recordingTargetHelper;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.notificationFactory = notificationFactory;
     }
@@ -111,14 +104,9 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
         return false;
     }
 
-    // FIXME you can't use the same handler for active and archived recordings
-    // because you need the targetId for active recordings
-    // split this handler into two handlers. add unit tests for both
-
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        String targetId = ctx.pathParam("targetId");
         MultiMap attrs = ctx.request().formAttributes();
         String labels = attrs.get("labels");
 
@@ -127,35 +115,26 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
         }
 
         try {
-            this.confirmTargetRecordingFound(
-                    getConnectionDescriptorFromContext(ctx), recordingName);
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
+            recordingArchiveHelper.getRecordingPath(recordingName).get();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, e);
+            }
         }
 
         String updatedLabels =
-                recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+                recordingMetadataManager
+                        .addRecordingLabels("archives", recordingName, labels)
+                        .get();
 
         notificationFactory
                 .createBuilder()
                 .metaCategory("RecordingMetadataUpdated")
                 .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", recordingName, "target", targetId))
+                .message(Map.of("recording", recordingName))
                 .build()
                 .send();
         ctx.response().setStatusCode(200);
         ctx.response().end(updatedLabels);
-    }
-
-    private boolean confirmTargetRecordingFound(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        return targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor =
-                            recordingTargetHelper.getDescriptorByName(connection, recordingName);
-                    return descriptor.isPresent();
-                },
-                false);
     }
 }
