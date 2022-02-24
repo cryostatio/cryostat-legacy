@@ -39,7 +39,6 @@ package io.cryostat.recordings;
 
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 import io.cryostat.core.log.Logger;
@@ -52,12 +51,15 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class RecordingMetadataManagerTest {
 
     RecordingMetadataManager recordingMetadataManager;
@@ -86,13 +88,13 @@ public class RecordingMetadataManagerTest {
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
-        Mockito.verify(
-                fs.writeString(
+        Mockito.verify(fs)
+                .writeString(
                         Mockito.any(Path.class),
                         Mockito.anyString(),
                         Mockito.any(OpenOption.class),
                         Mockito.any(OpenOption.class),
-                        Mockito.any(OpenOption.class)));
+                        Mockito.any(OpenOption.class));
 
         Map<String, String> expectedLabelsMap =
                 Map.of(
@@ -145,7 +147,7 @@ public class RecordingMetadataManagerTest {
         MatcherAssert.assertThat(
                 recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName),
                 Matchers.equalTo(""));
-        Mockito.verify(fs.deleteIfExists(Mockito.any(Path.class)));
+        Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
 
     @Test
