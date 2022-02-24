@@ -136,7 +136,7 @@ public class RecordingMetadataManager {
 
     private String validateRecordingLabels(String labels) throws IllegalArgumentException {
         if (labels == null) {
-            throw new IllegalArgumentException(labels);
+            throw new IllegalArgumentException("Labels must not be null");
         }
 
         try {

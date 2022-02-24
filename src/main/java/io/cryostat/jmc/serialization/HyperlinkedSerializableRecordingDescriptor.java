@@ -83,6 +83,10 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return reportUrl;
     }
 
+    public String getLabels() {
+        return labels;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
