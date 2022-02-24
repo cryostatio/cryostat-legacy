@@ -57,11 +57,9 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.StringUtils;
 
 public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -111,19 +109,14 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
         return false;
     }
 
-    // FIXME you can't use the same handler for active and archived recordings
-    // because you need the targetId for active recordings
-    // split this handler into two handlers. add unit tests for both
-
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         String targetId = ctx.pathParam("targetId");
-        MultiMap attrs = ctx.request().formAttributes();
-        String labels = attrs.get("labels");
+        String labels = ctx.getBodyAsString();
 
-        if (StringUtils.isBlank(labels)) {
-            throw new HttpStatusException(400, "\"labels\" form parameter must be provided");
+        if (labels == null) {
+            throw new HttpStatusException(400, "\"labels\" body data must be provided");
         }
 
         try {

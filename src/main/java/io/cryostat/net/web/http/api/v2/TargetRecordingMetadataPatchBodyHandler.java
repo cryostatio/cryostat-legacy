@@ -37,44 +37,26 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.BodyHandler;
 
-public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "recordings/:recordingName/labels";
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
-    private final RecordingMetadataManager recordingMetadataManager;
-    private final NotificationFactory notificationFactory;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    RecordingMetadataPatchHandler(
-            AuthManager auth,
-            RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            NotificationFactory notificationFactory) {
+    TargetRecordingMetadataPatchBodyHandler(AuthManager auth) {
         super(auth);
-        this.recordingArchiveHelper = recordingArchiveHelper;
-        this.recordingMetadataManager = recordingMetadataManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -83,55 +65,27 @@ public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestH
     }
 
     @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.PATCH;
     }
 
     @Override
-    public String path() {
-        return basePath() + PATH;
-    }
-
-    @Override
     public Set<ResourceAction> resourceActions() {
-        return Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING);
+        return ResourceAction.NONE;
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
+    public String path() {
+        return basePath() + TargetRecordingMetadataPatchHandler.PATH;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        String labels = ctx.getBodyAsString();
-
-        if (labels == null) {
-            throw new HttpStatusException(400, "\"labels\" body data must be provided");
-        }
-
-        try {
-            recordingArchiveHelper.getRecordingPath(recordingName).get();
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e);
-            }
-        }
-
-        String updatedLabels =
-                recordingMetadataManager
-                        .addRecordingLabels("archives", recordingName, labels)
-                        .get();
-
-        notificationFactory
-                .createBuilder()
-                .metaCategory("RecordingMetadataUpdated")
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", recordingName))
-                .build()
-                .send();
-        ctx.response().setStatusCode(200);
-        ctx.response().end(updatedLabels);
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }
