@@ -213,4 +213,100 @@ public class RecordingMetadataIT extends StandardSelfTest {
             }
         }
     }
+
+    @Test
+    void testSaveTargetRecordingCopiesLabelsToArchivedRecording() throws Exception {
+        String archivedRecordingName = null;
+
+        try {
+            // create an in-memory recording
+            CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", RECORDING_NAME);
+            form.add("duration", "5");
+            form.add("events", "template=ALL");
+            form.add("labels", testLabels.toString());
+            webClient
+                    .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, dumpRespFuture)) {
+                                    dumpRespFuture.complete(null);
+                                }
+                            });
+            dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            // Save the recording to archives
+            CompletableFuture<String> saveResponse = new CompletableFuture<>();
+            webClient
+                    .patch(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
+                    .sendBuffer(
+                            Buffer.buffer("SAVE"),
+                            ar -> {
+                                if (assertRequestStatus(ar, saveResponse)) {
+                                    saveResponse.complete(ar.result().bodyAsString());
+                                }
+                            });
+
+            MatcherAssert.assertThat(saveResponse.get(), Matchers.equalTo(null));
+
+            saveResponse.get();
+
+            // verify archived recording contains labels
+            CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/recordings"))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture)) {
+                                    listRespFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listResp = listRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            JsonObject recordingInfo = listResp.getJsonObject(0);
+            archivedRecordingName = recordingInfo.getString("name");
+
+            MatcherAssert.assertThat(
+                    recordingInfo.getString("labels"),
+                    Matchers.equalTo(
+                            "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}"));
+
+        } finally {
+            // Clean up what we created
+            CompletableFuture<Void> deleteTargetRecordingFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteTargetRecordingFuture)) {
+                                    deleteTargetRecordingFuture.complete(null);
+                                }
+                            });
+
+            CompletableFuture<Void> deleteArchiveFuture = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("/api/v1/recordings/%s", archivedRecordingName))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteArchiveFuture)) {
+                                    deleteArchiveFuture.complete(null);
+                                }
+                            });
+
+            try {
+                deleteTargetRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                deleteArchiveFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", RECORDING_NAME), e);
+            }
+        }
+    }
 }

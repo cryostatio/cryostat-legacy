@@ -174,4 +174,29 @@ public class RecordingMetadataManagerTest {
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
     }
+
+    @Test
+    void shouldCopyLabelsToArchivedRecordings() throws Exception {
+        String targetId = "someTarget";
+        String recordingName = "someRecording";
+        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        String filename = "";
+
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+
+        recordingMetadataManager.copyLabelsToArchives(targetId, recordingName, filename);
+
+        Map<String, String> actualArchivedLabelsMap =
+                recordingMetadataManager.getRecordingLabels(
+                        RecordingArchiveHelper.ARCHIVES, filename);
+
+        Map<String, String> expectedArchivedLabelsMap =
+                Map.of(
+                        "KEY", "VALUE",
+                        "key.2", "some.value",
+                        "key3", "1234");
+
+        MatcherAssert.assertThat(
+                actualArchivedLabelsMap, Matchers.equalTo(expectedArchivedLabelsMap));
+    }
 }
