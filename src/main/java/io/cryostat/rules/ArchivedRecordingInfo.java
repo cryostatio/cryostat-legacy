@@ -47,6 +47,7 @@ public class ArchivedRecordingInfo {
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
+    private final String labels;
 
     public ArchivedRecordingInfo(
             String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
@@ -54,6 +55,20 @@ public class ArchivedRecordingInfo {
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.labels = "";
+    }
+
+    public ArchivedRecordingInfo(
+            String encodedServiceUri,
+            String name,
+            String downloadUrl,
+            String reportUrl,
+            String labels) {
+        this.encodedServiceUri = encodedServiceUri;
+        this.name = name;
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.labels = labels;
     }
 
     public String getEncodedServiceUri() {
@@ -70,6 +85,10 @@ public class ArchivedRecordingInfo {
 
     public String getReportUrl() {
         return this.reportUrl;
+    }
+
+    public String getLabels() {
+        return labels;
     }
 
     @Override

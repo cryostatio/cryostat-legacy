@@ -91,6 +91,7 @@ public class RecordingArchiveHelper {
     private final Logger logger;
     private final Path archivedRecordingsPath;
     private final Path archivedRecordingsReportPath;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Clock clock;
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
@@ -99,6 +100,8 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
+    public static final String ARCHIVES = "archives";
+
     RecordingArchiveHelper(
             FileSystem fs,
             Provider<WebServer> webServerProvider,
@@ -106,6 +109,7 @@ public class RecordingArchiveHelper {
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             TargetConnectionManager targetConnectionManager,
+            RecordingMetadataManager recordingMetadataManager,
             Clock clock,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
@@ -116,6 +120,7 @@ public class RecordingArchiveHelper {
         this.archivedRecordingsPath = archivedRecordingsPath;
         this.archivedRecordingsReportPath = webServerTempPath;
         this.targetConnectionManager = targetConnectionManager;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.clock = clock;
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
@@ -152,12 +157,18 @@ public class RecordingArchiveHelper {
             Path parentPath = savePath.getParent();
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
+            String labels =
+                    recordingMetadataManager
+                            .copyLabelsToArchives(
+                                    connectionDescriptor.getTargetId(), recordingName, filename)
+                            .get();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             parentPath.toString(),
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
-                            webServerProvider.get().getArchivedReportURL(filename));
+                            webServerProvider.get().getArchivedReportURL(filename),
+                            labels);
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -198,7 +209,9 @@ public class RecordingArchiveHelper {
                             parentPath.toString(),
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
-                            webServerProvider.get().getArchivedReportURL(filename));
+                            webServerProvider.get().getArchivedReportURL(filename),
+                            recordingMetadataManager.deleteRecordingLabelsIfExists(
+                                    ARCHIVES, recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -284,7 +297,9 @@ public class RecordingArchiveHelper {
                                             encodedServiceUri,
                                             webServer.getArchivedDownloadURL(file),
                                             file,
-                                            webServer.getArchivedReportURL(file));
+                                            webServer.getArchivedReportURL(file),
+                                            recordingMetadataManager.getRecordingLabelsAsString(
+                                                    ARCHIVES, file));
                                 } catch (SocketException
                                         | UnknownHostException
                                         | URISyntaxException e) {
@@ -333,7 +348,10 @@ public class RecordingArchiveHelper {
                                                         subdirectory,
                                                         file,
                                                         webServer.getArchivedDownloadURL(file),
-                                                        webServer.getArchivedReportURL(file));
+                                                        webServer.getArchivedReportURL(file),
+                                                        recordingMetadataManager
+                                                                .getRecordingLabelsAsString(
+                                                                        ARCHIVES, file));
                                             } catch (SocketException
                                                     | UnknownHostException
                                                     | URISyntaxException e) {
@@ -361,7 +379,7 @@ public class RecordingArchiveHelper {
             Optional<Path> optional =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
             if (optional.isEmpty()) {
-                throw new RecordingNotFoundException("archives", recordingName);
+                throw new RecordingNotFoundException(ARCHIVES, recordingName);
             }
             Path archivedRecording = optional.get();
             if (!fs.exists(archivedRecording)) {

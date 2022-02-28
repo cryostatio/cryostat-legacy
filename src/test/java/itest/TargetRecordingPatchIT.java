@@ -110,8 +110,6 @@ public class TargetRecordingPatchIT extends StandardSelfTest {
                             Buffer.buffer("SAVE"),
                             ar -> {
                                 if (assertRequestStatus(ar, saveResponse)) {
-                                    // MatcherAssert.assertThat(
-                                    //         ar.result().statusCode(), Matchers.equalTo(204));
                                     saveResponse.complete(ar.result().bodyAsString());
                                 }
                             });

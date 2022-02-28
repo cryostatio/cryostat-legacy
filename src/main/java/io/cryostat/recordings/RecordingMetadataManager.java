@@ -48,6 +48,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
@@ -130,10 +131,36 @@ public class RecordingMetadataManager {
         return opt.orElse("");
     }
 
-    public void deleteRecordingLabelsIfExists(String targetId, String recordingName)
+    public String deleteRecordingLabelsIfExists(String targetId, String recordingName)
             throws IOException {
-        this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
+        String deleted = this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
+        return deleted;
+    }
+
+    public Future<String> copyLabelsToArchives(
+            String targetId, String recordingName, String filename) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        try {
+            String targetRecordingLabels = this.getRecordingLabelsAsString(targetId, recordingName);
+            String archivedLabels = targetRecordingLabels;
+
+            if (targetRecordingLabels != "") {
+                archivedLabels =
+                        this.addRecordingLabels(
+                                        RecordingArchiveHelper.ARCHIVES,
+                                        filename,
+                                        targetRecordingLabels)
+                                .get();
+            }
+
+            future.complete(archivedLabels);
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
     }
 
     private String validateRecordingLabels(String labels) throws IllegalArgumentException {
