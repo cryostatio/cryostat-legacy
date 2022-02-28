@@ -126,9 +126,9 @@ public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestH
 
         notificationFactory
                 .createBuilder()
-                .metaCategory("RecordingMetadataUpdated")
+                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
                 .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", recordingName))
+                .message(Map.of("recordingName", recordingName, "labels", labels))
                 .build()
                 .send();
         ctx.response().setStatusCode(200);

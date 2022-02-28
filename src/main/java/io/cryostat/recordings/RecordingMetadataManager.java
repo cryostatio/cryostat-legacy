@@ -61,6 +61,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
 
+    public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
+
     private final Path recordingMetadataDir;
     private final FileSystem fs;
     private final Gson gson;
