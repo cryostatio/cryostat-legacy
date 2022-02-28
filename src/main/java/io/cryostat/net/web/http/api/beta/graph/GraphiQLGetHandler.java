@@ -84,7 +84,7 @@ class GraphiQLGetHandler implements RequestHandler {
 
     @Override
     public boolean isAvailable() {
-        return this.env.hasEnv(Variables.WEB_ENV_DEV_MODE);
+        return this.env.hasEnv(Variables.DEV_MODE);
     }
 
     @Override
