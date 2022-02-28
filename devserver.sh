@@ -109,4 +109,5 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_CONFIG_PATH="${work_dir}/conf" \
     CRYOSTAT_TEMPLATE_PATH="${work_dir}/templates" \
     CRYOSTAT_PROBE_TEMPLATE_PATH="${work_dir}/probes" \
+    CRYOSTAT_WEB_ENV_DEV_MODE=true \
     "${MVN}" -Dcryostat.minimal=true -DskipTests=true vertx:run
