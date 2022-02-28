@@ -69,6 +69,7 @@ public final class Variables {
     public static final String MAX_CONNECTIONS_ENV_VAR = "CRYOSTAT_MAX_WS_CONNECTIONS";
     public static final String ENABLE_CORS_ENV = "CRYOSTAT_CORS_ORIGIN";
     public static final String HTTP_REQUEST_TIMEOUT = "CRYOSTAT_HTTP_REQUEST_TIMEOUT";
+    public static final String WEB_ENV_DEV_MODE = "CRYOSTAT_WEB_ENV_DEV_MODE";
 
     // JMX connections configuration
     public static final String TARGET_CACHE_SIZE = "CRYOSTAT_TARGET_CACHE_SIZE";

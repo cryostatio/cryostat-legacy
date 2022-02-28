@@ -41,6 +41,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -52,10 +54,12 @@ import io.vertx.ext.web.handler.graphql.GraphiQLHandlerOptions;
 
 class GraphiQLGetHandler implements RequestHandler {
 
+    private final Environment env;
     private final GraphiQLHandler handler;
 
     @Inject
-    GraphiQLGetHandler() {
+    GraphiQLGetHandler(Environment env) {
+        this.env = env;
         this.handler =
                 GraphiQLHandler.create(
                         new GraphiQLHandlerOptions()
@@ -80,9 +84,7 @@ class GraphiQLGetHandler implements RequestHandler {
 
     @Override
     public boolean isAvailable() {
-        // FIXME this should only be available in dev mode
-        // ex. "VERTXWEB_ENVIRONMENT=dev"
-        return true;
+        return this.env.hasEnv(Variables.WEB_ENV_DEV_MODE);
     }
 
     @Override
