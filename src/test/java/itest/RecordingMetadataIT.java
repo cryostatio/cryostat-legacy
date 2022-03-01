@@ -153,6 +153,8 @@ public class RecordingMetadataIT extends StandardSelfTest {
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // update the recording labels
+            String updatedLabels =
+                    "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
             CompletableFuture<String> patchResponse = new CompletableFuture<>();
             webClient
                     .patch(
@@ -160,8 +162,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
                                     "/api/v2.1/targets/%s/recordings/%s/labels",
                                     TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
-                            Buffer.buffer(
-                                    "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}"),
+                            Buffer.buffer(updatedLabels),
                             ar -> {
                                 if (assertRequestStatus(ar, patchResponse)) {
                                     MatcherAssert.assertThat(
@@ -170,7 +171,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
                                 }
                             });
 
-            patchResponse.get();
+            patchResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // verify in-memory recording contains updated labels
             CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
@@ -187,9 +188,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
             JsonObject recordingInfo = listResp.getJsonObject(0);
 
             MatcherAssert.assertThat(
-                    recordingInfo.getString("labels"),
-                    Matchers.equalTo(
-                            "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}"));
+                    recordingInfo.getString("labels"), Matchers.equalTo(updatedLabels));
 
         } finally {
             // Clean up what we created
@@ -238,23 +237,22 @@ public class RecordingMetadataIT extends StandardSelfTest {
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // Save the recording to archives
-            CompletableFuture<String> saveResponse = new CompletableFuture<>();
+            CompletableFuture<Void> saveResponse = new CompletableFuture<>();
             webClient
                     .patch(
                             String.format(
-                                    "/api/v1/targets/%s/recordings/%s",
-                                    SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
+                                    "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
                                 if (assertRequestStatus(ar, saveResponse)) {
-                                    saveResponse.complete(ar.result().bodyAsString());
+                                    saveResponse.complete(null);
                                 }
                             });
 
-            MatcherAssert.assertThat(saveResponse.get(), Matchers.equalTo(null));
-
-            saveResponse.get();
+            MatcherAssert.assertThat(
+                    saveResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    Matchers.equalTo(null));
 
             // verify archived recording contains labels
             CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
@@ -272,9 +270,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
             archivedRecordingName = recordingInfo.getString("name");
 
             MatcherAssert.assertThat(
-                    recordingInfo.getString("labels"),
-                    Matchers.equalTo(
-                            "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}"));
+                    recordingInfo.getString("labels"), Matchers.equalTo(testLabels.toString()));
 
         } finally {
             // Clean up what we created
