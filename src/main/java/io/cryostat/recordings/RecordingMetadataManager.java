@@ -146,7 +146,7 @@ public class RecordingMetadataManager {
             String targetRecordingLabels = this.getRecordingLabelsAsString(targetId, recordingName);
             String archivedLabels = targetRecordingLabels;
 
-            if (targetRecordingLabels != "") {
+            if (!targetRecordingLabels.equals("")) {
                 archivedLabels =
                         this.addRecordingLabels(
                                         RecordingArchiveHelper.ARCHIVES,
