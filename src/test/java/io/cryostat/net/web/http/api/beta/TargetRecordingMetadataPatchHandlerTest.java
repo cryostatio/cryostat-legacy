@@ -69,6 +69,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -120,138 +121,150 @@ public class TargetRecordingMetadataPatchHandlerTest {
                         notificationFactory);
     }
 
-    @Test
-    void shouldHandlePATCH() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PATCH));
+    @Nested
+    class BasicHandlerDefinition {
+
+        @Test
+        void shouldHandlePATCH() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PATCH));
+        }
+
+        @Test
+        void shouldHandleCorrectPath() {
+            MatcherAssert.assertThat(
+                    handler.path(),
+                    Matchers.equalTo(
+                            "/api/beta/targets/:targetId/recordings/:recordingName/labels"));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(),
+                    Matchers.equalTo(
+                            Set.of(
+                                    ResourceAction.READ_TARGET,
+                                    ResourceAction.READ_RECORDING,
+                                    ResourceAction.UPDATE_RECORDING)));
+        }
+
+        @Test
+        void shouldNotBeAsync() {
+            Assertions.assertFalse(handler.isAsync());
+        }
+
+        @Test
+        void shouldThrow401IfAuthFails() {
+            Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(false));
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        }
     }
 
-    @Test
-    void shouldHandleCorrectPath() {
-        MatcherAssert.assertThat(
-                handler.path(),
-                Matchers.equalTo("/api/v2.1/targets/:targetId/recordings/:recordingName"));
-    }
+    @Nested
+    class Requests {
+        @Test
+        void shouldUpdateLabels() throws Exception {
+            String recordingName = "someRecording";
+            String targetId = "fooTarget";
+            String labels = Map.of("key", "value").toString();
 
-    @Test
-    void shouldHaveExpectedRequiredPermissions() {
-        MatcherAssert.assertThat(
-                handler.resourceActions(),
-                Matchers.equalTo(
-                        Set.of(
-                                ResourceAction.READ_TARGET,
-                                ResourceAction.READ_RECORDING,
-                                ResourceAction.UPDATE_RECORDING)));
-    }
+            MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+            Mockito.when(ctx.pathParam(Mockito.anyString())).thenReturn(targetId, "someRecording");
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(req.formAttributes()).thenReturn(attrs);
+            attrs.add("labels", labels);
 
-    @Test
-    void shouldNotBeAsync() {
-        Assertions.assertFalse(handler.isAsync());
-    }
+            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                    .thenAnswer(
+                            new Answer<Object>() {
+                                @Override
+                                public Object answer(InvocationOnMock invocation) throws Throwable {
+                                    TargetConnectionManager.ConnectedTask task =
+                                            invocation.getArgument(1);
+                                    return task.execute(connection);
+                                }
+                            });
 
-    @Test
-    void shouldThrow401IfAuthFails() {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(false));
+            Mockito.when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
+                    .thenReturn(Optional.of(descriptor));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
-    }
+            Mockito.when(
+                            resp.putHeader(
+                                    Mockito.any(CharSequence.class),
+                                    Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
 
-    @Test
-    void shouldUpdateLabels() throws Exception {
-        String recordingName = "someRecording";
-        String targetId = "fooTarget";
-        String labels = Map.of("key", "value").toString();
+            handler.handle(ctx);
 
-        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-        Mockito.when(ctx.pathParam(Mockito.anyString())).thenReturn(targetId, "someRecording");
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
-        attrs.add("labels", labels);
+            Mockito.verify(
+                    recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels));
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder)
+                    .message(Map.of("recording", recordingName, "target", targetId));
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
+            Mockito.verify(resp).setStatusCode(200);
+            Mockito.verify(resp).end(labels);
+        }
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer<Object>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
+        @Test
+        void shouldThrow400OnEmptyLabels() throws Exception {
+            MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+            Mockito.when(ctx.pathParam(Mockito.anyString()))
+                    .thenReturn("fooTarget", "someRecording");
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(req.formAttributes()).thenReturn(attrs);
 
-        Mockito.when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
-                .thenReturn(Optional.of(descriptor));
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        }
 
-        Mockito.when(
-                        resp.putHeader(
-                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
-                .thenReturn(resp);
+        @Test
+        void shouldThrowWhenRecordingNotFound(String labels) throws Exception {
+            MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+            Mockito.when(ctx.pathParam(Mockito.anyString()))
+                    .thenReturn("fooTarget", "someRecording");
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(req.formAttributes()).thenReturn(attrs);
+            attrs.add("labels", labels);
 
-        handler.handle(ctx);
+            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                    .thenAnswer(
+                            new Answer<Object>() {
+                                @Override
+                                public Object answer(InvocationOnMock invocation) throws Throwable {
+                                    TargetConnectionManager.ConnectedTask task =
+                                            invocation.getArgument(1);
+                                    return task.execute(connection);
+                                }
+                            });
 
-        Mockito.verify(
-                recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels));
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", recordingName, "target", targetId));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
-        Mockito.verify(resp).setStatusCode(200);
-        Mockito.verify(resp).end(labels);
-    }
+            Mockito.when(recordingTargetHelper.getDescriptorByName(connection, "someRecording"))
+                    .thenReturn(Optional.empty());
 
-    @Test
-    void shouldThrow400OnEmptyLabels() throws Exception {
-        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-        Mockito.when(ctx.pathParam(Mockito.anyString())).thenReturn("fooTarget", "someRecording");
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
+            Mockito.when(
+                            resp.putHeader(
+                                    Mockito.any(CharSequence.class),
+                                    Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-    }
-
-    @Test
-    void shouldThrowWhenRecordingNotFound(String labels) throws Exception {
-        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-        Mockito.when(ctx.pathParam(Mockito.anyString())).thenReturn("fooTarget", "someRecording");
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
-        attrs.add("labels", labels);
-
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer<Object>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-
-        Mockito.when(recordingTargetHelper.getDescriptorByName(connection, "someRecording"))
-                .thenReturn(Optional.empty());
-
-        Mockito.when(
-                        resp.putHeader(
-                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
-                .thenReturn(resp);
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-        Assertions.assertTrue(ex.getCause() instanceof RecordingNotFoundException);
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            Assertions.assertTrue(ex.getCause() instanceof RecordingNotFoundException);
+        }
     }
 }
