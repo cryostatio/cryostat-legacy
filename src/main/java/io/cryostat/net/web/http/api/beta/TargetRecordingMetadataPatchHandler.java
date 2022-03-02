@@ -50,18 +50,21 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
+public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
     static final String PATH = "targets/:targetId/recordings/:recordingName/metadata";
 
@@ -73,11 +76,12 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
     @Inject
     TargetRecordingMetadataPatchHandler(
             AuthManager auth,
+            Gson gson,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
-        super(auth);
+        super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
@@ -113,10 +117,20 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        String targetId = ctx.pathParam("targetId");
-        String labels = ctx.getBodyAsString();
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+        String recordingName = params.getPathParams().get("recordingName");
+        String targetId = params.getPathParams().get("targetId");
+        String labels = params.getBody();
 
         if (labels == null) {
             throw new HttpStatusException(400, "\"labels\" body data must be provided");
@@ -124,30 +138,33 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
 
         try {
             this.confirmTargetRecordingFound(
-                    getConnectionDescriptorFromContext(ctx), recordingName);
+                    getConnectionDescriptorFromParams(params), recordingName);
+
+            String updatedLabels =
+                    recordingMetadataManager
+                            .addRecordingLabels(targetId, recordingName, labels)
+                            .get();
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(
+                            Map.of(
+                                    "recordingName",
+                                    recordingName,
+                                    "target",
+                                    targetId,
+                                    "labels",
+                                    labels))
+                    .build()
+                    .send();
+            return new IntermediateResponse<String>().body(updatedLabels);
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, e);
+        } catch (Exception e) {
+            throw new ApiException(500, e);
         }
-
-        String updatedLabels =
-                recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
-
-        notificationFactory
-                .createBuilder()
-                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(
-                        Map.of(
-                                "recordingName",
-                                recordingName,
-                                "target",
-                                targetId,
-                                "labels",
-                                labels))
-                .build()
-                .send();
-        ctx.response().setStatusCode(200);
-        ctx.response().end(updatedLabels);
     }
 
     private boolean confirmTargetRecordingFound(

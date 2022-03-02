@@ -37,10 +37,13 @@
  */
 package itest;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -155,11 +158,11 @@ public class RecordingMetadataIT extends StandardSelfTest {
             // update the recording labels
             String updatedLabels =
                     "{\"KEY\":\"newValue\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-            CompletableFuture<String> patchResponse = new CompletableFuture<>();
+            CompletableFuture<JsonObject> patchResponse = new CompletableFuture<>();
             webClient
                     .patch(
                             String.format(
-                                    "/api/v2.1/targets/%s/recordings/%s/labels",
+                                    "/api/v2.1/targets/%s/recordings/%s/metadata",
                                     TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer(updatedLabels),
@@ -167,11 +170,23 @@ public class RecordingMetadataIT extends StandardSelfTest {
                                 if (assertRequestStatus(ar, patchResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
-                                    patchResponse.complete(ar.result().bodyAsString());
+                                    patchResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
 
-            patchResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject expectedResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                            Map.of(
+                                                    "type",
+                                                    HttpMimeType.JSON.mime(),
+                                                    "status",
+                                                    "OK"),
+                                    "data", Map.of("result", updatedLabels)));
+            MatcherAssert.assertThat(
+                    patchResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    Matchers.equalTo(expectedResponse));
 
             // verify in-memory recording contains updated labels
             CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();

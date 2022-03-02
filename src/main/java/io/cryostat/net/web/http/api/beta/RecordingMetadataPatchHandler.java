@@ -46,18 +46,21 @@ import javax.inject.Inject;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
     static final String PATH = "recordings/:recordingName/metadata";
 
@@ -68,10 +71,11 @@ public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestH
     @Inject
     RecordingMetadataPatchHandler(
             AuthManager auth,
+            Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
-        super(auth);
+        super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.notificationFactory = notificationFactory;
@@ -103,9 +107,19 @@ public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestH
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        String labels = ctx.getBodyAsString();
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+        String recordingName = params.getPathParams().get("recordingName");
+        String labels = params.getBody();
 
         if (labels == null) {
             throw new HttpStatusException(400, "\"labels\" body data must be provided");
@@ -113,25 +127,28 @@ public class RecordingMetadataPatchHandler extends AbstractAuthenticatedRequestH
 
         try {
             recordingArchiveHelper.getRecordingPath(recordingName).get();
+
+            String updatedLabels =
+                    recordingMetadataManager
+                            .addRecordingLabels("archives", recordingName, labels)
+                            .get();
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("recordingName", recordingName, "labels", labels))
+                    .build()
+                    .send();
+
+            return new IntermediateResponse<String>().body(updatedLabels);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e);
             }
+            throw new ApiException(500, e);
+        } catch (Exception e) {
+            throw new ApiException(500, e);
         }
-
-        String updatedLabels =
-                recordingMetadataManager
-                        .addRecordingLabels("archives", recordingName, labels)
-                        .get();
-
-        notificationFactory
-                .createBuilder()
-                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of("recordingName", recordingName, "labels", labels))
-                .build()
-                .send();
-        ctx.response().setStatusCode(200);
-        ctx.response().end(updatedLabels);
     }
 }

@@ -58,6 +58,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -81,6 +82,7 @@ import org.mockito.stubbing.Answer;
 public class TargetRecordingMetadataPatchHandlerTest {
     TargetRecordingMetadataPatchHandler handler;
     @Mock AuthManager authManager;
+    @Mock Gson gson;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
@@ -115,6 +117,7 @@ public class TargetRecordingMetadataPatchHandlerTest {
         this.handler =
                 new TargetRecordingMetadataPatchHandler(
                         authManager,
+                        gson,
                         targetConnectionManager,
                         recordingTargetHelper,
                         recordingMetadataManager,
