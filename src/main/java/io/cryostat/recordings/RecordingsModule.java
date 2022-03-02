@@ -164,7 +164,8 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
-        // FIXME Use a database connection or create a new filesystem path instead of CONFIGURATION_PATH
+            // FIXME Use a database connection or create a new filesystem path instead of
+            // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             FileSystem fs,
             Gson gson,
