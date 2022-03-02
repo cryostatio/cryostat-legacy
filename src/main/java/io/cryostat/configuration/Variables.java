@@ -43,6 +43,7 @@ public final class Variables {
     // jfr-datasource, cryostat-grafana-dashboard
     public static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     public static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
+    public static final String GRAFANA_DASHBOARD_EXT_ENV = "GRAFANA_DASHBOARD_EXT_URL";
 
     // report generation
     public static final String REPORT_GENERATOR_ENV = "CRYOSTAT_REPORT_GENERATOR";

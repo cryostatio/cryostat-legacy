@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -98,13 +99,32 @@ class GrafanaDashboardUrlGetHandlerTest {
     }
 
     @Test
-    void shouldHandleGrafanaDashboardUrlRequest() {
+    void shouldHandleGrafanaDashboardUrlRequestWithExtUrl() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        String extUrl = "http://ext-hostname:1/path?query=value";
+        when(env.hasEnv("GRAFANA_DASHBOARD_EXT_URL")).thenReturn(true);
+        when(env.getEnv("GRAFANA_DASHBOARD_EXT_URL")).thenReturn(extUrl);
+
+        handler.handle(ctx);
+
+        verify(env, never()).getEnv("GRAFANA_DASHBOARD_URL");
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        verify(rep).end("{\"grafanaDashboardUrl\":\"" + extUrl + "\"}");
+    }
+
+    @Test
+    void shouldHandleGrafanaDashboardUrlRequestWithoutExtUrl() {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         String url = "http://hostname:1/path?query=value";
+        when(env.hasEnv("GRAFANA_DASHBOARD_EXT_URL")).thenReturn(false);
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
         when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
 
@@ -118,6 +138,7 @@ class GrafanaDashboardUrlGetHandlerTest {
     void shouldHandleGrafanaDashboardUrlRequestWithoutEnvVar() {
         RoutingContext ctx = mock(RoutingContext.class);
 
+        when(env.hasEnv("GRAFANA_DASHBOARD_EXT_URL")).thenReturn(false);
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(false);
 
         HttpStatusException e =
