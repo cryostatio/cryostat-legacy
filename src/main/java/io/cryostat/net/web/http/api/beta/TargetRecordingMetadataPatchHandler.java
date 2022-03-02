@@ -63,7 +63,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "targets/:targetId/recordings/:recordingName/labels";
+    static final String PATH = "targets/:targetId/recordings/:recordingName/metadata";
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
