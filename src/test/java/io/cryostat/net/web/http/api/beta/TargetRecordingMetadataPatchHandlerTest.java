@@ -36,7 +36,7 @@
  * SOFTWARE.
  */
 
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import java.util.Map;
 import java.util.Optional;

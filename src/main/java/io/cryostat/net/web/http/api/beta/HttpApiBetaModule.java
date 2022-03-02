@@ -71,4 +71,24 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataPatchHandler(
+            RecordingMetadataPatchHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingMetadataPatchHandler(
+            TargetRecordingMetadataPatchHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataPatchBodyHandler(
+            RecordingMetadataPatchBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingMetadataPatchBodyHandler(
+            TargetRecordingMetadataPatchBodyHandler handler);
 }

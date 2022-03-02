@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import java.util.Set;
 
@@ -50,18 +50,18 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class RecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    RecordingMetadataPatchBodyHandler(AuthManager auth) {
+    TargetRecordingMetadataPatchBodyHandler(AuthManager auth) {
         super(auth);
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -81,7 +81,7 @@ class RecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHand
 
     @Override
     public String path() {
-        return basePath() + RecordingMetadataPatchHandler.PATH;
+        return basePath() + TargetRecordingMetadataPatchHandler.PATH;
     }
 
     @Override
