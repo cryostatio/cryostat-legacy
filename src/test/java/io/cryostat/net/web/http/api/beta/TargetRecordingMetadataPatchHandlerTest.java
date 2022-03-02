@@ -137,7 +137,7 @@ public class TargetRecordingMetadataPatchHandlerTest {
             MatcherAssert.assertThat(
                     handler.path(),
                     Matchers.equalTo(
-                            "/api/beta/targets/:targetId/recordings/:recordingName/labels"));
+                            "/api/beta/targets/:targetId/recordings/:recordingName/metadata"));
         }
 
         @Test
