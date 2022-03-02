@@ -90,7 +90,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.BETA;
     }
 
     @Override

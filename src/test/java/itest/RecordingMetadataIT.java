@@ -162,7 +162,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
             webClient
                     .patch(
                             String.format(
-                                    "/api/v2.1/targets/%s/recordings/%s/metadata",
+                                    "/api/beta/targets/%s/recordings/%s/metadata",
                                     TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer(updatedLabels),
