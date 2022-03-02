@@ -101,7 +101,10 @@ public class TargetRecordingMetadataPatchHandler extends AbstractAuthenticatedRe
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING);
+        return Set.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING);
     }
 
     @Override

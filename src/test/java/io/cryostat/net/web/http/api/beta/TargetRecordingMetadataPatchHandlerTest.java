@@ -137,7 +137,10 @@ public class TargetRecordingMetadataPatchHandlerTest {
         MatcherAssert.assertThat(
                 handler.resourceActions(),
                 Matchers.equalTo(
-                        Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING)));
+                        Set.of(
+                                ResourceAction.READ_TARGET,
+                                ResourceAction.READ_RECORDING,
+                                ResourceAction.UPDATE_RECORDING)));
     }
 
     @Test
