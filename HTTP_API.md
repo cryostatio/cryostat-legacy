@@ -1248,6 +1248,9 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
+| **Target JVMs**                                                         |                                                                                 |
+| Add a custom target definition                                                 | [`TargetsPostHandler`](#TargetsPostHandler)                                         |
+| Delete a custom target definition                                                 | [`TargetDeleteHandler`](#TargetDeleteHandler)                                         |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1301,6 +1304,78 @@ The handler-specific descriptions below describe how each handler populates the
     ```
 
 
+### Target JVMs
+
+* #### `TargetsPostHandler`
+
+    ##### synopsis
+    Add a custom target definition to connect to Cryostat.
+
+    ##### request
+    `POST /api/v2/targets`
+
+    The request should be an HTTP form. The
+    attribute `connectUrl` must be specified.
+
+    `connectUrl` - The target connection URL formatted as a JMX service URL or `host:port` pair.
+
+    `alias` - An optional name for the target.
+
+    `annotations.cryostat` - Optional annotations used by [Automated Rules](#RulesPostHandler) for selecting targets. The following annotations can be specified:
+    * annotations.cryostat.HOST
+    * annotations.cryostat.PORT
+    * annotations.cryostat.JAVA_MAIN
+    * annotations.cryostat.PID
+    * annotations.cryostat.START_TIME
+    * annotations.cryostat.NAMESPACE
+    * annotations.cryostat.SERVICE_NAME
+    * annotations.cryostat.CONTAINER_NAME
+    * annotations.cryostat.POD_NAME
+
+    ##### response
+    `200` - The result is a JSON object containing information about the target. The format
+    of the target data is `{"connectUrl":"$CONNECTURL","alias":"$ALIAS","annotations":{"platform": {$PLATFORM_ANNOTATIONS},"cryostat":{$CRYOSTAT_ANNOTATIONS}}`. `$PLATFORM_ANNOTATIONS` are automatically generated.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `500` - There was an unexpected error. The reason is an error message.
+
+    ##### example
+    ```
+    $ curl -F connectUrl=service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi -F alias=fooTarget -F annotations.cryostat.PORT=9099 -X POST https://0.0.0.0:8181/api/v2/targets
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi","alias":"fooTarget","annotations":{"platform":{},"cryostat":{"PORT":"9099"}}}}}
+    ```
+
+* #### `TargetDeleteHandler`
+
+    ##### synopsis
+    Remove a custom target definition.
+
+    ##### request
+    `DELETE /api/v2/targets/:connectUrl`
+
+    `connectUrl` - The target connection URL formatted as a URL-encoded JMX service URL or `host:port` pair.
+
+    ##### response
+    `200` - The result is empty. The custom target definition was successfully deleted.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The target could not be found. The body is an error message.
+
+    `500` - There was an unexpected error. The reason is an error message.
+
+    ##### example
+    ```
+    $ curl -X DELETE https://0.0.0.0:8181/api/v2/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9099%2Fjmxrmi
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":null}}
+    ```
 ### Recordings in Target JVMs
 
 * #### `TargetEventsGetHandler`
