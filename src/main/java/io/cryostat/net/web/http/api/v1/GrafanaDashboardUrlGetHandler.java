@@ -95,15 +95,17 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(Variables.GRAFANA_DASHBOARD_ENV)) {
+        String dashboardURL;
+        if (env.hasEnv(Variables.GRAFANA_DASHBOARD_EXT_ENV)) {
+            dashboardURL = env.getEnv(Variables.GRAFANA_DASHBOARD_EXT_ENV);
+        } else if (this.env.hasEnv(Variables.GRAFANA_DASHBOARD_ENV)) {
+            // Fall back to GRAFANA_DASHBOARD_URL if no external URL is provided
+            dashboardURL = env.getEnv(Variables.GRAFANA_DASHBOARD_ENV);
+        } else {
             throw new HttpStatusException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(
-                        gson.toJson(
-                                Map.of(
-                                        "grafanaDashboardUrl",
-                                        env.getEnv(Variables.GRAFANA_DASHBOARD_ENV))));
+                .end(gson.toJson(Map.of("grafanaDashboardUrl", dashboardURL)));
     }
 }
