@@ -137,8 +137,10 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
         }
 
         try {
-            this.confirmTargetRecordingFound(
-                    getConnectionDescriptorFromParams(params), recordingName);
+            if (!this.targetRecordingFound(
+                    getConnectionDescriptorFromParams(params), recordingName)) {
+                throw new RecordingNotFoundException(targetId, recordingName);
+            }
 
             String updatedLabels =
                     recordingMetadataManager
@@ -167,7 +169,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
         }
     }
 
-    private boolean confirmTargetRecordingFound(
+    private boolean targetRecordingFound(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
@@ -175,7 +177,6 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
                     Optional<IRecordingDescriptor> descriptor =
                             recordingTargetHelper.getDescriptorByName(connection, recordingName);
                     return descriptor.isPresent();
-                },
-                false);
+                });
     }
 }
