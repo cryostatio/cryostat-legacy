@@ -52,7 +52,8 @@ class FilterInput {
     }
 
     static FilterInput from(DataFetchingEnvironment env) {
-        return new FilterInput(env.getArgument(FILTER_ARGUMENT));
+        Map<String, String> map = env.getArgument(FILTER_ARGUMENT);
+        return new FilterInput(map == null ? Map.of() : map);
     }
 
     boolean contains(Key key) {
