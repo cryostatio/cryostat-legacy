@@ -67,19 +67,12 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
     @Override
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
-        if (filter.acceptsNone()) {
-            return List.of();
-        }
         EnvironmentNode root = rootNodeFetcher.get(environment);
         List<EnvironmentNode> nodes =
                 recurseFetcher.get(
                         DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
                                 .source(root)
                                 .build());
-
-        if (filter.acceptsAll()) {
-            return nodes;
-        }
 
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);

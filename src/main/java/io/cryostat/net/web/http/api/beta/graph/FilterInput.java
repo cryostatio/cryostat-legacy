@@ -55,21 +55,6 @@ class FilterInput {
         return new FilterInput(env.getArgument(FILTER_ARGUMENT));
     }
 
-    boolean acceptsAll() {
-        if (acceptsNone()) {
-            return false;
-        }
-        boolean containsKnownKey = false;
-        for (Key key : Key.values()) {
-            containsKnownKey |= filter.containsKey(key.key());
-        }
-        return !containsKnownKey;
-    }
-
-    boolean acceptsNone() {
-        return filter == null;
-    }
-
     boolean contains(Key key) {
         return filter.containsKey(key.key());
     }
