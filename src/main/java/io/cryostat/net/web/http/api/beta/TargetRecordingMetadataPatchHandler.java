@@ -62,7 +62,6 @@ import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
@@ -72,6 +71,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final NotificationFactory notificationFactory;
+    private final Gson gson;
 
     @Inject
     TargetRecordingMetadataPatchHandler(
@@ -82,6 +82,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
         super(auth, gson);
+        this.gson = gson;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
@@ -127,22 +128,21 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
+            throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String targetId = params.getPathParams().get("targetId");
-        String labels = params.getBody();
-
-        if (labels == null) {
-            throw new HttpStatusException(400, "\"labels\" body data must be provided");
-        }
 
         try {
+            Map<String, String> labels =
+                    recordingMetadataManager.parseRecordingLabels(params.getBody());
+
             if (!this.targetRecordingFound(
                     getConnectionDescriptorFromParams(params), recordingName)) {
                 throw new RecordingNotFoundException(targetId, recordingName);
             }
 
-            String updatedLabels =
+            Map<String, String> updatedLabels =
                     recordingMetadataManager
                             .addRecordingLabels(targetId, recordingName, labels)
                             .get();
@@ -158,14 +158,14 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
                                     "target",
                                     targetId,
                                     "labels",
-                                    labels))
+                                    updatedLabels))
                     .build()
                     .send();
-            return new IntermediateResponse<String>().body(updatedLabels);
+            return new IntermediateResponse<Map<String, String>>().body(updatedLabels);
         } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
-        } catch (Exception e) {
-            throw new ApiException(500, e);
+            throw new ApiException(404, e);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(400, e);
         }
     }
 

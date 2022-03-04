@@ -58,7 +58,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
@@ -117,18 +116,17 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
+            throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
-        String labels = params.getBody();
-
-        if (labels == null) {
-            throw new HttpStatusException(400, "\"labels\" body data must be provided");
-        }
 
         try {
+            Map<String, String> labels =
+                    recordingMetadataManager.parseRecordingLabels(params.getBody());
+
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
-            String updatedLabels =
+            Map<String, String> updatedLabels =
                     recordingMetadataManager
                             .addRecordingLabels("archives", recordingName, labels)
                             .get();
@@ -141,14 +139,14 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
                     .build()
                     .send();
 
-            return new IntermediateResponse<String>().body(updatedLabels);
+            return new IntermediateResponse<Map<String, String>>().body(updatedLabels);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e);
+                throw new ApiException(404, e);
             }
             throw new ApiException(500, e);
-        } catch (Exception e) {
-            throw new ApiException(500, e);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(400, e);
         }
     }
 }

@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -70,7 +69,7 @@ public class RecordingMetadataManager {
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, String> recordingLabelsMap;
+    private final Map<Pair<String, String>, Map<String, String>> recordingLabelsMap;
 
     RecordingMetadataManager(
             Path recordingMetadataDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
@@ -104,10 +103,9 @@ public class RecordingMetadataManager {
                                         srm.getLabels()));
     }
 
-    public Future<String> addRecordingLabels(String targetId, String recordingName, String labels)
-            throws IllegalArgumentException, IOException {
-        this.recordingLabelsMap.put(
-                Pair.of(targetId, recordingName), validateRecordingLabels(labels));
+    public Future<Map<String, String>> addRecordingLabels(
+            String targetId, String recordingName, Map<String, String> labels) throws IOException {
+        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), labels);
         fs.writeString(
                 this.getMetadataPath(targetId, recordingName),
                 gson.toJson(new StoredRecordingMetadata(targetId, recordingName, labels)),
@@ -118,35 +116,27 @@ public class RecordingMetadataManager {
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
-        String opt =
-                Optional.ofNullable(recordingLabelsMap.get(Pair.of(targetId, recordingName)))
-                        .orElse("");
-        Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-        return gson.fromJson(opt, mapType);
+        return this.recordingLabelsMap.get(Pair.of(targetId, recordingName));
     }
 
-    public String getRecordingLabelsAsString(String targetId, String recordingName) {
-        Optional<String> opt =
-                Optional.ofNullable(this.recordingLabelsMap.get(Pair.of(targetId, recordingName)));
-        return opt.orElse("");
-    }
-
-    public String deleteRecordingLabelsIfExists(String targetId, String recordingName)
+    public Map<String, String> deleteRecordingLabelsIfExists(String targetId, String recordingName)
             throws IOException {
-        String deleted = this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
+        Map<String, String> deleted =
+                this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
         return deleted;
     }
 
-    public Future<String> copyLabelsToArchives(
+    public Future<Map<String, String>> copyLabelsToArchives(
             String targetId, String recordingName, String filename) {
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<Map<String, String>> future = new CompletableFuture<>();
 
         try {
-            String targetRecordingLabels = this.getRecordingLabelsAsString(targetId, recordingName);
-            String archivedLabels = targetRecordingLabels;
+            Map<String, String> targetRecordingLabels =
+                    this.getRecordingLabels(targetId, recordingName);
+            Map<String, String> archivedLabels = targetRecordingLabels;
 
-            if (!targetRecordingLabels.equals("")) {
+            if (targetRecordingLabels != null) {
                 archivedLabels =
                         this.addRecordingLabels(
                                         RecordingArchiveHelper.ARCHIVES,
@@ -163,18 +153,18 @@ public class RecordingMetadataManager {
         return future;
     }
 
-    private String validateRecordingLabels(String labels) throws IllegalArgumentException {
+    public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
         if (labels == null) {
             throw new IllegalArgumentException("Labels must not be null");
         }
 
         try {
             Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-            Map<String, String> map = gson.fromJson(labels, mapType);
-            if (map == null) {
+            Map<String, String> parsedLabels = gson.fromJson(labels, mapType);
+            if (parsedLabels == null) {
                 throw new IllegalArgumentException(labels);
             }
-            return labels;
+            return parsedLabels;
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
         }
@@ -189,9 +179,9 @@ public class RecordingMetadataManager {
     public static class StoredRecordingMetadata {
         private final String targetId;
         private final String recordingName;
-        private final String labels;
+        private final Map<String, String> labels;
 
-        StoredRecordingMetadata(String targetId, String recordingName, String labels) {
+        StoredRecordingMetadata(String targetId, String recordingName, Map<String, String> labels) {
             this.targetId = targetId;
             this.recordingName = recordingName;
             this.labels = labels;
@@ -205,7 +195,7 @@ public class RecordingMetadataManager {
             return this.recordingName;
         }
 
-        public String getLabels() {
+        public Map<String, String> getLabels() {
             return this.labels;
         }
     }

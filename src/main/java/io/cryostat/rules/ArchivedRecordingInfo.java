@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import java.util.Map;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -47,7 +49,7 @@ public class ArchivedRecordingInfo {
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
-    private final String labels;
+    private final Map<String, String> labels;
 
     public ArchivedRecordingInfo(
             String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
@@ -55,7 +57,7 @@ public class ArchivedRecordingInfo {
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
-        this.labels = "";
+        this.labels = Map.of();
     }
 
     public ArchivedRecordingInfo(
@@ -63,7 +65,7 @@ public class ArchivedRecordingInfo {
             String name,
             String downloadUrl,
             String reportUrl,
-            String labels) {
+            Map<String, String> labels) {
         this.encodedServiceUri = encodedServiceUri;
         this.name = name;
         this.downloadUrl = downloadUrl;
@@ -87,7 +89,7 @@ public class ArchivedRecordingInfo {
         return this.reportUrl;
     }
 
-    public String getLabels() {
+    public Map<String, String> getLabels() {
         return labels;
     }
 

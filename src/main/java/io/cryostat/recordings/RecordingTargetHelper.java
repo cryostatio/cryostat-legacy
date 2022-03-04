@@ -161,7 +161,7 @@ public class RecordingTargetHelper {
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    recordingMetadataManager.getRecordingLabelsAsString(
+                                    recordingMetadataManager.getRecordingLabels(
                                             connectionDescriptor.getTargetId(), recordingName));
                     notificationFactory
                             .createBuilder()
@@ -265,11 +265,9 @@ public class RecordingTargetHelper {
                                                     webServer
                                                             .get()
                                                             .getReportURL(connection, d.getName()),
-                                                    recordingMetadataManager
-                                                            .getRecordingLabelsAsString(
-                                                                    connectionDescriptor
-                                                                            .getTargetId(),
-                                                                    recordingName));
+                                                    recordingMetadataManager.getRecordingLabels(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName));
                                     recordingMetadataManager.deleteRecordingLabelsIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
                                     notificationFactory
@@ -368,12 +366,18 @@ public class RecordingTargetHelper {
                                             "The newly created Snapshot could not be found under its rename");
                                 }
 
+                                Map<String, String> labels =
+                                        Optional.ofNullable(
+                                                        recordingMetadataManager.getRecordingLabels(
+                                                                connectionDescriptor.getTargetId(),
+                                                                rename))
+                                                .orElse(Map.of());
+
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
                                         webServer.get().getReportURL(connection, rename),
-                                        recordingMetadataManager.getRecordingLabelsAsString(
-                                                connectionDescriptor.getTargetId(), rename));
+                                        labels);
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {

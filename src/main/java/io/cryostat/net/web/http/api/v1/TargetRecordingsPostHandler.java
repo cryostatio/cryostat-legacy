@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -178,11 +179,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 }
 
                                 if (attrs.contains("labels")) {
+                                    Map<String, String> labels =
+                                            recordingMetadataManager.parseRecordingLabels(
+                                                    attrs.get("labels"));
                                     recordingMetadataManager
                                             .addRecordingLabels(
                                                     connectionDescriptor.getTargetId(),
                                                     recordingName,
-                                                    attrs.get("labels"))
+                                                    labels)
                                             .get();
                                 }
                                 Pair<String, TemplateType> template =
@@ -203,7 +207,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     connection, descriptor.getName()),
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
-                                            recordingMetadataManager.getRecordingLabelsAsString(
+                                            recordingMetadataManager.getRecordingLabels(
                                                     connectionDescriptor.getTargetId(),
                                                     recordingName));
                                 } catch (QuantityConversionException

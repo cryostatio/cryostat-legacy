@@ -37,6 +37,8 @@
  */
 package io.cryostat.jmc.serialization;
 
+import java.util.Map;
+
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -48,7 +50,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     protected String downloadUrl;
     protected String reportUrl;
-    protected String labels;
+    protected Map<String, String> labels;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -56,10 +58,14 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.labels = Map.of();
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl, String labels)
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Map<String, String> labels)
             throws QuantityConversionException {
         super(original);
         this.downloadUrl = downloadUrl;
@@ -73,6 +79,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.labels = Map.of();
     }
 
     public String getDownloadUrl() {
@@ -83,7 +90,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return reportUrl;
     }
 
-    public String getLabels() {
+    public Map<String, String> getLabels() {
         return labels;
     }
 

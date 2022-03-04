@@ -157,7 +157,7 @@ public class RecordingArchiveHelper {
             Path parentPath = savePath.getParent();
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
-            String labels =
+            Map<String, String> labels =
                     recordingMetadataManager
                             .copyLabelsToArchives(
                                     connectionDescriptor.getTargetId(), recordingName, filename)
@@ -298,7 +298,7 @@ public class RecordingArchiveHelper {
                                             webServer.getArchivedDownloadURL(file),
                                             file,
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getRecordingLabelsAsString(
+                                            recordingMetadataManager.getRecordingLabels(
                                                     ARCHIVES, file));
                                 } catch (SocketException
                                         | UnknownHostException
@@ -349,9 +349,8 @@ public class RecordingArchiveHelper {
                                                         file,
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
-                                                        recordingMetadataManager
-                                                                .getRecordingLabelsAsString(
-                                                                        ARCHIVES, file));
+                                                        recordingMetadataManager.getRecordingLabels(
+                                                                ARCHIVES, file));
                                             } catch (SocketException
                                                     | UnknownHostException
                                                     | URISyntaxException e) {
