@@ -247,7 +247,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -330,7 +330,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -423,7 +423,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -504,7 +504,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -591,7 +591,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -729,7 +729,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyLabelsToArchives(
                                 Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(""));
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper

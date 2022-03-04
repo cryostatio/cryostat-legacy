@@ -334,7 +334,9 @@ public class SnapshotIT extends StandardSelfTest {
                                                                     Map.entry("toDisk", true),
                                                                     Map.entry("maxSize", 0),
                                                                     Map.entry("maxAge", 0),
-                                                                    Map.entry("labels", ""))))));
+                                                                    Map.entry(
+                                                                            "labels",
+                                                                            Map.of()))))));
 
             MatcherAssert.assertThat(
                     createResponse.get(), Matchers.equalToObject(expectedCreateResponse));

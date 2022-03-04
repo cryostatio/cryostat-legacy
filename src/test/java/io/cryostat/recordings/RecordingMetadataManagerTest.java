@@ -81,7 +81,8 @@ public class RecordingMetadataManagerTest {
     void shouldParseAndStoreLabelsInRecordingLabelsMap() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
-        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        Map<String, String> labels =
+                Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
@@ -96,20 +97,10 @@ public class RecordingMetadataManagerTest {
                         Mockito.any(OpenOption.class),
                         Mockito.any(OpenOption.class));
 
-        Map<String, String> expectedLabelsMap =
-                Map.of(
-                        "KEY", "VALUE",
-                        "key.2", "some.value",
-                        "key3", "1234");
-        String expectedLabelsAsString = labels;
-
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
-        String actualLabelsMapAsString =
-                recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName);
 
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
-        MatcherAssert.assertThat(actualLabelsMapAsString, Matchers.equalTo(expectedLabelsAsString));
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
     }
 
     @ParameterizedTest
@@ -122,31 +113,29 @@ public class RecordingMetadataManagerTest {
     void shouldThrowOnInvalidLabels(String labels) throws Exception {
         Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        recordingMetadataManager.addRecordingLabels(
-                                "someTarget", "someRecording", labels));
+                () -> recordingMetadataManager.parseRecordingLabels(labels));
     }
 
     @Test
     void shouldDeleteLabels() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
+        Map<String, String> labels =
+                Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        recordingMetadataManager
-                .addRecordingLabels(targetId, recordingName, "{\"key\":\"value\"}")
-                .get();
+        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(Map.of("key", "value")));
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
 
         recordingMetadataManager.deleteRecordingLabelsIfExists(targetId, recordingName);
 
         MatcherAssert.assertThat(
-                recordingMetadataManager.getRecordingLabelsAsString(targetId, recordingName),
-                Matchers.equalTo(""));
+                recordingMetadataManager.getRecordingLabels(targetId, recordingName),
+                Matchers.equalTo(null));
         Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
 
@@ -154,8 +143,9 @@ public class RecordingMetadataManagerTest {
     void shouldOverwriteLabelsForExistingLabelEntries() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
-        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
-        String updatedLabels = "{\"KEY\":\"UPDATED_VALUE\",\"key.2\":\"updated.value\"}";
+        Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
+        Map<String, String> updatedLabels =
+                Map.of("KEY", "UPDATED_VALUE", "key.2", "some.value", "key3", "1234");
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
@@ -167,19 +157,14 @@ public class RecordingMetadataManagerTest {
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
 
-        Map<String, String> expectedLabelsMap =
-                Map.of(
-                        "KEY", "UPDATED_VALUE",
-                        "key.2", "updated.value");
-
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(expectedLabelsMap));
+        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(updatedLabels));
     }
 
     @Test
     void shouldCopyLabelsToArchivedRecordings() throws Exception {
         String targetId = "someTarget";
         String recordingName = "someRecording";
-        String labels = "{\"KEY\":\"VALUE\",\"key.2\":\"some.value\",\"key3\":\"1234\"}";
+        Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         String filename = "";
 
         recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
@@ -190,13 +175,6 @@ public class RecordingMetadataManagerTest {
                 recordingMetadataManager.getRecordingLabels(
                         RecordingArchiveHelper.ARCHIVES, filename);
 
-        Map<String, String> expectedArchivedLabelsMap =
-                Map.of(
-                        "KEY", "VALUE",
-                        "key.2", "some.value",
-                        "key3", "1234");
-
-        MatcherAssert.assertThat(
-                actualArchivedLabelsMap, Matchers.equalTo(expectedArchivedLabelsMap));
+        MatcherAssert.assertThat(actualArchivedLabelsMap, Matchers.equalTo(labels));
     }
 }

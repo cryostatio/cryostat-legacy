@@ -245,7 +245,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         Mockito.verify(resp)
                 .end(
-                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"labels\":null,\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
+                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"labels\":{},\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 
     @Test

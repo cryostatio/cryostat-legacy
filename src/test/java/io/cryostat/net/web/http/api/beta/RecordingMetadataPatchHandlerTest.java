@@ -174,33 +174,33 @@ public class RecordingMetadataPatchHandlerTest {
         @Test
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
-            String labels = Map.of("key", "value").toString();
+            Map<String, String> labels = Map.of("key", "value");
+            String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
             Mockito.when(requestParameters.getPathParams()).thenReturn(params);
             Mockito.when(params.get("recordingName")).thenReturn(recordingName);
-            Mockito.when(requestParameters.getBody()).thenReturn(labels);
+            Mockito.when(requestParameters.getBody()).thenReturn(requestLabels);
 
-            CompletableFuture<Path> pathFuture = Mockito.mock(CompletableFuture.class);
-            pathFuture.complete(Path.of(recordingName));
             Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
-                    .thenReturn(pathFuture);
+                    .thenReturn(CompletableFuture.completedFuture(Path.of(recordingName)));
 
-            CompletableFuture<String> labelFuture = Mockito.mock(CompletableFuture.class);
-            labelFuture.complete(labels);
+            Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
+                    .thenReturn(labels);
+
             Mockito.when(
                             recordingMetadataManager.addRecordingLabels(
                                     RecordingArchiveHelper.ARCHIVES, recordingName, labels))
-                    .thenReturn(labelFuture);
+                    .thenReturn(CompletableFuture.completedFuture(labels));
 
-            IntermediateResponse<String> response = handler.handle(requestParameters);
+            IntermediateResponse<Map<String, String>> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             Mockito.verify(notificationFactory).createBuilder();
             Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
             Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
             Mockito.verify(notificationBuilder)
-                    .message(Map.of("recording", recordingName, "labels", labels));
+                    .message(Map.of("recordingName", recordingName, "labels", labels));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
         }
@@ -210,7 +210,10 @@ public class RecordingMetadataPatchHandlerTest {
             Map<String, String> params = Mockito.mock(Map.class);
             Mockito.when(requestParameters.getPathParams()).thenReturn(params);
             Mockito.when(params.get("recordingName")).thenReturn("someRecording");
-            Mockito.when(requestParameters.getBody()).thenReturn(null);
+            Mockito.when(requestParameters.getBody()).thenReturn("invalid");
+            Mockito.doThrow(new IllegalArgumentException())
+                    .when(recordingMetadataManager)
+                    .parseRecordingLabels("invalid");
             HttpStatusException ex =
                     Assertions.assertThrows(
                             HttpStatusException.class, () -> handler.handle(requestParameters));
@@ -227,11 +230,11 @@ public class RecordingMetadataPatchHandlerTest {
             Mockito.when(params.get("recordingName")).thenReturn(recordingName);
             Mockito.when(requestParameters.getBody()).thenReturn(labels);
 
-            CompletableFuture<Path> notFound = new CompletableFuture<>();
-            notFound.completeExceptionally(
-                    new RecordingNotFoundException(RecordingArchiveHelper.ARCHIVES, recordingName));
             Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
-                    .thenReturn(notFound);
+                    .thenReturn(
+                            CompletableFuture.failedFuture(
+                                    new RecordingNotFoundException(
+                                            RecordingArchiveHelper.ARCHIVES, recordingName)));
 
             HttpStatusException ex =
                     Assertions.assertThrows(

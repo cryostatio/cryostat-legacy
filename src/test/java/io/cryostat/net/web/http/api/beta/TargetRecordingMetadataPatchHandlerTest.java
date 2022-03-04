@@ -178,13 +178,14 @@ public class TargetRecordingMetadataPatchHandlerTest {
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
             String targetId = "fooTarget";
-            String labels = Map.of("key", "value").toString();
+            Map<String, String> labels = Map.of("key", "value");
+            String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
             Mockito.when(requestParameters.getPathParams()).thenReturn(params);
             Mockito.when(params.get("recordingName")).thenReturn(recordingName);
             Mockito.when(params.get("targetId")).thenReturn(targetId);
-            Mockito.when(requestParameters.getBody()).thenReturn(labels);
+            Mockito.when(requestParameters.getBody()).thenReturn(requestLabels);
             Mockito.when(requestParameters.getHeaders())
                     .thenReturn(MultiMap.caseInsensitiveMultiMap());
 
@@ -200,14 +201,14 @@ public class TargetRecordingMetadataPatchHandlerTest {
                                                     arg0.getArgument(1))
                                             .execute(connection));
 
-            CompletableFuture<String> labelFuture = Mockito.mock(CompletableFuture.class);
-            labelFuture.complete(labels);
+            Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
+                    .thenReturn(labels);
             Mockito.when(
                             recordingMetadataManager.addRecordingLabels(
                                     targetId, recordingName, labels))
-                    .thenReturn(labelFuture);
+                    .thenReturn(CompletableFuture.completedFuture(labels));
 
-            IntermediateResponse<String> response = handler.handle(requestParameters);
+            IntermediateResponse<Map<String, String>> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             Mockito.verify(notificationFactory).createBuilder();
@@ -218,7 +219,7 @@ public class TargetRecordingMetadataPatchHandlerTest {
                             Map.of(
                                     "target",
                                     targetId,
-                                    "recording",
+                                    "recordingName",
                                     recordingName,
                                     "labels",
                                     labels));
@@ -231,7 +232,10 @@ public class TargetRecordingMetadataPatchHandlerTest {
             Map<String, String> params = Mockito.mock(Map.class);
             Mockito.when(requestParameters.getPathParams()).thenReturn(params);
             Mockito.when(params.get("recordingName")).thenReturn("someRecording");
-            Mockito.when(requestParameters.getBody()).thenReturn(null);
+            Mockito.when(requestParameters.getBody()).thenReturn("invalid");
+            Mockito.doThrow(new IllegalArgumentException())
+                    .when(recordingMetadataManager)
+                    .parseRecordingLabels("invalid");
 
             HttpStatusException ex =
                     Assertions.assertThrows(
