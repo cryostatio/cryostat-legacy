@@ -39,8 +39,6 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -68,7 +66,10 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
     @Override
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
-        Map<String, String> filter = environment.getArgument("filter");
+        FilterInput filter = FilterInput.from(environment);
+        if (filter.acceptsNone()) {
+            return List.of();
+        }
         EnvironmentNode root = rootNodeFetcher.get(environment);
         List<EnvironmentNode> nodes =
                 recurseFetcher.get(
@@ -76,48 +77,20 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
                                 .source(root)
                                 .build());
 
-        if (filter == null) {
+        if (filter.acceptsAll()) {
             return nodes;
         }
 
-        if (filter.containsKey("nodeName")) {
-            String nodeName = filter.get("nodeName");
-            List<EnvironmentNode> namedNodes =
-                    recurse(root, n -> Objects.equals(n.getName(), nodeName));
-            if (namedNodes.isEmpty()) {
-                throw new NoSuchElementException(String.format("Node named %s", nodeName));
-            }
-            return namedNodes;
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String nodeName = filter.get(FilterInput.Key.NAME);
+            nodes = recurse(root, n -> Objects.equals(n.getName(), nodeName));
         }
 
-        if (filter.containsKey("nodeType")) {
-            String nodeType = filter.get("nodeType");
-            List<EnvironmentNode> typedNodes =
-                    recurse(root, n -> n.getNodeType().getKind().equalsIgnoreCase(nodeType));
-            if (typedNodes.isEmpty()) {
-                throw new NoSuchElementException(String.format("Node of type %s", nodeType));
-            }
-            return typedNodes;
+        if (filter.contains(FilterInput.Key.NODE_TYPE)) {
+            String nodeType = filter.get(FilterInput.Key.NODE_TYPE);
+            nodes = recurse(root, n -> n.getNodeType().getKind().equalsIgnoreCase(nodeType));
         }
-
-        if (filter.containsKey("labelKey") && filter.containsKey("labelValue")) {
-            String labelKey = filter.get("labelKey");
-            String labelValue = filter.get("labelValue");
-            List<EnvironmentNode> labelledNodes =
-                    recurse(
-                            root,
-                            n -> {
-                                Map<String, String> labels = n.getLabels();
-                                return Objects.equals(labels.get(labelKey), labelValue);
-                            });
-            if (labelledNodes.isEmpty()) {
-                throw new NoSuchElementException(
-                        String.format("Node with label %s=%s", labelKey, labelValue));
-            }
-            return labelledNodes;
-        }
-
-        throw new UnsupportedOperationException(filter.toString());
+        return nodes;
     }
 
     List<EnvironmentNode> recurse(
