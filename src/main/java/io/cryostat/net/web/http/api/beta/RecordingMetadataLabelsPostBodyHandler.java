@@ -50,12 +50,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class RecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingMetadataLabelsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    RecordingMetadataPatchBodyHandler(AuthManager auth) {
+    RecordingMetadataLabelsPostBodyHandler(AuthManager auth) {
         super(auth);
     }
 
@@ -71,7 +71,7 @@ class RecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHand
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.PATCH;
+        return HttpMethod.POST;
     }
 
     @Override
@@ -81,7 +81,7 @@ class RecordingMetadataPatchBodyHandler extends AbstractAuthenticatedRequestHand
 
     @Override
     public String path() {
-        return basePath() + RecordingMetadataPatchHandler.PATH;
+        return basePath() + RecordingMetadataLabelsPostHandler.PATH;
     }
 
     @Override

@@ -76,8 +76,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class RecordingMetadataPatchHandlerTest {
-    RecordingMetadataPatchHandler handler;
+public class RecordingMetadataLabelsPostHandlerTest {
+    RecordingMetadataLabelsPostHandler handler;
     @Mock AuthManager authManager;
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
@@ -110,7 +110,7 @@ public class RecordingMetadataPatchHandlerTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
         this.handler =
-                new RecordingMetadataPatchHandler(
+                new RecordingMetadataLabelsPostHandler(
                         authManager,
                         gson,
                         recordingArchiveHelper,
@@ -132,15 +132,15 @@ public class RecordingMetadataPatchHandlerTest {
         }
 
         @Test
-        void shouldHavePATCHMethod() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PATCH));
+        void shouldHavePOSTMethod() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.POST));
         }
 
         @Test
         void shouldHaveTargetsPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/recordings/:recordingName/metadata"));
+                    Matchers.equalTo("/api/beta/recordings/:recordingName/metadata/labels"));
         }
 
         @Test

@@ -165,19 +165,19 @@ public class RecordingMetadataIT extends StandardSelfTest {
             // update the recording labels
             Map<String, String> updatedLabels =
                     Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
-            CompletableFuture<JsonObject> patchResponse = new CompletableFuture<>();
+            CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
             webClient
-                    .patch(
+                    .post(
                             String.format(
-                                    "/api/beta/targets/%s/recordings/%s/metadata",
+                                    "/api/beta/targets/%s/recordings/%s/metadata/labels",
                                     TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer(gson.toJson(updatedLabels, Map.class)),
                             ar -> {
-                                if (assertRequestStatus(ar, patchResponse)) {
+                                if (assertRequestStatus(ar, postResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
-                                    patchResponse.complete(ar.result().bodyAsJsonObject());
+                                    postResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
 
@@ -192,7 +192,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
                                                     "OK"),
                                     "data", Map.of("result", updatedLabels)));
             MatcherAssert.assertThat(
-                    patchResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                     Matchers.equalTo(expectedResponse));
 
             // verify in-memory recording contains updated labels

@@ -38,13 +38,17 @@
 package io.cryostat.net.web.http.api.beta;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -52,30 +56,35 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
+public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler {
 
-    static final String PATH = "recordings/:recordingName/metadata";
+    static final String PATH = "targets/:targetId/recordings/:recordingName/metadata/labels";
 
-    private final RecordingArchiveHelper recordingArchiveHelper;
+    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final NotificationFactory notificationFactory;
+    private final Gson gson;
 
     @Inject
-    RecordingMetadataPatchHandler(
+    TargetRecordingMetadataLabelsPostHandler(
             AuthManager auth,
             Gson gson,
-            RecordingArchiveHelper recordingArchiveHelper,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
         super(auth, gson);
-        this.recordingArchiveHelper = recordingArchiveHelper;
+        this.gson = gson;
+        this.targetConnectionManager = targetConnectionManager;
+        this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.notificationFactory = notificationFactory;
     }
@@ -87,7 +96,7 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.PATCH;
+        return HttpMethod.POST;
     }
 
     @Override
@@ -97,7 +106,10 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return Set.of(ResourceAction.READ_RECORDING, ResourceAction.UPDATE_RECORDING);
+        return Set.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING);
     }
 
     @Override
@@ -119,32 +131,52 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
     public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
             throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
+        String targetId = params.getPathParams().get("targetId");
 
         try {
             Map<String, String> labels =
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
 
-            recordingArchiveHelper.getRecordingPath(recordingName).get();
+            if (!this.targetRecordingFound(
+                    getConnectionDescriptorFromParams(params), recordingName)) {
+                throw new RecordingNotFoundException(targetId, recordingName);
+            }
 
             Map<String, String> updatedLabels =
-                    recordingMetadataManager.setRecordingLabels(recordingName, labels).get();
+                    recordingMetadataManager
+                            .setRecordingLabels(targetId, recordingName, labels)
+                            .get();
 
             notificationFactory
                     .createBuilder()
                     .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recordingName", recordingName, "labels", labels))
+                    .message(
+                            Map.of(
+                                    "recordingName",
+                                    recordingName,
+                                    "target",
+                                    targetId,
+                                    "labels",
+                                    updatedLabels))
                     .build()
                     .send();
-
             return new IntermediateResponse<Map<String, String>>().body(updatedLabels);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e);
-            }
-            throw new ApiException(500, e);
+        } catch (RecordingNotFoundException e) {
+            throw new ApiException(404, e);
         } catch (IllegalArgumentException e) {
             throw new ApiException(400, e);
         }
+    }
+
+    private boolean targetRecordingFound(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            recordingTargetHelper.getDescriptorByName(connection, recordingName);
+                    return descriptor.isPresent();
+                });
     }
 }
