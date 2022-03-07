@@ -188,9 +188,7 @@ public class RecordingMetadataPatchHandlerTest {
             Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
                     .thenReturn(labels);
 
-            Mockito.when(
-                            recordingMetadataManager.addRecordingLabels(
-                                    RecordingArchiveHelper.ARCHIVES, recordingName, labels))
+            Mockito.when(recordingMetadataManager.addRecordingLabels(recordingName, labels))
                     .thenReturn(CompletableFuture.completedFuture(labels));
 
             IntermediateResponse<Map<String, String>> response = handler.handle(requestParameters);

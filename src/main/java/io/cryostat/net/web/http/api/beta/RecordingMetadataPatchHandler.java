@@ -127,9 +127,7 @@ public class RecordingMetadataPatchHandler extends AbstractV2RequestHandler {
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
             Map<String, String> updatedLabels =
-                    recordingMetadataManager
-                            .addRecordingLabels("archives", recordingName, labels)
-                            .get();
+                    recordingMetadataManager.addRecordingLabels(recordingName, labels).get();
 
             notificationFactory
                     .createBuilder()

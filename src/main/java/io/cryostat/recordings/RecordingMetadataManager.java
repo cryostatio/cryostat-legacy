@@ -115,6 +115,11 @@ public class RecordingMetadataManager {
         return CompletableFuture.completedFuture(labels);
     }
 
+    public Future<Map<String, String>> addRecordingLabels(
+            String recordingName, Map<String, String> labels) throws IOException {
+        return this.addRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
+    }
+
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
         return this.recordingLabelsMap.get(Pair.of(targetId, recordingName));
     }
@@ -137,12 +142,7 @@ public class RecordingMetadataManager {
             Map<String, String> archivedLabels = targetRecordingLabels;
 
             if (targetRecordingLabels != null) {
-                archivedLabels =
-                        this.addRecordingLabels(
-                                        RecordingArchiveHelper.ARCHIVES,
-                                        filename,
-                                        targetRecordingLabels)
-                                .get();
+                archivedLabels = this.addRecordingLabels(filename, targetRecordingLabels).get();
             }
 
             future.complete(archivedLabels);
