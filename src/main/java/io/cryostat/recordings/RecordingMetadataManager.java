@@ -103,7 +103,7 @@ public class RecordingMetadataManager {
                                         srm.getLabels()));
     }
 
-    public Future<Map<String, String>> addRecordingLabels(
+    public Future<Map<String, String>> setRecordingLabels(
             String targetId, String recordingName, Map<String, String> labels) throws IOException {
         this.recordingLabelsMap.put(Pair.of(targetId, recordingName), labels);
         fs.writeString(
@@ -115,9 +115,9 @@ public class RecordingMetadataManager {
         return CompletableFuture.completedFuture(labels);
     }
 
-    public Future<Map<String, String>> addRecordingLabels(
+    public Future<Map<String, String>> setRecordingLabels(
             String recordingName, Map<String, String> labels) throws IOException {
-        return this.addRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
+        return this.setRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
@@ -142,7 +142,7 @@ public class RecordingMetadataManager {
             Map<String, String> archivedLabels = targetRecordingLabels;
 
             if (targetRecordingLabels != null) {
-                archivedLabels = this.addRecordingLabels(filename, targetRecordingLabels).get();
+                archivedLabels = this.setRecordingLabels(filename, targetRecordingLabels).get();
             }
 
             future.complete(archivedLabels);

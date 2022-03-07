@@ -204,7 +204,7 @@ public class TargetRecordingMetadataPatchHandlerTest {
             Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
                     .thenReturn(labels);
             Mockito.when(
-                            recordingMetadataManager.addRecordingLabels(
+                            recordingMetadataManager.setRecordingLabels(
                                     targetId, recordingName, labels))
                     .thenReturn(CompletableFuture.completedFuture(labels));
 

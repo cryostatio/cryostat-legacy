@@ -87,7 +87,7 @@ public class RecordingMetadataManagerTest {
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
 
         Mockito.verify(fs)
                 .writeString(
@@ -125,7 +125,7 @@ public class RecordingMetadataManagerTest {
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
@@ -150,9 +150,9 @@ public class RecordingMetadataManagerTest {
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
 
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, updatedLabels).get();
+        recordingMetadataManager.setRecordingLabels(targetId, recordingName, updatedLabels).get();
 
         Map<String, String> actualLabelsMap =
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName);
@@ -167,7 +167,7 @@ public class RecordingMetadataManagerTest {
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         String filename = "";
 
-        recordingMetadataManager.addRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
 
         recordingMetadataManager.copyLabelsToArchives(targetId, recordingName, filename);
 

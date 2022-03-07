@@ -183,7 +183,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             recordingMetadataManager.parseRecordingLabels(
                                                     attrs.get("labels"));
                                     recordingMetadataManager
-                                            .addRecordingLabels(
+                                            .setRecordingLabels(
                                                     connectionDescriptor.getTargetId(),
                                                     recordingName,
                                                     labels)

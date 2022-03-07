@@ -144,7 +144,7 @@ public class TargetRecordingMetadataPatchHandler extends AbstractV2RequestHandle
 
             Map<String, String> updatedLabels =
                     recordingMetadataManager
-                            .addRecordingLabels(targetId, recordingName, labels)
+                            .setRecordingLabels(targetId, recordingName, labels)
                             .get();
 
             notificationFactory
