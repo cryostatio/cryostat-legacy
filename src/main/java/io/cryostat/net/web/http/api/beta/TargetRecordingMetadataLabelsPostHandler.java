@@ -71,7 +71,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final NotificationFactory notificationFactory;
-    private final Gson gson;
 
     @Inject
     TargetRecordingMetadataLabelsPostHandler(
@@ -82,7 +81,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
             RecordingMetadataManager recordingMetadataManager,
             NotificationFactory notificationFactory) {
         super(auth, gson);
-        this.gson = gson;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
