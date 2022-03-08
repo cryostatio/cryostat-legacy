@@ -37,7 +37,6 @@
  */
 package itest;
 
-import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +45,7 @@ import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
@@ -108,14 +108,14 @@ public class RecordingMetadataIT extends StandardSelfTest {
             JsonArray listResp = listRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             JsonObject recordingInfo = listResp.getJsonObject(0);
-
-            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-            Map<String, String> actualLabels =
-                    gson.fromJson(recordingInfo.getValue("labels").toString(), mapType);
+            Metadata actualMetadata =
+                    gson.fromJson(
+                            recordingInfo.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
 
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"), Matchers.equalTo(RECORDING_NAME));
-            MatcherAssert.assertThat(actualLabels, Matchers.equalTo(testLabels));
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(testLabels));
 
         } finally {
             // Clean up what we created
@@ -207,11 +207,12 @@ public class RecordingMetadataIT extends StandardSelfTest {
                             });
             JsonArray listResp = listRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             JsonObject recordingInfo = listResp.getJsonObject(0);
-            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-            Map<String, String> actualLabels =
-                    gson.fromJson(recordingInfo.getValue("labels").toString(), mapType);
+            Metadata actualMetadata =
+                    gson.fromJson(
+                            recordingInfo.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
 
-            MatcherAssert.assertThat(actualLabels, Matchers.equalTo(updatedLabels));
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
         } finally {
             // Clean up what we created
             CompletableFuture<Void> deleteRespFuture1 = new CompletableFuture<>();
@@ -291,11 +292,12 @@ public class RecordingMetadataIT extends StandardSelfTest {
             JsonObject recordingInfo = listResp.getJsonObject(0);
             archivedRecordingName = recordingInfo.getString("name");
 
-            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-            Map<String, String> actualLabels =
-                    gson.fromJson(recordingInfo.getValue("labels").toString(), mapType);
+            Metadata actualMetadata =
+                    gson.fromJson(
+                            recordingInfo.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
 
-            MatcherAssert.assertThat(actualLabels, Matchers.equalTo(testLabels));
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(testLabels));
 
         } finally {
             // Clean up what we created

@@ -68,6 +68,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -225,8 +226,9 @@ public class RecordingTargetHelperTest {
                                                 .equals(connectionDescriptor.getTargetId())),
                         Mockito.eq(recordingName));
 
+        Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null);
+                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
@@ -542,8 +544,9 @@ public class RecordingTargetHelperTest {
 
         Mockito.verify(service).stop(descriptor);
 
+        Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null);
+                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");

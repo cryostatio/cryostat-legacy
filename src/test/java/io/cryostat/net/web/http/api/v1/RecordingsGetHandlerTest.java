@@ -148,6 +148,6 @@ class RecordingsGetHandlerTest {
 
         Mockito.verify(resp)
                 .end(
-                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"labels\":{}}]");
+                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}}}]");
     }
 }

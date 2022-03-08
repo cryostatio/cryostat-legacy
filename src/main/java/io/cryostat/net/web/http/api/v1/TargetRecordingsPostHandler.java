@@ -57,6 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -207,9 +208,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     connection, descriptor.getName()),
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
-                                            recordingMetadataManager.getRecordingLabels(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName));
+                                            new Metadata(
+                                                    recordingMetadataManager.getRecordingLabels(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName)));
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {

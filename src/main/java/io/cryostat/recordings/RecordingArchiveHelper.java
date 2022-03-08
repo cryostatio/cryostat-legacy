@@ -69,6 +69,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -168,7 +169,7 @@ public class RecordingArchiveHelper {
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
-                            labels);
+                            new Metadata(labels));
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -210,8 +211,9 @@ public class RecordingArchiveHelper {
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
-                            recordingMetadataManager.deleteRecordingLabelsIfExists(
-                                    ARCHIVES, recordingName));
+                            new Metadata(
+                                    recordingMetadataManager.deleteRecordingLabelsIfExists(
+                                            ARCHIVES, recordingName)));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -298,8 +300,9 @@ public class RecordingArchiveHelper {
                                             webServer.getArchivedDownloadURL(file),
                                             file,
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getRecordingLabels(
-                                                    ARCHIVES, file));
+                                            new Metadata(
+                                                    recordingMetadataManager.getRecordingLabels(
+                                                            ARCHIVES, file)));
                                 } catch (SocketException
                                         | UnknownHostException
                                         | URISyntaxException e) {
@@ -349,8 +352,10 @@ public class RecordingArchiveHelper {
                                                         file,
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
-                                                        recordingMetadataManager.getRecordingLabels(
-                                                                ARCHIVES, file));
+                                                        new Metadata(
+                                                                recordingMetadataManager
+                                                                        .getRecordingLabels(
+                                                                                ARCHIVES, file)));
                                             } catch (SocketException
                                                     | UnknownHostException
                                                     | URISyntaxException e) {

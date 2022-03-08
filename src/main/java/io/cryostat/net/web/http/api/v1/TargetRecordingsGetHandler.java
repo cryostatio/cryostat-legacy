@@ -48,6 +48,7 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -126,10 +127,12 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                 webServer.getDownloadURL(
                                                         connection, desc.getName()),
                                                 webServer.getReportURL(connection, desc.getName()),
-                                                recordingMetadataManager.getRecordingLabels(
-                                                        getConnectionDescriptorFromContext(ctx)
-                                                                .getTargetId(),
-                                                        desc.getName())));
+                                                new Metadata(
+                                                        recordingMetadataManager.getRecordingLabels(
+                                                                getConnectionDescriptorFromContext(
+                                                                                ctx)
+                                                                        .getTargetId(),
+                                                                desc.getName()))));
                             }
                             return list;
                         });

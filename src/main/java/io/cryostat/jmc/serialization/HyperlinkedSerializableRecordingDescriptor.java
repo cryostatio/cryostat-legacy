@@ -50,7 +50,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     protected String downloadUrl;
     protected String reportUrl;
-    protected Map<String, String> labels;
+    protected Metadata metadata;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -58,19 +58,16 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
-        this.labels = Map.of();
+        this.metadata = new Metadata();
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original,
-            String downloadUrl,
-            String reportUrl,
-            Map<String, String> labels)
+            IRecordingDescriptor original, String downloadUrl, String reportUrl, Metadata metadata)
             throws QuantityConversionException {
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
-        this.labels = labels;
+        this.metadata = metadata;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -79,7 +76,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
-        this.labels = Map.of();
+        this.metadata = new Metadata();
     }
 
     public String getDownloadUrl() {
@@ -90,8 +87,8 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return reportUrl;
     }
 
-    public Map<String, String> getLabels() {
-        return labels;
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     @Override
@@ -106,6 +103,38 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     @Override
     public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof HyperlinkedSerializableRecordingDescriptor)) {
+            return false;
+        }
+
+        HyperlinkedSerializableRecordingDescriptor descriptor =
+                (HyperlinkedSerializableRecordingDescriptor) o;
+        return new EqualsBuilder()
+                .append(downloadUrl, descriptor.downloadUrl)
+                .append(reportUrl, descriptor.reportUrl)
+                .append(metadata.labels, descriptor.metadata.labels)
+                .build();
+    }
+
+    public static class Metadata {
+        protected final Map<String, String> labels;
+
+        public Metadata() {
+            this.labels = Map.of();
+        }
+
+        public Metadata(Map<String, String> labels) {
+            this.labels = labels;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
     }
 }

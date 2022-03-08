@@ -65,6 +65,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -161,8 +162,10 @@ public class RecordingTargetHelper {
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    recordingMetadataManager.getRecordingLabels(
-                                            connectionDescriptor.getTargetId(), recordingName));
+                                    new Metadata(
+                                            recordingMetadataManager.getRecordingLabels(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName)));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)
@@ -265,9 +268,12 @@ public class RecordingTargetHelper {
                                                     webServer
                                                             .get()
                                                             .getReportURL(connection, d.getName()),
-                                                    recordingMetadataManager.getRecordingLabels(
-                                                            connectionDescriptor.getTargetId(),
-                                                            recordingName));
+                                                    new Metadata(
+                                                            recordingMetadataManager
+                                                                    .getRecordingLabels(
+                                                                            connectionDescriptor
+                                                                                    .getTargetId(),
+                                                                            recordingName)));
                                     recordingMetadataManager.deleteRecordingLabelsIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
                                     notificationFactory
@@ -377,7 +383,7 @@ public class RecordingTargetHelper {
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
                                         webServer.get().getReportURL(connection, rename),
-                                        labels);
+                                        new Metadata(labels));
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {
