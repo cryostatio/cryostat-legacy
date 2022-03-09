@@ -161,7 +161,7 @@ class CorsEnablingHandlerTest {
             Mockito.verify(res)
                     .putHeader(
                             HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                            "Authorization,X-JMX-Authorization");
+                            "Authorization,X-JMX-Authorization,Content-Type");
             Mockito.verify(res).setStatusCode(200);
             Mockito.verify(res).end();
             Mockito.verifyNoMoreInteractions(res);

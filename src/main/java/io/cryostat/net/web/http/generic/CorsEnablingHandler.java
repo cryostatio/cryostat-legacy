@@ -52,6 +52,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
+import org.apache.http.HttpHeaders;
 
 class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
@@ -63,8 +64,9 @@ class CorsEnablingHandler implements RequestHandler {
         this.env = env;
         this.corsHandler =
                 CorsHandler.create(getOrigin())
-                        .allowedHeader("Authorization")
+                        .allowedHeader(HttpHeaders.AUTHORIZATION)
                         .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
+                        .allowedHeader(HttpHeaders.CONTENT_TYPE)
                         .allowedMethod(HttpMethod.GET)
                         .allowedMethod(HttpMethod.POST)
                         .allowedMethod(HttpMethod.PATCH)
