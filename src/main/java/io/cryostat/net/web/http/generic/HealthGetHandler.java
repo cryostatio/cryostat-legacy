@@ -133,10 +133,16 @@ class HealthGetHandler implements RequestHandler {
                                 Map.of(
                                         "cryostatVersion",
                                         appVersion.getVersionString(),
+                                        "dashboardConfigured",
+                                        env.hasEnv(Variables.GRAFANA_DASHBOARD_ENV),
                                         "dashboardAvailable",
                                         dashboardAvailable.join(),
+                                        "datasourceConfigured",
+                                        env.hasEnv(Variables.GRAFANA_DATASOURCE_ENV),
                                         "datasourceAvailable",
                                         datasourceAvailable.join(),
+                                        "reportsConfigured",
+                                        env.hasEnv(Variables.REPORT_GENERATOR_ENV),
                                         "reportsAvailable",
                                         reportsAvailable.join())));
     }
