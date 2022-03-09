@@ -75,8 +75,13 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
         if (filter.contains(FilterInput.Key.NODE_TYPE)) {
             String nodeType = filter.get(FilterInput.Key.NODE_TYPE);
-            nodes = filter(nodes, n -> Objects.equals(n.getNodeType().getKind(), nodeType) ||
-                    Objects.equals(n.getNodeType().toString(), nodeType));
+            nodes =
+                    filter(
+                            nodes,
+                            n ->
+                                    Objects.equals(n.getNodeType().getKind(), nodeType)
+                                            || Objects.equals(
+                                                    n.getNodeType().toString(), nodeType));
         }
         return new ArrayList<>(nodes);
     }
