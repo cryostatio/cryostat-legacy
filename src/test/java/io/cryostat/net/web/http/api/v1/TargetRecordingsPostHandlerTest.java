@@ -60,6 +60,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -93,6 +94,7 @@ class TargetRecordingsPostHandlerTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock WebServer webServer;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -112,6 +114,7 @@ class TargetRecordingsPostHandlerTest {
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
+                        recordingMetadataManager,
                         gson);
     }
 
@@ -242,7 +245,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         Mockito.verify(resp)
                 .end(
-                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
+                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 
     @Test

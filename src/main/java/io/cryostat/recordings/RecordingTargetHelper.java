@@ -65,6 +65,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -93,6 +94,7 @@ public class RecordingTargetHelper {
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
     private final ScheduledExecutorService scheduler;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
     private final Map<Pair<String, String>, Future<?>> scheduledStopNotifications;
 
@@ -104,6 +106,7 @@ public class RecordingTargetHelper {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             @Named(RecordingsModule.NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
@@ -112,6 +115,7 @@ public class RecordingTargetHelper {
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
         this.scheduler = scheduler;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
         this.scheduledStopNotifications = new ConcurrentHashMap<>();
     }
@@ -157,7 +161,11 @@ public class RecordingTargetHelper {
                             new HyperlinkedSerializableRecordingDescriptor(
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
-                                    webServer.get().getReportURL(connection, desc.getName()));
+                                    webServer.get().getReportURL(connection, desc.getName()),
+                                    new Metadata(
+                                            recordingMetadataManager.getRecordingLabels(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName)));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)
@@ -259,7 +267,15 @@ public class RecordingTargetHelper {
                                                                     connection, d.getName()),
                                                     webServer
                                                             .get()
-                                                            .getReportURL(connection, d.getName()));
+                                                            .getReportURL(connection, d.getName()),
+                                                    new Metadata(
+                                                            recordingMetadataManager
+                                                                    .getRecordingLabels(
+                                                                            connectionDescriptor
+                                                                                    .getTargetId(),
+                                                                            recordingName)));
+                                    recordingMetadataManager.deleteRecordingLabelsIfExists(
+                                            connectionDescriptor.getTargetId(), recordingName);
                                     notificationFactory
                                             .createBuilder()
                                             .metaCategory(DELETION_NOTIFICATION_CATEGORY)
@@ -356,10 +372,18 @@ public class RecordingTargetHelper {
                                             "The newly created Snapshot could not be found under its rename");
                                 }
 
+                                Map<String, String> labels =
+                                        Optional.ofNullable(
+                                                        recordingMetadataManager.getRecordingLabels(
+                                                                connectionDescriptor.getTargetId(),
+                                                                rename))
+                                                .orElse(Map.of());
+
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
-                                        webServer.get().getReportURL(connection, rename));
+                                        webServer.get().getReportURL(connection, rename),
+                                        new Metadata(labels));
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {
@@ -427,7 +451,8 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName) {
+    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName)
+            throws IOException {
         var f = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
         if (f != null) {
             f.cancel(true);

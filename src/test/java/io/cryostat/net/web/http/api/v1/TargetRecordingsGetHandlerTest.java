@@ -55,6 +55,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingMetadataManager;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -83,13 +84,15 @@ class TargetRecordingsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock TargetConnectionManager connectionManager;
     @Mock WebServer webServer;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetRecordingsGetHandler(auth, connectionManager, () -> webServer, gson);
+                new TargetRecordingsGetHandler(
+                        auth, connectionManager, () -> webServer, recordingMetadataManager, gson);
     }
 
     @Test

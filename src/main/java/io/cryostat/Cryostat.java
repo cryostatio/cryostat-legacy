@@ -50,6 +50,7 @@ import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
 
@@ -82,6 +83,7 @@ class Cryostat {
         client.webServer().start();
         client.messagingServer().start();
         client.platformClient().start();
+        client.recordingMetadataManager().load();
 
         future.join();
     }
@@ -102,6 +104,8 @@ class Cryostat {
         MessagingServer messagingServer();
 
         PlatformClient platformClient();
+
+        RecordingMetadataManager recordingMetadataManager();
 
         @Component.Builder
         interface Builder {

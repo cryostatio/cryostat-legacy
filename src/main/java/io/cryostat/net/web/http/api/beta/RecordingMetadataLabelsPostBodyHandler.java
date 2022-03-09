@@ -37,58 +37,55 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import java.util.Set;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+class RecordingMetadataLabelsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+    @Inject
+    RecordingMetadataLabelsPostBodyHandler(AuthManager auth) {
+        super(auth);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public String path() {
+        return basePath() + RecordingMetadataLabelsPostHandler.PATH;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
+    }
 }

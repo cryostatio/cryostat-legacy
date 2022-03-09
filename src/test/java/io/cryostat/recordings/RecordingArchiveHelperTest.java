@@ -50,6 +50,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import javax.management.remote.JMXServiceURL;
@@ -93,6 +94,7 @@ class RecordingArchiveHelperTest {
 
     RecordingArchiveHelper recordingArchiveHelper;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock FileSystem fs;
     @Mock WebServer webServer;
     @Mock Logger logger;
@@ -134,6 +136,7 @@ class RecordingArchiveHelperTest {
                         archivedRecordingsPath,
                         archivedRecordingsReportPath,
                         targetConnectionManager,
+                        recordingMetadataManager,
                         clock,
                         platformClient,
                         notificationFactory,
@@ -241,6 +244,10 @@ class RecordingArchiveHelperTest {
         Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -320,6 +327,10 @@ class RecordingArchiveHelperTest {
                         + ".jfr";
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -409,6 +420,10 @@ class RecordingArchiveHelperTest {
         Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -486,6 +501,10 @@ class RecordingArchiveHelperTest {
         Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -569,6 +588,10 @@ class RecordingArchiveHelperTest {
         Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -703,6 +726,10 @@ class RecordingArchiveHelperTest {
         Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
+        Mockito.when(
+                        recordingMetadataManager.copyLabelsToArchives(
+                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(Map.of()));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper

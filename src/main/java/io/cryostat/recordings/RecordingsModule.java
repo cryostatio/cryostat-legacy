@@ -37,7 +37,12 @@
  */
 package io.cryostat.recordings;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -48,6 +53,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
@@ -60,6 +66,7 @@ import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 
+import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -69,6 +76,7 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class RecordingsModule {
 
     static final String NOTIFICATION_SCHEDULER = "NOTIFICATION_SCHEDULER";
+    public static final String METADATA_SUBDIRECTORY = "metadata";
 
     @Provides
     @Singleton
@@ -80,6 +88,7 @@ public abstract class RecordingsModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             @Named(NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         return new RecordingTargetHelper(
                 targetConnectionManager,
@@ -89,6 +98,7 @@ public abstract class RecordingsModule {
                 recordingOptionsBuilderFactory,
                 reportService,
                 scheduler,
+                recordingMetadataManager,
                 logger);
     }
 
@@ -101,6 +111,7 @@ public abstract class RecordingsModule {
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path archivedRecordingsReportPath,
             TargetConnectionManager targetConnectionManager,
+            RecordingMetadataManager recordingMetadataManager,
             Clock clock,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
@@ -112,6 +123,7 @@ public abstract class RecordingsModule {
                 archivedRecordingsPath,
                 archivedRecordingsReportPath,
                 targetConnectionManager,
+                recordingMetadataManager,
                 clock,
                 platformClient,
                 notificationFactory,
@@ -147,5 +159,32 @@ public abstract class RecordingsModule {
                         });
         Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
         return ses;
+    }
+
+    @Provides
+    @Singleton
+    static RecordingMetadataManager provideRecordingMetadataManager(
+            // FIXME Use a database connection or create a new filesystem path instead of
+            // CONFIGURATION_PATH
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            FileSystem fs,
+            Gson gson,
+            Base32 base32,
+            Logger logger) {
+        try {
+            Path metadataDir = confDir.resolve(METADATA_SUBDIRECTORY);
+            if (!fs.isDirectory(metadataDir)) {
+                Files.createDirectory(
+                        metadataDir,
+                        PosixFilePermissions.asFileAttribute(
+                                Set.of(
+                                        PosixFilePermission.OWNER_READ,
+                                        PosixFilePermission.OWNER_WRITE,
+                                        PosixFilePermission.OWNER_EXECUTE)));
+            }
+            return new RecordingMetadataManager(metadataDir, fs, gson, base32, logger);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

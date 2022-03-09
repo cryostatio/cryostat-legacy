@@ -37,6 +37,8 @@
  */
 package io.cryostat.jmc.serialization;
 
+import java.util.Map;
+
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -48,6 +50,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     protected String downloadUrl;
     protected String reportUrl;
+    protected Metadata metadata;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -55,6 +58,16 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original, String downloadUrl, String reportUrl, Metadata metadata)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = metadata;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -63,6 +76,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
     }
 
     public String getDownloadUrl() {
@@ -73,18 +87,79 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return reportUrl;
     }
 
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
     }
 
     @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof HyperlinkedSerializableRecordingDescriptor)) {
+            return false;
+        }
+
+        HyperlinkedSerializableRecordingDescriptor descriptor =
+                (HyperlinkedSerializableRecordingDescriptor) o;
+        return new EqualsBuilder()
+                .append(downloadUrl, descriptor.downloadUrl)
+                .append(reportUrl, descriptor.reportUrl)
+                .append(metadata, descriptor.metadata)
+                .build();
     }
 
     @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(downloadUrl)
+                .append(reportUrl)
+                .append(metadata)
+                .toHashCode();
+    }
+
+    public static class Metadata {
+        protected final Map<String, String> labels;
+
+        public Metadata() {
+            this.labels = Map.of();
+        }
+
+        public Metadata(Map<String, String> labels) {
+            this.labels = labels;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null) {
+                return false;
+            }
+            if (o == this) {
+                return true;
+            }
+            if (!(o instanceof Metadata)) {
+                return false;
+            }
+
+            Metadata metadata = (Metadata) o;
+            return new EqualsBuilder().append(labels, metadata.labels).build();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(labels).toHashCode();
+        }
     }
 }

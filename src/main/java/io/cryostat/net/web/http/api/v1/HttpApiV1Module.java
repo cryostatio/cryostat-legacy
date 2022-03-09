@@ -190,6 +190,6 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecoringOptionsGetHandler(
+    abstract RequestHandler bindTargetRecordingOptionsGetHandler(
             TargetRecordingOptionsGetHandler handler);
 }

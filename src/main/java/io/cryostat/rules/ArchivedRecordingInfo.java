@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -47,6 +49,7 @@ public class ArchivedRecordingInfo {
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
+    private final Metadata metadata;
 
     public ArchivedRecordingInfo(
             String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
@@ -54,6 +57,20 @@ public class ArchivedRecordingInfo {
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
+    }
+
+    public ArchivedRecordingInfo(
+            String encodedServiceUri,
+            String name,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata) {
+        this.encodedServiceUri = encodedServiceUri;
+        this.name = name;
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = metadata;
     }
 
     public String getEncodedServiceUri() {
@@ -70,6 +87,10 @@ public class ArchivedRecordingInfo {
 
     public String getReportUrl() {
         return this.reportUrl;
+    }
+
+    public Metadata getMetadata() {
+        return this.metadata;
     }
 
     @Override
@@ -89,6 +110,7 @@ public class ArchivedRecordingInfo {
                 .append(name, ari.name)
                 .append(downloadUrl, ari.downloadUrl)
                 .append(reportUrl, ari.reportUrl)
+                .append(metadata.getLabels(), ari.metadata.getLabels())
                 .isEquals();
     }
 
@@ -99,6 +121,7 @@ public class ArchivedRecordingInfo {
                 .append(name)
                 .append(downloadUrl)
                 .append(reportUrl)
+                .append(metadata)
                 .hashCode();
     }
 }

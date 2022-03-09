@@ -150,6 +150,7 @@ class TargetSnapshotPostHandlerTest {
         data.put("result", result);
         result.put("downloadUrl", "http://example.com/download");
         result.put("reportUrl", "http://example.com/report");
+        result.put("metadata", Map.of("labels", Map.of()));
         result.put("id", 1.0);
         result.put("name", "snapshot-1");
         result.put("state", "STOPPED");

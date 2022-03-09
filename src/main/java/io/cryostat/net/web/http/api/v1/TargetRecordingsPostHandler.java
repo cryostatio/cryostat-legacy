@@ -56,6 +56,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -64,10 +65,13 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -83,6 +87,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Gson gson;
 
     @Inject
@@ -92,12 +97,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
+            RecordingMetadataManager recordingMetadataManager,
             Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.gson = gson;
     }
 
@@ -172,6 +179,19 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
+
+                                if (attrs.contains("metadata")) {
+                                    Metadata metadata =
+                                            gson.fromJson(
+                                                    attrs.get("metadata"),
+                                                    new TypeToken<Metadata>() {}.getType());
+                                    recordingMetadataManager
+                                            .setRecordingLabels(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName,
+                                                    metadata.getLabels())
+                                            .get();
+                                }
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);
@@ -181,6 +201,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 builder.build(),
                                                 template.getLeft(),
                                                 template.getRight());
+
                                 try {
                                     WebServer webServer = webServerProvider.get();
                                     return new HyperlinkedSerializableRecordingDescriptor(
@@ -188,7 +209,11 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             webServer.getDownloadURL(
                                                     connection, descriptor.getName()),
                                             webServer.getReportURL(
-                                                    connection, descriptor.getName()));
+                                                    connection, descriptor.getName()),
+                                            new Metadata(
+                                                    recordingMetadataManager.getRecordingLabels(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName)));
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {
@@ -200,9 +225,9 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             ctx.response().putHeader(HttpHeaders.LOCATION, "/" + recordingName);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             ctx.response().end(gson.toJson(linkedDescriptor));
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | JsonSyntaxException ex) {
             throw new HttpStatusException(
-                    400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
+                    400, String.format("Invalid argument: %s", ex.getMessage()), ex);
         } catch (IllegalArgumentException iae) {
             throw new HttpStatusException(400, iae.getMessage(), iae);
         }
