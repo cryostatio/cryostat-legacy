@@ -907,6 +907,8 @@
     If this field is not set, or if it is set to zero,
     the recording will not have a maximum size.
 
+    `metadata` - A JSON object containing metadata about the recording. `metadata` should contain a `labels` object with `"key": "value"` string pairs, e.g. `metadata={"labels":{"reason":"service-outage"}}`.
+
     ###### response
     `201` - The body is a descriptor of the newly started recording, in the form
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`.
@@ -1814,6 +1816,10 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| **Recordings in Target JVMs**                                             |                                                                                 |
+| Create metadata labels for a recording in a target JVM                                       | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler)                                         |
+| **Recordings in archive**                                                 |                                                                             |
+| Create metadata labels for a recording                                       | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)                                         |
 
 ### Miscellaneous
 
@@ -1831,3 +1837,71 @@ The handler-specific descriptions below describe how each handler populates the
     `200` - The result is the path of the saved file in the server's storage.
 
     `401` - The user does not have sufficient permissions.
+
+### Recordings in Target JVMs
+* #### `TargetRecordingMetadataLabelsPostHandler`
+
+    ##### synopsis
+    Add metadata labels for a recording in a target JVM. Overwrites any existing labels for that recording.
+
+    ##### request
+    `POST /api/v2/targets/:targetId/recordings/:recordingName/metadata/labels`
+
+    The request should be a JSON document with the `labels` specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
+
+    `recordingName` - The name of the recording to attach labels to.
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    ##### response
+    `200` - The result contains the updated labels associated with the target recording.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The recording could not be found. The body is an error message.
+
+    `500` - There was an unexpected error. The reason is an error message.
+
+    ##### example
+    ```
+    $ curl --data "{\"myKey\":\"myValue\",\"another-key\":\"another-value\"}" http://localhost:8181/api/beta/targets/localhost:0/recordings/myRecording/metadata/labels
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"myValue","another-key":"another-value"}}}
+    ```
+
+### Recordings in Archives
+* #### `RecordingMetadataLabelsPostHandler`
+
+    ##### synopsis
+    Create metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording.
+
+    ##### request
+    `POST /api/v2/recordings/:recordingName/metadata/labels`
+
+    The request should be a JSON document with the labels specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
+
+    `recordingName` - The name of the recording to attach labels to.
+
+    ##### response
+    `200` - The result contains the updated labels associated with the archived recording.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The recording could not be found. The body is an error message.
+
+    `500` - There was an unexpected error. The reason is an error message.
+
+    ##### example
+    ```
+    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"updatedValue","another-key":"another-updated-value","new-key":"new-value"}}}
+    ```
