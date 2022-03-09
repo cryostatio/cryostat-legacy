@@ -57,6 +57,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
@@ -197,6 +199,35 @@ public class RecordingMetadataManager {
 
         public Map<String, String> getLabels() {
             return this.labels;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null) {
+                return false;
+            }
+            if (o == this) {
+                return true;
+            }
+            if (!(o instanceof StoredRecordingMetadata)) {
+                return false;
+            }
+
+            StoredRecordingMetadata srm = (StoredRecordingMetadata) o;
+            return new EqualsBuilder()
+                    .append(targetId, srm.targetId)
+                    .append(recordingName, srm.recordingName)
+                    .append(labels, srm.labels)
+                    .build();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder()
+                    .append(targetId)
+                    .append(recordingName)
+                    .append(labels)
+                    .toHashCode();
         }
     }
 }

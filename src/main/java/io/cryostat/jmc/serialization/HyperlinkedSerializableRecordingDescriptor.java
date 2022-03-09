@@ -97,11 +97,6 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     }
 
     @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (o == null) {
             return false;
@@ -118,8 +113,17 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return new EqualsBuilder()
                 .append(downloadUrl, descriptor.downloadUrl)
                 .append(reportUrl, descriptor.reportUrl)
-                .append(metadata.labels, descriptor.metadata.labels)
+                .append(metadata, descriptor.metadata)
                 .build();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(downloadUrl)
+                .append(reportUrl)
+                .append(metadata)
+                .toHashCode();
     }
 
     public static class Metadata {
@@ -135,6 +139,27 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
         public Map<String, String> getLabels() {
             return labels;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null) {
+                return false;
+            }
+            if (o == this) {
+                return true;
+            }
+            if (!(o instanceof Metadata)) {
+                return false;
+            }
+
+            Metadata metadata = (Metadata) o;
+            return new EqualsBuilder().append(labels, metadata.labels).build();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(labels).toHashCode();
         }
     }
 }
