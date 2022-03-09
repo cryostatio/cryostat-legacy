@@ -1,5 +1,7 @@
 query {
-    environmentNodes(filter: { nodeName: "JDP" }) {
+    environmentNodes(filter: { name: "JDP" }) {
+        name
+        nodeType
         descendantTargets {
             recordings {
                 active {

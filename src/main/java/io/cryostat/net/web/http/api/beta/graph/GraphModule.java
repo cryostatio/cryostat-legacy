@@ -231,9 +231,8 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(
-            RootNodeFetcher rootNodeFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
-        return new EnvironmentNodesFetcher(rootNodeFetcher, recurseFetcher);
+    static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(RootNodeFetcher rootNodeFetcher) {
+        return new EnvironmentNodesFetcher(rootNodeFetcher);
     }
 
     @Provides

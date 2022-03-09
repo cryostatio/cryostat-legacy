@@ -38,101 +38,80 @@
 package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.inject.Inject;
 
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
 
 class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
     private final RootNodeFetcher rootNodeFetcher;
-    private final EnvironmentNodeRecurseFetcher recurseFetcher;
 
     @Inject
-    EnvironmentNodesFetcher(
-            RootNodeFetcher rootNodeFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
+    EnvironmentNodesFetcher(RootNodeFetcher rootNodeFetcher) {
         this.rootNodeFetcher = rootNodeFetcher;
-        this.recurseFetcher = recurseFetcher;
     }
 
     @Override
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
-        Map<String, String> filter = environment.getArgument("filter");
+        FilterInput filter = FilterInput.from(environment);
         EnvironmentNode root = rootNodeFetcher.get(environment);
-        List<EnvironmentNode> nodes =
-                recurseFetcher.get(
-                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                                .source(root)
-                                .build());
+        Set<EnvironmentNode> nodes = flattenEnvNodes(root);
 
-        if (filter == null) {
-            return nodes;
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String nodeName = filter.get(FilterInput.Key.NAME);
+            nodes = filter(nodes, n -> Objects.equals(n.getName(), nodeName));
         }
 
-        if (filter.containsKey("nodeName")) {
-            String nodeName = filter.get("nodeName");
-            List<EnvironmentNode> namedNodes =
-                    recurse(root, n -> Objects.equals(n.getName(), nodeName));
-            if (namedNodes.isEmpty()) {
-                throw new NoSuchElementException(String.format("Node named %s", nodeName));
-            }
-            return namedNodes;
+        if (filter.contains(FilterInput.Key.NODE_TYPE)) {
+            String nodeType = filter.get(FilterInput.Key.NODE_TYPE);
+            nodes =
+                    filter(
+                            nodes,
+                            n ->
+                                    Objects.equals(n.getNodeType().getKind(), nodeType)
+                                            || Objects.equals(
+                                                    n.getNodeType().toString(), nodeType));
         }
-
-        if (filter.containsKey("nodeType")) {
-            String nodeType = filter.get("nodeType");
-            List<EnvironmentNode> typedNodes =
-                    recurse(root, n -> n.getNodeType().getKind().equalsIgnoreCase(nodeType));
-            if (typedNodes.isEmpty()) {
-                throw new NoSuchElementException(String.format("Node of type %s", nodeType));
-            }
-            return typedNodes;
-        }
-
-        if (filter.containsKey("labelKey") && filter.containsKey("labelValue")) {
-            String labelKey = filter.get("labelKey");
-            String labelValue = filter.get("labelValue");
-            List<EnvironmentNode> labelledNodes =
-                    recurse(
-                            root,
-                            n -> {
-                                Map<String, String> labels = n.getLabels();
-                                return Objects.equals(labels.get(labelKey), labelValue);
-                            });
-            if (labelledNodes.isEmpty()) {
-                throw new NoSuchElementException(
-                        String.format("Node with label %s=%s", labelKey, labelValue));
-            }
-            return labelledNodes;
-        }
-
-        throw new UnsupportedOperationException(filter.toString());
+        return new ArrayList<>(nodes);
     }
 
-    List<EnvironmentNode> recurse(
-            EnvironmentNode node, Function<EnvironmentNode, Boolean> matcher) {
-        List<EnvironmentNode> result = new ArrayList<>();
+    Set<EnvironmentNode> flattenEnvNodes(EnvironmentNode root) {
+        return new HashSet<>(recurse(root, e -> e instanceof EnvironmentNode));
+    }
+
+    Set<EnvironmentNode> recurse(EnvironmentNode node, Function<AbstractNode, Boolean> matcher) {
+        Set<EnvironmentNode> result = new HashSet<>();
         if (matcher.apply(node)) {
             result.add(node);
-            return result;
         }
         for (AbstractNode child : node.getChildren()) {
-            if (child instanceof TargetNode) {
+            if (!matcher.apply(child)) {
                 continue;
             }
-            List<EnvironmentNode> envChild = recurse((EnvironmentNode) child, matcher);
+            Set<EnvironmentNode> envChild = recurse((EnvironmentNode) child, matcher);
             result.addAll(envChild);
+        }
+        return result;
+    }
+
+    Set<EnvironmentNode> filter(
+            Collection<EnvironmentNode> nodes, Function<EnvironmentNode, Boolean> matcher) {
+        Set<EnvironmentNode> result = new HashSet<>();
+        for (EnvironmentNode node : nodes) {
+            if (matcher.apply(node)) {
+                result.add(node);
+            }
         }
         return result;
     }
