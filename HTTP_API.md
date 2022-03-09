@@ -159,9 +159,9 @@
 * #### `HealthGetHandler`
 
     ###### synopsis
-    Returns whether or not the Grafana datasource and Grafana dashboard
-    that Cryostat is configured with are running properly.
-    Can also be used to see if Cryostat itself is running properly,
+    Returns whether or not the Grafana datasource, Grafana dashboard, and
+    reports generator components are configured and reachable by Cryostat.
+    Can also be used to see if Cryostat itself is running properly
     by checking for a valid response.
 
     ###### request
@@ -169,22 +169,47 @@
 
     ###### response
     `200` - The body is
-    `{"datasourceAvailable":$DATASOURCE_AVAILABLE,"dashboardAvailable":$DASHBOARD_AVAILABLE}`.
+    ```
+        {
+          "datasourceConfigured": $DATASOURCE_CONFIGURED,
+          "datasourceAvailable": $DATASOURCE_AVAILABLE,
+          "dashboardConfigured": $DASHBOARD_CONFIGURED,
+          "dashboardAvailable": $DASHBOARD_AVAILABLE,
+          "reportsConfigured": $REPORTS_CONFIGURED,
+          "reportsAvailable": $REPORTS_AVAILABLE
+        }
+    ```
+
+    `$DATASOURCE_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
 
     `$DATASOURCE_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana datasource and that datasource responds to a `GET` request
     with a `200`, and it is `false` otherwise.
 
+    `$DASHBOARD_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
+
     `$DASHBOARD_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana dashboard and that dashboard responds to a `GET` request
     with a `200`, and it is `false` otherwise.
+
+    `$REPORTS_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
+
+    `$REPORTS_AVAILABLE` is `true` if Cryostat is configured with a sidecar
+    reports generator and that generator responds to a `GET` request with a
+    `200`. It is also `true` if no reports sidecard is configured, since in this
+    case Cryostat will fall back to forking a subprocess to generate reports. It
+    is only `false` if a sidecar report generator is configured but is not
+    reachable.
 
     `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
     $ curl localhost:8181/health
-    {"dashboardAvailable":false,"datasourceAvailable":false}
+    {"dashboardConfigured":false,"dashboardAvailable":false,"datasourceConfigured":false,"datasourceAvailable":false,"reportsConfigured":false,"reportsAvailable":true}
     ```
 
 
@@ -1030,7 +1055,7 @@
     `200` - The body is the name of the recording.
 
     `202` - The request was accepted but the recording failed to create
-    because the resultant snapshot was unreadable. This could be due  
+    because the resultant snapshot was unreadable. This could be due
     to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The body is an error message.
@@ -1484,7 +1509,7 @@ The handler-specific descriptions below describe how each handler populates the
     to the same URL as in the `downloadUrl` field.
 
     `202` - The request was accepted but the recording failed to create
-    because the resultant snapshot was unreadable. This could be due  
+    because the resultant snapshot was unreadable. This could be due
     to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The reason is an error message.
