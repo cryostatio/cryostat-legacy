@@ -83,7 +83,9 @@ public class RecordingMetadataIT extends StandardSelfTest {
             form.add("recordingName", RECORDING_NAME);
             form.add("duration", "5");
             form.add("events", "template=ALL");
-            form.add("labels", testLabels.toString());
+            form.add(
+                    "metadata",
+                    gson.toJson(new Metadata(testLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .sendForm(
@@ -150,7 +152,9 @@ public class RecordingMetadataIT extends StandardSelfTest {
             form.add("recordingName", RECORDING_NAME);
             form.add("duration", "5");
             form.add("events", "template=ALL");
-            form.add("labels", testLabels.toString());
+            form.add(
+                    "metadata",
+                    gson.toJson(new Metadata(testLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .sendForm(
@@ -247,7 +251,9 @@ public class RecordingMetadataIT extends StandardSelfTest {
             form.add("recordingName", RECORDING_NAME);
             form.add("duration", "5");
             form.add("events", "template=ALL");
-            form.add("labels", testLabels.toString());
+            form.add(
+                    "metadata",
+                    gson.toJson(new Metadata(testLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .sendForm(

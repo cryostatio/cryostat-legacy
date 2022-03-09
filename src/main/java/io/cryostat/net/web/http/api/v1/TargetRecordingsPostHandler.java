@@ -40,7 +40,6 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +70,8 @@ import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -179,15 +180,16 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
 
-                                if (attrs.contains("labels")) {
-                                    Map<String, String> labels =
-                                            recordingMetadataManager.parseRecordingLabels(
-                                                    attrs.get("labels"));
+                                if (attrs.contains("metadata")) {
+                                    Metadata metadata =
+                                            gson.fromJson(
+                                                    attrs.get("metadata"),
+                                                    new TypeToken<Metadata>() {}.getType());
                                     recordingMetadataManager
                                             .setRecordingLabels(
                                                     connectionDescriptor.getTargetId(),
                                                     recordingName,
-                                                    labels)
+                                                    metadata.getLabels())
                                             .get();
                                 }
                                 Pair<String, TemplateType> template =
@@ -223,9 +225,9 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             ctx.response().putHeader(HttpHeaders.LOCATION, "/" + recordingName);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             ctx.response().end(gson.toJson(linkedDescriptor));
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | JsonSyntaxException ex) {
             throw new HttpStatusException(
-                    400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
+                    400, String.format("Invalid argument: %s", ex.getMessage()), ex);
         } catch (IllegalArgumentException iae) {
             throw new HttpStatusException(400, iae.getMessage(), iae);
         }
