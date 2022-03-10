@@ -39,11 +39,15 @@ package io.cryostat.configuration;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -102,20 +106,20 @@ public class CredentialsManager {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
         if (persist) {
+            Path destination = getPersistedPath(targetId);
             fs.writeString(
-                    getPersistedPath(targetId),
+                    destination,
                     gson.toJson(new StoredCredentials(targetId, credentials)),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-            // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
             // TODO do we need to secure these file contents further than simply applying owner-only
             // permissions? Is it possible for other containers or processes to read target
             // credentials
             // in the mounted volume?
-            // Files.setPosixFilePermissions(destination,
-            //         PosixFilePermissions.asFileAttribute(Set.of(PosixFilePermission.OWNER_READ,
-            //                 PosixFilePermission.OWNER_WRITE)));
+            fs.setPosixFilePermissions(destination,
+                    Set.of(PosixFilePermission.OWNER_READ,
+                            PosixFilePermission.OWNER_WRITE));
         }
         return replaced;
     }
