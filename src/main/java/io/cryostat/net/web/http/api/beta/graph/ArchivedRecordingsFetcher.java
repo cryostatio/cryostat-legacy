@@ -37,7 +37,9 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -48,21 +50,22 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class ArchivedRecordingsByNameFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
 
     @Inject
-    ArchivedRecordingsByNameFetcher() {}
+    ArchivedRecordingsFetcher() {}
 
     public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
-
-        List<String> names = environment.getArgument("names");
-        if (names == null || names.isEmpty()) {
-            return source.archived;
+        FilterInput filter = FilterInput.from(environment);
+        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived);
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String recordingName = filter.get(FilterInput.Key.NAME);
+            result =
+                    result.stream()
+                            .filter(r -> Objects.equals(r.getName(), recordingName))
+                            .collect(Collectors.toList());
         }
-
-        return source.archived.stream()
-                .filter(r -> names.contains(r.getName()))
-                .collect(Collectors.toList());
+        return result;
     }
 }

@@ -18,6 +18,10 @@ input DescendantTargetsFilterInput {
     name: String
 }
 
+input ArchivedRecordingFilterInput {
+    name: String
+}
+
 type ServiceRef {
     serviceUri: ServiceURI!
     alias: String
@@ -60,7 +64,7 @@ interface Node {
 
 type Recordings {
     active(names: [String!]): [ActiveRecording!]! # TODO better filtering, not just on name
-    archived(names: [String!]): [ArchivedRecording!]!
+    archived(filter: ArchivedRecordingFilterInput): [ArchivedRecording!]!
 }
 
 type ActiveRecording implements Recording {

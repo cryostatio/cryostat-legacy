@@ -98,6 +98,8 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
 
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+        // FIXME populating these two struct members are each async tasks. we should do them in
+        // parallel
         recordings.archived = archiveHelper.getRecordings(targetId).get();
         recordings.active =
                 tcm.executeConnectedTask(

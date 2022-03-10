@@ -43,10 +43,11 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.platform.discovery.TargetNode;
+
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import io.cryostat.platform.discovery.TargetNode;
 
 class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
 
@@ -62,14 +63,17 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
     @Override
     public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
-        List<TargetNode> result = recurseFetcher.get(
-                DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                        .source(rootNodeFetcher.get(environment))
-                        .build());
+        List<TargetNode> result =
+                recurseFetcher.get(
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
+                                .source(rootNodeFetcher.get(environment))
+                                .build());
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
-            result = result.stream().filter(n -> Objects.equals(n.getName(),
-                        nodeName)).collect(Collectors.toList());
+            result =
+                    result.stream()
+                            .filter(n -> Objects.equals(n.getName(), nodeName))
+                            .collect(Collectors.toList());
         }
         return result;
     }

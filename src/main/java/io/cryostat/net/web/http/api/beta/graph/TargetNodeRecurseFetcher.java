@@ -42,12 +42,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
 class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
 
@@ -71,8 +72,10 @@ class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
         }
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
-            result = result.stream().filter(n -> Objects.equals(n.getName(),
-                        nodeName)).collect(Collectors.toList());
+            result =
+                    result.stream()
+                            .filter(n -> Objects.equals(n.getName(), nodeName))
+                            .collect(Collectors.toList());
         }
         return result;
     }

@@ -57,7 +57,6 @@ class DeleteArchivedRecordingMutator implements DataFetcher<ArchivedRecordingInf
     @Override
     public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
         ArchivedRecordingInfo source = environment.getSource();
-        recordingArchiveHelper.deleteRecording(source.getName());
-        return source;
+        return recordingArchiveHelper.deleteRecording(source.getName()).get();
     }
 }
