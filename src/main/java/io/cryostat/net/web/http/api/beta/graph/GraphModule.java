@@ -205,12 +205,6 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static TargetDescendentsFetcher provideTargetsDescendedFromFetcher(
-            TargetNodeRecurseFetcher recurseFetcher, NodeFetcher nodeFetcher) {
-        return new TargetDescendentsFetcher(recurseFetcher, nodeFetcher);
-    }
-
-    @Provides
     static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher() {
         return new EnvironmentNodeChildrenFetcher();
     }

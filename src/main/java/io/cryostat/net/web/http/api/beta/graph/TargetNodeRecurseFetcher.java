@@ -39,24 +39,26 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
 
 class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
 
     @Override
     public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
+        FilterInput filter = FilterInput.from(environment);
+        List<TargetNode> result = new ArrayList<>();
         if (node instanceof TargetNode) {
-            return List.of((TargetNode) node);
+            result.add((TargetNode) node);
         } else if (node instanceof EnvironmentNode) {
-            List<TargetNode> result = new ArrayList<>();
             for (AbstractNode child : ((EnvironmentNode) node).getChildren()) {
                 DataFetchingEnvironment newEnv =
                         DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
@@ -64,9 +66,14 @@ class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
                                 .build();
                 result.addAll(get(newEnv));
             }
-            return result;
         } else {
             throw new IllegalStateException(node.getClass().toString());
         }
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String nodeName = filter.get(FilterInput.Key.NAME);
+            result = result.stream().filter(n -> Objects.equals(n.getName(),
+                        nodeName)).collect(Collectors.toList());
+        }
+        return result;
     }
 }
