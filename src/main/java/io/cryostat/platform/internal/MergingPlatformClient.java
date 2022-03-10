@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +63,7 @@ public class MergingPlatformClient implements PlatformClient, Consumer<TargetDis
 
     public MergingPlatformClient(
             NotificationFactory notificationFactory, List<PlatformClient> clients) {
-        this.clients = clients;
+        this.clients = new ArrayList<PlatformClient>(clients);
         this.listeners = new HashSet<>();
         this.clients.forEach(pc -> pc.addTargetDiscoveryListener(this));
 

@@ -42,7 +42,6 @@ import java.util.Map;
 
 import io.cryostat.platform.ServiceRef;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -52,16 +51,16 @@ public class TargetNode extends AbstractNode {
 
     public TargetNode(NodeType nodeType, ServiceRef target) {
         super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = target;
+        this.target = new ServiceRef(target);
     }
 
     public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
         super(target.getServiceUri().toString(), nodeType, labels);
-        this.target = target;
+        this.target = new ServiceRef(target);
     }
 
     public ServiceRef getTarget() {
-        return target;
+        return new ServiceRef(target);
     }
 
     @Override

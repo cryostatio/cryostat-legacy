@@ -46,6 +46,8 @@ import java.util.Objects;
 
 import io.cryostat.core.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class JavaProcess {
 
     static Process exec(
@@ -78,16 +80,19 @@ public class JavaProcess {
             return this;
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "Field is never mutated")
         public Builder env(Map<String, String> env) {
             this.env = env;
             return this;
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "Field is never mutated")
         public Builder jvmArgs(List<String> jvmArgs) {
             this.jvmArgs = jvmArgs;
             return this;
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "Field is never mutated")
         public Builder processArgs(List<String> processArgs) {
             this.processArgs = processArgs;
             return this;

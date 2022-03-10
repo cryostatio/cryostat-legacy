@@ -86,7 +86,7 @@ public class SerializableEventTypeInfo {
     }
 
     public Map<String, SerializableOptionDescriptor> getOptionDescriptors() {
-        return options;
+        return new HashMap<String, SerializableOptionDescriptor>(options);
     }
 
     @Override
