@@ -37,10 +37,12 @@
  */
 package io.cryostat.net.web.http;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -167,16 +169,35 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
         Throwable cause = e.getCause();
-        if (cause instanceof SecurityException || cause instanceof SaslException) {
-            ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-            throw new HttpStatusException(427, "JMX Authentication Failure", e);
+        try {
+            if (cause instanceof SecurityException || cause instanceof SaslException) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(427, "JMX Authentication Failure", e);
+            }
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            if (rootCause instanceof ConnectIOException) {
+                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+            }
+            if (rootCause instanceof UnknownHostException) {
+                throw new HttpStatusException(404, "Target Not Found", e);
+            }
+        } finally {
+            this.removeCredentialsIfPresent(ctx);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
-            throw new HttpStatusException(502, "Target SSL Untrusted", e);
-        }
-        if (rootCause instanceof UnknownHostException) {
-            throw new HttpStatusException(404, "Target Not Found", e);
-        }
+    }
+
+    private void removeCredentialsIfPresent(RoutingContext ctx) {
+        Optional<String> targetId = Optional.ofNullable(ctx.pathParam("targetId"));
+
+        targetId.ifPresent(
+                id -> {
+                    if (credentialsManager.getCredentials(id) != null) {
+                        try {
+                            credentialsManager.removeCredentials(id);
+                        } catch (IOException unused) {
+                            // handleConnectionException already throws an HTTPStatusException
+                        }
+                    }
+                });
     }
 }
