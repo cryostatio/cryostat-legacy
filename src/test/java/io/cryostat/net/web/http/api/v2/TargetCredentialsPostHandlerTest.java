@@ -221,7 +221,7 @@ class TargetCredentialsPostHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.nullValue());
             Mockito.verify(credentialsManager)
-                    .addCredentials(targetId, new Credentials(username, password), false);
+                    .addCredentials(targetId, new Credentials(username, password));
         }
 
         @Test
@@ -233,9 +233,7 @@ class TargetCredentialsPostHandlerTest {
             form.set("password", "abc123");
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
 
-            Mockito.when(
-                            credentialsManager.addCredentials(
-                                    Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
+            Mockito.when(credentialsManager.addCredentials(Mockito.anyString(), Mockito.any()))
                     .thenThrow(IOException.class);
 
             ApiException ex =
