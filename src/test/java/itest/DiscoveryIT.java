@@ -125,7 +125,7 @@ class DiscoveryIT extends ExternalTargetsTest {
         List<Node> realms = rootNode.children;
         MatcherAssert.assertThat(
                 realms,
-                Matchers.everyItem(Matchers.hasProperty("kind", Matchers.equalTo("Realm"))));
+                Matchers.everyItem(Matchers.hasProperty("nodeType", Matchers.equalTo("Realm"))));
         MatcherAssert.assertThat(
                 realms,
                 Matchers.allOf(
@@ -151,7 +151,7 @@ class DiscoveryIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(jdp.target, Matchers.nullValue());
         MatcherAssert.assertThat(
                 jdp.children,
-                Matchers.everyItem(Matchers.hasProperty("kind", Matchers.equalTo("JVM"))));
+                Matchers.everyItem(Matchers.hasProperty("nodeType", Matchers.equalTo("JVM"))));
 
         // There should be 2 JDP JVMs and both should be targets without further children
         List<Node> jvms = jdp.children;
@@ -242,7 +242,7 @@ class DiscoveryIT extends ExternalTargetsTest {
 
     public static class Node {
         String name;
-        String kind;
+        String nodeType;
         List<Node> children;
         Map<String, String> labels;
         Target target;
@@ -251,8 +251,8 @@ class DiscoveryIT extends ExternalTargetsTest {
             return name;
         }
 
-        public String getKind() {
-            return kind;
+        public String getNodeType() {
+            return nodeType;
         }
 
         public List<Node> getChildren() {

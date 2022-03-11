@@ -59,7 +59,6 @@ import dagger.Lazy;
 
 class KubeEnvPlatformClient extends AbstractPlatformClient {
 
-    public static final KubernetesNodeType NODE_TYPE = new KubernetesNodeType();
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
@@ -89,7 +88,7 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         EnvironmentNode root = new EnvironmentNode("KubernetesEnv", BaseNodeType.REALM);
         List<ServiceRef> targets = listDiscoverableServices();
         for (ServiceRef target : targets) {
-            TargetNode targetNode = new TargetNode(NODE_TYPE, target);
+            TargetNode targetNode = new TargetNode(KubernetesNodeType.SERVICE, target);
             root.addChildNode(targetNode);
         }
         return root;
@@ -113,18 +112,24 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         }
     }
 
-    public static class KubernetesNodeType implements NodeType {
+    public enum KubernetesNodeType implements NodeType {
+        SERVICE("Service"),
+        ;
 
-        public static final String KIND = "KubernetesEnv";
+        private final String kind;
 
-        @Override
-        public String getKind() {
-            return KIND;
+        KubernetesNodeType(String kind) {
+            this.kind = kind;
         }
 
         @Override
-        public int ordinal() {
-            return 0;
+        public String getKind() {
+            return kind;
+        }
+
+        @Override
+        public String toString() {
+            return getKind();
         }
     }
 }

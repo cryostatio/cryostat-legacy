@@ -148,5 +148,10 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
         public String getKind() {
             return "CustomTarget";
         }
+
+        @Override
+        public String toString() {
+            return getKind();
+        }
     }
 }

@@ -40,7 +40,6 @@ package io.cryostat.platform.discovery;
 import java.util.Collections;
 import java.util.Map;
 
-import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -48,7 +47,6 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
 
     protected final String name;
 
-    @SerializedName("kind")
     protected final NodeType nodeType;
 
     protected final Map<String, String> labels;

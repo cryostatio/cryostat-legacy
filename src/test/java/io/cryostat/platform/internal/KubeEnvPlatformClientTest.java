@@ -187,14 +187,18 @@ class KubeEnvPlatformClientTest {
                             Matchers.hasProperty(
                                     "name", Matchers.equalTo(serv1.getServiceUri().toString())),
                             Matchers.hasProperty(
-                                    "nodeType", Matchers.equalTo(KubeEnvPlatformClient.NODE_TYPE)),
+                                    "nodeType",
+                                    Matchers.equalTo(
+                                            KubeEnvPlatformClient.KubernetesNodeType.SERVICE)),
                             Matchers.hasProperty("target", Matchers.equalTo(serv1)));
             Matcher<AbstractNode> sr2Matcher =
                     Matchers.allOf(
                             Matchers.hasProperty(
                                     "name", Matchers.equalTo(serv2.getServiceUri().toString())),
                             Matchers.hasProperty(
-                                    "nodeType", Matchers.equalTo(KubeEnvPlatformClient.NODE_TYPE)),
+                                    "nodeType",
+                                    Matchers.equalTo(
+                                            KubeEnvPlatformClient.KubernetesNodeType.SERVICE)),
                             Matchers.hasProperty("target", Matchers.equalTo(serv2)));
             MatcherAssert.assertThat(
                     realmNode.getChildren(), Matchers.hasItems(sr1Matcher, sr2Matcher));

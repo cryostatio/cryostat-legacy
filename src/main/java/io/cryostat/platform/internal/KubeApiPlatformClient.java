@@ -405,6 +405,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             this.getFn = getFn;
         }
 
+        @Override
         public String getKind() {
             return kubernetesKind;
         }
@@ -424,6 +425,11 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 }
             }
             return null;
+        }
+
+        @Override
+        public String toString() {
+            return getKind();
         }
     }
 }
