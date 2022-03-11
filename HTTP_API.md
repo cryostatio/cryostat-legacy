@@ -1726,8 +1726,7 @@ The handler-specific descriptions below describe how each handler populates the
     Creates stored credentials for a given target. These are used for automated
     rules processing - if a Target JVM requires JMX authentication, Cryostat
     will use stored credentials when attempting to open JMX connections to the
-    target. These are retained in Cryostat's memory only and not persisted to
-    disk.
+    target.
 
     ##### request
     `POST /api/v2/targets/:targetId/credentials`
