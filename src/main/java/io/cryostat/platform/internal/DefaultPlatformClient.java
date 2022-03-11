@@ -136,5 +136,10 @@ public class DefaultPlatformClient extends AbstractPlatformClient
         public String getKind() {
             return "JVM";
         }
+
+        @Override
+        public String toString() {
+            return getKind();
+        }
     }
 }

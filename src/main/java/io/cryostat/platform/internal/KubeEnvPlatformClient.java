@@ -126,5 +126,10 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         public String getKind() {
             return kind;
         }
+
+        @Override
+        public String toString() {
+            return getKind();
+        }
     }
 }

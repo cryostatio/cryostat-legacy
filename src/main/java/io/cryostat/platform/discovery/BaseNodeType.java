@@ -55,4 +55,9 @@ public enum BaseNodeType implements NodeType {
     public String getKind() {
         return kind;
     }
+
+    @Override
+    public String toString() {
+        return getKind();
+    }
 }
