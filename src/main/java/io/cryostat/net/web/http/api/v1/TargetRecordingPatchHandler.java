@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -61,9 +62,10 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     @Inject
     TargetRecordingPatchHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetRecordingPatchSave patchSave,
             TargetRecordingPatchStop patchStop) {
-        super(auth);
+        super(auth, credentialsManager);
         this.patchSave = patchSave;
         this.patchStop = patchStop;
     }

@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -64,8 +65,11 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     RecordingsGetHandler(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Gson gson) {
-        super(auth);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Gson gson) {
+        super(auth, credentialsManager);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.gson = gson;
     }

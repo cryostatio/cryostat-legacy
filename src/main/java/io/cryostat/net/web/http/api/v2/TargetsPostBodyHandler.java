@@ -41,6 +41,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -55,8 +56,8 @@ class TargetsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    TargetsPostBodyHandler(AuthManager auth) {
-        super(auth);
+    TargetsPostBodyHandler(AuthManager auth, CredentialsManager credentialsManager) {
+        super(auth, credentialsManager);
     }
 
     @Override

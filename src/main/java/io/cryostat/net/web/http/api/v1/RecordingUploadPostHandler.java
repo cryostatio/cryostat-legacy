@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
@@ -80,11 +81,12 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     RecordingUploadPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Environment env,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
+        super(auth, credentialsManager);
         this.env = env;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;

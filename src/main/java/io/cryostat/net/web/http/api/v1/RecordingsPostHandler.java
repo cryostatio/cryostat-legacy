@@ -60,6 +60,7 @@ import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
 import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -102,6 +103,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     RecordingsPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             HttpServer httpServer,
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
@@ -109,7 +111,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;

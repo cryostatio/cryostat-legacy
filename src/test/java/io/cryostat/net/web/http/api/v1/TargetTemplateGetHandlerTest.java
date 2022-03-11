@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Optional;
 import java.util.Set;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
@@ -75,13 +76,15 @@ class TargetTemplateGetHandlerTest {
 
     TargetTemplateGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection conn;
     @Mock TemplateService templateService;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetTemplateGetHandler(auth, targetConnectionManager);
+        this.handler =
+                new TargetTemplateGetHandler(auth, credentialsManager, targetConnectionManager);
     }
 
     @Test

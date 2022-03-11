@@ -45,6 +45,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
@@ -77,6 +78,7 @@ class TemplatesPostHandlerTest {
 
     TemplatesPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalStorageTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -99,7 +101,8 @@ class TemplatesPostHandlerTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TemplatesPostHandler(auth, templateService, fs, notificationFactory, logger);
+                new TemplatesPostHandler(
+                        auth, credentialsManager, templateService, fs, notificationFactory, logger);
     }
 
     @Test

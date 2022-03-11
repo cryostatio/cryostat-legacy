@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -66,8 +67,12 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
 
     @Inject
-    TargetEventsGetHandler(AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth);
+    TargetEventsGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            TargetConnectionManager connectionManager,
+            Gson gson) {
+        super(auth, credentialsManager);
         this.connectionManager = connectionManager;
         this.gson = gson;
     }

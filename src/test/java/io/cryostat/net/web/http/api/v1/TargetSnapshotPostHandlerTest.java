@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -68,11 +69,13 @@ class TargetSnapshotPostHandlerTest {
 
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetSnapshotPostHandler(auth, recordingTargetHelper);
+        this.handler =
+                new TargetSnapshotPostHandler(auth, credentialsManager, recordingTargetHelper);
     }
 
     @Test

@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
@@ -72,6 +73,7 @@ class TemplateDeleteHandlerTest {
 
     TemplateDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalStorageTemplateService templateService;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -91,7 +93,9 @@ class TemplateDeleteHandlerTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.handler = new TemplateDeleteHandler(auth, templateService, notificationFactory);
+        this.handler =
+                new TemplateDeleteHandler(
+                        auth, credentialsManager, templateService, notificationFactory);
     }
 
     @Test

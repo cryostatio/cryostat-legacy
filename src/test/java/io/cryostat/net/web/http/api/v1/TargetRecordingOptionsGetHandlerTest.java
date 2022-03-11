@@ -45,6 +45,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -78,6 +79,7 @@ class TargetRecordingOptionsGetHandlerTest {
 
     TargetRecordingOptionsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock RecordingOptionsBuilder builder;
@@ -90,7 +92,11 @@ class TargetRecordingOptionsGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingOptionsGetHandler(
-                        auth, targetConnectionManager, recordingOptionsBuilderFactory, gson);
+                        auth,
+                        credentialsManager,
+                        targetConnectionManager,
+                        recordingOptionsBuilderFactory,
+                        gson);
     }
 
     @Test

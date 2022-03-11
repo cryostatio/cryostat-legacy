@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
@@ -91,6 +92,7 @@ class RecordingsPostHandlerTest {
 
     RecordingsPostHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock HttpServer httpServer;
     @Mock Vertx vertx;
     @Mock FileSystem cryoFs;
@@ -119,6 +121,7 @@ class RecordingsPostHandlerTest {
         this.handler =
                 new RecordingsPostHandler(
                         authManager,
+                        credentialsManager,
                         httpServer,
                         cryoFs,
                         recordingsPath,

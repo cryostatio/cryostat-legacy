@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -68,6 +69,7 @@ class TargetRecordingPatchHandlerTest {
 
     TargetRecordingPatchHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
@@ -77,7 +79,9 @@ class TargetRecordingPatchHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingPatchHandler(authManager, patchSave, patchStop);
+        this.handler =
+                new TargetRecordingPatchHandler(
+                        authManager, credentialsManager, patchSave, patchStop);
     }
 
     @Test

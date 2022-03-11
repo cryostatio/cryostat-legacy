@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -69,6 +70,7 @@ class TargetRecordingDeleteHandlerTest {
 
     TargetRecordingDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock NotificationFactory notificationFactory;
     @Mock RoutingContext ctx;
@@ -77,7 +79,8 @@ class TargetRecordingDeleteHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingDeleteHandler(auth, recordingTargetHelper);
+        this.handler =
+                new TargetRecordingDeleteHandler(auth, credentialsManager, recordingTargetHelper);
     }
 
     @Test

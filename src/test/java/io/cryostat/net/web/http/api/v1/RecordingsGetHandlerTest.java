@@ -43,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -71,6 +72,7 @@ class RecordingsGetHandlerTest {
 
     RecordingsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
@@ -80,7 +82,8 @@ class RecordingsGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingsGetHandler(auth, recordingArchiveHelper, gson);
+        this.handler =
+                new RecordingsGetHandler(auth, credentialsManager, recordingArchiveHelper, gson);
     }
 
     @Test

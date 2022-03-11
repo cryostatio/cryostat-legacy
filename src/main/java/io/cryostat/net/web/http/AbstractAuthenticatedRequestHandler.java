@@ -50,6 +50,7 @@ import javax.security.sasl.SaslException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -70,9 +71,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     public static final String JMX_AUTHORIZATION_HEADER = "X-JMX-Authorization";
 
     protected final AuthManager auth;
+    protected final CredentialsManager credentialsManager;
 
-    protected AbstractAuthenticatedRequestHandler(AuthManager auth) {
+    protected AbstractAuthenticatedRequestHandler(
+            AuthManager auth, CredentialsManager credentialsManager) {
         this.auth = auth;
+        this.credentialsManager = credentialsManager;
     }
 
     public abstract void handleAuthenticated(RoutingContext ctx) throws Exception;
@@ -114,8 +118,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        // TODO inject the CredentialsManager here to check for stored credentials
-        Credentials credentials = null;
+        Credentials credentials = credentialsManager.getCredentials(targetId);
         if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
             String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
