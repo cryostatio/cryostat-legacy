@@ -51,7 +51,9 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -86,12 +88,14 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     @Inject
     TargetRecordingUploadPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Environment env,
             TargetConnectionManager targetConnectionManager,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
-            FileSystem fs) {
-        super(auth);
+            FileSystem fs,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.env = env;
         this.targetConnectionManager = targetConnectionManager;
         this.httpTimeoutSeconds = httpTimeoutSeconds;

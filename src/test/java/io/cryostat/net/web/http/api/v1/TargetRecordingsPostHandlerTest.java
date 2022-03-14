@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
@@ -90,6 +91,7 @@ class TargetRecordingsPostHandlerTest {
 
     TargetRecordingsPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -110,12 +112,14 @@ class TargetRecordingsPostHandlerTest {
         this.handler =
                 new TargetRecordingsPostHandler(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
                         recordingMetadataManager,
-                        gson);
+                        gson,
+                        logger);
     }
 
     @Test

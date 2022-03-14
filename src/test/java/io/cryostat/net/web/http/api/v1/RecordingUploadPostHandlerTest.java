@@ -42,6 +42,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -79,9 +81,11 @@ class RecordingUploadPostHandlerTest {
 
     RecordingUploadPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock WebClient webClient;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
 
@@ -90,7 +94,14 @@ class RecordingUploadPostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new RecordingUploadPostHandler(auth, env, 30, webClient, recordingArchiveHelper);
+                new RecordingUploadPostHandler(
+                        auth,
+                        credentialsManager,
+                        env,
+                        30,
+                        webClient,
+                        recordingArchiveHelper,
+                        logger);
     }
 
     @Test

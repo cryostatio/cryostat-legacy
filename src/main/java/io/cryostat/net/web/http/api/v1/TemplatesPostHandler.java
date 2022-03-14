@@ -45,6 +45,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
@@ -76,11 +77,12 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     TemplatesPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             LocalStorageTemplateService templateService,
             FileSystem fs,
             NotificationFactory notificationFactory,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager, logger);
         this.notificationFactory = notificationFactory;
         this.templateService = templateService;
         this.fs = fs;

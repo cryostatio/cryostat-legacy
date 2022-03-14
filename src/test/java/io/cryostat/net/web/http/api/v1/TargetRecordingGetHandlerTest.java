@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -82,6 +83,7 @@ class TargetRecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
@@ -94,7 +96,11 @@ class TargetRecordingGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingGetHandler(
-                        authManager, targetConnectionManager, recordingTargetHelper);
+                        authManager,
+                        credentialsManager,
+                        targetConnectionManager,
+                        recordingTargetHelper,
+                        logger);
     }
 
     @Test

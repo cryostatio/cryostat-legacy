@@ -45,8 +45,10 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -80,6 +82,7 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     TargetRecordingOptionsPatchHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsCustomizer customizer;
     @Mock TargetConnectionManager connectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -87,12 +90,19 @@ class TargetRecordingOptionsPatchHandlerTest {
     @Mock IConstrainedMap<String> recordingOptions;
     @Mock JFRConnection jfrConnection;
     @Mock Gson gson;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new TargetRecordingOptionsPatchHandler(
-                        auth, customizer, connectionManager, recordingOptionsBuilderFactory, gson);
+                        auth,
+                        credentialsManager,
+                        customizer,
+                        connectionManager,
+                        recordingOptionsBuilderFactory,
+                        gson,
+                        logger);
     }
 
     @Test

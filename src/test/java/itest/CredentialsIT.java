@@ -37,27 +37,57 @@
  */
 package itest;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import itest.bases.StandardSelfTest;
+import itest.bases.ExternalTargetsTest;
+import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class CredentialsIT extends StandardSelfTest {
+public class CredentialsIT extends ExternalTargetsTest {
+
+    static final List<String> CONTAINERS = new ArrayList<>();
+    static final Map<String, String> NULL_RESULT = new HashMap<>();
 
     final String jmxServiceUrl =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
     final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
     final String requestUrl = String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded);
+
+    static {
+        NULL_RESULT.put("result", null);
+    }
+
+    @AfterAll
+    static void cleanup() throws ITestCleanupFailedException {
+        for (String id : CONTAINERS) {
+            try {
+                Podman.kill(id);
+            } catch (Exception e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to kill container instance with ID %s", id), e);
+            }
+        }
+    }
 
     @Test
     void testDeleteThrowsOnNonExistentCredentials() throws Exception {
@@ -69,7 +99,9 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
@@ -88,7 +120,9 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
@@ -107,7 +141,9 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
@@ -128,7 +164,9 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
@@ -147,7 +185,9 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
@@ -168,9 +208,85 @@ public class CredentialsIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    void testInvalidCredentialsRemovedOnConnectionFailure() throws Exception {
+        CONTAINERS.add(
+                Podman.run(
+                        new Podman.ImageSpec(
+                                "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                                Map.of("JMX_PORT", "9094", "USE_AUTH", "true"))));
+        CompletableFuture.allOf(
+                        CONTAINERS.stream()
+                                .map(id -> Podman.waitForContainerState(id, "running"))
+                                .collect(Collectors.toList())
+                                .toArray(new CompletableFuture[0]))
+                .join();
+        Thread.sleep(10_000L); // wait for JDP to discover new container(s)
+
+        // Post invalid credentials for the new pod
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("username", "admin");
+        form.add("password", "invalidPassword");
+        webClient
+                .post(String.format("/api/v2/targets/%s/credentials", Podman.POD_NAME + ":9094"))
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, postResponse)) {
+                                postResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        JsonObject expectedResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                "data",
+                                NULL_RESULT));
+        MatcherAssert.assertThat(
+                postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedResponse));
+
+        // Use the invalid stored credentials to GET recordings
+        CompletableFuture<JsonArray> response = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9094"))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ee.getCause()).getStatusCode(), Matchers.equalTo(427));
+
+        // Confirm invalid credentials automatically deleted by attempting to delete them
+        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+        webClient
+                .delete(String.format("/api/v2/targets/%s/credentials", Podman.POD_NAME + ":9094"))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, deleteResponse);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> deleteResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 }

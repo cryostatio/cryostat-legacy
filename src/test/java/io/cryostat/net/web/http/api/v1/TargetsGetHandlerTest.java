@@ -44,6 +44,7 @@ import java.util.Set;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.net.AuthManager;
@@ -75,6 +76,7 @@ class TargetsGetHandlerTest {
 
     TargetsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock PlatformClient platformClient;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit connectionToolkit;
@@ -82,7 +84,8 @@ class TargetsGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetsGetHandler(auth, platformClient, gson);
+        this.handler =
+                new TargetsGetHandler(auth, credentialsManager, platformClient, gson, logger);
     }
 
     @Test

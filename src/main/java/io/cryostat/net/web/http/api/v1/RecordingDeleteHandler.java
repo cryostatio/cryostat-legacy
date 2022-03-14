@@ -43,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -60,8 +62,12 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingDeleteHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
+    RecordingDeleteHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 

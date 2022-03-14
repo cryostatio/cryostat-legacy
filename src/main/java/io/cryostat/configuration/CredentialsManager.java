@@ -94,27 +94,18 @@ public class CredentialsManager {
     }
 
     public boolean addCredentials(String targetId, Credentials credentials) throws IOException {
-        return addCredentials(targetId, credentials, false);
-    }
-
-    // FIXME `persist` should not be a parameter here but rather a Strategy selected by ex. env var,
-    // with corresponding backing storage either in-memory or on-disk (with in-memory cache?)
-    public boolean addCredentials(String targetId, Credentials credentials, boolean persist)
-            throws IOException {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
-        if (persist) {
-            Path destination = getPersistedPath(targetId);
-            fs.writeString(
-                    destination,
-                    gson.toJson(new StoredCredentials(targetId, credentials)),
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            fs.setPosixFilePermissions(
-                    destination,
-                    Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        }
+        Path destination = getPersistedPath(targetId);
+        fs.writeString(
+                destination,
+                gson.toJson(new StoredCredentials(targetId, credentials)),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+        fs.setPosixFilePermissions(
+                destination,
+                Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         return replaced;
     }
 

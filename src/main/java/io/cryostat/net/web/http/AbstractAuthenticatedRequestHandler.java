@@ -37,10 +37,12 @@
  */
 package io.cryostat.net.web.http;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -50,6 +52,8 @@ import javax.security.sasl.SaslException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -70,9 +74,14 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     public static final String JMX_AUTHORIZATION_HEADER = "X-JMX-Authorization";
 
     protected final AuthManager auth;
+    protected final CredentialsManager credentialsManager;
+    protected final Logger logger;
 
-    protected AbstractAuthenticatedRequestHandler(AuthManager auth) {
+    protected AbstractAuthenticatedRequestHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
         this.auth = auth;
+        this.credentialsManager = credentialsManager;
+        this.logger = logger;
     }
 
     public abstract void handleAuthenticated(RoutingContext ctx) throws Exception;
@@ -114,8 +123,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        // TODO inject the CredentialsManager here to check for stored credentials
-        Credentials credentials = null;
+        Credentials credentials = credentialsManager.getCredentials(targetId);
         if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
             String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
@@ -164,16 +172,35 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
         Throwable cause = e.getCause();
-        if (cause instanceof SecurityException || cause instanceof SaslException) {
-            ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-            throw new HttpStatusException(427, "JMX Authentication Failure", e);
+        try {
+            if (cause instanceof SecurityException || cause instanceof SaslException) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(427, "JMX Authentication Failure", e);
+            }
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            if (rootCause instanceof ConnectIOException) {
+                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+            }
+            if (rootCause instanceof UnknownHostException) {
+                throw new HttpStatusException(404, "Target Not Found", e);
+            }
+        } finally {
+            this.removeCredentialsIfPresent(ctx);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
-            throw new HttpStatusException(502, "Target SSL Untrusted", e);
-        }
-        if (rootCause instanceof UnknownHostException) {
-            throw new HttpStatusException(404, "Target Not Found", e);
-        }
+    }
+
+    private void removeCredentialsIfPresent(RoutingContext ctx) {
+        Optional<String> targetId = Optional.ofNullable(ctx.pathParam("targetId"));
+
+        targetId.ifPresent(
+                id -> {
+                    if (credentialsManager.getCredentials(id) != null) {
+                        try {
+                            credentialsManager.removeCredentials(id);
+                        } catch (IOException ioe) {
+                            logger.error(ioe);
+                        }
+                    }
+                });
     }
 }

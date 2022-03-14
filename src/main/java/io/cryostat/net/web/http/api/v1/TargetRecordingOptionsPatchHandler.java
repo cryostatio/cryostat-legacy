@@ -48,8 +48,10 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -77,11 +79,13 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     @Inject
     TargetRecordingOptionsPatchHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             RecordingOptionsCustomizer customizer,
             TargetConnectionManager connectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            Gson gson) {
-        super(auth);
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.customizer = customizer;
         this.connectionManager = connectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
