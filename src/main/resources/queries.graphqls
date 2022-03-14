@@ -1,5 +1,5 @@
 type Query {
     rootNode: EnvironmentNode!
     environmentNodes(filter: EnvironmentNodeFilterInput): [EnvironmentNode!]!
-    targetNodes: [TargetNode!]! # TODO add filters for names, labels, annotations
+    targetNodes(filter: TargetNodesFilterInput): [TargetNode!]! # TODO add filters for names, labels, annotations
 }
