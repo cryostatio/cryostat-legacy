@@ -44,6 +44,8 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -68,12 +70,32 @@ class TargetCredentialsDeleteHandlerTest {
     AbstractV2RequestHandler<Void> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetCredentialsDeleteHandler(auth, credentialsManager, gson);
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+
+        this.handler =
+                new TargetCredentialsDeleteHandler(
+                        auth, credentialsManager, notificationFactory, gson);
     }
 
     @Nested
@@ -138,6 +160,13 @@ class TargetCredentialsDeleteHandlerTest {
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             Mockito.verify(credentialsManager).removeCredentials(targetId);
+
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsDeleted");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder).message(Map.of("target", targetId));
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
         }
 
         @Test

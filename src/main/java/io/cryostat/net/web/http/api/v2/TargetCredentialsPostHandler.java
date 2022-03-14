@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,6 +47,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -60,13 +62,19 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = "targets/:targetId/credentials";
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     @Inject
     TargetCredentialsPostHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Logger logger) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
@@ -130,6 +138,14 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
         try {
             this.credentialsManager.addCredentials(targetId, new Credentials(username, password));
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("TargetCredentialsStored")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("target", targetId))
+                    .build()
+                    .send();
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }

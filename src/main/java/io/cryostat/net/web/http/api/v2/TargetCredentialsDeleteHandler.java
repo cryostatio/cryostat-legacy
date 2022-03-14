@@ -39,11 +39,13 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -57,12 +59,17 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = TargetCredentialsPostHandler.PATH;
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetCredentialsDeleteHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -110,6 +117,15 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
         String targetId = params.getPathParams().get("targetId");
         try {
             boolean status = this.credentialsManager.removeCredentials(targetId);
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("TargetCredentialsDeleted")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("target", targetId))
+                    .build()
+                    .send();
+
             return new IntermediateResponse<Void>().statusCode(status ? 200 : 404);
         } catch (IOException e) {
             throw new ApiException(

@@ -51,6 +51,8 @@ import javax.inject.Singleton;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.PlatformClient;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -78,6 +80,8 @@ public abstract class ConfigurationModule {
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir,
             FileSystem fs,
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -92,7 +96,8 @@ public abstract class ConfigurationModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new CredentialsManager(credentialsDir, fs, gson, base32, logger);
+            return new CredentialsManager(
+                    credentialsDir, fs, platformClient, notificationFactory, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

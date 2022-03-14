@@ -37,63 +37,65 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import java.util.EnumSet;
+import java.util.Set;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+class TargetCredentialKeysGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+    private final Gson gson;
+    private final CredentialsManager credentialsManager;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+    @Inject
+    TargetCredentialKeysGetHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+        super(auth, credentialsManager, logger);
+        this.credentialsManager = credentialsManager;
+        this.gson = gson;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+    @Override
+    public String path() {
+        return basePath() + "credentials";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetCredentialKeysGetHandler(
-            TargetCredentialKeysGetHandler handler);
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        ctx.response().end(gson.toJson(this.credentialsManager.getCredentialKeys()));
+    }
 }
