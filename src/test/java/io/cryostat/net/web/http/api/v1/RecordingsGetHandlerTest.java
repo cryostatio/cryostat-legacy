@@ -83,7 +83,8 @@ class RecordingsGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new RecordingsGetHandler(auth, credentialsManager, recordingArchiveHelper, gson);
+                new RecordingsGetHandler(
+                        auth, credentialsManager, recordingArchiveHelper, gson, logger);
     }
 
     @Test

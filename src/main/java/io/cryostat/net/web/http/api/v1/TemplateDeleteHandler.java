@@ -46,6 +46,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import io.cryostat.core.templates.Template;
@@ -71,8 +72,9 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             CredentialsManager credentialsManager,
             LocalStorageTemplateService templateService,
-            NotificationFactory notificationFactory) {
-        super(auth, credentialsManager);
+            NotificationFactory notificationFactory,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.templateService = templateService;
         this.notificationFactory = notificationFactory;
     }

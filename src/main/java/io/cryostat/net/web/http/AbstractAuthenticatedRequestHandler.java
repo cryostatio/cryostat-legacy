@@ -53,6 +53,7 @@ import javax.security.sasl.SaslException;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -74,11 +75,13 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
+    protected final Logger logger;
 
     protected AbstractAuthenticatedRequestHandler(
-            AuthManager auth, CredentialsManager credentialsManager) {
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
         this.auth = auth;
         this.credentialsManager = credentialsManager;
+        this.logger = logger;
     }
 
     public abstract void handleAuthenticated(RoutingContext ctx) throws Exception;
@@ -194,8 +197,8 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                     if (credentialsManager.getCredentials(id) != null) {
                         try {
                             credentialsManager.removeCredentials(id);
-                        } catch (IOException unused) {
-                            // handleConnectionException already throws an HTTPStatusException
+                        } catch (IOException ioe) {
+                            logger.error(ioe);
                         }
                     }
                 });

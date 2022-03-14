@@ -111,7 +111,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
             Logger logger) {
-        super(auth, credentialsManager);
+        super(auth, credentialsManager, logger);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;

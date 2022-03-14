@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.web.WebServer;
@@ -70,10 +71,11 @@ class AuthPostHandlerTest {
     AuthPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthPostHandler(auth, credentialsManager);
+        this.handler = new AuthPostHandler(auth, credentialsManager, logger);
     }
 
     @Test

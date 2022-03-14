@@ -118,7 +118,8 @@ class TargetRecordingsPostHandlerTest {
                         recordingOptionsBuilderFactory,
                         () -> webServer,
                         recordingMetadataManager,
-                        gson);
+                        gson,
+                        logger);
     }
 
     @Test

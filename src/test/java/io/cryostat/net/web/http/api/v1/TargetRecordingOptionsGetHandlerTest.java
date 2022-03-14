@@ -96,7 +96,8 @@ class TargetRecordingOptionsGetHandlerTest {
                         credentialsManager,
                         targetConnectionManager,
                         recordingOptionsBuilderFactory,
-                        gson);
+                        gson,
+                        logger);
     }
 
     @Test

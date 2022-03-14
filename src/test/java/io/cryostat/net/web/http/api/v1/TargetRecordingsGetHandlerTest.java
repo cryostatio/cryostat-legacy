@@ -99,7 +99,8 @@ class TargetRecordingsGetHandlerTest {
                         connectionManager,
                         () -> webServer,
                         recordingMetadataManager,
-                        gson);
+                        gson,
+                        logger);
     }
 
     @Test

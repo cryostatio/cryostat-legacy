@@ -99,7 +99,8 @@ class TargetRecordingGetHandlerTest {
                         authManager,
                         credentialsManager,
                         targetConnectionManager,
-                        recordingTargetHelper);
+                        recordingTargetHelper,
+                        logger);
     }
 
     @Test

@@ -48,6 +48,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -95,6 +96,7 @@ class TargetRecordingUploadPostHandlerTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock WebClient webClient;
     @Mock FileSystem fs;
+    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
@@ -107,7 +109,14 @@ class TargetRecordingUploadPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingUploadPostHandler(
-                        auth, credentialsManager, env, targetConnectionManager, 30, webClient, fs);
+                        auth,
+                        credentialsManager,
+                        env,
+                        targetConnectionManager,
+                        30,
+                        webClient,
+                        fs,
+                        logger);
     }
 
     @Test

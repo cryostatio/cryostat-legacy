@@ -82,7 +82,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
             FileSystem fs,
             NotificationFactory notificationFactory,
             Logger logger) {
-        super(auth, credentialsManager);
+        super(auth, credentialsManager, logger);
         this.notificationFactory = notificationFactory;
         this.templateService = templateService;
         this.fs = fs;

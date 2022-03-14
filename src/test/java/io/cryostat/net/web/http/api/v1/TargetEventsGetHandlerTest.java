@@ -88,7 +88,8 @@ class TargetEventsGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetEventsGetHandler(auth, credentialsManager, connectionManager, gson);
+                new TargetEventsGetHandler(
+                        auth, credentialsManager, connectionManager, gson, logger);
     }
 
     @Test

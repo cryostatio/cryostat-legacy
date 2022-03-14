@@ -43,6 +43,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -64,8 +65,9 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetRecordingPatchSave patchSave,
-            TargetRecordingPatchStop patchStop) {
-        super(auth, credentialsManager);
+            TargetRecordingPatchStop patchStop,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.patchSave = patchSave;
         this.patchStop = patchStop;
     }

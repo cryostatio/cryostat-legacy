@@ -84,7 +84,8 @@ class TargetTemplatesGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetTemplatesGetHandler(auth, credentialsManager, connectionManager, gson);
+                new TargetTemplatesGetHandler(
+                        auth, credentialsManager, connectionManager, gson, logger);
     }
 
     @Test

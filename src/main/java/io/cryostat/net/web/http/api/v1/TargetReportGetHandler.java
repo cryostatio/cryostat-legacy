@@ -78,7 +78,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds,
             Logger logger) {
-        super(auth, credentialsManager);
+        super(auth, credentialsManager, logger);
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
         this.logger = logger;

@@ -51,6 +51,7 @@ import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -85,8 +86,9 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             Environment env,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth, credentialsManager);
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.env = env;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;

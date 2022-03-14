@@ -50,6 +50,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -76,8 +77,9 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
             CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            Gson gson) {
-        super(auth, credentialsManager);
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.connectionManager = connectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.gson = gson;

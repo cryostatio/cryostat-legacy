@@ -84,7 +84,8 @@ class TargetsGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetsGetHandler(auth, credentialsManager, platformClient, gson);
+        this.handler =
+                new TargetsGetHandler(auth, credentialsManager, platformClient, gson, logger);
     }
 
     @Test
