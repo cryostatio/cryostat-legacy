@@ -297,8 +297,8 @@ public class RecordingArchiveHelper {
                                 try {
                                     return new ArchivedRecordingInfo(
                                             encodedServiceUri,
-                                            webServer.getArchivedDownloadURL(file),
                                             file,
+                                            webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
                                             new Metadata(
                                                     recordingMetadataManager.getRecordingLabels(

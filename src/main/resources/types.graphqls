@@ -14,6 +14,14 @@ input EnvironmentNodeFilterInput {
     nodeType: String
 }
 
+input DescendantTargetsFilterInput {
+    name: String
+}
+
+input ArchivedRecordingFilterInput {
+    name: String
+}
+
 type ServiceRef {
     serviceUri: ServiceURI!
     alias: String
@@ -45,7 +53,7 @@ type EnvironmentNode implements Node {
     nodeType: NodeType!
     labels: Object!
 
-    descendantTargets: [TargetNode!]! # TODO add some kind of filters
+    descendantTargets(filter: DescendantTargetsFilterInput): [TargetNode!]!
 }
 
 interface Node {
@@ -56,7 +64,7 @@ interface Node {
 
 type Recordings {
     active(names: [String!]): [ActiveRecording!]! # TODO better filtering, not just on name
-    archived(names: [String!]): [ArchivedRecording!]!
+    archived(filter: ArchivedRecordingFilterInput): [ArchivedRecording!]!
 }
 
 type ActiveRecording implements Recording {

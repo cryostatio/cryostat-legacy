@@ -39,46 +39,32 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetDescendentsFetcher implements DataFetcher<List<TargetNode>> {
-
-    private final TargetNodeRecurseFetcher recurseFetcher;
-    private final NodeFetcher nodeFetcher;
+class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
 
     @Inject
-    TargetDescendentsFetcher(TargetNodeRecurseFetcher recurseFetcher, NodeFetcher nodeFetcher) {
-        this.recurseFetcher = recurseFetcher;
-        this.nodeFetcher = nodeFetcher;
-    }
+    ArchivedRecordingsFetcher() {}
 
-    @Override
-    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
-        List<Map<String, String>> selectors = environment.getArgument("nodes");
-        List<TargetNode> result = new ArrayList<>();
-        for (Map<String, String> selector : selectors) {
-            String name = selector.get("name");
-            String nodeType = selector.get("nodeType");
-
-            AbstractNode parent =
-                    nodeFetcher.get(
-                            DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
-                                    .arguments(Map.of("name", name, "nodeType", nodeType))
-                                    .build());
-            result.addAll(
-                    recurseFetcher.get(
-                            DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
-                                    .source(parent)
-                                    .build()));
+    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+        Recordings source = environment.getSource();
+        FilterInput filter = FilterInput.from(environment);
+        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived);
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String recordingName = filter.get(FilterInput.Key.NAME);
+            result =
+                    result.stream()
+                            .filter(r -> Objects.equals(r.getName(), recordingName))
+                            .collect(Collectors.toList());
         }
         return result;
     }

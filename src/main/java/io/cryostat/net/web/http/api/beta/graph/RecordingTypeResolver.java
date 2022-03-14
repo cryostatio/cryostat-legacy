@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.beta.graph;
 import javax.inject.Inject;
 
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.TypeResolutionEnvironment;
 import graphql.schema.GraphQLObjectType;
@@ -55,8 +56,10 @@ class RecordingTypeResolver implements TypeResolver {
         Object o = env.getObject();
         if (o instanceof HyperlinkedSerializableRecordingDescriptor) {
             return env.getSchema().getObjectType("ActiveRecording");
-        } else {
+        } else if (o instanceof ArchivedRecordingInfo) {
             return env.getSchema().getObjectType("ArchivedRecording");
+        } else {
+            throw new IllegalStateException(o.getClass().getCanonicalName());
         }
     }
 }
