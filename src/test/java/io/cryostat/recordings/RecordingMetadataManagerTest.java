@@ -117,7 +117,8 @@ public class RecordingMetadataManagerTest {
         } else {
             expected = IllegalArgumentException.class;
         }
-        Assertions.assertThrows(expected, () -> recordingMetadataManager.parseRecordingLabels(labels));
+        Assertions.assertThrows(
+                expected, () -> recordingMetadataManager.parseRecordingLabels(labels));
     }
 
     @Test

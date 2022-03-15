@@ -229,6 +229,7 @@ public class RecordingMetadataManager {
 
             StoredRecordingMetadata srm = (StoredRecordingMetadata) o;
             return new EqualsBuilder()
+                    .appendSuper(super.equals(o))
                     .append(targetId, srm.targetId)
                     .append(recordingName, srm.recordingName)
                     .append(labels, srm.labels)
@@ -238,6 +239,7 @@ public class RecordingMetadataManager {
         @Override
         public int hashCode() {
             return new HashCodeBuilder()
+                    .appendSuper(super.hashCode())
                     .append(targetId)
                     .append(recordingName)
                     .append(labels)
