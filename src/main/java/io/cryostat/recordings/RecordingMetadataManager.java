@@ -71,7 +71,7 @@ public class RecordingMetadataManager {
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Map<String, String>> recordingLabelsMap;
+    private final Map<Pair<String, String>, Metadata> recordingLabelsMap;
 
     RecordingMetadataManager(
             Path recordingMetadataDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
@@ -101,8 +101,7 @@ public class RecordingMetadataManager {
                 .forEach(
                         srm ->
                                 recordingLabelsMap.put(
-                                        Pair.of(srm.getTargetId(), srm.getRecordingName()),
-                                        srm.getLabels()));
+                                        Pair.of(srm.getTargetId(), srm.getRecordingName()), srm));
     }
 
     public Future<Map<String, String>> setRecordingLabels(
@@ -110,10 +109,11 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(labels);
-        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), labels);
+        Metadata metadata = new Metadata(labels);
+        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), metadata);
         fs.writeString(
                 this.getMetadataPath(targetId, recordingName),
-                gson.toJson(new StoredRecordingMetadata(targetId, recordingName, labels)),
+                gson.toJson(StoredRecordingMetadata.of(targetId, recordingName, metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -130,18 +130,21 @@ public class RecordingMetadataManager {
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        return this.recordingLabelsMap.computeIfAbsent(
-                Pair.of(targetId, recordingName), k -> new ConcurrentHashMap<>());
+        return this.recordingLabelsMap
+                .computeIfAbsent(Pair.of(targetId, recordingName), k -> new Metadata())
+                .getLabels();
     }
 
     public Map<String, String> deleteRecordingLabelsIfExists(String targetId, String recordingName)
             throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        Map<String, String> deleted =
-                this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
+        Metadata deleted = this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
-        return deleted;
+        if (deleted != null) {
+            return deleted.getLabels();
+        }
+        return null;
     }
 
     public Future<Map<String, String>> copyLabelsToArchives(
@@ -189,27 +192,27 @@ public class RecordingMetadataManager {
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    public static class StoredRecordingMetadata {
+    private static class StoredRecordingMetadata extends Metadata {
         private final String targetId;
         private final String recordingName;
-        private final Map<String, String> labels;
 
         StoredRecordingMetadata(String targetId, String recordingName, Map<String, String> labels) {
+            super(labels);
             this.targetId = targetId;
             this.recordingName = recordingName;
-            this.labels = labels;
         }
 
-        public String getTargetId() {
+        static StoredRecordingMetadata of(
+                String targetId, String recordingName, Metadata metadata) {
+            return new StoredRecordingMetadata(targetId, recordingName, metadata.getLabels());
+        }
+
+        String getTargetId() {
             return this.targetId;
         }
 
-        public String getRecordingName() {
+        String getRecordingName() {
             return this.recordingName;
-        }
-
-        public Map<String, String> getLabels() {
-            return this.labels;
         }
 
         @Override
@@ -239,6 +242,43 @@ public class RecordingMetadataManager {
                     .append(recordingName)
                     .append(labels)
                     .toHashCode();
+        }
+    }
+
+    public static class Metadata {
+        protected final Map<String, String> labels;
+
+        public Metadata() {
+            this.labels = new ConcurrentHashMap<>();
+        }
+
+        public Metadata(Map<String, String> labels) {
+            this.labels = labels;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null) {
+                return false;
+            }
+            if (o == this) {
+                return true;
+            }
+            if (!(o instanceof Metadata)) {
+                return false;
+            }
+
+            Metadata metadata = (Metadata) o;
+            return new EqualsBuilder().append(labels, metadata.labels).build();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(labels).toHashCode();
         }
     }
 }

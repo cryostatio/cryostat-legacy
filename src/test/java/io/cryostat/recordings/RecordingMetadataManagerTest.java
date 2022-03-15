@@ -111,9 +111,13 @@ public class RecordingMetadataManagerTest {
                 "thisIsNotJson",
             })
     void shouldThrowOnInvalidLabels(String labels) throws Exception {
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> recordingMetadataManager.parseRecordingLabels(labels));
+        Class<? extends Exception> expected;
+        if (labels == null) {
+            expected = NullPointerException.class;
+        } else {
+            expected = IllegalArgumentException.class;
+        }
+        Assertions.assertThrows(expected, () -> recordingMetadataManager.parseRecordingLabels(labels));
     }
 
     @Test
@@ -135,7 +139,7 @@ public class RecordingMetadataManagerTest {
 
         MatcherAssert.assertThat(
                 recordingMetadataManager.getRecordingLabels(targetId, recordingName),
-                Matchers.equalTo(null));
+                Matchers.equalTo(Map.of()));
         Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
 

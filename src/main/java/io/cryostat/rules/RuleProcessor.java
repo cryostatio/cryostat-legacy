@@ -280,8 +280,10 @@ public class RuleProcessor
                         },
                         false);
         Map<String, String> labels =
-                metadataManager.getRecordingLabels(
-                        connectionDescriptor.getTargetId(), recording.getName());
+            new HashMap<>(
+                    metadataManager.getRecordingLabels(
+                            connectionDescriptor.getTargetId(), recording.getName())
+                    );
         labels.put("rule", rule.getName());
         metadataManager.setRecordingLabels(
                 connectionDescriptor.getTargetId(), recording.getName(), labels);

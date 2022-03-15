@@ -37,7 +37,7 @@
  */
 package io.cryostat.rules;
 
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
