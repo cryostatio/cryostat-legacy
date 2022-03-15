@@ -107,6 +107,9 @@ public class RecordingMetadataManager {
 
     public Future<Map<String, String>> setRecordingLabels(
             String targetId, String recordingName, Map<String, String> labels) throws IOException {
+        Objects.requireNonNull(targetId);
+        Objects.requireNonNull(recordingName);
+        Objects.requireNonNull(labels);
         this.recordingLabelsMap.put(Pair.of(targetId, recordingName), labels);
         fs.writeString(
                 this.getMetadataPath(targetId, recordingName),
@@ -119,16 +122,22 @@ public class RecordingMetadataManager {
 
     public Future<Map<String, String>> setRecordingLabels(
             String recordingName, Map<String, String> labels) throws IOException {
+        Objects.requireNonNull(recordingName);
+        Objects.requireNonNull(labels);
         return this.setRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
+        Objects.requireNonNull(targetId);
+        Objects.requireNonNull(recordingName);
         return this.recordingLabelsMap.computeIfAbsent(
                 Pair.of(targetId, recordingName), k -> new ConcurrentHashMap<>());
     }
 
     public Map<String, String> deleteRecordingLabelsIfExists(String targetId, String recordingName)
             throws IOException {
+        Objects.requireNonNull(targetId);
+        Objects.requireNonNull(recordingName);
         Map<String, String> deleted =
                 this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
@@ -137,6 +146,9 @@ public class RecordingMetadataManager {
 
     public Future<Map<String, String>> copyLabelsToArchives(
             String targetId, String recordingName, String filename) {
+        Objects.requireNonNull(targetId);
+        Objects.requireNonNull(recordingName);
+        Objects.requireNonNull(filename);
         CompletableFuture<Map<String, String>> future = new CompletableFuture<>();
 
         try {
@@ -157,9 +169,7 @@ public class RecordingMetadataManager {
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
-        if (labels == null) {
-            throw new IllegalArgumentException("Labels must not be null");
-        }
+        Objects.requireNonNull(labels, "Labels must not be null");
 
         try {
             Type mapType = new TypeToken<Map<String, String>>() {}.getType();
