@@ -232,7 +232,6 @@ public class RecordingMetadataManager {
                     .appendSuper(super.equals(o))
                     .append(targetId, srm.targetId)
                     .append(recordingName, srm.recordingName)
-                    .append(labels, srm.labels)
                     .build();
         }
 
@@ -242,7 +241,6 @@ public class RecordingMetadataManager {
                     .appendSuper(super.hashCode())
                     .append(targetId)
                     .append(recordingName)
-                    .append(labels)
                     .toHashCode();
         }
     }
