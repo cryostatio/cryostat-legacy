@@ -52,7 +52,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
 class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
@@ -105,7 +104,6 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
             throws Exception {
         return new IntermediateResponse<List<ServiceRef>>()
-                .addHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
                 .body(this.credentialsManager.getCredentialKeys());
     }
 }
