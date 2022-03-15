@@ -35,9 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -49,28 +50,35 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
-class TargetCredentialKeysGetHandler extends AbstractAuthenticatedRequestHandler {
+class TargetCredentialKeysGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
 
-    private final Gson gson;
     private final CredentialsManager credentialsManager;
 
     @Inject
     TargetCredentialKeysGetHandler(
             AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
-        super(auth, credentialsManager, logger);
+        super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.gson = gson;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.BETA;
+        return ApiVersion.V2_1;
     }
 
     @Override
@@ -79,13 +87,18 @@ class TargetCredentialKeysGetHandler extends AbstractAuthenticatedRequestHandler
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
     public String path() {
         return basePath() + "credentials";
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
     }
 
     @Override
@@ -94,8 +107,8 @@ class TargetCredentialKeysGetHandler extends AbstractAuthenticatedRequestHandler
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response().end(gson.toJson(this.credentialsManager.getCredentialKeys()));
+    public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<List<ServiceRef>>().addHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+        .body(this.credentialsManager.getCredentialKeys());
     }
 }
