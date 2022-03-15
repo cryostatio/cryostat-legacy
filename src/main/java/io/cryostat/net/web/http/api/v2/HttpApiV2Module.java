@@ -187,6 +187,5 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetCredentialKeysGetHandler(
-            TargetCredentialKeysGetHandler handler);
+    abstract RequestHandler bindTargetCredentialsGetHandler(TargetCredentialsGetHandler handler);
 }

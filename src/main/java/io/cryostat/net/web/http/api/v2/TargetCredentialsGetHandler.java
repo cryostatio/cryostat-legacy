@@ -47,25 +47,20 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 
-class TargetCredentialKeysGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
+class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
 
     private final CredentialsManager credentialsManager;
 
     @Inject
-    TargetCredentialKeysGetHandler(
+    TargetCredentialsGetHandler(
             AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
@@ -107,8 +102,10 @@ class TargetCredentialKeysGetHandler extends AbstractV2RequestHandler<List<Servi
     }
 
     @Override
-    public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams) throws Exception {
-        return new IntermediateResponse<List<ServiceRef>>().addHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-        .body(this.credentialsManager.getCredentialKeys());
+    public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
+            throws Exception {
+        return new IntermediateResponse<List<ServiceRef>>()
+                .addHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .body(this.credentialsManager.getCredentialKeys());
     }
 }
