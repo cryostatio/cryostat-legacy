@@ -59,6 +59,7 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
@@ -79,6 +80,7 @@ public class RuleProcessor
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingTargetHelper recordingTargetHelper;
+    private final RecordingMetadataManager metadataManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
     private final Base32 base32;
@@ -94,6 +96,7 @@ public class RuleProcessor
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger,
             Base32 base32) {
@@ -105,6 +108,7 @@ public class RuleProcessor
         this.targetConnectionManager = targetConnectionManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingTargetHelper = recordingTargetHelper;
+        this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
         this.base32 = base32;
@@ -250,30 +254,36 @@ public class RuleProcessor
     private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
             throws Exception {
 
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    RecordingOptionsBuilder builder =
-                            recordingOptionsBuilderFactory
-                                    .create(connection.getService())
-                                    .name(rule.getRecordingName());
-                    if (rule.getMaxAgeSeconds() > 0) {
-                        builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
-                    }
-                    if (rule.getMaxSizeBytes() > 0) {
-                        builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
-                    }
-                    Pair<String, TemplateType> template =
-                            RecordingTargetHelper.parseEventSpecifierToTemplate(
-                                    rule.getEventSpecifier());
-                    recordingTargetHelper.startRecording(
-                            true,
-                            connectionDescriptor,
-                            builder.build(),
-                            template.getLeft(),
-                            template.getRight());
-                    return null;
-                },
-                false);
+        IRecordingDescriptor recording =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        connection -> {
+                            RecordingOptionsBuilder builder =
+                                    recordingOptionsBuilderFactory
+                                            .create(connection.getService())
+                                            .name(rule.getRecordingName());
+                            if (rule.getMaxAgeSeconds() > 0) {
+                                builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
+                            }
+                            if (rule.getMaxSizeBytes() > 0) {
+                                builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
+                            }
+                            Pair<String, TemplateType> template =
+                                    RecordingTargetHelper.parseEventSpecifierToTemplate(
+                                            rule.getEventSpecifier());
+                            return recordingTargetHelper.startRecording(
+                                    true,
+                                    connectionDescriptor,
+                                    builder.build(),
+                                    template.getLeft(),
+                                    template.getRight());
+                        },
+                        false);
+        Map<String, String> labels =
+                metadataManager.getRecordingLabels(
+                        connectionDescriptor.getTargetId(), recording.getName());
+        labels.put("rule", rule.getName());
+        metadataManager.setRecordingLabels(
+                connectionDescriptor.getTargetId(), recording.getName(), labels);
     }
 }

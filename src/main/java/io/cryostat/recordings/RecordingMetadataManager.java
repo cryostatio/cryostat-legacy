@@ -123,7 +123,8 @@ public class RecordingMetadataManager {
     }
 
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
-        return this.recordingLabelsMap.get(Pair.of(targetId, recordingName));
+        return this.recordingLabelsMap.computeIfAbsent(
+                Pair.of(targetId, recordingName), k -> new ConcurrentHashMap<>());
     }
 
     public Map<String, String> deleteRecordingLabelsIfExists(String targetId, String recordingName)

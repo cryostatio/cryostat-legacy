@@ -62,6 +62,7 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -91,6 +92,7 @@ class RuleProcessorTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingTargetHelper recordingTargetHelper;
+    @Mock RecordingMetadataManager metadataManager;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
     @Mock Base32 base32;
@@ -110,6 +112,7 @@ class RuleProcessorTest {
                         targetConnectionManager,
                         recordingArchiveHelper,
                         recordingTargetHelper,
+                        metadataManager,
                         periodicArchiverFactory,
                         logger,
                         base32);
