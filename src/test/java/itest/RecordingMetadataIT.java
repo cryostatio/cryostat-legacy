@@ -45,8 +45,8 @@ import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor.Metadata;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

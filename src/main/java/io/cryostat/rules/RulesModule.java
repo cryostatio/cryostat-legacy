@@ -59,6 +59,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -115,6 +116,7 @@ public abstract class RulesModule {
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger,
             Base32 base32) {
@@ -127,6 +129,7 @@ public abstract class RulesModule {
                 targetConnectionManager,
                 recordingArchiveHelper,
                 recordingTargetHelper,
+                metadataManager,
                 periodicArchiverFactory,
                 logger,
                 base32);

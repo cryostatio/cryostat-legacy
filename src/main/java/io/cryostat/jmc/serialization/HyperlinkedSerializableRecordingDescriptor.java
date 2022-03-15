@@ -37,10 +37,10 @@
  */
 package io.cryostat.jmc.serialization;
 
-import java.util.Map;
-
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -124,42 +124,5 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
                 .append(reportUrl)
                 .append(metadata)
                 .toHashCode();
-    }
-
-    public static class Metadata {
-        protected final Map<String, String> labels;
-
-        public Metadata() {
-            this.labels = Map.of();
-        }
-
-        public Metadata(Map<String, String> labels) {
-            this.labels = labels;
-        }
-
-        public Map<String, String> getLabels() {
-            return labels;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == null) {
-                return false;
-            }
-            if (o == this) {
-                return true;
-            }
-            if (!(o instanceof Metadata)) {
-                return false;
-            }
-
-            Metadata metadata = (Metadata) o;
-            return new EqualsBuilder().append(labels, metadata.labels).build();
-        }
-
-        @Override
-        public int hashCode() {
-            return new HashCodeBuilder().append(labels).toHashCode();
-        }
     }
 }
