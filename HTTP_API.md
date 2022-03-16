@@ -1275,9 +1275,9 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
-| **Target JVMs**                                                         |                                                                                 |
-| Add a custom target definition                                                 | [`TargetsPostHandler`](#TargetsPostHandler)                                         |
-| Delete a custom target definition                                                 | [`TargetDeleteHandler`](#TargetDeleteHandler)                                         |
+| **Target JVMs**                                                           |                                                                                 |
+| Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
+| Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1289,8 +1289,8 @@ The handler-specific descriptions below describe how each handler populates the
 | Get all automated rule definitions                                        | [`RulesGetHandler`](#RulesGetHandler)                                           |
 | **Stored Target Credentials**                                             |                                                                                 |
 | Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
-| Delete stored credentials for a target                                       | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)                 |
-| Get a list of targets with stored credentials                                    | [`TargetCredentialsGetHandler`](#TargetCredentialsGetHandler)             |
+| Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
+| Get a list of targets with stored credentials                             | [`TargetCredentialsGetHandler`](#TargetCredentialsGetHandler)                   |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
@@ -1839,9 +1839,9 @@ The handler-specific descriptions below describe how each handler populates the
 | **Miscellaneous**                                                         |                                                                                 |
 | View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
-| Create metadata labels for a recording in a target JVM                                       | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler)                                         |
-| **Recordings in archive**                                                 |                                                                             |
-| Create metadata labels for a recording                                       | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)                                         |
+| Create metadata labels for a recording in a target JVM                    |[`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler)                                         |
+| **Recordings in archive**                                                 |                                                                                 |
+| Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
 ### Miscellaneous
 
