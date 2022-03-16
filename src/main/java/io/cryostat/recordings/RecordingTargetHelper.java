@@ -51,6 +51,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.inject.Named;
 
@@ -63,6 +64,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -139,6 +141,8 @@ public class RecordingTargetHelper {
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
+                    TemplateType preferredTemplateType =
+                            getPreferredTemplateType(connection, templateName, templateType);
                     Optional<IRecordingDescriptor> previous =
                             getDescriptorByName(connection, recordingName);
                     if (previous.isPresent()) {
@@ -156,7 +160,10 @@ public class RecordingTargetHelper {
                                     .getService()
                                     .start(
                                             recordingOptions,
-                                            enableEvents(connection, templateName, templateType));
+                                            enableEvents(
+                                                    connection,
+                                                    templateName,
+                                                    preferredTemplateType));
                     String targetId = connectionDescriptor.getTargetId();
                     Metadata metadata =
                             recordingMetadataManager.getMetadata(targetId, recordingName);
@@ -165,9 +172,7 @@ public class RecordingTargetHelper {
                             "template",
                             String.format(
                                     "template=%s,type=%s",
-                                    templateName,
-                                    (templateType == null ? TemplateType.TARGET : templateType)
-                                            .name()));
+                                    templateName, preferredTemplateType.name()));
                     metadata = new Metadata(labels);
                     metadata =
                             recordingMetadataManager
@@ -461,45 +466,47 @@ public class RecordingTargetHelper {
         }
     }
 
+    private TemplateType getPreferredTemplateType(
+            JFRConnection connection, String templateName, TemplateType templateType)
+            throws Exception {
+        if (templateType != null) {
+            return templateType;
+        }
+        if (templateName.equals("ALL")) {
+            // special case for the ALL meta-template
+            return TemplateType.TARGET;
+        }
+        List<Template> matchingNameTemplates =
+                connection.getTemplateService().getTemplates().stream()
+                        .filter(t -> t.getName().equals(templateName))
+                        .collect(Collectors.toList());
+        boolean custom =
+                matchingNameTemplates.stream()
+                        .anyMatch(t -> t.getType().equals(TemplateType.CUSTOM));
+        if (custom) {
+            return TemplateType.CUSTOM;
+        }
+        boolean target =
+                matchingNameTemplates.stream()
+                        .anyMatch(t -> t.getType().equals(TemplateType.TARGET));
+        if (target) {
+            return TemplateType.TARGET;
+        }
+        throw new IllegalArgumentException(
+                String.format("Invalid/unknown event template %s", templateName));
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
         if (templateName.equals("ALL")) {
             return enableAllEvents(connection);
         }
-        if (templateType != null) {
-            return connection
-                    .getTemplateService()
-                    .getEvents(templateName, templateType)
-                    .orElseThrow(
-                            () ->
-                                    new IllegalArgumentException(
-                                            String.format(
-                                                    "No template \"%s\" found with type %s",
-                                                    templateName, templateType)));
-        }
         // if template type not specified, try to find a Custom template by that name. If none,
         // fall back on finding a Target built-in template by the name. If not, throw an
         // exception and bail out.
-        return connection
-                .getTemplateService()
-                .getEvents(templateName, TemplateType.CUSTOM)
-                .or(
-                        () -> {
-                            try {
-                                return connection
-                                        .getTemplateService()
-                                        .getEvents(templateName, TemplateType.TARGET);
-                            } catch (Exception e) {
-                                return Optional.empty();
-                            }
-                        })
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        String.format(
-                                                "Invalid/unknown event template %s",
-                                                templateName)));
+        TemplateType type = getPreferredTemplateType(connection, templateName, templateType);
+        return connection.getTemplateService().getEvents(templateName, type).get();
     }
 
     private IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
