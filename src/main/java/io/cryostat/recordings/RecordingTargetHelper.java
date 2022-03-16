@@ -157,23 +157,33 @@ public class RecordingTargetHelper {
                                     .start(
                                             recordingOptions,
                                             enableEvents(connection, templateName, templateType));
+                    String targetId = connectionDescriptor.getTargetId();
+                    Metadata metadata =
+                            recordingMetadataManager.getMetadata(targetId, recordingName);
+                    Map<String, String> labels = metadata.getLabels();
+                    labels.put(
+                            "template",
+                            String.format(
+                                    "template=%s,type=%s",
+                                    templateName,
+                                    (templateType == null ? TemplateType.TARGET : templateType)
+                                            .name()));
+                    metadata = new Metadata(labels);
+                    metadata =
+                            recordingMetadataManager
+                                    .setRecordingMetadata(targetId, recordingName, metadata)
+                                    .get();
                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                             new HyperlinkedSerializableRecordingDescriptor(
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    recordingMetadataManager.getMetadata(
-                                            connectionDescriptor.getTargetId(), recordingName));
+                                    metadata);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            "recording",
-                                            linkedDesc,
-                                            "target",
-                                            connectionDescriptor.getTargetId()))
+                            .message(Map.of("recording", linkedDesc, "target", targetId))
                             .build()
                             .send();
 
