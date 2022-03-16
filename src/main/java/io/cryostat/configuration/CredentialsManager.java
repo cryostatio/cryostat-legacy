@@ -43,13 +43,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
@@ -59,6 +63,7 @@ public class CredentialsManager {
 
     private final Path credentialsDir;
     private final FileSystem fs;
+    private final PlatformClient platformClient;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
@@ -66,9 +71,16 @@ public class CredentialsManager {
     private final Map<String, Credentials> credentialsMap;
 
     CredentialsManager(
-            Path credentialsDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
+            Path credentialsDir,
+            FileSystem fs,
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Base32 base32,
+            Logger logger) {
         this.credentialsDir = credentialsDir;
         this.fs = fs;
+        this.platformClient = platformClient;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
@@ -121,6 +133,12 @@ public class CredentialsManager {
 
     public Credentials getCredentials(ServiceRef serviceRef) {
         return getCredentials(serviceRef.getServiceUri().toString());
+    }
+
+    public List<ServiceRef> getCredentialKeys() {
+        return this.platformClient.listDiscoverableServices().stream()
+                .filter(target -> credentialsMap.containsKey(target.getServiceUri().toString()))
+                .collect(Collectors.toList());
     }
 
     private Path getPersistedPath(String targetId) {

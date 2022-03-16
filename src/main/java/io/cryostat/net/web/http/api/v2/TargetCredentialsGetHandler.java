@@ -37,39 +37,32 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.util.EnumSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
-
-    static final String PATH = TargetCredentialsPostHandler.PATH;
+class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
 
     private final CredentialsManager credentialsManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
-    TargetCredentialsDeleteHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            NotificationFactory notificationFactory,
-            Gson gson) {
+    TargetCredentialsGetHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -79,27 +72,27 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2;
+        return ApiVersion.V2_1;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_CREDENTIALS);
+        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
     }
 
     @Override
     public String path() {
-        return basePath() + PATH;
+        return basePath() + "credentials";
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+        return HttpMimeType.JSON;
     }
 
     @Override
@@ -108,28 +101,9 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public boolean isOrdered() {
-        return true;
-    }
-
-    @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String targetId = params.getPathParams().get("targetId");
-        try {
-            boolean status = this.credentialsManager.removeCredentials(targetId);
-
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory("TargetCredentialsDeleted")
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("target", targetId))
-                    .build()
-                    .send();
-
-            return new IntermediateResponse<Void>().statusCode(status ? 200 : 404);
-        } catch (IOException e) {
-            throw new ApiException(
-                    500, "IOException occurred while clearing persisted credentials", e);
-        }
+    public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
+            throws Exception {
+        return new IntermediateResponse<List<ServiceRef>>()
+                .body(this.credentialsManager.getCredentialKeys());
     }
 }

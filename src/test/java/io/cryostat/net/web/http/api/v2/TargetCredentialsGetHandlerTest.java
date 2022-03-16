@@ -37,8 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -50,12 +50,12 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,15 +65,15 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TargetCredentialsDeleteHandlerTest {
+class TargetCredentialsGetHandlerTest {
 
-    AbstractV2RequestHandler<Void> handler;
+    AbstractV2RequestHandler<List<ServiceRef>> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
@@ -93,109 +93,57 @@ class TargetCredentialsDeleteHandlerTest {
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
-        this.handler =
-                new TargetCredentialsDeleteHandler(
-                        auth, credentialsManager, notificationFactory, gson);
+        this.handler = new TargetCredentialsGetHandler(auth, credentialsManager, gson, logger);
     }
 
     @Nested
     class BasicHandlerDefinition {
-
         @Test
-        void shouldRequireAuthentication() {
-            Assertions.assertTrue(handler.requiresAuthentication());
+        void shouldBeGETHandler() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
         }
 
         @Test
-        void shouldBeV2API() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2));
+        void shouldBeAPIV2_1() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
         }
 
         @Test
-        void shouldHaveDELETEMethod() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
-        }
-
-        @Test
-        void shouldHaveTargetsPath() {
-            MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/credentials"));
+        void shouldHaveExpectedPath() {
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.1/credentials"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(Set.of(ResourceAction.DELETE_CREDENTIALS)));
+                    Matchers.equalTo(Set.of(ResourceAction.READ_CREDENTIALS)));
         }
 
         @Test
-        void shouldHaveJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldReturnJsonMimeType() {
+            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
 
         @Test
-        void shouldNotBeAsync() {
-            Assertions.assertFalse(handler.isAsync());
-        }
-
-        @Test
-        void shouldBeOrdered() {
-            Assertions.assertTrue(handler.isOrdered());
+        void shouldRequireAuthentication() {
+            MatcherAssert.assertThat(handler.requiresAuthentication(), Matchers.is(true));
         }
     }
 
     @Nested
-    class RequestExecutions {
+    class RequestHandling {
+
         @Mock RequestParameters requestParams;
 
         @Test
-        void shouldRespond200OnSuccess() throws Exception {
-            String targetId = "fooTarget";
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenReturn(true);
+        void shouldDelegateToCredentialsManager() throws Exception {
 
-            IntermediateResponse<Void> response = handler.handle(requestParams);
+            IntermediateResponse<List<ServiceRef>> response = handler.handle(requestParams);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
-
-            Mockito.verify(notificationFactory).createBuilder();
-            Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsDeleted");
-            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-            Mockito.verify(notificationBuilder).message(Map.of("target", targetId));
-            Mockito.verify(notificationBuilder).build();
-            Mockito.verify(notification).send();
-        }
-
-        @Test
-        void shouldRespond404OnFailure() throws Exception {
-            String targetId = "fooTarget";
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenReturn(false);
-
-            IntermediateResponse<Void> response = handler.handle(requestParams);
-
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(404));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
-        }
-
-        @Test
-        void shouldWrapIOExceptions() throws Exception {
-            String targetId = "fooTarget";
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenThrow(IOException.class);
-
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
-
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-            MatcherAssert.assertThat(ex.getCause(), Matchers.instanceOf(IOException.class));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(new ArrayList<>()));
+            Mockito.verify(credentialsManager).getCredentialKeys();
         }
     }
 }

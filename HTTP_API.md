@@ -11,7 +11,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                 |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -1275,9 +1275,9 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
-| **Target JVMs**                                                         |                                                                                 |
-| Add a custom target definition                                                 | [`TargetsPostHandler`](#TargetsPostHandler)                                         |
-| Delete a custom target definition                                                 | [`TargetDeleteHandler`](#TargetDeleteHandler)                                         |
+| **Target JVMs**                                                           |                                                                                 |
+| Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
+| Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1290,6 +1290,7 @@ The handler-specific descriptions below describe how each handler populates the
 | **Stored Target Credentials**                                             |                                                                                 |
 | Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
 | Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
+| Get a list of targets with stored credentials                             | [`TargetCredentialsGetHandler`](#TargetCredentialsGetHandler)                   |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
@@ -1778,6 +1779,28 @@ The handler-specific descriptions below describe how each handler populates the
     $ curl -X DELETE http://0.0.0.0:8181/api/v2/targets/localhost/credentials
     {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
     ```
+* #### `TargetCredentialsGetHandler`
+
+    ##### synopsis
+    Lists targets with stored credentials.
+
+    ##### request
+    `GET /api/v2.1/credentials`
+
+    ##### response
+    `200` - The result is a list of target objects.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -X GET http://0.0.0.0:8181/api/v2.1/credentials
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9091","JAVA_MAIN":"io.cryostat.Cryostat"}}},{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9094","JAVA_MAIN":"es.andrewazor.demo.Main"}}}]}}
+    ```
 
 ### Security
 
@@ -1816,9 +1839,9 @@ The handler-specific descriptions below describe how each handler populates the
 | **Miscellaneous**                                                         |                                                                                 |
 | View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
-| Create metadata labels for a recording in a target JVM                                       | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler)                                         |
-| **Recordings in archive**                                                 |                                                                             |
-| Create metadata labels for a recording                                       | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)                                         |
+| Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
+| **Recordings in archive**                                                 |                                                                                 |
+| Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
 ### Miscellaneous
 
