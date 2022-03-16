@@ -47,6 +47,8 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetcher;
@@ -57,6 +59,7 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
+    private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
 
     @Inject
@@ -64,10 +67,12 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
+        this.metadataManager = metadataManager;
         this.webServer = webServer;
     }
 
@@ -85,11 +90,13 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
                     IRecordingDescriptor desc =
                             recordingTargetHelper.stopRecording(cd, source.getName(), true);
                     WebServer ws = webServer.get();
+                    Metadata metadata = metadataManager.getMetadata(uri, desc.getName());
                     return new GraphRecordingDescriptor(
                             target,
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
-                            ws.getReportURL(conn, desc.getName()));
+                            ws.getReportURL(conn, desc.getName()),
+                            metadata);
                 },
                 true);
     }

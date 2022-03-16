@@ -127,6 +127,10 @@ public class RecordingMetadataManager {
         return this.setRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
     }
 
+    public Metadata getMetadata(String targetId, String recordingName) {
+        return this.recordingLabelsMap.get(Pair.of(targetId, recordingName));
+    }
+
     public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);

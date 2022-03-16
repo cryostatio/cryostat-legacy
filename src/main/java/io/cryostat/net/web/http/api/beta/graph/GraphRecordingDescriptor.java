@@ -42,15 +42,20 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescriptor {
 
     protected transient ServiceRef target;
 
     public GraphRecordingDescriptor(
-            ServiceRef target, IRecordingDescriptor original, String downloadUrl, String reportUrl)
+            ServiceRef target,
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata)
             throws QuantityConversionException {
-        super(original, downloadUrl, reportUrl);
+        super(original, downloadUrl, reportUrl, metadata);
         this.target = target;
     }
 
@@ -58,5 +63,6 @@ class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescripto
             throws QuantityConversionException {
         super(o, o.getDownloadUrl(), o.getReportUrl());
         this.target = target;
+        this.metadata = o.getMetadata();
     }
 }

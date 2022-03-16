@@ -57,6 +57,8 @@ import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -68,6 +70,7 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
     private final TargetConnectionManager tcm;
     private final RecordingArchiveHelper archiveHelper;
     private final CredentialsManager credentialsManager;
+    private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
     private final Logger logger;
 
@@ -76,11 +79,13 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
         this.tcm = tcm;
         this.archiveHelper = archiveHelper;
         this.credentialsManager = credentialsManager;
+        this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.logger = logger;
     }
@@ -119,8 +124,15 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
                                                                     .get()
                                                                     .getReportURL(
                                                                             conn, r.getName());
+                                                    Metadata metadata =
+                                                            metadataManager.getMetadata(
+                                                                    targetId, r.getName());
                                                     return new GraphRecordingDescriptor(
-                                                            target, r, downloadUrl, reportUrl);
+                                                            target,
+                                                            r,
+                                                            downloadUrl,
+                                                            reportUrl,
+                                                            metadata);
                                                 } catch (QuantityConversionException
                                                         | URISyntaxException
                                                         | IOException e) {
