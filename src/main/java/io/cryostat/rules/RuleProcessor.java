@@ -60,6 +60,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
@@ -281,10 +282,12 @@ public class RuleProcessor
                         false);
         Map<String, String> labels =
                 new HashMap<>(
-                        metadataManager.getRecordingLabels(
-                                connectionDescriptor.getTargetId(), recording.getName()));
+                        metadataManager
+                                .getMetadata(
+                                        connectionDescriptor.getTargetId(), recording.getName())
+                                .getLabels());
         labels.put("rule", rule.getName());
-        metadataManager.setRecordingLabels(
-                connectionDescriptor.getTargetId(), recording.getName(), labels);
+        metadataManager.setRecordingMetadata(
+                connectionDescriptor.getTargetId(), recording.getName(), new Metadata(labels));
     }
 }

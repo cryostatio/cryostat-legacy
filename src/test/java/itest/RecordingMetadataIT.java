@@ -169,6 +169,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
             // update the recording labels
             Map<String, String> updatedLabels =
                     Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
+            Map<String, Map<String, String>> updatedMetadata = Map.of("labels", updatedLabels);
             CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
             webClient
                     .post(
@@ -194,7 +195,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
                                                     HttpMimeType.JSON.mime(),
                                                     "status",
                                                     "OK"),
-                                    "data", Map.of("result", updatedLabels)));
+                                    "data", Map.of("result", updatedMetadata)));
             MatcherAssert.assertThat(
                     postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                     Matchers.equalTo(expectedResponse));

@@ -58,6 +58,7 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -175,6 +176,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
             Map<String, String> labels = Map.of("key", "value");
+            Metadata metadata = new Metadata(labels);
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
@@ -188,17 +190,18 @@ public class RecordingMetadataLabelsPostHandlerTest {
             Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
                     .thenReturn(labels);
 
-            Mockito.when(recordingMetadataManager.setRecordingLabels(recordingName, labels))
-                    .thenReturn(CompletableFuture.completedFuture(labels));
+            Mockito.when(recordingMetadataManager.setRecordingMetadata(recordingName, metadata))
+                    .thenReturn(CompletableFuture.completedFuture(metadata));
 
-            IntermediateResponse<Map<String, String>> response = handler.handle(requestParameters);
+            IntermediateResponse<Metadata> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(metadata));
 
             Mockito.verify(notificationFactory).createBuilder();
             Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
             Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
             Mockito.verify(notificationBuilder)
-                    .message(Map.of("recordingName", recordingName, "labels", labels));
+                    .message(Map.of("recordingName", recordingName, "metadata", metadata));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
         }

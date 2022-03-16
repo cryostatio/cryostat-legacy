@@ -47,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
@@ -71,7 +70,7 @@ public class RecordingMetadataManager {
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Metadata> recordingLabelsMap;
+    private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
 
     RecordingMetadataManager(
             Path recordingMetadataDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
@@ -80,7 +79,7 @@ public class RecordingMetadataManager {
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
-        this.recordingLabelsMap = new ConcurrentHashMap<>();
+        this.recordingMetadataMap = new ConcurrentHashMap<>();
     }
 
     public void load() throws IOException {
@@ -100,79 +99,55 @@ public class RecordingMetadataManager {
                 .map(reader -> gson.fromJson(reader, StoredRecordingMetadata.class))
                 .forEach(
                         srm ->
-                                recordingLabelsMap.put(
+                                recordingMetadataMap.put(
                                         Pair.of(srm.getTargetId(), srm.getRecordingName()), srm));
     }
 
-    public Future<Map<String, String>> setRecordingLabels(
-            String targetId, String recordingName, Map<String, String> labels) throws IOException {
+    public Future<Metadata> setRecordingMetadata(
+            String targetId, String recordingName, Metadata metadata) throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(labels);
-        Metadata metadata = new Metadata(labels);
-        this.recordingLabelsMap.put(Pair.of(targetId, recordingName), metadata);
+        Objects.requireNonNull(metadata);
+        this.recordingMetadataMap.put(Pair.of(targetId, recordingName), metadata);
         fs.writeString(
                 this.getMetadataPath(targetId, recordingName),
                 gson.toJson(StoredRecordingMetadata.of(targetId, recordingName, metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
-        return CompletableFuture.completedFuture(labels);
+        return CompletableFuture.completedFuture(metadata);
     }
 
-    public Future<Map<String, String>> setRecordingLabels(
-            String recordingName, Map<String, String> labels) throws IOException {
+    public Future<Metadata> setRecordingMetadata(String recordingName, Metadata metadata)
+            throws IOException {
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(labels);
-        return this.setRecordingLabels(RecordingArchiveHelper.ARCHIVES, recordingName, labels);
+        Objects.requireNonNull(metadata);
+        return this.setRecordingMetadata(RecordingArchiveHelper.ARCHIVES, recordingName, metadata);
     }
 
     public Metadata getMetadata(String targetId, String recordingName) {
-        return this.recordingLabelsMap.get(Pair.of(targetId, recordingName));
-    }
-
-    public Map<String, String> getRecordingLabels(String targetId, String recordingName) {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        return this.recordingLabelsMap
-                .computeIfAbsent(Pair.of(targetId, recordingName), k -> new Metadata())
-                .getLabels();
+        return this.recordingMetadataMap.computeIfAbsent(
+                Pair.of(targetId, recordingName), k -> new Metadata());
     }
 
-    public Map<String, String> deleteRecordingLabelsIfExists(String targetId, String recordingName)
+    public Metadata deleteRecordingMetadataIfExists(String targetId, String recordingName)
             throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        Metadata deleted = this.recordingLabelsMap.remove(Pair.of(targetId, recordingName));
+        Metadata deleted = this.recordingMetadataMap.remove(Pair.of(targetId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
-        if (deleted != null) {
-            return deleted.getLabels();
-        }
-        return null;
+        return deleted;
     }
 
-    public Future<Map<String, String>> copyLabelsToArchives(
-            String targetId, String recordingName, String filename) {
+    public Future<Metadata> copyMetadataToArchives(
+            String targetId, String recordingName, String filename) throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(filename);
-        CompletableFuture<Map<String, String>> future = new CompletableFuture<>();
-
-        try {
-            Map<String, String> targetRecordingLabels =
-                    this.getRecordingLabels(targetId, recordingName);
-            Map<String, String> archivedLabels = targetRecordingLabels;
-
-            if (targetRecordingLabels != null) {
-                archivedLabels = this.setRecordingLabels(filename, targetRecordingLabels).get();
-            }
-
-            future.complete(archivedLabels);
-        } catch (IOException | InterruptedException | ExecutionException e) {
-            future.completeExceptionally(e);
-        }
-
-        return future;
+        Metadata metadata = this.getMetadata(targetId, recordingName);
+        return this.setRecordingMetadata(filename, metadata);
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
@@ -256,12 +231,16 @@ public class RecordingMetadataManager {
             this.labels = new ConcurrentHashMap<>();
         }
 
+        public Metadata(Metadata o) {
+            this.labels = new ConcurrentHashMap<>(o.labels);
+        }
+
         public Metadata(Map<String, String> labels) {
             this.labels = labels;
         }
 
         public Map<String, String> getLabels() {
-            return labels;
+            return new ConcurrentHashMap<>(labels);
         }
 
         @Override

@@ -162,10 +162,8 @@ public class RecordingTargetHelper {
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    new Metadata(
-                                            recordingMetadataManager.getRecordingLabels(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName)));
+                                    recordingMetadataManager.getMetadata(
+                                            connectionDescriptor.getTargetId(), recordingName));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(CREATE_NOTIFICATION_CATEGORY)
@@ -268,13 +266,10 @@ public class RecordingTargetHelper {
                                                     webServer
                                                             .get()
                                                             .getReportURL(connection, d.getName()),
-                                                    new Metadata(
-                                                            recordingMetadataManager
-                                                                    .getRecordingLabels(
-                                                                            connectionDescriptor
-                                                                                    .getTargetId(),
-                                                                            recordingName)));
-                                    recordingMetadataManager.deleteRecordingLabelsIfExists(
+                                                    recordingMetadataManager.getMetadata(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName));
+                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
                                     notificationFactory
                                             .createBuilder()
@@ -372,18 +367,15 @@ public class RecordingTargetHelper {
                                             "The newly created Snapshot could not be found under its rename");
                                 }
 
-                                Map<String, String> labels =
-                                        Optional.ofNullable(
-                                                        recordingMetadataManager.getRecordingLabels(
-                                                                connectionDescriptor.getTargetId(),
-                                                                rename))
-                                                .orElse(Map.of());
+                                Metadata metadata =
+                                        recordingMetadataManager.getMetadata(
+                                                connectionDescriptor.getTargetId(), rename);
 
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
                                         webServer.get().getReportURL(connection, rename),
-                                        new Metadata(labels));
+                                        metadata);
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {

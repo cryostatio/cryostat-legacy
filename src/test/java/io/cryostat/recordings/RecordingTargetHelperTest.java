@@ -215,6 +215,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
@@ -308,6 +311,9 @@ public class RecordingTargetHelperTest {
                 .thenReturn("http://example.com/download");
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         HyperlinkedSerializableRecordingDescriptor result =
                 recordingTargetHelper.createSnapshot(connectionDescriptor).get();
@@ -496,6 +502,9 @@ public class RecordingTargetHelperTest {
         Mockito.when(connection.getTemplateService()).thenReturn(templateService);
         Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of(events));
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
                 Mockito.mock(ScheduledFuture.class);

@@ -57,13 +57,14 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler {
+public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler<Metadata> {
 
     static final String PATH = "targets/:targetId/recordings/:recordingName/metadata/labels";
 
@@ -126,23 +127,23 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     }
 
     @Override
-    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
-            throws Exception {
+    public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String targetId = params.getPathParams().get("targetId");
 
         try {
             Map<String, String> labels =
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
+            Metadata metadata = new Metadata(labels);
 
             if (!this.targetRecordingFound(
                     getConnectionDescriptorFromParams(params), recordingName)) {
                 throw new RecordingNotFoundException(targetId, recordingName);
             }
 
-            Map<String, String> updatedLabels =
+            Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingLabels(targetId, recordingName, labels)
+                            .setRecordingMetadata(targetId, recordingName, metadata)
                             .get();
 
             notificationFactory
@@ -155,11 +156,11 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
                                     recordingName,
                                     "target",
                                     targetId,
-                                    "labels",
-                                    updatedLabels))
+                                    "metadata",
+                                    updatedMetadata))
                     .build()
                     .send();
-            return new IntermediateResponse<Map<String, String>>().body(updatedLabels);
+            return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (RecordingNotFoundException e) {
             throw new ApiException(404, e);
         } catch (IllegalArgumentException e) {
