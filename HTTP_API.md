@@ -11,7 +11,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                 |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -1782,7 +1782,7 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `TargetCredentialsGetHandler`
 
     ##### synopsis
-    Lists targets with stored credentials. 
+    Lists targets with stored credentials.
 
     ##### request
     `GET /api/v2.1/credentials`
@@ -1839,7 +1839,7 @@ The handler-specific descriptions below describe how each handler populates the
 | **Miscellaneous**                                                         |                                                                                 |
 | View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
-| Create metadata labels for a recording in a target JVM                    |[`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler)                                         |
+| Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
 | **Recordings in archive**                                                 |                                                                                 |
 | Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
