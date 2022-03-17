@@ -155,19 +155,22 @@ public class RecordingMetadataManager {
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
         Objects.requireNonNull(labels, "Labels must not be null");
 
-        Pattern noWhitespace = Pattern.compile("^(\\S)+$");
-        Matcher matcher = noWhitespace.matcher(labels);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException(labels);
-        }
-
         try {
             Type mapType = new TypeToken<Map<String, String>>() {}.getType();
             Map<String, String> parsedLabels = gson.fromJson(labels, mapType);
             if (parsedLabels == null) {
                 throw new IllegalArgumentException(labels);
             }
+            Pattern noWhitespace = Pattern.compile("^(\\S)+$");
 
+            for (var label : parsedLabels.entrySet()) {
+                Matcher keyMatcher = noWhitespace.matcher(label.getKey());
+                Matcher valueMatcher = noWhitespace.matcher(label.getValue());
+
+                if (!keyMatcher.matches() || !valueMatcher.matches()) {
+                    throw new IllegalArgumentException("Labels must not contain whitespace");
+                }
+            }
             return parsedLabels;
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
