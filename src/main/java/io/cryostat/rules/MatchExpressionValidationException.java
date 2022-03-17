@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-@SuppressWarnings("serial")
 public class MatchExpressionValidationException extends Exception {
 
     MatchExpressionValidationException(Throwable cause) {

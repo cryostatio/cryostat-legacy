@@ -55,8 +55,6 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 abstract class AbstractReportGeneratorService implements ReportGeneratorService {
 
     static final int READ_BUFFER_SIZE = 64 * 1024; // 64 KB
@@ -100,7 +98,6 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
                                 conn, cd, recordingName, fs.createTempFile(null, null)));
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     Path copyRecordingToFile(
             JFRConnection conn, ConnectionDescriptor cd, String recordingName, Path path)
             throws Exception {

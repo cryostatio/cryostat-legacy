@@ -46,6 +46,7 @@ import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
@@ -164,6 +165,7 @@ public class HttpServer {
         return isAlive;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "Field is never mutated")
     public Vertx getVertx() {
         return vertx;
     }

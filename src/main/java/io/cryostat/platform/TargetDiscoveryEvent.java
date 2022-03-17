@@ -45,7 +45,7 @@ public class TargetDiscoveryEvent {
 
     public TargetDiscoveryEvent(EventKind kind, ServiceRef serviceRef) {
         this.kind = kind;
-        this.serviceRef = serviceRef;
+        this.serviceRef = new ServiceRef(serviceRef);
     }
 
     public EventKind getEventKind() {
@@ -53,6 +53,6 @@ public class TargetDiscoveryEvent {
     }
 
     public ServiceRef getServiceRef() {
-        return this.serviceRef;
+        return new ServiceRef(this.serviceRef);
     }
 }

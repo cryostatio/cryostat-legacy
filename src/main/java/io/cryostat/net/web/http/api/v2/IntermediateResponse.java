@@ -77,7 +77,7 @@ public class IntermediateResponse<T> {
     }
 
     public Map<CharSequence, CharSequence> getHeaders() {
-        return this.headers;
+        return new HashMap<CharSequence, CharSequence>(this.headers);
     }
 
     public String getStatusMessage() {

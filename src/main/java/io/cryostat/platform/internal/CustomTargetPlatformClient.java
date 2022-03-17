@@ -58,6 +58,7 @@ import io.cryostat.platform.discovery.TargetNode;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
@@ -70,6 +71,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     private final FileSystem fs;
     private final Gson gson;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Field is never mutated")
     public CustomTargetPlatformClient(Path confDir, FileSystem fs, Gson gson) {
         this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
         this.saveFile = confDir.resolve(SAVEFILE_NAME);

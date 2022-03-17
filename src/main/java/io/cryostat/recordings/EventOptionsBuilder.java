@@ -53,6 +53,8 @@ import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.tui.ClientWriter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class EventOptionsBuilder {
 
     private final boolean isV2;
@@ -107,6 +109,7 @@ public class EventOptionsBuilder {
         return (V) t;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "Field is never mutated")
     public IConstrainedMap<EventOptionID> build() {
         if (!isV2) {
             return null;
@@ -114,14 +117,12 @@ public class EventOptionsBuilder {
         return map;
     }
 
-    @SuppressWarnings("serial")
     public static class EventTypeException extends Exception {
         EventTypeException(String eventType) {
             super(String.format("Unknown event type \"%s\"", eventType));
         }
     }
 
-    @SuppressWarnings("serial")
     static class EventOptionException extends Exception {
         EventOptionException(String eventType, String option) {
             super(String.format("Unknown option \"%s\" for event \"%s\"", option, eventType));

@@ -236,7 +236,7 @@ public class RecordingMetadataManager {
         }
 
         public Metadata(Map<String, String> labels) {
-            this.labels = labels;
+            this.labels = new ConcurrentHashMap<>(labels);
         }
 
         public Map<String, String> getLabels() {

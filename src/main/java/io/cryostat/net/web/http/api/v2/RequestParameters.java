@@ -109,7 +109,7 @@ public class RequestParameters {
     }
 
     public Map<String, String> getPathParams() {
-        return this.pathParams;
+        return new HashMap<>(this.pathParams);
     }
 
     public MultiMap getQueryParams() {
@@ -125,7 +125,7 @@ public class RequestParameters {
     }
 
     public Set<FileUpload> getFileUploads() {
-        return this.fileUploads;
+        return new HashSet<>(this.fileUploads);
     }
 
     public String getBody() {

@@ -311,6 +311,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean deleteToken(String token) throws IOException, TokenNotFoundException {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             Boolean deleted =
@@ -345,6 +346,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Future<TokenReviewStatus> performTokenReview(String token) {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             TokenReview review =
@@ -521,7 +523,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressWarnings("serial")
     public static class PermissionDeniedException extends Exception {
         private final String namespace;
         private final String resource;

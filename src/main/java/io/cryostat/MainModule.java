@@ -69,7 +69,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
 
 @Module(
@@ -146,7 +145,6 @@ public abstract class MainModule {
         return builder.create();
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Singleton
     @Named(RECORDINGS_PATH)

@@ -57,7 +57,6 @@ import io.cryostat.platform.PlatformClient;
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
 
 @Module
@@ -65,7 +64,6 @@ public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
     public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Singleton
     @Named(CONFIGURATION_PATH)
