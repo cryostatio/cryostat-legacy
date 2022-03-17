@@ -48,6 +48,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -153,12 +155,19 @@ public class RecordingMetadataManager {
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
         Objects.requireNonNull(labels, "Labels must not be null");
 
+        Pattern noWhitespace = Pattern.compile("^(\\S)+$");
+        Matcher matcher = noWhitespace.matcher(labels);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException(labels);
+        }
+
         try {
             Type mapType = new TypeToken<Map<String, String>>() {}.getType();
             Map<String, String> parsedLabels = gson.fromJson(labels, mapType);
             if (parsedLabels == null) {
                 throw new IllegalArgumentException(labels);
             }
+
             return parsedLabels;
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);

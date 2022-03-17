@@ -112,6 +112,8 @@ public class RecordingMetadataManagerTest {
             strings = {
                 "12345",
                 "thisIsNotJson",
+                "{\"this label\":\"contains whitespace\"}",
+                "{\"thislabel\":\"contains\twhitespace\"}",
             })
     void shouldThrowOnInvalidLabels(String labels) throws Exception {
         Class<? extends Exception> expected;
