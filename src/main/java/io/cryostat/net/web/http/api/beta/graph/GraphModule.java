@@ -94,7 +94,7 @@ public abstract class GraphModule {
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
             TargetNodeRecurseFetcher targetNodeRecurseFetcher,
             RecordingsFetcher recordingsFetcher,
-            ActiveRecordingsByNameFetcher activeRecordingsByNameFetcher,
+            ActiveRecordingsFetcher activeRecordingsFetcher,
             ArchivedRecordingsFetcher archivedRecordingsFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
             SnapshotOnTargetMutator snapshotOnTargetMutator,
@@ -136,7 +136,7 @@ public abstract class GraphModule {
                                         .dataFetcher("recordings", recordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Recordings")
-                                        .dataFetcher("active", activeRecordingsByNameFetcher))
+                                        .dataFetcher("active", activeRecordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Recordings")
                                         .dataFetcher("archived", archivedRecordingsFetcher))
@@ -198,8 +198,8 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static ActiveRecordingsByNameFetcher provideActiveRecordingsByNameFetcher() {
-        return new ActiveRecordingsByNameFetcher();
+    static ActiveRecordingsFetcher provideActiveRecordingsFetcher() {
+        return new ActiveRecordingsFetcher();
     }
 
     @Provides

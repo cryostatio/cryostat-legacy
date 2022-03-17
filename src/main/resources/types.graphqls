@@ -22,6 +22,18 @@ input DescendantTargetsFilterInput {
     name: String
 }
 
+input ActiveRecordingFilterInput {
+    name: String
+    state: String
+    continuous: Boolean
+    toDisk: Boolean
+    durationGreaterThanEqual: Long
+    durationLessThanEqual: Long
+    startTimeBeforeEqual: Long # TODO support/convert other DateTime formats, not just epoch timestamps
+    startTimeAfterEqual: Long
+    templateLabel: String # TODO support proper label-based filtering with selectors, not just this special case
+}
+
 input ArchivedRecordingFilterInput {
     name: String
 }
@@ -67,7 +79,7 @@ interface Node {
 }
 
 type Recordings {
-    active(names: [String!]): [ActiveRecording!]! # TODO better filtering, not just on name
+    active(filter: ActiveRecordingFilterInput): [ActiveRecording!]!
     archived(filter: ArchivedRecordingFilterInput): [ArchivedRecording!]!
 }
 
