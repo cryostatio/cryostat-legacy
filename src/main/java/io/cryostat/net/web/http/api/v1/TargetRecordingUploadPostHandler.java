@@ -67,7 +67,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -161,8 +160,6 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         }
     }
 
-    // FindBugs thinks the recordingPath or its properties is null somehow
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private ResponseMessage doPost(RoutingContext ctx, URL uploadUrl) throws Exception {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");

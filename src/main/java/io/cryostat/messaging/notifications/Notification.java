@@ -43,9 +43,6 @@ import io.cryostat.messaging.MessagingServer;
 import io.cryostat.messaging.WsMessage;
 import io.cryostat.net.web.http.HttpMimeType;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("URF_UNREAD_FIELD")
 public class Notification<T> extends WsMessage {
 
     private final transient MessagingServer server;

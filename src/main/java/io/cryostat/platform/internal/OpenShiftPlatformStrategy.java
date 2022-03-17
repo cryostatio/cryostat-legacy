@@ -82,7 +82,6 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
         return PRIORITY_PLATFORM + 15;
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Override
     public boolean isAvailable() {
         logger.trace("Testing OpenShift Platform Availability");

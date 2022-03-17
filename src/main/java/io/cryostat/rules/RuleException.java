@@ -39,7 +39,6 @@ package io.cryostat.rules;
 
 import java.io.IOException;
 
-@SuppressWarnings("serial")
 public class RuleException extends IOException {
     RuleException(String reason) {
         super(reason);

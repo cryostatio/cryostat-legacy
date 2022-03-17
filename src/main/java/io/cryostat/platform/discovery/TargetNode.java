@@ -46,7 +46,6 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class TargetNode extends AbstractNode {
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
     private final ServiceRef target;
 
     public TargetNode(NodeType nodeType, ServiceRef target) {

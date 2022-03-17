@@ -523,7 +523,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressWarnings("serial")
     public static class PermissionDeniedException extends Exception {
         private final String namespace;
         private final String resource;

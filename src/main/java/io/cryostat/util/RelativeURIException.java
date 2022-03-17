@@ -40,7 +40,6 @@ package io.cryostat.util;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-@SuppressWarnings("serial")
 public class RelativeURIException extends URISyntaxException {
     public RelativeURIException(URI u) {
         super(u.toString(), "Not a valid absolute URI");
