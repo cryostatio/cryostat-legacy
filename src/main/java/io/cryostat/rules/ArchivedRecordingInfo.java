@@ -53,11 +53,7 @@ public class ArchivedRecordingInfo {
 
     public ArchivedRecordingInfo(
             String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
-        this.encodedServiceUri = encodedServiceUri;
-        this.name = name;
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-        this.metadata = new Metadata();
+        this(encodedServiceUri, name, downloadUrl, reportUrl, new Metadata());
     }
 
     public ArchivedRecordingInfo(
@@ -110,7 +106,7 @@ public class ArchivedRecordingInfo {
                 .append(name, ari.name)
                 .append(downloadUrl, ari.downloadUrl)
                 .append(reportUrl, ari.reportUrl)
-                .append(metadata.getLabels(), ari.metadata.getLabels())
+                .append(metadata, ari.metadata)
                 .isEquals();
     }
 

@@ -51,6 +51,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -189,9 +190,11 @@ public abstract class GraphModule {
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
-        return new RecordingsFetcher(tcm, archiveHelper, credentialsManager, webServer, logger);
+        return new RecordingsFetcher(
+                tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
     }
 
     @Provides
@@ -267,9 +270,14 @@ public abstract class GraphModule {
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         return new StopRecordingMutator(
-                targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
+                targetConnectionManager,
+                recordingTargetHelper,
+                credentialsManager,
+                metadataManager,
+                webServer);
     }
 
     @Provides

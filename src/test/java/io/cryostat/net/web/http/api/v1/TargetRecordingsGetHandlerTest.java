@@ -57,6 +57,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -191,6 +192,9 @@ class TargetRecordingsGetHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         handler.handleAuthenticated(ctx);
 

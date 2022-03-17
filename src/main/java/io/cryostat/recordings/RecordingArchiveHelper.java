@@ -158,9 +158,9 @@ public class RecordingArchiveHelper {
             Path parentPath = savePath.getParent();
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
-            Map<String, String> labels =
+            Metadata metadata =
                     recordingMetadataManager
-                            .copyLabelsToArchives(
+                            .copyMetadataToArchives(
                                     connectionDescriptor.getTargetId(), recordingName, filename)
                             .get();
             ArchivedRecordingInfo archivedRecordingInfo =
@@ -169,7 +169,7 @@ public class RecordingArchiveHelper {
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
-                            new Metadata(labels));
+                            metadata);
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -211,9 +211,8 @@ public class RecordingArchiveHelper {
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
-                            new Metadata(
-                                    recordingMetadataManager.deleteRecordingLabelsIfExists(
-                                            ARCHIVES, recordingName)));
+                            recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                    ARCHIVES, recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -300,9 +299,7 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            new Metadata(
-                                                    recordingMetadataManager.getRecordingLabels(
-                                                            ARCHIVES, file)));
+                                            recordingMetadataManager.getMetadata(ARCHIVES, file));
                                 } catch (SocketException
                                         | UnknownHostException
                                         | URISyntaxException e) {
@@ -352,10 +349,8 @@ public class RecordingArchiveHelper {
                                                         file,
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
-                                                        new Metadata(
-                                                                recordingMetadataManager
-                                                                        .getRecordingLabels(
-                                                                                ARCHIVES, file)));
+                                                        recordingMetadataManager.getMetadata(
+                                                                ARCHIVES, file));
                                             } catch (SocketException
                                                     | UnknownHostException
                                                     | URISyntaxException e) {

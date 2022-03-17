@@ -58,7 +58,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -131,12 +130,10 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                 webServer.getDownloadURL(
                                                         connection, desc.getName()),
                                                 webServer.getReportURL(connection, desc.getName()),
-                                                new Metadata(
-                                                        recordingMetadataManager.getRecordingLabels(
-                                                                getConnectionDescriptorFromContext(
-                                                                                ctx)
-                                                                        .getTargetId(),
-                                                                desc.getName()))));
+                                                recordingMetadataManager.getMetadata(
+                                                        getConnectionDescriptorFromContext(ctx)
+                                                                .getTargetId(),
+                                                        desc.getName())));
                             }
                             return list;
                         });

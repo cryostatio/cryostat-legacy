@@ -84,6 +84,7 @@ type ActiveRecording implements Recording {
     name: String!
     reportUrl: Url!
     downloadUrl: Url!
+    metadata: RecordingMetadata!
 
     doArchive: ArchivedRecording!
     doStop: ActiveRecording!
@@ -94,6 +95,7 @@ type ArchivedRecording implements Recording {
     name: String!
     reportUrl: Url!
     downloadUrl: Url!
+    metadata: RecordingMetadata!
 
     doDelete: ArchivedRecording!
 }
@@ -102,6 +104,11 @@ interface Recording {
     name: String!
     reportUrl: Url!
     downloadUrl: Url!
+    metadata: RecordingMetadata!
+}
+
+type RecordingMetadata {
+    labels: Object!
 }
 
 input RecordingSettings {

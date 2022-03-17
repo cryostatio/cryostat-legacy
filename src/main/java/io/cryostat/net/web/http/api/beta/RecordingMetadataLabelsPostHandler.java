@@ -54,12 +54,13 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler {
+public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler<Metadata> {
 
     static final String PATH = "recordings/:recordingName/metadata/labels";
 
@@ -116,28 +117,27 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
     }
 
     @Override
-    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
-            throws Exception {
+    public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
 
         try {
-            Map<String, String> labels =
-                    recordingMetadataManager.parseRecordingLabels(params.getBody());
+            Metadata metadata =
+                    new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
 
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
-            Map<String, String> updatedLabels =
-                    recordingMetadataManager.setRecordingLabels(recordingName, labels).get();
+            Metadata updatedMetadata =
+                    recordingMetadataManager.setRecordingMetadata(recordingName, metadata).get();
 
             notificationFactory
                     .createBuilder()
                     .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recordingName", recordingName, "labels", labels))
+                    .message(Map.of("recordingName", recordingName, "metadata", updatedMetadata))
                     .build()
                     .send();
 
-            return new IntermediateResponse<Map<String, String>>().body(updatedLabels);
+            return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e);

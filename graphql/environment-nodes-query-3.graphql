@@ -7,9 +7,15 @@ query {
                 active {
                     name
                     state
+                    metadata {
+                        labels
+                    }
                 }
                 archived {
                     name
+                    metadata {
+                        labels
+                    }
                 }
             }
         }

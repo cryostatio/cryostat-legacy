@@ -190,10 +190,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
                                     recordingMetadataManager
-                                            .setRecordingLabels(
+                                            .setRecordingMetadata(
                                                     connectionDescriptor.getTargetId(),
                                                     recordingName,
-                                                    metadata.getLabels())
+                                                    metadata)
                                             .get();
                                 }
                                 Pair<String, TemplateType> template =
@@ -214,10 +214,9 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     connection, descriptor.getName()),
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
-                                            new Metadata(
-                                                    recordingMetadataManager.getRecordingLabels(
-                                                            connectionDescriptor.getTargetId(),
-                                                            recordingName)));
+                                            recordingMetadataManager.getMetadata(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recordingName));
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {
