@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -85,6 +86,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -215,6 +217,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
@@ -308,6 +313,9 @@ public class RecordingTargetHelperTest {
                 .thenReturn("http://example.com/download");
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         HyperlinkedSerializableRecordingDescriptor result =
                 recordingTargetHelper.createSnapshot(connectionDescriptor).get();
@@ -497,6 +505,22 @@ public class RecordingTargetHelperTest {
         Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of(events));
 
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.anyString(),
+                                Mockito.anyString(),
+                                Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        new Answer<Future<Metadata>>() {
+                            @Override
+                            public Future<Metadata> answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return CompletableFuture.completedFuture(invocation.getArgument(2));
+                            }
+                        });
+
         ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
                 Mockito.mock(ScheduledFuture.class);
         Mockito.when(
@@ -512,13 +536,43 @@ public class RecordingTargetHelperTest {
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(recordingDescriptor, null, null);
 
+        ArgumentCaptor<Map> messageCaptor = ArgumentCaptor.forClass(Map.class);
+
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", linkedDesc, "target", targetId));
+        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+
+        Map message = messageCaptor.getValue();
+        MatcherAssert.assertThat(message.get("target"), Matchers.equalTo(targetId));
+
+        HyperlinkedSerializableRecordingDescriptor capturedDescriptor =
+                (HyperlinkedSerializableRecordingDescriptor) message.get("recording");
+        MatcherAssert.assertThat(
+                capturedDescriptor.getName(), Matchers.equalTo(linkedDesc.getName()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getReportUrl(), Matchers.equalTo(linkedDesc.getReportUrl()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getDownloadUrl(), Matchers.equalTo(linkedDesc.getDownloadUrl()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getState(), Matchers.equalTo(linkedDesc.getState()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getDuration(), Matchers.equalTo(linkedDesc.getDuration()));
+        MatcherAssert.assertThat(capturedDescriptor.getId(), Matchers.equalTo(linkedDesc.getId()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getMaxAge(), Matchers.equalTo(linkedDesc.getMaxAge()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getMaxSize(), Matchers.equalTo(linkedDesc.getMaxSize()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getStartTime(), Matchers.equalTo(linkedDesc.getStartTime()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getToDisk(), Matchers.equalTo(linkedDesc.getToDisk()));
+        MatcherAssert.assertThat(
+                capturedDescriptor.getMetadata(),
+                Matchers.equalTo(
+                        new Metadata(Map.of("template", "template=Profiling,type=TARGET"))));
     }
 
     @Test

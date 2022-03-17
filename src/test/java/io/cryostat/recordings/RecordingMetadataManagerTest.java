@@ -43,6 +43,7 @@ import java.util.Map;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
 import org.apache.commons.codec.binary.Base32;
@@ -87,7 +88,9 @@ public class RecordingMetadataManagerTest {
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager
+                .setRecordingMetadata(targetId, recordingName, new Metadata(labels))
+                .get();
 
         Mockito.verify(fs)
                 .writeString(
@@ -98,7 +101,7 @@ public class RecordingMetadataManagerTest {
                         Mockito.any(OpenOption.class));
 
         Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
     }
@@ -127,19 +130,20 @@ public class RecordingMetadataManagerTest {
         String recordingName = "someRecording";
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
+        Metadata metadata = new Metadata(labels);
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
 
         Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
 
-        recordingMetadataManager.deleteRecordingLabelsIfExists(targetId, recordingName);
+        recordingMetadataManager.deleteRecordingMetadataIfExists(targetId, recordingName);
 
         MatcherAssert.assertThat(
-                recordingMetadataManager.getRecordingLabels(targetId, recordingName),
+                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels(),
                 Matchers.equalTo(Map.of()));
         Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
@@ -149,20 +153,23 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
+        Metadata metadata = new Metadata(labels);
         Map<String, String> updatedLabels =
                 Map.of("KEY", "UPDATED_VALUE", "key.2", "some.value", "key3", "1234");
+        Metadata updatedMetadata = new Metadata(updatedLabels);
 
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
 
-        recordingMetadataManager.setRecordingLabels(targetId, recordingName, updatedLabels).get();
+        recordingMetadataManager
+                .setRecordingMetadata(targetId, recordingName, updatedMetadata)
+                .get();
 
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getRecordingLabels(targetId, recordingName);
+        Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, recordingName);
 
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(updatedLabels));
+        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(updatedMetadata));
     }
 
     @Test
@@ -170,16 +177,16 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String recordingName = "someRecording";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
+        Metadata metadata = new Metadata(labels);
         String filename = "";
 
-        recordingMetadataManager.setRecordingLabels(targetId, recordingName, labels).get();
+        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
 
-        recordingMetadataManager.copyLabelsToArchives(targetId, recordingName, filename);
+        recordingMetadataManager.copyMetadataToArchives(targetId, recordingName, filename);
 
-        Map<String, String> actualArchivedLabelsMap =
-                recordingMetadataManager.getRecordingLabels(
-                        RecordingArchiveHelper.ARCHIVES, filename);
+        Metadata actualMetadata =
+                recordingMetadataManager.getMetadata(RecordingArchiveHelper.ARCHIVES, filename);
 
-        MatcherAssert.assertThat(actualArchivedLabelsMap, Matchers.equalTo(labels));
+        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(metadata));
     }
 }

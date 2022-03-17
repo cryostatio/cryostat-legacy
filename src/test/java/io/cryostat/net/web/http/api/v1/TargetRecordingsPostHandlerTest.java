@@ -62,6 +62,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -203,6 +204,9 @@ class TargetRecordingsPostHandlerTest {
                         recordingTargetHelper.startRecording(
                                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(descriptor);
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         handler.handle(ctx);
 

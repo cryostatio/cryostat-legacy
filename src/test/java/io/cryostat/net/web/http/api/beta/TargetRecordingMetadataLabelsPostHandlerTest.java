@@ -58,6 +58,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -179,6 +180,7 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
             String recordingName = "someRecording";
             String targetId = "fooTarget";
             Map<String, String> labels = Map.of("key", "value");
+            Metadata metadata = new Metadata(labels);
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
@@ -204,12 +206,13 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
             Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
                     .thenReturn(labels);
             Mockito.when(
-                            recordingMetadataManager.setRecordingLabels(
-                                    targetId, recordingName, labels))
-                    .thenReturn(CompletableFuture.completedFuture(labels));
+                            recordingMetadataManager.setRecordingMetadata(
+                                    targetId, recordingName, metadata))
+                    .thenReturn(CompletableFuture.completedFuture(metadata));
 
-            IntermediateResponse<Map<String, String>> response = handler.handle(requestParameters);
+            IntermediateResponse<Metadata> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(metadata));
 
             Mockito.verify(notificationFactory).createBuilder();
             Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
@@ -221,8 +224,8 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
                                     targetId,
                                     "recordingName",
                                     recordingName,
-                                    "labels",
-                                    labels));
+                                    "metadata",
+                                    metadata));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
         }
