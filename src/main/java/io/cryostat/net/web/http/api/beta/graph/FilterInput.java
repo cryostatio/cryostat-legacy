@@ -70,10 +70,10 @@ class FilterInput {
         STATE("state"),
         CONTINUOUS("continuous"),
         TO_DISK("toDisk"),
-        DURATION_GE("durationGreaterThanEqual"),
-        DURATION_LE("durationLessThanEqual"),
-        START_TIME_BEFORE("startTimeBeforeEqual"),
-        START_TIME_AFTER("startTimeAfterEqual"),
+        DURATION_GE("durationMsGreaterThanEqual"),
+        DURATION_LE("durationMsLessThanEqual"),
+        START_TIME_BEFORE("startTimeMsBeforeEqual"),
+        START_TIME_AFTER("startTimeMsAfterEqual"),
         TEMPLATE_LABEL("templateLabel"),
         ;
 
