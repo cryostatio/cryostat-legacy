@@ -45,14 +45,14 @@ class FilterInput {
 
     private static final String FILTER_ARGUMENT = "filter";
 
-    private final Map<String, String> filter;
+    private final Map<String, Object> filter;
 
-    FilterInput(Map<String, String> map) {
+    FilterInput(Map<String, Object> map) {
         this.filter = map;
     }
 
     static FilterInput from(DataFetchingEnvironment env) {
-        Map<String, String> map = env.getArgument(FILTER_ARGUMENT);
+        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
         return new FilterInput(map == null ? Map.of() : map);
     }
 
@@ -60,13 +60,21 @@ class FilterInput {
         return filter.containsKey(key.key());
     }
 
-    String get(Key key) {
-        return filter.get(key.key());
+    <T> T get(Key key) {
+        return (T) filter.get(key.key());
     }
 
     enum Key {
         NAME("name"),
         NODE_TYPE("nodeType"),
+        STATE("state"),
+        CONTINUOUS("continuous"),
+        TO_DISK("toDisk"),
+        DURATION_GE("durationMsGreaterThanEqual"),
+        DURATION_LE("durationMsLessThanEqual"),
+        START_TIME_BEFORE("startTimeMsBeforeEqual"),
+        START_TIME_AFTER("startTimeMsAfterEqual"),
+        TEMPLATE_LABEL("templateLabel"),
         ;
 
         private final String key;
