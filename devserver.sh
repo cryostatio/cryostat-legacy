@@ -29,10 +29,11 @@ for i in archive clientlib conf templates probes; do
     fi
 done
 
-# basic auth credentials, if enabled. `user:pass`
-echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "${work_dir}/conf/cryostat-users.properties"
 if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
-    CRYOSTAT_AUTH_MANAGER="io.cryostat.net.NoopAuthManager"
+    CRYOSTAT_AUTH_MANAGER="io.cryostat.net.BasicAuthManager"
+fi
+if  [ "$CRYOSTAT_AUTH_MANAGER" = "io.cryostat.net.BasicAuthManager" ]; then
+    echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "${work_dir}/conf/cryostat-users.properties"
 fi
 
 if [ -z "$CRYOSTAT_CORS_ORIGIN" ]; then
