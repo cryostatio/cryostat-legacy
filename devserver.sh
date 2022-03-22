@@ -29,6 +29,14 @@ for i in archive clientlib conf templates probes; do
     fi
 done
 
+if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
+    CRYOSTAT_AUTH_MANAGER="io.cryostat.net.BasicAuthManager"
+fi
+if  [ "$CRYOSTAT_AUTH_MANAGER" = "io.cryostat.net.BasicAuthManager" ]; then
+    # credentials `user:pass`
+    echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "${work_dir}/conf/cryostat-users.properties"
+fi
+
 if [ -z "$CRYOSTAT_CORS_ORIGIN" ]; then
     "${MVN}" -DskipTests=true clean prepare-package
 else
@@ -103,7 +111,7 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_REPORT_GENERATOR="http://localhost:10001" \
     GRAFANA_DATASOURCE_URL="http://localhost:8080" \
     GRAFANA_DASHBOARD_URL="http://localhost:3000" \
-    CRYOSTAT_AUTH_MANAGER=io.cryostat.net.NoopAuthManager \
+    CRYOSTAT_AUTH_MANAGER="${CRYOSTAT_AUTH_MANAGER}" \
     CRYOSTAT_ARCHIVE_PATH="${work_dir}/archive" \
     CRYOSTAT_CLIENTLIB_PATH="${work_dir}/clientlib" \
     CRYOSTAT_CONFIG_PATH="${work_dir}/conf" \
