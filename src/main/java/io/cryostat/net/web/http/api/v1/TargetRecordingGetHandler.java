@@ -55,7 +55,7 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.util.AsyncInputStream;
+import io.cryostat.util.OutputToReadStream;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -133,33 +133,8 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-
-        try (InputStream is = stream.get()) {
-            AsyncInputStream ais = new AsyncInputStream(vertx, vertx.getOrCreateContext(), is);
-            ais.handler(data -> {
-                targetConnectionManager.markConnectionInUse(connectionDescriptor);
-            });
-            // Pump pump = Pump.pump(ais, ctx.response());
-            // pump.start();
-            Pipe<Buffer> pipe = ais.pipe();
-            pipe.endOnComplete(true);
-            pipe.to(ctx.response());
-
-
-
-
-            // byte[] buff = new byte[WRITE_BUFFER_SIZE];
-            // int n;
-            // while ((n = s.read(buff)) != -1) {
-            //     // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
-            //     ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
-                if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-                    throw new IOException(
-                            "Target connection unexpectedly closed while streaming recording");
-                }
-            // }
-            //ctx.response().end();
+        try (InputStream is = stream.get(); OutputToReadStream otrs = new OutputToReadStream(vertx)) {
+            otrs.pipeFromInput(is, ctx.response(), (res) -> ctx.response().end());
         }
     }
-
 }
