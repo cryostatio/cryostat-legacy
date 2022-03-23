@@ -83,8 +83,8 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
-        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
+        this.vertx = vertx;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -134,7 +134,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
         try (InputStream is = stream.get(); OutputToReadStream otrs = new OutputToReadStream(vertx)) {
-            otrs.pipeFromInput(is, ctx.response(), (res) -> ctx.response().end());
+            otrs.pipeFromInput(is, ctx.response(), res -> ctx.response().end());
         }
     }
 }
