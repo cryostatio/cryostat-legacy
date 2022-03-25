@@ -50,6 +50,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -67,22 +68,23 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
-    private final Vertx vertx;
     protected final TargetConnectionManager targetConnectionManager;
     protected final RecordingTargetHelper recordingTargetHelper;
+    
+    private final Vertx vertx;
 
     @Inject
     TargetRecordingGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
-            Vertx vertx,
+            HttpServer httpServer,
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
-        this.vertx = vertx;
         this.recordingTargetHelper = recordingTargetHelper;
+        this.vertx = httpServer.getVertx();
     }
 
     @Override
@@ -130,12 +132,12 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+       
         try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
             CompletableFuture<Void> future = new CompletableFuture<>();
             otrs.pipeFromInput(is, ctx.response(), res -> {
                 if (res.succeeded()) {
                     future.complete(null);
-                    ctx.response().end();
                 } else {
                     future.completeExceptionally(res.cause());
                 }

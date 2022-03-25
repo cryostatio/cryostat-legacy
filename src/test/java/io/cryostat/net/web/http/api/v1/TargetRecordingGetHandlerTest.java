@@ -55,6 +55,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -87,8 +88,8 @@ class TargetRecordingGetHandlerTest {
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
-    @Mock Vertx vertx;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock HttpServer httpServer;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
 
@@ -103,7 +104,7 @@ class TargetRecordingGetHandlerTest {
                         authManager,
                         credentialsManager,
                         targetConnectionManager,
-                        vertx,
+                        httpServer,
                         recordingTargetHelper,
                         logger);
     }

@@ -69,8 +69,10 @@ import io.vertx.core.streams.WriteStream;
  * </tt>
  *
  * @author guss77
+ * @source https://github.com/cloudonix/vertx-java.io
  */
 public class OutputToReadStream extends OutputStream implements ReadStream<Buffer> {
+    private static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private AtomicReference<CountDownLatch> paused = new AtomicReference<>(new CountDownLatch(0));
     private boolean closed;
@@ -112,16 +114,11 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
                         () -> {
                             try (final InputStream is = source;
                                     final OutputStream os = this) {
-                                if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-                                    throw new IOException(
-                                            "Target connection unexpectedly closed while streaming recording");
-                                }
-                                source.transferTo(this);
-                                while (source.available() != 0) {
-                                    if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-                                        throw new IOException(
-                                                "Target connection unexpectedly closed while streaming recording");
-                                    }
+                                byte[] buff = new byte[WRITE_BUFFER_SIZE];
+                                int n;
+                                while ((n = is.read(buff)) != -1) {
+                                    this.write(buff, 0, n);
+                                    checkConnection();
                                 }
                             } catch (IOException e) {
                                 promise.tryFail(e);
@@ -267,6 +264,13 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
         try {
             awaiter.await();
         } catch (InterruptedException e) {
+        }
+    }
+
+    private void checkConnection() throws IOException {
+        if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
+            throw new IOException(
+                    "Target connection unexpectedly closed while streaming recording");
         }
     }
 }

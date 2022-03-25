@@ -43,21 +43,25 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.util.OutputToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -67,16 +71,19 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private final TargetConnectionManager targetConnectionManager;
+    private final Vertx vertx;
 
     @Inject
     TargetRecordingGetHandler(
             AuthManager auth,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
+            HttpServer httpServer,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
         this.targetConnectionManager = targetConnectionManager;
+        this.vertx = httpServer.getVertx();
     }
 
     @Override
@@ -149,19 +156,32 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
                         HttpHeaders.CONTENT_DISPOSITION,
                         String.format("attachment; filename=\"%s.jfr\"", recordingName));
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        try (InputStream s = stream.get()) {
-            byte[] buff = new byte[WRITE_BUFFER_SIZE];
-            int n;
-            while ((n = s.read(buff)) != -1) {
-                // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
-                ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
-                if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-                    throw new IOException(
-                            "Target connection unexpectedly closed while streaming recording");
-                }
-            }
 
-            ctx.response().end();
+        try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            otrs.pipeFromInput(is, ctx.response(), res -> {
+                if (res.succeeded()) {
+                    future.complete(null);
+                } else {
+                    future.completeExceptionally(res.cause());
+                }
+            });
+            future.get();
         }
+
+        // try (InputStream s = stream.get()) {
+        //     byte[] buff = new byte[WRITE_BUFFER_SIZE];
+        //     int n;
+        //     while ((n = s.read(buff)) != -1) {
+        //         // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
+        //         ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
+        //         if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
+        //             throw new IOException(
+        //                     "Target connection unexpectedly closed while streaming recording");
+        //         }
+        //     }
+
+        //     ctx.response().end();
+        // }
     }
 }
