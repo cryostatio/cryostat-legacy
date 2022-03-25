@@ -38,8 +38,11 @@
 package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.cryostat.net.web.http.api.beta.graph.labels.LabelSelectorMatcher;
@@ -83,6 +86,25 @@ class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
             result =
                     result.stream()
                             .filter(n -> LabelSelectorMatcher.parse(labels).test(n.getLabels()))
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.ANNOTATIONS)) {
+            String annotations = filter.get(FilterInput.Key.ANNOTATIONS);
+            Function<TargetNode, Map<String, String>> mergedAnnotations =
+                    n -> {
+                        Map<String, String> merged = new HashMap<>();
+                        n.getTarget()
+                                .getCryostatAnnotations()
+                                .forEach((key, val) -> merged.put(key.name(), val));
+                        merged.putAll(n.getTarget().getPlatformAnnotations());
+                        return merged;
+                    };
+            result =
+                    result.stream()
+                            .filter(
+                                    n ->
+                                            LabelSelectorMatcher.parse(annotations)
+                                                    .test(mergedAnnotations.apply(n)))
                             .collect(Collectors.toList());
         }
         return result;

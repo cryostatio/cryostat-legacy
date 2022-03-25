@@ -14,11 +14,13 @@ input EnvironmentNodeFilterInput {
 input TargetNodesFilterInput {
     name: String
     labels: String
+    annotations: String
 }
 
 input DescendantTargetsFilterInput {
     name: String
     labels: String
+    annotations: String
 }
 
 input ActiveRecordingFilterInput {

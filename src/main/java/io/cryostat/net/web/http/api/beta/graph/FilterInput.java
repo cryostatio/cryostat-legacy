@@ -67,6 +67,7 @@ class FilterInput {
     enum Key {
         NAME("name"),
         LABELS("labels"),
+        ANNOTATIONS("annotations"),
         NODE_TYPE("nodeType"),
         STATE("state"),
         CONTINUOUS("continuous"),
