@@ -68,9 +68,6 @@ class LabelSelectorMatcherTest {
             },
             delimiter = ':')
     void testCombos(String expr, boolean pass) {
-        if (expr == null) {
-            expr = "";
-        }
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
         MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
     }

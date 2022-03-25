@@ -85,10 +85,12 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
 
     public static LabelSelectorMatcher parse(String s) throws IllegalArgumentException {
         List<LabelMatcher> matchers = new ArrayList<>();
-        List<String> clauses =
-                Arrays.asList(s.split(",")).stream().map(String::trim).collect(Collectors.toList());
-        matchers.addAll(parseEqualities(clauses));
-        matchers.addAll(parseSetMemberships(clauses));
+        if (s != null) {
+            List<String> clauses =
+                    Arrays.asList(s.split(",")).stream().map(String::trim).collect(Collectors.toList());
+            matchers.addAll(parseEqualities(clauses));
+            matchers.addAll(parseSetMemberships(clauses));
+        }
         return new LabelSelectorMatcher(matchers);
     }
 
