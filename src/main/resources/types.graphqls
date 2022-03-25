@@ -8,14 +8,17 @@ scalar Long
 input EnvironmentNodeFilterInput {
     name: String
     nodeType: String
+    labels: String
 }
 
 input TargetNodesFilterInput {
     name: String
+    labels: String
 }
 
 input DescendantTargetsFilterInput {
     name: String
+    labels: String
 }
 
 input ActiveRecordingFilterInput {
@@ -27,11 +30,12 @@ input ActiveRecordingFilterInput {
     durationMsLessThanEqual: Long
     startTimeMsBeforeEqual: Long # TODO support/convert other DateTime formats, not just epoch timestamps
     startTimeMsAfterEqual: Long
-    templateLabel: String # TODO support proper label-based filtering with selectors, not just this special case
+    labels: String
 }
 
 input ArchivedRecordingFilterInput {
     name: String
+    labels: String
 }
 
 type ServiceRef {

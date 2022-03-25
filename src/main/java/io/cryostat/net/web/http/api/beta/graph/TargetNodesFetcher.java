@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.web.http.api.beta.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
 
 import graphql.schema.DataFetcher;
@@ -73,6 +74,13 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
             result =
                     result.stream()
                             .filter(n -> Objects.equals(n.getName(), nodeName))
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.LABELS)) {
+            String labels = filter.get(FilterInput.Key.LABELS);
+            result =
+                    result.stream()
+                            .filter(n -> LabelSelectorMatcher.parse(labels).test(n.getLabels()))
                             .collect(Collectors.toList());
         }
         return result;

@@ -64,7 +64,7 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // expressions.
     static final Pattern SET_MEMBER_PATTERN =
             Pattern.compile(
-                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+(?<values>[\\(\\)a-zA-Z0-9-_./, ]*)$",
+                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+(?<values>[\\(\\)a-zA-Z0-9-_./=, ]*)$",
                     Pattern.CASE_INSENSITIVE);
 
     // ex. "mykey" or "!mykey". Tests whether the given key name exists in the test label set as a
@@ -87,7 +87,9 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
         List<LabelMatcher> matchers = new ArrayList<>();
         if (s != null) {
             List<String> clauses =
-                    Arrays.asList(s.split(",")).stream().map(String::trim).collect(Collectors.toList());
+                    Arrays.asList(s.split(",")).stream()
+                            .map(String::trim)
+                            .collect(Collectors.toList());
             matchers.addAll(parseEqualities(clauses));
             matchers.addAll(parseSetMemberships(clauses));
         }

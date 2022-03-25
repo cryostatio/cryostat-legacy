@@ -66,6 +66,7 @@ class FilterInput {
 
     enum Key {
         NAME("name"),
+        LABELS("labels"),
         NODE_TYPE("nodeType"),
         STATE("state"),
         CONTINUOUS("continuous"),
@@ -74,7 +75,6 @@ class FilterInput {
         DURATION_LE("durationMsLessThanEqual"),
         START_TIME_BEFORE("startTimeMsBeforeEqual"),
         START_TIME_AFTER("startTimeMsAfterEqual"),
-        TEMPLATE_LABEL("templateLabel"),
         ;
 
         private final String key;
