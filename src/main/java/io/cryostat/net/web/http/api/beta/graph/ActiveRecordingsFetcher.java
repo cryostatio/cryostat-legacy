@@ -44,10 +44,9 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
-
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
 
 class ActiveRecordingsFetcher implements DataFetcher<List<GraphRecordingDescriptor>> {
 
