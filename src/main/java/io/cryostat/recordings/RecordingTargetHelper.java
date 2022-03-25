@@ -168,11 +168,8 @@ public class RecordingTargetHelper {
                     Metadata metadata =
                             recordingMetadataManager.getMetadata(targetId, recordingName);
                     Map<String, String> labels = metadata.getLabels();
-                    labels.put(
-                            "template",
-                            String.format(
-                                    "template=%s,type=%s",
-                                    templateName, preferredTemplateType.name()));
+                    labels.put("template.name", templateName);
+                    labels.put("template.type", preferredTemplateType.name());
                     metadata = new Metadata(labels);
                     metadata =
                             recordingMetadataManager

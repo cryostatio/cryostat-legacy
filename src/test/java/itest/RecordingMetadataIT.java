@@ -80,7 +80,8 @@ public class RecordingMetadataIT extends StandardSelfTest {
         try {
             // create an in-memory recording
             Map<String, String> startLabels = new HashMap<>(testLabels);
-            startLabels.put("template", "template=ALL,type=TARGET");
+            startLabels.put("template.name", "ALL");
+            startLabels.put("template.type", "TARGET");
             CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             form.add("recordingName", RECORDING_NAME);
@@ -250,8 +251,6 @@ public class RecordingMetadataIT extends StandardSelfTest {
 
         try {
             // create an in-memory recording
-            Map<String, String> recordingLabels = new HashMap<>(testLabels);
-            recordingLabels.put("template", "template=ALL,type=TARGET");
             CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             form.add("recordingName", RECORDING_NAME);
@@ -259,8 +258,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
             form.add("events", "template=ALL");
             form.add(
                     "metadata",
-                    gson.toJson(
-                            new Metadata(recordingLabels), new TypeToken<Metadata>() {}.getType()));
+                    gson.toJson(new Metadata(testLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .sendForm(
@@ -310,7 +308,10 @@ public class RecordingMetadataIT extends StandardSelfTest {
                             recordingInfo.getValue("metadata").toString(),
                             new TypeToken<Metadata>() {}.getType());
 
-            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(recordingLabels));
+            Map<String, String> expectedLabels = new HashMap<>(testLabels);
+            expectedLabels.put("template.name", "ALL");
+            expectedLabels.put("template.type", "TARGET");
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(expectedLabels));
 
         } finally {
             // Clean up what we created
