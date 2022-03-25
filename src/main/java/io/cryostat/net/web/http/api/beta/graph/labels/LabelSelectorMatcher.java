@@ -54,18 +54,23 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // must loosely look like a k8s label (not strictly enforced here), right side must loosely look
     // like a k8s label value, which may be empty. Allowed operators are "=", "==", "!=".
     static final Pattern EQUALITY_PATTERN =
-        Pattern.compile("^(?<key>[a-zA-Z0-9-_./]+)[\\s]*(?<op>=|==|!=)[\\s]*(?<value>[a-zA-Z0-9-_./]*)$");
+            Pattern.compile(
+                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]*(?<op>=|==|!=)[\\s]*(?<value>[a-zA-Z0-9-_./]*)$");
 
     // ex. "environment in (production, qa)" or "tier NotIn (frontend, backend)". Tests if the given
     // label has or does not have any of the specified values.
     // FIXME the part of the expression to the right of the operator actually allows mismatched
     // parens, not a single matched pair. Regexes are hard. This works but is too tolerant of broken
     // expressions.
-    static final Pattern SET_MEMBER_PATTERN = Pattern.compile("^(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+(?<values>[\\(\\)a-zA-Z0-9-_./, ]*)$", Pattern.CASE_INSENSITIVE);
+    static final Pattern SET_MEMBER_PATTERN =
+            Pattern.compile(
+                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+(?<values>[\\(\\)a-zA-Z0-9-_./, ]*)$",
+                    Pattern.CASE_INSENSITIVE);
 
     // ex. "mykey" or "!mykey". Tests whether the given key name exists in the test label set as a
     // key, with or without a value.
-    static final Pattern SET_EXISTENCE_PATTERN = Pattern.compile("^(?<op>!?)(?<key>[a-zA-Z0-9-_./]+)$");
+    static final Pattern SET_EXISTENCE_PATTERN =
+            Pattern.compile("^(?<op>!?)(?<key>[a-zA-Z0-9-_./]+)$");
 
     private final List<LabelMatcher> matchers = new ArrayList<>();
 
@@ -80,7 +85,8 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
 
     public static LabelSelectorMatcher parse(String s) throws IllegalArgumentException {
         List<LabelMatcher> matchers = new ArrayList<>();
-        List<String> clauses = Arrays.asList(s.split(",")).stream().map(String::trim).collect(Collectors.toList());
+        List<String> clauses =
+                Arrays.asList(s.split(",")).stream().map(String::trim).collect(Collectors.toList());
         matchers.addAll(parseEqualities(clauses));
         matchers.addAll(parseSetMemberships(clauses));
         return new LabelSelectorMatcher(matchers);
@@ -117,7 +123,9 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
             Objects.requireNonNull(operator, "Unknown set operator " + op);
             String value = m.group("values").replaceAll("[\\(\\)]+", "");
             List<String> values =
-                Arrays.asList(value.split(",")).stream().map(String::trim).collect(Collectors.toList());
+                    Arrays.asList(value.split(",")).stream()
+                            .map(String::trim)
+                            .collect(Collectors.toList());
             SetMatcher em = new SetMatcher(key, operator, values);
             matchers.add(em);
         }
@@ -135,5 +143,4 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
         }
         return matchers;
     }
-
 }

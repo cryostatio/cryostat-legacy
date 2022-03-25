@@ -49,22 +49,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class LabelSelectorMatcherTest {
 
-    final Map<String, String> labels = Map.of(
-            "foo", "bar",
-            "something", "else",
-            "my.prefixed/label", "expectedValue",
-            "env", "prod",
-            "present", "irrelevant"
-            );
+    final Map<String, String> labels =
+            Map.of(
+                    "foo", "bar",
+                    "something", "else",
+                    "my.prefixed/label", "expectedValue",
+                    "env", "prod",
+                    "present", "irrelevant");
 
     @ParameterizedTest
-    @CsvSource(value = {
-        "foo=bar,something=else,env=prod : true",
-        "foo=bar,something=wrong : false",
-        ": true",
-        ",: true",
-        "my.prefixed/label = expectedValue, present, env in ( prod, stage ) : true"
-    }, delimiter = ':')
+    @CsvSource(
+            value = {
+                "foo=bar,something=else,env=prod : true",
+                "foo=bar,something=wrong : false",
+                ": true",
+                ",: true",
+                "my.prefixed/label = expectedValue, present, env in ( prod, stage ) : true"
+            },
+            delimiter = ':')
     void testCombos(String expr, boolean pass) {
         if (expr == null) {
             expr = "";
@@ -72,7 +74,6 @@ class LabelSelectorMatcherTest {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
         MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
     }
-
 
     @ParameterizedTest
     @CsvSource({
@@ -108,22 +109,26 @@ class LabelSelectorMatcherTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value = {
-        "foo in (bar, baz) : true",
-        "something In (else, orother) : true",
-        "env IN (stage,qa) : false",
-    }, delimiter = ':')
+    @CsvSource(
+            value = {
+                "foo in (bar, baz) : true",
+                "something In (else, orother) : true",
+                "env IN (stage,qa) : false",
+            },
+            delimiter = ':')
     void testSetIn(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
         MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
     }
 
     @ParameterizedTest
-    @CsvSource(value = {
-        "foo notin (bar, baz) : false",
-        "something NotIn (else, orother) : false",
-        "env NOTIN (stage,qa) : true",
-    }, delimiter = ':')
+    @CsvSource(
+            value = {
+                "foo notin (bar, baz) : false",
+                "something NotIn (else, orother) : false",
+                "env NOTIN (stage,qa) : true",
+            },
+            delimiter = ':')
     void testSetNotIn(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
         MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
@@ -143,14 +148,9 @@ class LabelSelectorMatcherTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "!foo, false",
-        "!something, false",
-        "!present, false"
-    })
+    @CsvSource({"!foo, false", "!something, false", "!present, false"})
     void testNotExists(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
         MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
     }
-
 }
