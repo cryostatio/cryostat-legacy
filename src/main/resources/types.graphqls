@@ -5,10 +5,6 @@ scalar Url
 scalar Boolean
 scalar Long
 
-input BasicFilterInput {
-    name: String
-}
-
 input EnvironmentNodeFilterInput {
     name: String
     nodeType: String
