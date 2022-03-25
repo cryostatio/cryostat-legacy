@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
@@ -55,15 +56,11 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.util.AsyncInputStream;
 import io.cryostat.util.OutputToReadStream;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.streams.Pipe;
-import io.vertx.core.streams.Pump;
-import io.vertx.core.streams.ReadStream;
-import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
@@ -133,8 +130,30 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        try (InputStream is = stream.get(); OutputToReadStream otrs = new OutputToReadStream(vertx)) {
-            otrs.pipeFromInput(is, ctx.response(), res -> ctx.response().end());
+        try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            otrs.pipeFromInput(is, ctx.response(), res -> {
+                if (res.succeeded()) {
+                    future.complete(null);
+                    ctx.response().end();
+                } else {
+                    future.completeExceptionally(res.cause());
+                }
+            });
+            future.get();
         }
+        // try (final InputStream is = stream.get()) {
+        //     final AsyncInputStream ais = new AsyncInputStream(vertx, vertx.getOrCreateContext(), targetConnectionManager, connectionDescriptor, is);
+        //     CompletableFuture<Void> future = new CompletableFuture<>();
+        //     ais.pipeTo(ctx.response(), res -> {
+        //         if (res.succeeded()) {
+        //             future.complete(null);
+        //             ctx.response().end();
+        //         } else {
+        //             future.completeExceptionally(res.cause());
+        //         }
+        //     });
+        //     future.get();
+        // }
     }
 }
