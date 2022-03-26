@@ -68,11 +68,10 @@ import io.vertx.core.streams.WriteStream;
  *
  * </tt>
  *
- * @author guss77
+ * @author guss77, hareetd
  * @source https://github.com/cloudonix/vertx-java.io
  */
 public class OutputToReadStream extends OutputStream implements ReadStream<Buffer> {
-    private static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private AtomicReference<CountDownLatch> paused = new AtomicReference<>(new CountDownLatch(0));
     private boolean closed;
@@ -114,12 +113,9 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
                         () -> {
                             try (final InputStream is = source;
                                     final OutputStream os = this) {
-                                byte[] buff = new byte[WRITE_BUFFER_SIZE];
-                                int n;
-                                while ((n = is.read(buff)) != -1) {
-                                    this.write(buff, 0, n);
-                                    checkConnection();
-                                }
+                                checkConnection();
+                                is.transferTo(os);
+                                checkConnection();
                             } catch (IOException e) {
                                 promise.tryFail(e);
                             }
@@ -215,6 +211,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     @Override
     public synchronized void write(int b) throws IOException {
         if (closed) throw new IOException("OutputStream is closed");
+        checkConnection();
         try {
             paused.get().await();
         } catch (InterruptedException e) {
@@ -226,6 +223,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     @Override
     public synchronized void write(byte[] b, int off, int len) throws IOException {
         if (closed) throw new IOException("OutputStream is closed");
+        checkConnection();
         try {
             paused.get().await();
         } catch (InterruptedException e) {

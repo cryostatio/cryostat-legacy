@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Objects;
@@ -62,7 +61,6 @@ import io.cryostat.util.OutputToReadStream;
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -168,20 +166,5 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
             });
             future.get();
         }
-
-        // try (InputStream s = stream.get()) {
-        //     byte[] buff = new byte[WRITE_BUFFER_SIZE];
-        //     int n;
-        //     while ((n = s.read(buff)) != -1) {
-        //         // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
-        //         ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
-        //         if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-        //             throw new IOException(
-        //                     "Target connection unexpectedly closed while streaming recording");
-        //         }
-        //     }
-
-        //     ctx.response().end();
-        // }
     }
 }

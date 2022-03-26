@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Optional;
@@ -57,7 +56,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.util.AsyncInputStream;
 import io.cryostat.util.OutputToReadStream;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -144,18 +142,5 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             });
             future.get();
         }
-        // try (final InputStream is = stream.get()) {
-        //     final AsyncInputStream ais = new AsyncInputStream(vertx, vertx.getOrCreateContext(), targetConnectionManager, connectionDescriptor, is);
-        //     CompletableFuture<Void> future = new CompletableFuture<>();
-        //     ais.pipeTo(ctx.response(), res -> {
-        //         if (res.succeeded()) {
-        //             future.complete(null);
-        //             ctx.response().end();
-        //         } else {
-        //             future.completeExceptionally(res.cause());
-        //         }
-        //     });
-        //     future.get();
-        // }
     }
 }

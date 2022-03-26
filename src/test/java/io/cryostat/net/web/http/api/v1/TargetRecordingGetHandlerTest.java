@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,7 +62,9 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
-
+import io.cryostat.util.OutputToReadStream;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -79,9 +83,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
-@Disabled
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingGetHandlerTest {
 
@@ -90,6 +95,7 @@ class TargetRecordingGetHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock HttpServer httpServer;
+    @Mock Vertx vertx;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
 
@@ -99,6 +105,7 @@ class TargetRecordingGetHandlerTest {
 
     @BeforeEach
     void setup() {
+        when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new TargetRecordingGetHandler(
                         authManager,
@@ -227,7 +234,8 @@ class TargetRecordingGetHandlerTest {
         CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
                 .thenReturn(future);
-        when(future.get()).thenReturn(Optional.of(new ByteArrayInputStream(src)));
+        ByteArrayInputStream source = new ByteArrayInputStream(src);
+        when(future.get()).thenReturn(Optional.of(source));
 
         Buffer dst = Buffer.buffer(1024 * 1024);
         when(resp.write(Mockito.any(Buffer.class)))
@@ -235,11 +243,13 @@ class TargetRecordingGetHandlerTest {
                         invocation -> {
                             Buffer chunk = invocation.getArgument(0);
                             dst.appendBuffer(chunk);
-                            return null;
+                            return dst;
                         });
-
+        
+        Context context = Mockito.mock(Context.class);
+        when(vertx.getOrCreateContext()).thenReturn(context);
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
-
+        
         handler.handle(ctx);
 
         Assertions.assertArrayEquals(src, dst.getBytes());
