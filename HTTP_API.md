@@ -80,8 +80,6 @@
     Getting this response means that the header has an invalid format
     or the user has not been successfully authenticated.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl -X POST --header "Authorization: Basic dXNlcjpwYXNzCg==" localhost:8181/api/v1/auth
@@ -99,9 +97,6 @@
 
     ###### response
     `200` - The body is `{"notificationsUrl":"$URL"}`.
-
-    `500` - The URL could not be constructed due to an error with the socket
-    or the host. Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -123,8 +118,6 @@
     ###### response
     `200` - The body is `{"grafanaDashboardUrl":"$URL"}`.
 
-    `500` - Cryostat is not configured with a Grafana dashboard.
-    Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -145,9 +138,6 @@
 
     ###### response
     `200` - The body is `{"grafanaDatasourceUrl":"$URL"}`
-
-    `500` - Cryostat is not configured with a Grafana datasource.
-    Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -204,8 +194,6 @@
     is only `false` if a sidecar report generator is configured but is not
     reachable.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/health
@@ -231,8 +219,6 @@
     does not exist or the path is invalid, the request will not be handled here
     and instead  will be routed to
     [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler).
-
-    `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -261,8 +247,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets
@@ -281,8 +265,6 @@
 
     ###### response
     `200` - The body is the Cryostat web client's `index.html` HTML document.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -314,9 +296,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `500` - The recording was found but it could not be deleted.
-    Or there was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl -X DELETE localhost:8181/api/v1/recordings/localhost_foo_20200910T213341Z.jfr
@@ -344,9 +323,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `500` - The recording was found but it could not be written to the response.
-    Or there was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/recordings/localhost_foo_20200910T214559Z.jfr --output foo.jfr
@@ -373,8 +349,6 @@
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The archive path where recordings are saved could not be accessed.
     The body is an error message.
@@ -441,8 +415,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `503` - `CRYOSTAT_ARCHIVE_PATH` is an invalid directory.
     The body is an error message.
 
@@ -475,8 +447,6 @@
     the authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
@@ -517,11 +487,6 @@
 
     `404` - The report could not be found. The body is an error message.
 
-    `500` - There was an error generating the report, such as: the report
-    generation consumed too much memory and was aborted; an I/O failure occurred
-    while transferring the report result; or an unexpected error occurred. The
-    body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/reports/localhost_foo_20200911T144545Z.jfr --output report.html
@@ -558,8 +523,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -605,8 +568,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -646,9 +607,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - The recording was found but it could not be written to the
-    response. Or there was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -685,8 +643,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -740,8 +696,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -797,8 +751,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -806,8 +758,6 @@
     **STOP**
 
     `200` - No body.
-
-    `500` - The recording could not be stopped. The body is an error message.
 
     **SAVE**
 
@@ -853,8 +803,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -925,8 +873,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -969,8 +915,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
@@ -1020,12 +964,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an error generating the report, such as: the report
-    generation consumed too much memory and was aborted; the report generation
-    process was unable to connect to the target; an I/O failure occurred while
-    transferring the report result; or an unexpected error occurred. The body is
-    an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1070,8 +1008,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1112,8 +1048,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1156,8 +1090,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1191,10 +1123,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
-    or it is set to an invalid path, or there was an unexpected error.
-    The body is an error message.
-
     ###### example
     ```
     $ curl -X DELETE localhost:8181/api/v1/templates/Foo
@@ -1222,10 +1150,6 @@
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
-    or it is set to an invalid path, or there was an unexpected error.
-    The body is an error message.
 
     ###### example
     ```
@@ -1323,8 +1247,6 @@ The handler-specific descriptions below describe how each handler populates the
     will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
     authentication scheme that is used.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     ##### example
     ```
     $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
@@ -1370,8 +1292,6 @@ The handler-specific descriptions below describe how each handler populates the
     will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
     authentication scheme that is used.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     ##### example
     ```
     $ curl -F connectUrl=service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi -F alias=fooTarget -F annotations.cryostat.PORT=9099 -X POST https://0.0.0.0:8181/api/v2/targets
@@ -1396,8 +1316,6 @@ The handler-specific descriptions below describe how each handler populates the
     authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     ##### example
     ```
@@ -1439,8 +1357,6 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1479,8 +1395,6 @@ The handler-specific descriptions below describe how each handler populates the
     `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1524,8 +1438,6 @@ The handler-specific descriptions below describe how each handler populates the
     `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1628,8 +1540,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `415` - The request's `Content-Type` was invalid or unrecognized.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F matchExpression="target.alias == 'io.cryostat.Cryostat'" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
@@ -1663,9 +1573,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `404` - No rule with the given name exists.
 
-    `500`- An unexpected IOException occurred while deleting the rule
-    definition.
-
     ##### example
     ```
     $ curl -X DELETE http://0.0.0.0:8181/api/v2/rules/Test_Rule
@@ -1689,8 +1596,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `404` - No rule with the given name exists.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
@@ -1711,8 +1616,6 @@ The handler-specific descriptions below describe how each handler populates the
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error.
 
     ##### example
     ```
@@ -1746,8 +1649,6 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl -F username=user -F password=pass http://0.0.0.0:8181/api/v2/targets/localhost/credentials
@@ -1772,8 +1673,6 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl -X DELETE http://0.0.0.0:8181/api/v2/targets/localhost/credentials
@@ -1793,8 +1692,6 @@ The handler-specific descriptions below describe how each handler populates the
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error.
 
     ##### example
     ```
@@ -1821,8 +1718,6 @@ The handler-specific descriptions below describe how each handler populates the
     `400` - No `cert` was found in the request form. The reason is the error message `A file named "cert" was not included in the request`.
 
     `409` - A certificate with the same filename already exists in the truststore directory. The reason includes the path where the file already exists.
-
-    `500` - The `SSL_TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The reason is an error message.
 
     ###### example
     ```
@@ -1888,8 +1783,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `404` - The recording could not be found. The body is an error message.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     ##### example
     ```
     $ curl --data "{\"myKey\":\"myValue\",\"another-key\":\"another-value\"}" http://localhost:8181/api/beta/targets/localhost:0/recordings/myRecording/metadata/labels
@@ -1919,8 +1812,6 @@ The handler-specific descriptions below describe how each handler populates the
     authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     ##### example
     ```
