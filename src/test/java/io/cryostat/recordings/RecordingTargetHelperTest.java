@@ -572,7 +572,8 @@ public class RecordingTargetHelperTest {
         MatcherAssert.assertThat(
                 capturedDescriptor.getMetadata(),
                 Matchers.equalTo(
-                        new Metadata(Map.of("template", "template=Profiling,type=TARGET"))));
+                        new Metadata(
+                                Map.of("template.name", "Profiling", "template.type", "TARGET"))));
     }
 
     @Test
