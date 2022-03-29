@@ -65,6 +65,7 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.OutputToReadStream;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -81,6 +82,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -237,22 +239,33 @@ class TargetRecordingGetHandlerTest {
         ByteArrayInputStream source = new ByteArrayInputStream(src);
         when(future.get()).thenReturn(Optional.of(source));
 
-        Buffer dst = Buffer.buffer(1024 * 1024);
-        when(resp.write(Mockito.any(Buffer.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Buffer chunk = invocation.getArgument(0);
-                            dst.appendBuffer(chunk);
-                            return dst;
-                        });
-        
+        // Buffer dst = Buffer.buffer(1024 * 1024);
+        // doAnswer(
+        //         invocation -> {
+        //                 Buffer chunk = invocation.getArgument(0);
+        //                 dst.appendBuffer(chunk);
+        //                 return dst;
+        //         })
+        //         .when(resp)
+        //         .write(Mockito.any(Buffer.class));
+               
         Context context = Mockito.mock(Context.class);
         when(vertx.getOrCreateContext()).thenReturn(context);
+        doAnswer(
+                invocation -> {
+                        Handler<Void> action = invocation.getArgument(0);
+                        action.handle(null);
+                        return null;
+                })
+                .when(context)
+                .runOnContext(Mockito.any(Handler.class));
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
         
         handler.handle(ctx);
 
-        Assertions.assertArrayEquals(src, dst.getBytes());
+        ArgumentCaptor<Buffer> writeCaptor = ArgumentCaptor.forClass(Buffer.class);
+        verify(resp).write(writeCaptor.capture());
+        MatcherAssert.assertThat(writeCaptor.getValue().getBytes(), Matchers.equalTo(src));
         verify(resp).setChunked(true);
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
         verify(resp).end();
