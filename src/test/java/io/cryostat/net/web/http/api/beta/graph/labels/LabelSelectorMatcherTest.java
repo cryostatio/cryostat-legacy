@@ -41,6 +41,7 @@ import java.util.Map;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -57,6 +58,7 @@ class LabelSelectorMatcherTest {
                     "env", "prod",
                     "present", "irrelevant");
 
+    @Disabled("Condition conjuction using comma separation is not currently supported")
     @ParameterizedTest
     @CsvSource(
             value = {

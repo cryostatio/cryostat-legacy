@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,24 +55,25 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // must loosely look like a k8s label (not strictly enforced here), right side must loosely look
     // like a k8s label value, which may be empty. Allowed operators are "=", "==", "!=".
     static final Pattern EQUALITY_PATTERN =
-            Pattern.compile(
-                    "^(?<key>[\\S]+)[\\s]*(?<op>=|==|!=)[\\s]*(?<value>[\\S]*)$");
+            Pattern.compile("^(?<key>[^!=\\s]+)\\s*(?<op>=|==|!=)\\s*(?<value>[^!=\\s]*)$");
 
     // ex. "environment in (production, qa)" or "tier NotIn (frontend, backend)". Tests if the given
     // label has or does not have any of the specified values.
-    // FIXME the part of the expression to the right of the operator actually allows mismatched
-    // parens, not a single matched pair. Regexes are hard. This works but is too tolerant of broken
-    // expressions.
     static final Pattern SET_MEMBER_PATTERN =
-            Pattern.compile("(?<key>[\\S+]+)[\\s]+(?<op>in|notin)[\\s]+\\((?<values>(?:[\\S]+[,\\s]*)+)\\)",
+            Pattern.compile(
+                    "(?<key>\\S+)\\s+(?<op>in|notin)\\s+\\((?<values>.+)\\)",
                     Pattern.CASE_INSENSITIVE);
 
     // ex. "mykey" or "!mykey". Tests whether the given key name exists in the test label set as a
     // key, with or without a value.
     static final Pattern SET_EXISTENCE_PATTERN =
-            Pattern.compile("^(?<op>!?)(?<key>[a-zA-Z0-9-_./]+)$");
+            Pattern.compile("^(?<op>!?)(?<key>\\S+)$", Pattern.MULTILINE);
 
     private final List<LabelMatcher> matchers = new ArrayList<>();
+
+    private LabelSelectorMatcher() {
+        this(List.of());
+    }
 
     private LabelSelectorMatcher(Collection<LabelMatcher> matchers) {
         this.matchers.addAll(matchers);
@@ -82,68 +84,60 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
         return this.matchers.stream().allMatch(m -> m.test(labels.get(m.getKey())));
     }
 
-    public static LabelSelectorMatcher parse(String s) throws IllegalArgumentException {
-        List<LabelMatcher> matchers = new ArrayList<>();
-        if (s != null) {
-            List<String> clauses =
-                    Arrays.asList(s.split(",")).stream()
-                            .map(String::trim)
-                            .collect(Collectors.toList());
-            matchers.addAll(parseEqualities(clauses));
-            matchers.addAll(parseSetMemberships(clauses));
+    public static LabelSelectorMatcher parse(String clause) throws IllegalArgumentException {
+        Collection<Function<String, LabelMatcher>> parsers =
+                Arrays.asList(
+                        LabelSelectorMatcher::parseEqualities,
+                        LabelSelectorMatcher::parseSetMemberships,
+                        LabelSelectorMatcher::parseSetExistences);
+        for (var parser : parsers) {
+            LabelMatcher matcher = parser.apply(clause);
+            if (matcher != null) {
+                return new LabelSelectorMatcher(List.of(matcher));
+            }
         }
-        return new LabelSelectorMatcher(matchers);
+        return new LabelSelectorMatcher();
     }
 
-    private static Collection<LabelMatcher> parseEqualities(Collection<String> clauses) {
-        List<LabelMatcher> matchers = new ArrayList<>();
-        for (String clause : clauses) {
-            Matcher m = EQUALITY_PATTERN.matcher(clause);
-            if (!m.matches()) {
-                continue;
-            }
-            String key = m.group("key");
-            String op = m.group("op");
-            EqualityMatcher.Operator operator = EqualityMatcher.Operator.fromString(op);
-            Objects.requireNonNull(operator, "Unknown equality operator " + op);
-            String value = m.group("value");
-            EqualityMatcher em = new EqualityMatcher(key, operator, value);
-            matchers.add(em);
+    private static LabelMatcher parseEqualities(String clause) {
+        Matcher m = EQUALITY_PATTERN.matcher(clause);
+        if (!m.matches()) {
+            return null;
         }
-        return matchers;
+        String key = m.group("key");
+        String op = m.group("op");
+        EqualityMatcher.Operator operator = EqualityMatcher.Operator.fromString(op);
+        Objects.requireNonNull(operator, "Unknown equality operator " + op);
+        String value = m.group("value");
+        return new EqualityMatcher(key, operator, value);
     }
 
-    private static Collection<LabelMatcher> parseSetMemberships(Collection<String> clauses) {
-        List<LabelMatcher> matchers = new ArrayList<>();
-        for (String clause : clauses) {
-            Matcher m = SET_MEMBER_PATTERN.matcher(clause);
-            if (!m.matches()) {
-                continue;
-            }
-            String key = m.group("key");
-            String op = m.group("op");
-            SetMatcher.Operator operator = SetMatcher.Operator.fromString(op);
-            Objects.requireNonNull(operator, "Unknown set operator " + op);
-            String value = m.group("values");
-            List<String> values =
-                    Arrays.asList(value.split(",")).stream()
-                            .map(String::trim)
-                            .collect(Collectors.toList());
-            SetMatcher em = new SetMatcher(key, operator, values);
-            matchers.add(em);
+    private static LabelMatcher parseSetMemberships(String clause) {
+        Matcher m = SET_MEMBER_PATTERN.matcher(clause);
+        if (!m.matches()) {
+            return null;
         }
-        for (String clause : clauses) {
-            Matcher m = SET_EXISTENCE_PATTERN.matcher(clause);
-            if (!m.matches()) {
-                continue;
-            }
-            String key = m.group("key");
-            String op = m.group("op");
-            SetMatcher.Operator operator = SetMatcher.Operator.fromString(op);
-            Objects.requireNonNull(operator, "Unknown set operator " + op);
-            SetMatcher em = new SetMatcher(key, operator);
-            matchers.add(em);
+        String key = m.group("key");
+        String op = m.group("op");
+        SetMatcher.Operator operator = SetMatcher.Operator.fromString(op);
+        Objects.requireNonNull(operator, "Unknown set operator " + op);
+        String value = m.group("values");
+        List<String> values =
+                Arrays.asList(value.split(",")).stream()
+                        .map(String::trim)
+                        .collect(Collectors.toList());
+        return new SetMatcher(key, operator, values);
+    }
+
+    private static LabelMatcher parseSetExistences(String clause) {
+        Matcher m = SET_EXISTENCE_PATTERN.matcher(clause);
+        if (!m.matches()) {
+            return null;
         }
-        return matchers;
+        String key = m.group("key");
+        String op = m.group("op");
+        SetMatcher.Operator operator = SetMatcher.Operator.fromString(op);
+        Objects.requireNonNull(operator, "Unknown set operator " + op);
+        return new SetMatcher(key, operator);
     }
 }
