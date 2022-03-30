@@ -63,8 +63,7 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // parens, not a single matched pair. Regexes are hard. This works but is too tolerant of broken
     // expressions.
     static final Pattern SET_MEMBER_PATTERN =
-            Pattern.compile(
-                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+(?<values>[\\(\\)a-zA-Z0-9-_./=, ]*)$",
+            Pattern.compile("(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+\\((?<values>(?:[a-zA-Z0-9-_./=, ]+[,\\s]*)+)\\)",
                     Pattern.CASE_INSENSITIVE);
 
     // ex. "mykey" or "!mykey". Tests whether the given key name exists in the test label set as a
@@ -125,7 +124,7 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
             String op = m.group("op");
             SetMatcher.Operator operator = SetMatcher.Operator.fromString(op);
             Objects.requireNonNull(operator, "Unknown set operator " + op);
-            String value = m.group("values").replaceAll("[\\(\\)]+", "");
+            String value = m.group("values");
             List<String> values =
                     Arrays.asList(value.split(",")).stream()
                             .map(String::trim)
