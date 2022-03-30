@@ -55,7 +55,7 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // like a k8s label value, which may be empty. Allowed operators are "=", "==", "!=".
     static final Pattern EQUALITY_PATTERN =
             Pattern.compile(
-                    "^(?<key>[a-zA-Z0-9-_./]+)[\\s]*(?<op>=|==|!=)[\\s]*(?<value>[a-zA-Z0-9-_./]*)$");
+                    "^(?<key>[\\S]+)[\\s]*(?<op>=|==|!=)[\\s]*(?<value>[\\S]*)$");
 
     // ex. "environment in (production, qa)" or "tier NotIn (frontend, backend)". Tests if the given
     // label has or does not have any of the specified values.
@@ -63,7 +63,7 @@ public class LabelSelectorMatcher implements Predicate<Map<String, String>> {
     // parens, not a single matched pair. Regexes are hard. This works but is too tolerant of broken
     // expressions.
     static final Pattern SET_MEMBER_PATTERN =
-            Pattern.compile("(?<key>[a-zA-Z0-9-_./]+)[\\s]+(?<op>in|notin)[\\s]+\\((?<values>(?:[a-zA-Z0-9-_./=, ]+[,\\s]*)+)\\)",
+            Pattern.compile("(?<key>[\\S+]+)[\\s]+(?<op>in|notin)[\\s]+\\((?<values>(?:[\\S]+[,\\s]*)+)\\)",
                     Pattern.CASE_INSENSITIVE);
 
     // ex. "mykey" or "!mykey". Tests whether the given key name exists in the test label set as a
