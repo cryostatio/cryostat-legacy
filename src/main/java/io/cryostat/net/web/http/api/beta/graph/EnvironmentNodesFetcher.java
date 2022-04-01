@@ -75,8 +75,10 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
         }
 
         if (filter.contains(FilterInput.Key.LABELS)) {
-            String labels = filter.get(FilterInput.Key.LABELS);
-            nodes = filter(nodes, n -> LabelSelectorMatcher.parse(labels).test(n.getLabels()));
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                nodes = filter(nodes, n -> LabelSelectorMatcher.parse(label).test(n.getLabels()));
+            }
         }
 
         if (filter.contains(FilterInput.Key.NODE_TYPE)) {

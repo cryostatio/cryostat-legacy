@@ -69,14 +69,16 @@ class ActiveRecordingsFetcher implements DataFetcher<List<GraphRecordingDescript
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
-            String labels = filter.get(FilterInput.Key.LABELS);
-            result =
-                    result.stream()
-                            .filter(
-                                    r ->
-                                            LabelSelectorMatcher.parse(labels)
-                                                    .test(r.getMetadata().getLabels()))
-                            .collect(Collectors.toList());
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                result =
+                        result.stream()
+                                .filter(
+                                        r ->
+                                                LabelSelectorMatcher.parse(label)
+                                                        .test(r.getMetadata().getLabels()))
+                                .collect(Collectors.toList());
+            }
         }
         if (filter.contains(FilterInput.Key.STATE)) {
             String state = filter.get(FilterInput.Key.STATE);

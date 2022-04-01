@@ -80,14 +80,16 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
-            String labels = filter.get(FilterInput.Key.LABELS);
-            result =
-                    result.stream()
-                            .filter(n -> LabelSelectorMatcher.parse(labels).test(n.getLabels()))
-                            .collect(Collectors.toList());
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                result =
+                        result.stream()
+                                .filter(n -> LabelSelectorMatcher.parse(label).test(n.getLabels()))
+                                .collect(Collectors.toList());
+            }
         }
         if (filter.contains(FilterInput.Key.ANNOTATIONS)) {
-            String annotations = filter.get(FilterInput.Key.ANNOTATIONS);
+            List<String> annotations = filter.get(FilterInput.Key.ANNOTATIONS);
             Function<TargetNode, Map<String, String>> mergedAnnotations =
                     n -> {
                         Map<String, String> merged = new HashMap<>();
@@ -97,13 +99,15 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
                         merged.putAll(n.getTarget().getPlatformAnnotations());
                         return merged;
                     };
-            result =
-                    result.stream()
-                            .filter(
-                                    n ->
-                                            LabelSelectorMatcher.parse(annotations)
-                                                    .test(mergedAnnotations.apply(n)))
-                            .collect(Collectors.toList());
+            for (String annotation : annotations) {
+                result =
+                        result.stream()
+                                .filter(
+                                        n ->
+                                                LabelSelectorMatcher.parse(annotation)
+                                                        .test(mergedAnnotations.apply(n)))
+                                .collect(Collectors.toList());
+            }
         }
         return result;
     }
