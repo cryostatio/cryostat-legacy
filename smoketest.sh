@@ -114,8 +114,7 @@ function createPod() {
         --publish 9990:9990 \
         --publish 9991:9991 \
         --publish 10000:10000 \
-        --publish 10001:10001 \
-        --publish 5005:5005
+        --publish 10001:10001
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX

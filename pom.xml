@@ -344,8 +344,6 @@
               <argument>${cryostat.itest.jfr-datasource.port}:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--publish</argument>
               <argument>${cryostat.itest.grafana.port}:${cryostat.itest.grafana.port}</argument>
-              <argument>--publish</argument>
-              <argument>5005:5005</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
