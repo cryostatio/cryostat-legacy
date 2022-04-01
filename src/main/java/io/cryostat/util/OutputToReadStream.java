@@ -210,7 +210,6 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
 
     @Override
     public synchronized void write(int b) throws IOException {
-        if (closed) throw new IOException("OutputStream is closed");
         checkConnection();
         try {
             paused.get().await();
@@ -222,7 +221,6 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
 
     @Override
     public synchronized void write(byte[] b, int off, int len) throws IOException {
-        if (closed) throw new IOException("OutputStream is closed");
         checkConnection();
         try {
             paused.get().await();
@@ -266,6 +264,8 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     }
 
     private void checkConnection() throws IOException {
+        if (closed) throw new IOException("OutputStream is closed");
+        
         if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
             throw new IOException(
                     "Target connection unexpectedly closed while streaming recording");
