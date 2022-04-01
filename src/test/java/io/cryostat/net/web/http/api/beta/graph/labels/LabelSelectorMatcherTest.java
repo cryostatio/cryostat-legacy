@@ -124,7 +124,7 @@ class LabelSelectorMatcherTest {
     @CsvSource(
             value = {
                 "foo notin (bar, baz) : false",
-                "something NotIn (else, orother) : false",
+                "something NotIn (orother, else, third) : false",
                 "env NOTIN (stage,qa) : true",
             },
             delimiter = ':')
