@@ -90,7 +90,7 @@ fi
 podman run \
     --pod cryostat \
     --user 0 \
-    --memory 512M \
+    --memory 768M \
     --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared \
