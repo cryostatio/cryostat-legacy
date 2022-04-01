@@ -130,9 +130,9 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        
-        CompletableFuture<Void> future = new CompletableFuture<>();
+       
         try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
             otrs.pipeFromInput(is, ctx.response(), res -> {
                 if (res.succeeded()) {
                     future.complete(null);
@@ -140,7 +140,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                     future.completeExceptionally(res.cause());
                 }
             });
+            future.get();
         }
-        future.get();
     }
 }
