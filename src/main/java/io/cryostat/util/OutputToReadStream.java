@@ -28,13 +28,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -84,7 +84,10 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     private TargetConnectionManager targetConnectionManager;
     private ConnectionDescriptor connectionDescriptor;
 
-    public OutputToReadStream(Vertx vertx, TargetConnectionManager targetConnectionManager, ConnectionDescriptor connectionDescriptor) {
+    public OutputToReadStream(
+            Vertx vertx,
+            TargetConnectionManager targetConnectionManager,
+            ConnectionDescriptor connectionDescriptor) {
         this.context = vertx.getOrCreateContext();
         this.targetConnectionManager = targetConnectionManager;
         this.connectionDescriptor = connectionDescriptor;
@@ -106,7 +109,8 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
      * @return a Future that will succeed when all the data have been written and the streams
      *     closed, or fail if an {@link IOException} has occurred
      */
-    public Future<Void> pipeFromInput(InputStream source, WriteStream<Buffer> sink) throws IOException {
+    public Future<Void> pipeFromInput(InputStream source, WriteStream<Buffer> sink)
+            throws IOException {
         Promise<Void> promise = Promise.promise();
         pipeTo(sink, promise);
         ForkJoinPool.commonPool()
@@ -141,7 +145,8 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
      *     streams closed, or if an {@link IOException} has occurred.
      */
     public void pipeFromInput(
-            InputStream source, WriteStream<Buffer> sink, Handler<AsyncResult<Void>> handler) throws IOException {
+            InputStream source, WriteStream<Buffer> sink, Handler<AsyncResult<Void>> handler)
+            throws IOException {
         pipeFromInput(source, sink).onComplete(handler);
     }
 
@@ -267,7 +272,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
 
     private void checkConnection() throws IOException {
         if (closed) throw new IOException("OutputStream is closed");
-        
+
         if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
             throw new IOException(
                     "Target connection unexpectedly closed while streaming recording");

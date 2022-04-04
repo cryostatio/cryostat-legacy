@@ -42,7 +42,6 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 import javax.inject.Inject;
 
@@ -58,6 +57,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.OutputToReadStream;
+
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -131,16 +131,22 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-       
-        try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
+
+        try (final InputStream is = stream.get();
+                final OutputToReadStream otrs =
+                        new OutputToReadStream(
+                                vertx, targetConnectionManager, connectionDescriptor)) {
             CompletableFuture<Void> future = new CompletableFuture<>();
-            otrs.pipeFromInput(is, ctx.response(), res -> {
-                if (res.succeeded()) {
-                    future.complete(null);
-                } else {
-                    future.completeExceptionally(res.cause());
-                }
-            });
+            otrs.pipeFromInput(
+                    is,
+                    ctx.response(),
+                    res -> {
+                        if (res.succeeded()) {
+                            future.complete(null);
+                        } else {
+                            future.completeExceptionally(res.cause());
+                        }
+                    });
             future.get();
         }
     }

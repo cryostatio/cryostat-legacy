@@ -56,12 +56,18 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.util.OutputToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -72,7 +78,6 @@ import org.hamcrest.Matchers;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -83,7 +88,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-@Disabled
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingGetHandlerTest {
 
@@ -92,11 +96,13 @@ class TargetRecordingGetHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock HttpServer httpServer;
+    @Mock Vertx vertx;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
+        Mockito.when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new TargetRecordingGetHandler(
                         auth, jwt, () -> webServer, httpServer, targetConnectionManager, logger);
@@ -237,18 +243,53 @@ class TargetRecordingGetHandlerTest {
             IRecordingDescriptor desc = Mockito.mock(IRecordingDescriptor.class);
             Mockito.when(desc.getName()).thenReturn("myrecording");
             Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(desc));
-            InputStream stream = new ByteArrayInputStream("datastream".getBytes());
+            byte[] src = "datastream".getBytes();
+            InputStream stream = new ByteArrayInputStream(src);
             Mockito.when(svc.openStream(Mockito.any(), Mockito.eq(false))).thenReturn(stream);
+
+            // **************Mocking specific to OutputToReadStream***************
+            Buffer dst = Buffer.buffer(1024 * 1024);
+            Mockito.doAnswer(
+                            invocation -> {
+                                BufferImpl chunk = invocation.getArgument(0);
+                                dst.appendBuffer(chunk);
+                                return resp;
+                            })
+                    .when(resp)
+                    .write(Mockito.any(BufferImpl.class), Mockito.any(Handler.class));
+
+            Context context = Mockito.mock(Context.class);
+            Mockito.when(vertx.getOrCreateContext()).thenReturn(context);
+            Mockito.doAnswer(
+                            invocation -> {
+                                Handler<Void> action = invocation.getArgument(0);
+                                action.handle(null);
+                                return null;
+                            })
+                    .when(context)
+                    .runOnContext(Mockito.any(Handler.class));
+
+            Mockito.doAnswer(
+                            invocation -> {
+                                Handler<AsyncResult<Void>> handler = invocation.getArgument(0);
+                                handler.handle(Future.succeededFuture());
+                                return null;
+                            })
+                    .when(resp)
+                    .end(Mockito.any(Handler.class));
+
             Mockito.when(targetConnectionManager.markConnectionInUse(Mockito.any()))
                     .thenReturn(true);
+            // ********************************************************************
 
             handler.handleWithValidJwt(ctx, token);
 
+            Assertions.assertArrayEquals(src, dst.getBytes());
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).setChunked(true);
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
-            inOrder.verify(resp, Mockito.times(1)).write(Mockito.any(Buffer.class));
-            inOrder.verify(resp).end();
+            inOrder.verify(resp)
+                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+            inOrder.verify(resp).end(Mockito.any(Handler.class));
         }
     }
 }

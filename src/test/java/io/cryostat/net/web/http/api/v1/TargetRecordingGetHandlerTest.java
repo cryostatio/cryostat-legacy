@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +49,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -63,7 +61,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.util.OutputToReadStream;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -72,27 +70,21 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.buffer.impl.BufferImpl;
-import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingGetHandlerTest {
@@ -244,39 +236,39 @@ class TargetRecordingGetHandlerTest {
         ByteArrayInputStream source = new ByteArrayInputStream(src);
         when(future.get()).thenReturn(Optional.of(source));
 
-        //**************Mocking specific to OutputToReadStream***************
+        // **************Mocking specific to OutputToReadStream***************
         Buffer dst = Buffer.buffer(1024 * 1024);
         doAnswer(
-                invocation -> {
-                        BufferImpl chunk = invocation.getArgument(0);
-                        dst.appendBuffer(chunk);
-                        return resp;
-                })
+                        invocation -> {
+                            BufferImpl chunk = invocation.getArgument(0);
+                            dst.appendBuffer(chunk);
+                            return resp;
+                        })
                 .when(resp)
                 .write(Mockito.any(BufferImpl.class), Mockito.any(Handler.class));
-               
+
         Context context = Mockito.mock(Context.class);
         when(vertx.getOrCreateContext()).thenReturn(context);
         doAnswer(
-                invocation -> {
-                        Handler<Void> action = invocation.getArgument(0);
-                        action.handle(null);
-                        return null;
-                })
+                        invocation -> {
+                            Handler<Void> action = invocation.getArgument(0);
+                            action.handle(null);
+                            return null;
+                        })
                 .when(context)
                 .runOnContext(Mockito.any(Handler.class));
 
         doAnswer(
-                invocation -> {
-                    Handler<AsyncResult<Void>> handler = invocation.getArgument(0);
-                    handler.handle(Future.succeededFuture());
-                    return null;
-                })
+                        invocation -> {
+                            Handler<AsyncResult<Void>> handler = invocation.getArgument(0);
+                            handler.handle(Future.succeededFuture());
+                            return null;
+                        })
                 .when(resp)
                 .end(Mockito.any(Handler.class));
 
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
-        //********************************************************************
+        // ********************************************************************
 
         handler.handle(ctx);
 

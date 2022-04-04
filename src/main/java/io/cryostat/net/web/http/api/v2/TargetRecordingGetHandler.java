@@ -155,15 +155,21 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
                         String.format("attachment; filename=\"%s.jfr\"", recordingName));
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
 
-        try (final InputStream is = stream.get(); final OutputToReadStream otrs = new OutputToReadStream(vertx, targetConnectionManager, connectionDescriptor)) {
+        try (final InputStream is = stream.get();
+                final OutputToReadStream otrs =
+                        new OutputToReadStream(
+                                vertx, targetConnectionManager, connectionDescriptor)) {
             CompletableFuture<Void> future = new CompletableFuture<>();
-            otrs.pipeFromInput(is, ctx.response(), res -> {
-                if (res.succeeded()) {
-                    future.complete(null);
-                } else {
-                    future.completeExceptionally(res.cause());
-                }
-            });
+            otrs.pipeFromInput(
+                    is,
+                    ctx.response(),
+                    res -> {
+                        if (res.succeeded()) {
+                            future.complete(null);
+                        } else {
+                            future.completeExceptionally(res.cause());
+                        }
+                    });
             future.get();
         }
     }
