@@ -151,7 +151,7 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -159,7 +159,7 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
                 .thenReturn(future);
         when(future.get()).thenReturn(stream);
@@ -181,7 +181,7 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -189,7 +189,7 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
                 .thenReturn(future);
         when(future.get())
@@ -217,7 +217,7 @@ class TargetRecordingGetHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -230,7 +230,7 @@ class TargetRecordingGetHandlerTest {
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
                 .thenReturn(future);
         ByteArrayInputStream source = new ByteArrayInputStream(src);
@@ -247,7 +247,7 @@ class TargetRecordingGetHandlerTest {
                 .when(resp)
                 .write(Mockito.any(BufferImpl.class), Mockito.any(Handler.class));
 
-        Context context = Mockito.mock(Context.class);
+        Context context = mock(Context.class);
         when(vertx.getOrCreateContext()).thenReturn(context);
         doAnswer(
                         invocation -> {
