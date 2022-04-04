@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -255,6 +256,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
                         awaiter.countDown();
                     } catch (Throwable t) {
                         errorHandler.handle(t);
+                        awaiter.countDown();
                     }
                 });
         try {

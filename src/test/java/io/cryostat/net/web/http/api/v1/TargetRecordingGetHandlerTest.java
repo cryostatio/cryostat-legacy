@@ -50,6 +50,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -65,14 +66,18 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.OutputToReadStream;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.impl.BufferImpl;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
@@ -154,7 +159,7 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -184,7 +189,7 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -220,7 +225,7 @@ class TargetRecordingGetHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -239,15 +244,16 @@ class TargetRecordingGetHandlerTest {
         ByteArrayInputStream source = new ByteArrayInputStream(src);
         when(future.get()).thenReturn(Optional.of(source));
 
-        // Buffer dst = Buffer.buffer(1024 * 1024);
-        // doAnswer(
-        //         invocation -> {
-        //                 Buffer chunk = invocation.getArgument(0);
-        //                 dst.appendBuffer(chunk);
-        //                 return dst;
-        //         })
-        //         .when(resp)
-        //         .write(Mockito.any(Buffer.class));
+        //**************Mocking specific to OutputToReadStream***************
+        Buffer dst = Buffer.buffer(1024 * 1024);
+        doAnswer(
+                invocation -> {
+                        BufferImpl chunk = invocation.getArgument(0);
+                        dst.appendBuffer(chunk);
+                        return resp;
+                })
+                .when(resp)
+                .write(Mockito.any(BufferImpl.class), Mockito.any(Handler.class));
                
         Context context = Mockito.mock(Context.class);
         when(vertx.getOrCreateContext()).thenReturn(context);
@@ -259,15 +265,24 @@ class TargetRecordingGetHandlerTest {
                 })
                 .when(context)
                 .runOnContext(Mockito.any(Handler.class));
+
+        doAnswer(
+                invocation -> {
+                    Handler<AsyncResult<Void>> handler = invocation.getArgument(0);
+                    handler.handle(Future.succeededFuture());
+                    return null;
+                })
+                .when(resp)
+                .end(Mockito.any(Handler.class));
+
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
-        
+        //********************************************************************
+
         handler.handle(ctx);
 
-        ArgumentCaptor<Buffer> writeCaptor = ArgumentCaptor.forClass(Buffer.class);
-        verify(resp).write(writeCaptor.capture());
-        MatcherAssert.assertThat(writeCaptor.getValue().getBytes(), Matchers.equalTo(src));
+        Assertions.assertArrayEquals(src, dst.getBytes());
         verify(resp).setChunked(true);
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        verify(resp).end();
+        verify(resp).end(Mockito.any(Handler.class));
     }
 }

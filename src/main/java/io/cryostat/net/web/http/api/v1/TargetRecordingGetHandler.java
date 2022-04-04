@@ -42,6 +42,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 import javax.inject.Inject;
 
@@ -68,7 +69,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final RecordingTargetHelper recordingTargetHelper;
-    
+
     private final Vertx vertx;
 
     @Inject
