@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -243,7 +244,8 @@ class TargetRecordingGetHandlerTest {
             IRecordingDescriptor desc = Mockito.mock(IRecordingDescriptor.class);
             Mockito.when(desc.getName()).thenReturn("myrecording");
             Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(desc));
-            byte[] src = "datastream".getBytes();
+            byte[] src = new byte[1024 * 1024];
+            new Random(123456).nextBytes(src);
             InputStream stream = new ByteArrayInputStream(src);
             Mockito.when(svc.openStream(Mockito.any(), Mockito.eq(false))).thenReturn(stream);
 
