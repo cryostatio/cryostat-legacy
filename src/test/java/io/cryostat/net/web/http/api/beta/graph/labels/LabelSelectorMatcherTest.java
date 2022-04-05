@@ -41,7 +41,6 @@ import java.util.Map;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -50,29 +49,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class LabelSelectorMatcherTest {
 
-    final Map<String, String> labels =
+    private static final Map<String, String> TEST_LABELS =
             Map.of(
                     "foo", "bar",
                     "something", "else",
                     "my.prefixed/label", "expectedValue",
                     "env", "prod",
                     "present", "irrelevant");
-
-    @Disabled("Condition conjuction using comma separation is not currently supported")
-    @ParameterizedTest
-    @CsvSource(
-            value = {
-                "foo=bar,something=else,env=prod : true",
-                "foo=bar,something=wrong : false",
-                ": true",
-                ",: true",
-                "my.prefixed/label = expectedValue, present, env in ( prod, stage ) : true"
-            },
-            delimiter = ':')
-    void testCombos(String expr, boolean pass) {
-        LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
-    }
 
     @ParameterizedTest
     @CsvSource({
@@ -82,7 +65,7 @@ class LabelSelectorMatcherTest {
     })
     void testSingleEquality(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
@@ -93,7 +76,7 @@ class LabelSelectorMatcherTest {
     })
     void testDoubleEquality(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
@@ -104,7 +87,7 @@ class LabelSelectorMatcherTest {
     })
     void testInequality(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
@@ -117,7 +100,7 @@ class LabelSelectorMatcherTest {
             delimiter = ':')
     void testSetIn(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
@@ -130,7 +113,7 @@ class LabelSelectorMatcherTest {
             delimiter = ':')
     void testSetNotIn(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
@@ -143,13 +126,13 @@ class LabelSelectorMatcherTest {
     })
     void testExists(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 
     @ParameterizedTest
     @CsvSource({"!foo, false", "!something, false", "!present, false"})
     void testNotExists(String expr, boolean pass) {
         LabelSelectorMatcher matcher = LabelSelectorMatcher.parse(expr);
-        MatcherAssert.assertThat(expr, matcher.test(labels), Matchers.is(pass));
+        MatcherAssert.assertThat(expr, matcher.test(TEST_LABELS), Matchers.is(pass));
     }
 }
