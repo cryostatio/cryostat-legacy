@@ -170,7 +170,11 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
                             future.completeExceptionally(res.cause());
                         }
                     });
-            future.get();
+            try {
+                future.get();
+            } catch (Exception e) {
+                throw new ApiException(500, e);
+            }
         }
     }
 }

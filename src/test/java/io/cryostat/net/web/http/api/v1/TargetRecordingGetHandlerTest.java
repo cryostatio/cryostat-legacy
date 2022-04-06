@@ -203,6 +203,55 @@ class TargetRecordingGetHandlerTest {
     }
 
     @Test
+    void shouldRespond500IfIOExceptionThrownDuringRecordingDownloadRequest() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+
+        byte[] src = new byte[1024 * 1024];
+        new Random(123456).nextBytes(src);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
+                .thenReturn(future);
+        ByteArrayInputStream source = new ByteArrayInputStream(src);
+        when(future.get()).thenReturn(Optional.of(source));
+
+        // **************Mocking specific to OutputToReadStream****************
+        Context context = mock(Context.class);
+        when(vertx.getOrCreateContext()).thenReturn(context);
+        doAnswer(
+                        invocation -> {
+                            Handler<Void> action = invocation.getArgument(0);
+                            action.handle(null);
+                            return null;
+                        })
+                .when(context)
+                .runOnContext(Mockito.any(Handler.class));
+
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(false);
+        // ********************************************************************
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(
+                ex.getCause().getCause().getMessage(),
+                Matchers.equalTo(
+                        "Target connection unexpectedly closed while streaming recording"));
+    }
+
+    @Test
     void shouldHandleRecordingDownloadRequest() throws Exception {
         shouldHandleRecordingDownloadRequest("someRecording");
     }
