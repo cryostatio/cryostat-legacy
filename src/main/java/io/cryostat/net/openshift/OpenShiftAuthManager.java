@@ -426,9 +426,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private CompletableFuture<OAuthMetadata> computeOauthMetadata() {
-        return oauthMetadata.computeIfAbsent(
-                OAUTH_METADATA_KEY,
-                key -> queryOAuthServer());
+        return oauthMetadata.computeIfAbsent(OAUTH_METADATA_KEY, key -> queryOAuthServer());
     }
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
