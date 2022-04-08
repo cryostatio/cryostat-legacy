@@ -37,6 +37,10 @@
  */
 package io.cryostat.net.openshift;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
@@ -45,26 +49,73 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Binds;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
+import org.apache.commons.lang3.StringUtils;
 
 @Module
 public abstract class OpenShiftNetworkModule {
 
+    static final String OPENSHIFT_SERVICE_ACCOUNT_TOKEN = "OPENSHIFT_SERVICE_ACCOUNT_TOKEN";
+    static final String OPENSHIFT_NAMESPACE = "OPENSHIFT_NAMESPACE";
+
+    @Provides
+    @Singleton
+    @Named(OPENSHIFT_NAMESPACE)
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes namespace file path is well-known and absolute")
+    static String provideNamespace(FileSystem fs) {
+        try {
+            return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
+                    .lines()
+                    .filter(StringUtils::isNotBlank)
+                    .findFirst()
+                    .get();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Singleton
+    @Named(OPENSHIFT_SERVICE_ACCOUNT_TOKEN)
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes serviceaccount file path is well-known and absolute")
+    static String provideServiceAccountToken(FileSystem fs) {
+        try {
+            return fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))
+                    .lines()
+                    .filter(StringUtils::isNotBlank)
+                    .findFirst()
+                    .get();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Provides
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(
-            Environment env, Logger logger, FileSystem fs) {
+            Environment env,
+            @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
+            @Named(OPENSHIFT_SERVICE_ACCOUNT_TOKEN) Lazy<String> serviceAccountToken,
+            Logger logger) {
         return new OpenShiftAuthManager(
                 env,
-                logger,
-                fs,
+                namespace,
+                serviceAccountToken,
                 token ->
                         new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()),
+                logger);
     }
 
     @Binds
