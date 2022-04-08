@@ -39,6 +39,7 @@ package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -49,6 +50,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -129,7 +131,13 @@ public abstract class OpenShiftNetworkModule {
             Lazy<OpenShiftClient> serviceAccountClient,
             Logger logger) {
         return new OpenShiftAuthManager(
-                env, namespace, serviceAccountClient, tokenedClient, logger);
+                env,
+                namespace,
+                serviceAccountClient,
+                tokenedClient,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
+                logger);
     }
 
     @Binds

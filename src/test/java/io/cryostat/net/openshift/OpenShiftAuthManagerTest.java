@@ -59,6 +59,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
@@ -154,7 +155,15 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(env, () -> NAMESPACE, () -> client, tokenProvider, logger);
+        mgr =
+                new OpenShiftAuthManager(
+                        env,
+                        () -> NAMESPACE,
+                        () -> client,
+                        tokenProvider,
+                        Runnable::run,
+                        Scheduler.disabledScheduler(),
+                        logger);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
     }

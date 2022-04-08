@@ -40,6 +40,7 @@ package io.cryostat.net.openshift;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -72,6 +74,9 @@ import io.cryostat.net.security.ResourceVerb;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
@@ -111,23 +116,33 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Environment env;
     private final Lazy<String> namespace;
     private final Lazy<OpenShiftClient> serviceAccountClient;
-    private final Function<String, OpenShiftClient> clientProvider;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
+
+    private final LoadingCache<String, OpenShiftClient> userClients;
 
     OpenShiftAuthManager(
             Environment env,
             Lazy<String> namespace,
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
+            Executor cacheExecutor,
+            Scheduler cacheScheduler,
             Logger logger) {
         super(logger);
         this.env = env;
         this.namespace = namespace;
         this.serviceAccountClient = serviceAccountClient;
-        this.clientProvider = clientProvider;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
+
+        Caffeine<String, OpenShiftClient> cacheBuilder =
+                Caffeine.newBuilder()
+                        .executor(cacheExecutor)
+                        .scheduler(cacheScheduler)
+                        .expireAfterAccess(Duration.ofMinutes(5)) // should this be configurable?
+                        .removalListener((k, v, cause) -> v.close());
+        this.userClients = cacheBuilder.build(clientProvider::apply);
     }
 
     @Override
@@ -197,7 +212,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
-        try (OpenShiftClient client = clientProvider.apply(token)) {
+        OpenShiftClient client = userClients.get(token);
+        try {
             List<CompletableFuture<Void>> results =
                     resourceActions
                             .parallelStream()
@@ -212,9 +228,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             // was thrown on allOf().get() above
             return CompletableFuture.completedFuture(true);
         } catch (KubernetesClientException | ExecutionException e) {
+            userClients.invalidate(token);
             logger.info(e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
+            userClients.invalidate(token);
             logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
