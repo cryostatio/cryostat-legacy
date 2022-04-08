@@ -35,10 +35,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.openshift;
 
-public class AuthorizationErrorException extends Exception {
-    public AuthorizationErrorException(String msg) {
-        super(msg);
+import javax.inject.Singleton;
+
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.AuthManager;
+
+import dagger.Binds;
+import dagger.Module;
+import dagger.Provides;
+import dagger.multibindings.IntoSet;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftConfigBuilder;
+
+@Module
+public abstract class OpenShiftNetworkModule {
+
+    @Provides
+    @Singleton
+    static OpenShiftAuthManager provideOpenShiftAuthManager(
+            Environment env, Logger logger, FileSystem fs) {
+        return new OpenShiftAuthManager(
+                env,
+                logger,
+                fs,
+                token ->
+                        new DefaultOpenShiftClient(
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
     }
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

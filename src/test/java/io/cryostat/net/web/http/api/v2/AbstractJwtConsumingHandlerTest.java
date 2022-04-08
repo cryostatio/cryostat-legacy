@@ -49,7 +49,7 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;

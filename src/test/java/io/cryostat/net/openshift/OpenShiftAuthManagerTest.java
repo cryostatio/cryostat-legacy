@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.openshift;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
@@ -55,7 +55,11 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.MissingEnvironmentVariableException;
+import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.TokenNotFoundException;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;

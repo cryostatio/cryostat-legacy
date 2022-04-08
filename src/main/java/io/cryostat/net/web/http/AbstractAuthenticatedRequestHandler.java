@@ -57,7 +57,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.PermissionDeniedException;
 
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;

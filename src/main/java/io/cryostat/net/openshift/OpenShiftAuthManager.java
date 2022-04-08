@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -60,6 +60,13 @@ import java.util.stream.Stream;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.AbstractAuthManager;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.MissingEnvironmentVariableException;
+import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.TokenNotFoundException;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
@@ -551,35 +558,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             default:
                 throw new IllegalArgumentException(
                         String.format("Unknown resource verb \"%s\"", verb));
-        }
-    }
-
-    public static class PermissionDeniedException extends Exception {
-        private final String namespace;
-        private final String resource;
-        private final String verb;
-
-        public PermissionDeniedException(
-                String namespace, String group, String resource, String verb, String reason) {
-            super(
-                    String.format(
-                            "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
-                            namespace, verb, resource, group, reason));
-            this.namespace = namespace;
-            this.resource = resource;
-            this.verb = verb;
-        }
-
-        public String getNamespace() {
-            return namespace;
-        }
-
-        public String getResourceType() {
-            return resource;
-        }
-
-        public String getVerb() {
-            return verb;
         }
     }
 
