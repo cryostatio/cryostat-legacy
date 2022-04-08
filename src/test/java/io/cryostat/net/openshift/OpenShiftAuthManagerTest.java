@@ -154,9 +154,7 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr =
-                new OpenShiftAuthManager(
-                        env, () -> NAMESPACE, () -> SERVICE_ACCOUNT_TOKEN, tokenProvider, logger);
+        mgr = new OpenShiftAuthManager(env, () -> NAMESPACE, () -> client, tokenProvider, logger);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
     }

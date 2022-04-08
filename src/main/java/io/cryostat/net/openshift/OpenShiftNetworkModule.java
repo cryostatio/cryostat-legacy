@@ -39,6 +39,7 @@ package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -56,6 +57,7 @@ import dagger.multibindings.IntoSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import org.apache.commons.lang3.StringUtils;
 
@@ -64,6 +66,7 @@ public abstract class OpenShiftNetworkModule {
 
     static final String OPENSHIFT_SERVICE_ACCOUNT_TOKEN = "OPENSHIFT_SERVICE_ACCOUNT_TOKEN";
     static final String OPENSHIFT_NAMESPACE = "OPENSHIFT_NAMESPACE";
+    static final String TOKENED_CLIENT = "TOKENED_CLIENT";
 
     @Provides
     @Singleton
@@ -102,20 +105,31 @@ public abstract class OpenShiftNetworkModule {
     }
 
     @Provides
+    @Named(TOKENED_CLIENT)
+    static Function<String, OpenShiftClient> provideTokenedClient() {
+        return token ->
+                new DefaultOpenShiftClient(
+                        new OpenShiftConfigBuilder().withOauthToken(token).build());
+    }
+
+    @Provides
+    @Singleton
+    static OpenShiftClient provideServiceAccountClient(
+            @Named(OPENSHIFT_SERVICE_ACCOUNT_TOKEN) String serviceAccountToken,
+            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> tokenedClient) {
+        return tokenedClient.apply(serviceAccountToken);
+    }
+
+    @Provides
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
-            @Named(OPENSHIFT_SERVICE_ACCOUNT_TOKEN) Lazy<String> serviceAccountToken,
+            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> tokenedClient,
+            Lazy<OpenShiftClient> serviceAccountClient,
             Logger logger) {
         return new OpenShiftAuthManager(
-                env,
-                namespace,
-                serviceAccountToken,
-                token ->
-                        new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()),
-                logger);
+                env, namespace, serviceAccountClient, tokenedClient, logger);
     }
 
     @Binds

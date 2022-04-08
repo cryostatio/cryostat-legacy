@@ -110,7 +110,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private final Environment env;
     private final Lazy<String> namespace;
-    private final Lazy<String> serviceAccountToken;
+    private final Lazy<OpenShiftClient> serviceAccountClient;
     private final Function<String, OpenShiftClient> clientProvider;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
@@ -118,13 +118,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     OpenShiftAuthManager(
             Environment env,
             Lazy<String> namespace,
-            Lazy<String> serviceAccountToken,
+            Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
             Logger logger) {
         super(logger);
         this.env = env;
         this.namespace = namespace;
-        this.serviceAccountToken = serviceAccountToken;
+        this.serviceAccountClient = serviceAccountClient;
         this.clientProvider = clientProvider;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
@@ -178,7 +178,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider)
-            throws ExecutionException, InterruptedException, IOException, TokenNotFoundException {
+            throws ExecutionException, InterruptedException, TokenNotFoundException {
 
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
         deleteToken(token);
@@ -323,21 +323,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private boolean deleteToken(String token) throws IOException, TokenNotFoundException {
-        try (OpenShiftClient client = clientProvider.apply(serviceAccountToken.get())) {
-            Boolean deleted =
-                    Optional.ofNullable(
-                                    client.oAuthAccessTokens()
-                                            .withName(this.getOauthAccessTokenName(token))
-                                            .delete())
-                            .orElseThrow(TokenNotFoundException::new);
+    private boolean deleteToken(String token) throws TokenNotFoundException {
+        Boolean deleted =
+                Optional.ofNullable(
+                                serviceAccountClient
+                                        .get()
+                                        .oAuthAccessTokens()
+                                        .withName(this.getOauthAccessTokenName(token))
+                                        .delete())
+                        .orElseThrow(TokenNotFoundException::new);
 
-            if (Boolean.FALSE.equals(deleted)) {
-                throw new TokenNotFoundException();
-            }
-
-            return deleted;
+        if (Boolean.FALSE.equals(deleted)) {
+            throw new TokenNotFoundException();
         }
+
+        return deleted;
     }
 
     private String getTokenFromHttpHeader(String rawHttpHeader) {
@@ -359,10 +359,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Future<TokenReviewStatus> performTokenReview(String token) {
-        try (OpenShiftClient client = clientProvider.apply(serviceAccountToken.get())) {
+        try {
             TokenReview review =
                     new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
+            review = serviceAccountClient.get().tokenReviews().create(review);
             TokenReviewStatus status = review.getStatus();
             if (StringUtils.isNotBlank(status.getError())) {
                 return CompletableFuture.failedFuture(
@@ -402,7 +402,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     } catch (ExecutionException
                             | InterruptedException
                             | URISyntaxException
-                            | IOException
                             | MissingEnvironmentVariableException e) {
                         return CompletableFuture.failedFuture(e);
                     }
@@ -429,15 +428,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private CompletableFuture<OAuthMetadata> computeOauthMetadata() {
         return oauthMetadata.computeIfAbsent(
                 OAUTH_METADATA_KEY,
-                key -> {
-                    return queryOAuthServer();
-                });
+                key -> queryOAuthServer());
     }
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private CompletableFuture<OAuthMetadata> queryOAuthServer() {
         CompletableFuture<OAuthMetadata> oauthMetadata = new CompletableFuture<>();
-        try (OpenShiftClient client = clientProvider.apply(serviceAccountToken.get())) {
+        try {
+            OpenShiftClient client = serviceAccountClient.get();
             OkHttpClient httpClient = client.adapt(OkHttpClient.class);
             HttpUrl url =
                     HttpUrl.get(client.getMasterUrl())
@@ -476,7 +474,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private String getServiceAccountName() throws MissingEnvironmentVariableException, IOException {
+    private String getServiceAccountName() throws MissingEnvironmentVariableException {
         Optional<String> clientId = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
         return String.format(
                 "system:serviceaccount:%s:%s",
@@ -485,7 +483,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_CLIENT_ID)));
     }
 
-    private String getTokenScope() throws MissingEnvironmentVariableException, IOException {
+    private String getTokenScope() throws MissingEnvironmentVariableException {
         Optional<String> tokenScope = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
         return String.format(
                 "user:check-access role:%s:%s",
