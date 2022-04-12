@@ -22,7 +22,7 @@ function runDemoApps() {
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
 
     podman run \
@@ -30,7 +30,7 @@ function runDemoApps() {
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
 
     podman run \
@@ -39,19 +39,19 @@ function runDemoApps() {
         --env JMX_PORT=9095 \
         --env USE_SSL=true \
         --env USE_AUTH=true \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
 
     podman run \
         --name quarkus-test \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
     podman run \
         --name wildfly \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
 }
 
@@ -60,7 +60,7 @@ function runJfrDatasource() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name jfr-datasource \
-        --pod cryostat \
+        --pod cryostat-pod \
         --rm -d "${stream}:${tag}"
 }
 
@@ -71,7 +71,7 @@ function runGrafana() {
     local port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     podman run \
         --name grafana \
-        --pod cryostat \
+        --pod cryostat-pod \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -82,7 +82,7 @@ function runReportGenerator() {
     local RJMX_PORT=10000
     podman run \
         --name reports \
-        --pod cryostat \
+        --pod cryostat-pod \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
@@ -99,7 +99,7 @@ function createPod() {
     podman pod create \
         --replace \
         --hostname cryostat \
-        --name cryostat \
+        --name cryostat-pod \
         --publish "${jmxPort}:${jmxPort}" \
         --publish "${webPort}:${webPort}" \
         --publish "${datasourcePort}:${datasourcePort}" \
@@ -129,8 +129,8 @@ function createPod() {
 }
 
 function destroyPod() {
-    podman pod kill cryostat
-    podman pod rm cryostat
+    podman pod kill cryostat-pod
+    podman pod rm cryostat-pod
 }
 trap destroyPod EXIT
 
