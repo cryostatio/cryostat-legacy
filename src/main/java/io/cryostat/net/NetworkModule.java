@@ -53,6 +53,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.net.openshift.OpenShiftNetworkModule;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
@@ -64,8 +65,6 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -75,6 +74,7 @@ import io.vertx.ext.web.client.WebClientOptions;
             WebModule.class,
             ReportsModule.class,
             SecurityModule.class,
+            OpenShiftNetworkModule.class,
         })
 public abstract class NetworkModule {
 
@@ -192,21 +192,4 @@ public abstract class NetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
-
-    @Provides
-    @Singleton
-    static OpenShiftAuthManager provideOpenShiftAuthManager(
-            Environment env, Logger logger, FileSystem fs) {
-        return new OpenShiftAuthManager(
-                env,
-                logger,
-                fs,
-                token ->
-                        new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
-    }
-
-    @Binds
-    @IntoSet
-    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

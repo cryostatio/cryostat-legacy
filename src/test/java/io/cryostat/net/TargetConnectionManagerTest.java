@@ -39,7 +39,6 @@ package io.cryostat.net;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 
 import javax.management.remote.JMXServiceURL;
@@ -236,7 +235,7 @@ class TargetConnectionManagerTest {
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
                         platformClient,
-                        new DirectExecutor(),
+                        Runnable::run,
                         Scheduler.disabledScheduler(),
                         Duration.ofSeconds(1),
                         0,
@@ -276,7 +275,7 @@ class TargetConnectionManagerTest {
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
                         platformClient,
-                        new DirectExecutor(),
+                        Runnable::run,
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
@@ -309,12 +308,5 @@ class TargetConnectionManagerTest {
         JFRConnection conn1 = mgr.executeConnectedTask(desc1, a -> a);
         JFRConnection conn2 = mgr.executeConnectedTask(desc2, a -> a);
         MatcherAssert.assertThat(conn1, Matchers.not(Matchers.sameInstance(conn2)));
-    }
-
-    static class DirectExecutor implements Executor {
-        @Override
-        public void execute(Runnable r) {
-            r.run();
-        }
     }
 }
