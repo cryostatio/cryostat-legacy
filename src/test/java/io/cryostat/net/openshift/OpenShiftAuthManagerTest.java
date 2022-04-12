@@ -35,14 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.openshift;
 
-import java.io.BufferedReader;
-import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -54,12 +50,16 @@ import java.util.function.Function;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.MissingEnvironmentVariableException;
+import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.TokenNotFoundException;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
@@ -135,7 +135,6 @@ class OpenShiftAuthManagerTest {
 
     OpenShiftAuthManager mgr;
     @Mock Environment env;
-    @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock OkHttpClient httpClient;
     OpenShiftClient client;
@@ -156,7 +155,15 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider);
+        mgr =
+                new OpenShiftAuthManager(
+                        env,
+                        () -> NAMESPACE,
+                        () -> client,
+                        tokenProvider,
+                        Runnable::run,
+                        Scheduler.disabledScheduler(),
+                        logger);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
     }
@@ -183,9 +190,6 @@ class OpenShiftAuthManagerTest {
                 .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
                 .once();
 
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-
         UserInfo userInfo = mgr.getUserInfo(() -> "Bearer abc123").get();
         MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("fooUser"));
     }
@@ -211,9 +215,6 @@ class OpenShiftAuthManagerTest {
                 .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
                 .once();
 
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(), Matchers.is(true));
     }
@@ -231,9 +232,6 @@ class OpenShiftAuthManagerTest {
                 .withPath(TOKEN_REVIEW_API_PATH)
                 .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
                 .once();
-
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
 
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(),
@@ -254,18 +252,9 @@ class OpenShiftAuthManagerTest {
                 .andReturn(HttpURLConnection.HTTP_CREATED, accessReview)
                 .once();
 
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(new BufferedReader(new StringReader("mynamespace")));
-
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_TARGET)).get(),
                 Matchers.is(true));
-
-        ArgumentCaptor<Path> nsPathCaptor = ArgumentCaptor.forClass(Path.class);
-        Mockito.verify(fs).readFile(nsPathCaptor.capture());
-        MatcherAssert.assertThat(
-                nsPathCaptor.getValue(),
-                Matchers.equalTo(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)));
     }
 
     @Test
@@ -282,10 +271,6 @@ class OpenShiftAuthManagerTest {
                 .andReturn(HttpURLConnection.HTTP_CREATED, accessReview)
                 .once();
 
-        String namespace = "mynamespace";
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(namespace)));
-
         ExecutionException ee =
                 Assertions.assertThrows(
                         ExecutionException.class,
@@ -296,26 +281,14 @@ class OpenShiftAuthManagerTest {
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
-        MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(namespace));
+        MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
         MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("flightrecorders"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
-
-        ArgumentCaptor<Path> nsPathCaptor = ArgumentCaptor.forClass(Path.class);
-        Mockito.verify(fs).readFile(nsPathCaptor.capture());
-        MatcherAssert.assertThat(
-                nsPathCaptor.getValue(),
-                Matchers.equalTo(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "Bearer ", "invalidHeader"})
     void shouldSendRedirectResponseOnEmptyOrInvalidHeaders(String headers) throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(NAMESPACE)),
-                        new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, ROLE_SCOPE);
 
         Mockito.when(client.adapt(OkHttpClient.class)).thenReturn(httpClient);
@@ -348,14 +321,6 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
     void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(NAMESPACE)),
-                        new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString()))
                 .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
 
@@ -390,9 +355,6 @@ class OpenShiftAuthManagerTest {
     @CsvSource(value = {",", CLIENT_ID + ",", "," + ROLE_SCOPE})
     void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String tokenScope)
             throws Exception {
-
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, tokenScope);
 
         ExecutionException ee =
@@ -406,12 +368,6 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldCacheOAuthServerResponse() throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(NAMESPACE)),
-                        new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString()))
                 .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
 
@@ -460,11 +416,6 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldReturnLogoutRedirectUrl() throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-
         Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
         NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
                 tokens = Mockito.mock(NonNamespaceOperation.class);
@@ -502,9 +453,6 @@ class OpenShiftAuthManagerTest {
     @NullSource
     @ValueSource(booleans = {false})
     void shouldThrowWhenTokenDeletionFailsOnLogout(Boolean deletionFailure) throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-
         Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
         NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
                 tokens = Mockito.mock(NonNamespaceOperation.class);
@@ -523,9 +471,6 @@ class OpenShiftAuthManagerTest {
             names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE|CREDENTIALS))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(new BufferedReader(new StringReader("mynamespace")));
-
         String expectedVerb;
         if (resourceAction.getVerb() == ResourceVerb.CREATE) {
             expectedVerb = "create";
@@ -637,8 +582,6 @@ class OpenShiftAuthManagerTest {
             })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(new BufferedReader(new StringReader("mynamespace")));
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));
     }
