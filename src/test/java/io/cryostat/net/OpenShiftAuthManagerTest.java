@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -73,15 +74,16 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -125,8 +127,9 @@ class OpenShiftAuthManagerTest {
             String.format(
                     "?client_id=%s&response_type=token&response_mode=fragment&scope=%s",
                     SERVICE_ACCOUNT.replaceAll(":", "%3A"), TOKEN_SCOPE.replaceAll(":", "%3A"));
-    static final JsonObject OAUTH_METADATA =
-            new JsonObject(Map.of("issuer", BASE_URL, "authorization_endpoint", AUTHORIZATION_URL));
+    static final String OAUTH_METADATA =
+            new JsonObject(Map.of("issuer", BASE_URL, "authorization_endpoint", AUTHORIZATION_URL))
+                    .toString();
     static final String EXPECTED_LOGIN_REDIRECT_URL = AUTHORIZATION_URL + OAUTH_QUERY_PARAMETERS;
     static final String EXPECTED_LOGOUT_REDIRECT_URL = BASE_URL + "/logout";
 
@@ -134,7 +137,7 @@ class OpenShiftAuthManagerTest {
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock Logger logger;
-    @Mock WebClient webClient;
+    @Mock OkHttpClient httpClient;
     OpenShiftClient client;
     OpenShiftMockServer server;
     TokenProvider tokenProvider;
@@ -153,7 +156,7 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider, webClient);
+        mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
     }
@@ -307,31 +310,33 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "Bearer ", "invalidHeader"})
     void shouldSendRedirectResponseOnEmptyOrInvalidHeaders(String headers) throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(
                         new BufferedReader(new StringReader(NAMESPACE)),
                         new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, ROLE_SCOPE);
-        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(req);
-        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+
+        Mockito.when(client.adapt(OkHttpClient.class)).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+        Response resp = Mockito.mock(Response.class);
+        ResponseBody body = Mockito.mock(ResponseBody.class);
+        Mockito.when(body.string()).thenReturn(OAUTH_METADATA);
+        Mockito.when(resp.body()).thenReturn(body);
+        Call call = Mockito.mock(Call.class);
+        Mockito.when(httpClient.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.doAnswer(
                         new Answer<Void>() {
                             @Override
                             public Void answer(InvocationOnMock args) throws Throwable {
-                                AsyncResult<HttpResponse<Buffer>> asyncResult =
-                                        Mockito.mock(AsyncResult.class);
-                                Mockito.when(asyncResult.result()).thenReturn(resp);
-                                Mockito.when(resp.bodyAsJsonObject()).thenReturn(OAUTH_METADATA);
-                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
-                                        .handle(asyncResult);
+                                Callback callback = args.getArgument(0);
+                                callback.onResponse(call, resp);
                                 return null;
                             }
                         })
-                .when(req)
-                .send(Mockito.any());
+                .when(call)
+                .enqueue(Mockito.any(Callback.class));
 
         String actualLoginRedirectUrl =
                 mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
@@ -344,33 +349,35 @@ class OpenShiftAuthManagerTest {
     @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
     void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
+                .thenReturn(
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(
                         new BufferedReader(new StringReader(NAMESPACE)),
                         new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString()))
                 .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
-        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(req);
-        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+
+        Mockito.when(client.adapt(OkHttpClient.class)).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+        Response resp = Mockito.mock(Response.class);
+        ResponseBody body = Mockito.mock(ResponseBody.class);
+        Mockito.when(body.string()).thenReturn(OAUTH_METADATA);
+        Mockito.when(resp.body()).thenReturn(body);
+        Call call = Mockito.mock(Call.class);
+        Mockito.when(httpClient.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.doAnswer(
                         new Answer<Void>() {
                             @Override
                             public Void answer(InvocationOnMock args) throws Throwable {
-                                AsyncResult<HttpResponse<Buffer>> asyncResult =
-                                        Mockito.mock(AsyncResult.class);
-                                Mockito.when(asyncResult.result()).thenReturn(resp);
-                                Mockito.when(resp.bodyAsJsonObject()).thenReturn(OAUTH_METADATA);
-                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
-                                        .handle(asyncResult);
+                                Callback callback = args.getArgument(0);
+                                callback.onResponse(call, resp);
                                 return null;
                             }
                         })
-                .when(req)
-                .send(Mockito.any());
+                .when(call)
+                .enqueue(Mockito.any(Callback.class));
 
         String actualLoginRedirectUrl =
                 mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
@@ -399,32 +406,35 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldCacheOAuthServerResponse() throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(
                         new BufferedReader(new StringReader(NAMESPACE)),
                         new BufferedReader(new StringReader(NAMESPACE)));
         Mockito.when(env.getEnv(Mockito.anyString()))
                 .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
-        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(req);
-        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+
+        Mockito.when(client.adapt(OkHttpClient.class)).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+        ArgumentCaptor<Request> reqCaptor = ArgumentCaptor.forClass(Request.class);
+        Response resp = Mockito.mock(Response.class);
+        ResponseBody body = Mockito.mock(ResponseBody.class);
+        Mockito.when(body.string()).thenReturn(OAUTH_METADATA);
+        Mockito.when(resp.body()).thenReturn(body);
+        Call call = Mockito.mock(Call.class);
+        Mockito.when(httpClient.newCall(reqCaptor.capture())).thenReturn(call);
         Mockito.doAnswer(
                         new Answer<Void>() {
                             @Override
                             public Void answer(InvocationOnMock args) throws Throwable {
-                                AsyncResult<HttpResponse<Buffer>> asyncResult =
-                                        Mockito.mock(AsyncResult.class);
-                                Mockito.when(asyncResult.result()).thenReturn(resp);
-                                Mockito.when(resp.bodyAsJsonObject()).thenReturn(OAUTH_METADATA);
-                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
-                                        .handle(asyncResult);
+                                Callback callback = args.getArgument(0);
+                                callback.onResponse(call, resp);
                                 return null;
                             }
                         })
-                .when(req)
-                .send(Mockito.any());
+                .when(call)
+                .enqueue(Mockito.any(Callback.class));
 
         String firstRedirectUrl =
                 mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
@@ -435,14 +445,25 @@ class OpenShiftAuthManagerTest {
                 mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
         MatcherAssert.assertThat(secondRedirectUrl, Matchers.equalTo(EXPECTED_LOGIN_REDIRECT_URL));
 
-        Mockito.verify(webClient, Mockito.atMostOnce())
-                .get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(httpClient, Mockito.atMostOnce()).newCall(Mockito.any(Request.class));
+        Mockito.verify(call, Mockito.atMostOnce()).enqueue(Mockito.any(Callback.class));
+
+        Mockito.verify(body).close();
+        Request req = reqCaptor.getValue();
+        MatcherAssert.assertThat(
+                req.url(),
+                Matchers.equalTo(
+                        HttpUrl.parse(
+                                "https://example.com/.well-known/oauth-authorization-server")));
+        MatcherAssert.assertThat(req.header("accept"), Matchers.equalTo("application/json"));
     }
 
     @Test
     void shouldReturnLogoutRedirectUrl() throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
+                .thenReturn(
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
 
         Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
         NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
@@ -452,26 +473,25 @@ class OpenShiftAuthManagerTest {
         Mockito.when(tokens.withName(Mockito.anyString())).thenReturn(token);
         Mockito.when(token.delete()).thenReturn(true);
 
-        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(req);
-        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.when(client.adapt(OkHttpClient.class)).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+        Response resp = Mockito.mock(Response.class);
+        ResponseBody body = Mockito.mock(ResponseBody.class);
+        Mockito.when(body.string()).thenReturn(OAUTH_METADATA);
+        Mockito.when(resp.body()).thenReturn(body);
+        Call call = Mockito.mock(Call.class);
+        Mockito.when(httpClient.newCall(Mockito.any(Request.class))).thenReturn(call);
         Mockito.doAnswer(
                         new Answer<Void>() {
                             @Override
                             public Void answer(InvocationOnMock args) throws Throwable {
-                                AsyncResult<HttpResponse<Buffer>> asyncResult =
-                                        Mockito.mock(AsyncResult.class);
-                                Mockito.when(asyncResult.result()).thenReturn(resp);
-                                Mockito.when(resp.bodyAsJsonObject()).thenReturn(OAUTH_METADATA);
-                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
-                                        .handle(asyncResult);
+                                Callback callback = args.getArgument(0);
+                                callback.onResponse(call, resp);
                                 return null;
                             }
                         })
-                .when(req)
-                .send(Mockito.any());
+                .when(call)
+                .enqueue(Mockito.any(Callback.class));
 
         String logoutRedirectUrl = mgr.logout(() -> "Bearer myToken").get();
 
@@ -634,9 +654,6 @@ class OpenShiftAuthManagerTest {
 
         @Override
         public OpenShiftClient apply(String token) {
-            if (this.token != null) {
-                throw new IllegalStateException("Token was already set!");
-            }
             this.token = token;
             return osc;
         }
