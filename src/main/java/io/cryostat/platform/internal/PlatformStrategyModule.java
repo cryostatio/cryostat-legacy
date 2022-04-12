@@ -46,7 +46,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
-import io.cryostat.net.OpenShiftAuthManager;
+import io.cryostat.net.openshift.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import dagger.Module;

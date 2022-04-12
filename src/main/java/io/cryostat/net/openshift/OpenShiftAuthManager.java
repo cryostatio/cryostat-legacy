@@ -35,12 +35,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -59,7 +60,13 @@ import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.AbstractAuthManager;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.MissingEnvironmentVariableException;
+import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.TokenNotFoundException;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
@@ -67,13 +74,16 @@ import io.cryostat.net.security.ResourceVerb;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.OpenShiftClient;
 import jdk.jfr.Category;
@@ -104,22 +114,35 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
 
     private final Environment env;
-    private final FileSystem fs;
-    private final Function<String, OpenShiftClient> clientProvider;
+    private final Lazy<String> namespace;
+    private final Lazy<OpenShiftClient> serviceAccountClient;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
 
+    private final LoadingCache<String, OpenShiftClient> userClients;
+
     OpenShiftAuthManager(
             Environment env,
-            Logger logger,
-            FileSystem fs,
-            Function<String, OpenShiftClient> clientProvider) {
+            Lazy<String> namespace,
+            Lazy<OpenShiftClient> serviceAccountClient,
+            Function<String, OpenShiftClient> clientProvider,
+            Executor cacheExecutor,
+            Scheduler cacheScheduler,
+            Logger logger) {
         super(logger);
         this.env = env;
-        this.fs = fs;
-        this.clientProvider = clientProvider;
+        this.namespace = namespace;
+        this.serviceAccountClient = serviceAccountClient;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
+
+        Caffeine<String, OpenShiftClient> cacheBuilder =
+                Caffeine.newBuilder()
+                        .executor(cacheExecutor)
+                        .scheduler(cacheScheduler)
+                        .expireAfterAccess(Duration.ofMinutes(5)) // should this be configurable?
+                        .removalListener((k, v, cause) -> v.close());
+        this.userClients = cacheBuilder.build(clientProvider::apply);
     }
 
     @Override
@@ -170,7 +193,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider)
-            throws ExecutionException, InterruptedException, IOException, TokenNotFoundException {
+            throws ExecutionException, InterruptedException, TokenNotFoundException {
 
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
         deleteToken(token);
@@ -189,14 +212,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
-        try (OpenShiftClient client = clientProvider.apply(token)) {
-            String namespace = getNamespace();
+        OpenShiftClient client = userClients.get(token);
+        try {
             List<CompletableFuture<Void>> results =
                     resourceActions
                             .parallelStream()
                             .flatMap(
                                     resourceAction ->
-                                            validateAction(client, namespace, resourceAction))
+                                            validateAction(client, namespace.get(), resourceAction))
                             .collect(Collectors.toList());
 
             CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
@@ -205,9 +228,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             // was thrown on allOf().get() above
             return CompletableFuture.completedFuture(true);
         } catch (KubernetesClientException | ExecutionException e) {
+            userClients.invalidate(token);
             logger.info(e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
+            userClients.invalidate(token);
             logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
@@ -315,22 +340,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private boolean deleteToken(String token) throws IOException, TokenNotFoundException {
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
-            Boolean deleted =
-                    Optional.ofNullable(
-                                    client.oAuthAccessTokens()
-                                            .withName(this.getOauthAccessTokenName(token))
-                                            .delete())
-                            .orElseThrow(TokenNotFoundException::new);
+    private boolean deleteToken(String token) throws TokenNotFoundException {
+        Boolean deleted =
+                Optional.ofNullable(
+                                serviceAccountClient
+                                        .get()
+                                        .oAuthAccessTokens()
+                                        .withName(this.getOauthAccessTokenName(token))
+                                        .delete())
+                        .orElseThrow(TokenNotFoundException::new);
 
-            if (Boolean.FALSE.equals(deleted)) {
-                throw new TokenNotFoundException();
-            }
-
-            return deleted;
+        if (Boolean.FALSE.equals(deleted)) {
+            throw new TokenNotFoundException();
         }
+
+        return deleted;
     }
 
     private String getTokenFromHttpHeader(String rawHttpHeader) {
@@ -350,12 +374,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Future<TokenReviewStatus> performTokenReview(String token) {
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+        try {
             TokenReview review =
                     new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
+            review = serviceAccountClient.get().tokenReviews().create(review);
             TokenReviewStatus status = review.getStatus();
             if (StringUtils.isNotBlank(status.getError())) {
                 return CompletableFuture.failedFuture(
@@ -395,7 +418,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     } catch (ExecutionException
                             | InterruptedException
                             | URISyntaxException
-                            | IOException
                             | MissingEnvironmentVariableException e) {
                         return CompletableFuture.failedFuture(e);
                     }
@@ -420,17 +442,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private CompletableFuture<OAuthMetadata> computeOauthMetadata() {
-        return oauthMetadata.computeIfAbsent(
-                OAUTH_METADATA_KEY,
-                key -> {
-                    return queryOAuthServer();
-                });
+        return oauthMetadata.computeIfAbsent(OAUTH_METADATA_KEY, key -> queryOAuthServer());
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private CompletableFuture<OAuthMetadata> queryOAuthServer() {
         CompletableFuture<OAuthMetadata> oauthMetadata = new CompletableFuture<>();
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+        try {
+            OpenShiftClient client = serviceAccountClient.get();
             OkHttpClient httpClient = client.adapt(OkHttpClient.class);
             HttpUrl url =
                     HttpUrl.get(client.getMasterUrl())
@@ -464,27 +482,27 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                 }
                             });
             return CompletableFuture.completedFuture(oauthMetadata.get());
-        } catch (ExecutionException | InterruptedException | IOException e) {
+        } catch (ExecutionException | InterruptedException e) {
             return CompletableFuture.failedFuture(e);
         }
     }
 
-    private String getServiceAccountName() throws MissingEnvironmentVariableException, IOException {
+    private String getServiceAccountName() throws MissingEnvironmentVariableException {
         Optional<String> clientId = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
         return String.format(
                 "system:serviceaccount:%s:%s",
-                this.getNamespace(),
+                namespace.get(),
                 clientId.orElseThrow(
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_CLIENT_ID)));
     }
 
-    private String getTokenScope() throws MissingEnvironmentVariableException, IOException {
+    private String getTokenScope() throws MissingEnvironmentVariableException {
         Optional<String> tokenScope = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
         return String.format(
                 "user:check-access role:%s:%s",
                 tokenScope.orElseThrow(
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_ROLE)),
-                this.getNamespace());
+                namespace.get());
     }
 
     private String getOauthAccessTokenName(String token) {
@@ -495,28 +513,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 new String(Base64.getUrlEncoder().encode(checksum), StandardCharsets.UTF_8).trim();
 
         return sha256Prefix + StringUtils.removeEnd(encodedTokenHash, "=");
-    }
-
-    @SuppressFBWarnings(
-            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
-            justification = "Kubernetes namespace file path is well-known and absolute")
-    private String getNamespace() throws IOException {
-        return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
-                .lines()
-                .filter(StringUtils::isNotBlank)
-                .findFirst()
-                .get();
-    }
-
-    @SuppressFBWarnings(
-            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
-            justification = "Kubernetes serviceaccount file path is well-known and absolute")
-    private String getServiceAccountToken() throws IOException {
-        return fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))
-                .lines()
-                .filter(StringUtils::isNotBlank)
-                .findFirst()
-                .get();
     }
 
     private static Set<GroupResource> map(ResourceType resource) {
@@ -551,35 +547,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             default:
                 throw new IllegalArgumentException(
                         String.format("Unknown resource verb \"%s\"", verb));
-        }
-    }
-
-    public static class PermissionDeniedException extends Exception {
-        private final String namespace;
-        private final String resource;
-        private final String verb;
-
-        public PermissionDeniedException(
-                String namespace, String group, String resource, String verb, String reason) {
-            super(
-                    String.format(
-                            "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
-                            namespace, verb, resource, group, reason));
-            this.namespace = namespace;
-            this.resource = resource;
-            this.verb = verb;
-        }
-
-        public String getNamespace() {
-            return namespace;
-        }
-
-        public String getResourceType() {
-            return resource;
-        }
-
-        public String getVerb() {
-            return verb;
         }
     }
 
