@@ -37,8 +37,31 @@
  */
 package io.cryostat.net;
 
-public class AuthorizationErrorException extends Exception {
-    public AuthorizationErrorException(String msg) {
-        super(msg);
+public class PermissionDeniedException extends Exception {
+    private final String namespace;
+    private final String resource;
+    private final String verb;
+
+    public PermissionDeniedException(
+            String namespace, String group, String resource, String verb, String reason) {
+        super(
+                String.format(
+                        "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
+                        namespace, verb, resource, group, reason));
+        this.namespace = namespace;
+        this.resource = resource;
+        this.verb = verb;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public String getResourceType() {
+        return resource;
+    }
+
+    public String getVerb() {
+        return verb;
     }
 }
