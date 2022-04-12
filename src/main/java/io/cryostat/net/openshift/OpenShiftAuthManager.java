@@ -340,7 +340,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean deleteToken(String token) throws TokenNotFoundException {
         Boolean deleted =
                 Optional.ofNullable(
@@ -375,7 +374,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Future<TokenReviewStatus> performTokenReview(String token) {
         try {
             TokenReview review =
@@ -447,7 +445,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         return oauthMetadata.computeIfAbsent(OAUTH_METADATA_KEY, key -> queryOAuthServer());
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private CompletableFuture<OAuthMetadata> queryOAuthServer() {
         CompletableFuture<OAuthMetadata> oauthMetadata = new CompletableFuture<>();
         try {
