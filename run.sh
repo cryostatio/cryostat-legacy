@@ -4,8 +4,8 @@ set -x
 set -e
 
 function cleanup() {
-    podman pod kill cryostat
-    podman pod rm cryostat
+    podman pod kill cryostat-pod
+    podman pod rm cryostat-pod
 }
 trap cleanup EXIT
 
@@ -76,10 +76,10 @@ if [ ! -d "$(dirname $0)/templates" ]; then
     mkdir "$(dirname $0)/templates"
 fi
 
-if ! podman pod exists cryostat; then
+if ! podman pod exists cryostat-pod; then
     podman pod create \
         --hostname cryostat \
-        --name cryostat \
+        --name cryostat-pod \
         --publish $CRYOSTAT_RJMX_PORT:$CRYOSTAT_RJMX_PORT \
         --publish $CRYOSTAT_EXT_WEB_PORT:$CRYOSTAT_WEB_PORT
 fi
@@ -88,9 +88,10 @@ fi
 # that the process will actually run with your own uid on the host machine,
 # rather than the uid being remapped to something else
 podman run \
-    --pod cryostat \
+    --pod cryostat-pod \
+    --name cryostat \
     --user 0 \
-    --memory 512M \
+    --memory 768M \
     --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared \
