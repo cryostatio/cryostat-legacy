@@ -712,6 +712,9 @@
               <include>src/main/**/*.java</include>
               <include>src/test/**/*.java</include>
             </includes>
+            <excludes>
+              <exclude>src/main/java/io/cryostat/util/OutputToReadStream.java</exclude>
+            </excludes>
           </licenseSet>
         </licenseSets>
       </configuration>
