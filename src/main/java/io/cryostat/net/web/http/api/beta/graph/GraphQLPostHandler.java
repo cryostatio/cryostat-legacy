@@ -37,12 +37,12 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
@@ -59,13 +59,11 @@ class GraphQLPostHandler implements RequestHandler {
 
     private final GraphQLHandler handler;
     private final AuthManager auth;
-    private final Logger logger;
 
     @Inject
-    GraphQLPostHandler(GraphQL graph, AuthManager auth, Logger logger) {
+    GraphQLPostHandler(GraphQL graph, AuthManager auth) {
         this.handler = GraphQLHandler.create(graph);
         this.auth = auth;
-        this.logger = logger;
     }
 
     @Override
@@ -80,7 +78,14 @@ class GraphQLPostHandler implements RequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.DELETE_RECORDING,
+                ResourceAction.READ_TEMPLATE,
+                ResourceAction.READ_CREDENTIALS);
     }
 
     @Override
@@ -93,7 +98,7 @@ class GraphQLPostHandler implements RequestHandler {
         try {
             if (!auth.validateHttpHeader(
                             () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
-                            ResourceAction.ALL)
+                            resourceActions())
                     .get()) {
                 throw new ApiException(401);
             }
