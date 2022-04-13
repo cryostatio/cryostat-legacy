@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 
 import graphql.GraphQL;
@@ -48,8 +47,8 @@ import io.vertx.core.http.HttpMethod;
 class GraphQLGetHandler extends GraphQLPostHandler {
 
     @Inject
-    GraphQLGetHandler(GraphQL graph, AuthManager auth, Logger logger) {
-        super(graph, auth, logger);
+    GraphQLGetHandler(GraphQL graph, AuthManager auth) {
+        super(graph, auth);
     }
 
     @Override
