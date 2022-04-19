@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
+import io.cryostat.net.web.http.api.beta.graph.labels.LabelSelectorMatcher;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetcher;
@@ -65,6 +66,18 @@ class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInf
                     result.stream()
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.LABELS)) {
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                result =
+                        result.stream()
+                                .filter(
+                                        r ->
+                                                LabelSelectorMatcher.parse(label)
+                                                        .test(r.getMetadata().getLabels()))
+                                .collect(Collectors.toList());
+            }
         }
         return result;
     }

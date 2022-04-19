@@ -47,6 +47,7 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.web.http.api.beta.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -71,6 +72,13 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             nodes = filter(nodes, n -> Objects.equals(n.getName(), nodeName));
+        }
+
+        if (filter.contains(FilterInput.Key.LABELS)) {
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                nodes = filter(nodes, n -> LabelSelectorMatcher.parse(label).test(n.getLabels()));
+            }
         }
 
         if (filter.contains(FilterInput.Key.NODE_TYPE)) {
