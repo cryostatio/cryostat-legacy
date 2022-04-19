@@ -35,57 +35,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta.graph;
+package io.cryostat.net.web.http.api.beta.graph.labels;
 
-import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import graphql.schema.DataFetchingEnvironment;
+public class EqualityMatcher implements LabelMatcher {
 
-class FilterInput {
+    private final String key;
+    private final EqualityMatcher.Operator operator;
+    private final String value;
 
-    private static final String FILTER_ARGUMENT = "filter";
-
-    private final Map<String, Object> filter;
-
-    FilterInput(Map<String, Object> map) {
-        this.filter = map;
+    EqualityMatcher(String key, EqualityMatcher.Operator operator, String value) {
+        this.key = key;
+        this.operator = operator;
+        this.value = value;
     }
 
-    static FilterInput from(DataFetchingEnvironment env) {
-        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
-        return new FilterInput(map == null ? Map.of() : map);
+    @Override
+    public String getKey() {
+        return key;
     }
 
-    boolean contains(Key key) {
-        return filter.containsKey(key.key());
+    @Override
+    public boolean test(String s) {
+        return operator.with(value).test(s);
     }
 
-    <T> T get(Key key) {
-        return (T) filter.get(key.key());
-    }
-
-    enum Key {
-        NAME("name"),
-        LABELS("labels"),
-        ANNOTATIONS("annotations"),
-        NODE_TYPE("nodeType"),
-        STATE("state"),
-        CONTINUOUS("continuous"),
-        TO_DISK("toDisk"),
-        DURATION_GE("durationMsGreaterThanEqual"),
-        DURATION_LE("durationMsLessThanEqual"),
-        START_TIME_BEFORE("startTimeMsBeforeEqual"),
-        START_TIME_AFTER("startTimeMsAfterEqual"),
+    public enum Operator {
+        EQUAL("=", arg -> v -> Objects.equals(arg, v)),
+        DOUBLE_EQUAL("==", arg -> v -> Objects.equals(arg, v)),
+        NOT_EQUAL("!=", arg -> v -> !Objects.equals(arg, v)),
         ;
 
-        private final String key;
+        private final String token;
+        private final Function<String, Predicate<String>> fn;
 
-        Key(String key) {
-            this.key = key;
+        Operator(String token, Function<String, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
         }
 
-        String key() {
-            return key;
+        Predicate<String> with(String value) {
+            return fn.apply(value);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equals(str)) {
+                    return op;
+                }
+            }
+            return null;
         }
     }
 }

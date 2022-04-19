@@ -35,57 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta.graph;
+package io.cryostat.net.web.http.api.beta.graph.labels;
 
-import java.util.Map;
+import java.util.function.Predicate;
 
-import graphql.schema.DataFetchingEnvironment;
-
-class FilterInput {
-
-    private static final String FILTER_ARGUMENT = "filter";
-
-    private final Map<String, Object> filter;
-
-    FilterInput(Map<String, Object> map) {
-        this.filter = map;
-    }
-
-    static FilterInput from(DataFetchingEnvironment env) {
-        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
-        return new FilterInput(map == null ? Map.of() : map);
-    }
-
-    boolean contains(Key key) {
-        return filter.containsKey(key.key());
-    }
-
-    <T> T get(Key key) {
-        return (T) filter.get(key.key());
-    }
-
-    enum Key {
-        NAME("name"),
-        LABELS("labels"),
-        ANNOTATIONS("annotations"),
-        NODE_TYPE("nodeType"),
-        STATE("state"),
-        CONTINUOUS("continuous"),
-        TO_DISK("toDisk"),
-        DURATION_GE("durationMsGreaterThanEqual"),
-        DURATION_LE("durationMsLessThanEqual"),
-        START_TIME_BEFORE("startTimeMsBeforeEqual"),
-        START_TIME_AFTER("startTimeMsAfterEqual"),
-        ;
-
-        private final String key;
-
-        Key(String key) {
-            this.key = key;
-        }
-
-        String key() {
-            return key;
-        }
-    }
+interface LabelMatcher extends Predicate<String> {
+    String getKey();
 }

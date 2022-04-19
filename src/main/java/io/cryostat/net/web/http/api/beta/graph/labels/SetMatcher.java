@@ -35,57 +35,70 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta.graph;
+package io.cryostat.net.web.http.api.beta.graph.labels;
 
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import graphql.schema.DataFetchingEnvironment;
+public class SetMatcher implements LabelMatcher {
 
-class FilterInput {
+    private final SetMatcher.Operator operator;
+    private final String key;
+    private final Set<String> values;
 
-    private static final String FILTER_ARGUMENT = "filter";
-
-    private final Map<String, Object> filter;
-
-    FilterInput(Map<String, Object> map) {
-        this.filter = map;
+    SetMatcher(String key, SetMatcher.Operator operator) {
+        this(key, operator, Set.of());
     }
 
-    static FilterInput from(DataFetchingEnvironment env) {
-        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
-        return new FilterInput(map == null ? Map.of() : map);
+    SetMatcher(String key, SetMatcher.Operator operator, Collection<String> values) {
+        this.key = key;
+        this.operator = operator;
+        this.values = new HashSet<>(values);
     }
 
-    boolean contains(Key key) {
-        return filter.containsKey(key.key());
+    @Override
+    public String getKey() {
+        return key;
     }
 
-    <T> T get(Key key) {
-        return (T) filter.get(key.key());
+    @Override
+    public boolean test(String s) {
+        return operator.with(values).test(s);
     }
 
-    enum Key {
-        NAME("name"),
-        LABELS("labels"),
-        ANNOTATIONS("annotations"),
-        NODE_TYPE("nodeType"),
-        STATE("state"),
-        CONTINUOUS("continuous"),
-        TO_DISK("toDisk"),
-        DURATION_GE("durationMsGreaterThanEqual"),
-        DURATION_LE("durationMsLessThanEqual"),
-        START_TIME_BEFORE("startTimeMsBeforeEqual"),
-        START_TIME_AFTER("startTimeMsAfterEqual"),
+    public enum Operator {
+        IN("In", args -> v -> contains(args, v)),
+        NOT_IN("NotIn", args -> v -> !contains(args, v)),
+        EXISTS("", args -> v -> v != null),
+        DOES_NOT_EXIST("!", args -> v -> v == null),
         ;
 
-        private final String key;
+        private final String token;
+        private final Function<Collection<String>, Predicate<String>> fn;
 
-        Key(String key) {
-            this.key = key;
+        Operator(String token, Function<Collection<String>, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
         }
 
-        String key() {
-            return key;
+        Predicate<String> with(Collection<String> values) {
+            return fn.apply(values);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equalsIgnoreCase(str)) {
+                    return op;
+                }
+            }
+            return null;
+        }
+
+        private static boolean contains(Collection<String> args, String v) {
+            return args.stream().anyMatch(s -> s.equals(v));
         }
     }
 }
