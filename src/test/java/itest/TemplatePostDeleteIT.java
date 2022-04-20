@@ -163,7 +163,6 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
                     .send(
                             ar -> {
                                 assertRequestStatus(ar, getResponse);
-                                postResponse.complete(ar.result().statusCode());
                                 JsonArray response = ar.result().bodyAsJsonArray();
                                 getResponse.complete(response);
                             });
