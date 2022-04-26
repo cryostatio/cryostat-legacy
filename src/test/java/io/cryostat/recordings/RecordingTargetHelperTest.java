@@ -220,7 +220,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
-        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName, false).get();
 
         Mockito.verify(service).close(descriptor);
         Mockito.verify(reportService)
@@ -269,7 +269,7 @@ public class RecordingTargetHelperTest {
                 () -> {
                     try {
                         recordingTargetHelper
-                                .deleteRecording(connectionDescriptor, recordingName)
+                                .deleteRecording(connectionDescriptor, recordingName, false)
                                 .get();
                     } catch (ExecutionException ee) {
                         Assertions.assertTrue(ee.getCause() instanceof RecordingNotFoundException);
@@ -458,7 +458,7 @@ public class RecordingTargetHelperTest {
         Future<Void> deleteFuture = Mockito.mock(Future.class);
         Mockito.doReturn(deleteFuture)
                 .when(recordingTargetHelperSpy)
-                .deleteRecording(connectionDescriptor, snapshotName);
+                .deleteRecording(connectionDescriptor, snapshotName, true);
         Mockito.when(deleteFuture.get()).thenReturn(null);
 
         boolean verified =

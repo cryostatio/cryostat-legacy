@@ -67,7 +67,7 @@ class DeleteActiveRecordingMutator implements DataFetcher<GraphRecordingDescript
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
-        recordingTargetHelper.deleteRecording(cd, source.getName()).get();
+        recordingTargetHelper.deleteRecording(cd, source.getName(), false).get();
         return source;
     }
 }

@@ -252,7 +252,7 @@ public class RecordingTargetHelper {
     }
 
     public Future<Void> deleteRecording(
-            ConnectionDescriptor connectionDescriptor, String recordingName) {
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean isAnUnreadableSnapshot) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             String targetId = connectionDescriptor.getTargetId();
@@ -283,18 +283,20 @@ public class RecordingTargetHelper {
                                                             recordingName));
                                     recordingMetadataManager.deleteRecordingMetadataIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
-                                    notificationFactory
-                                            .createBuilder()
-                                            .metaCategory(DELETION_NOTIFICATION_CATEGORY)
-                                            .metaType(HttpMimeType.JSON)
-                                            .message(
-                                                    Map.of(
-                                                            "recording",
-                                                            linkedDesc,
-                                                            "target",
-                                                            connectionDescriptor.getTargetId()))
-                                            .build()
-                                            .send();
+                                    if (!isAnUnreadableSnapshot) {
+                                        notificationFactory
+                                        .createBuilder()
+                                        .metaCategory(DELETION_NOTIFICATION_CATEGORY)
+                                        .metaType(HttpMimeType.JSON)
+                                        .message(
+                                                Map.of(
+                                                        "recording",
+                                                        linkedDesc,
+                                                        "target",
+                                                        connectionDescriptor.getTargetId()))
+                                        .build()
+                                        .send();
+                                    }
                                 } else {
                                     throw new RecordingNotFoundException(targetId, recordingName);
                                 }
@@ -408,7 +410,7 @@ public class RecordingTargetHelper {
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
-                        this.deleteRecording(connectionDescriptor, snapshotName).get();
+                        this.deleteRecording(connectionDescriptor, snapshotName, true).get();
                         future.complete(false);
                     } else {
                         future.complete(true);

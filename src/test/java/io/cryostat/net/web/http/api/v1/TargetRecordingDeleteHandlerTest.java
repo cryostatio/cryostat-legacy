@@ -117,7 +117,7 @@ class TargetRecordingDeleteHandlerTest {
         CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.deleteRecording(
-                                Mockito.any(), Mockito.eq("someRecording")))
+                                Mockito.any(), Mockito.eq("someRecording"), Mockito.eq(false)))
                 .thenReturn(future);
 
         handler.handleAuthenticated(ctx);
@@ -136,7 +136,7 @@ class TargetRecordingDeleteHandlerTest {
         CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.deleteRecording(
-                                Mockito.any(), Mockito.eq("someRecording")))
+                                Mockito.any(), Mockito.eq("someRecording"), Mockito.eq(false)))
                 .thenReturn(future);
         Mockito.when(future.get())
                 .thenThrow(

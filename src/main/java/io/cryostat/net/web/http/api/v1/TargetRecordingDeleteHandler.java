@@ -102,7 +102,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         try {
-            recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+            recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName, false).get();
             ctx.response().setStatusCode(200);
             ctx.response().end();
         } catch (ExecutionException e) {
