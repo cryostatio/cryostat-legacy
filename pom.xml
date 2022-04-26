@@ -862,9 +862,9 @@
                 <goal>yarn</goal>
               </goals>
               <configuration>
-                  <arguments>
-                      install --frozen-lockfile
-                  </arguments>
+                <arguments>
+                  install --frozen-lockfile
+                </arguments>
               </configuration>
             </execution>
             <execution>
@@ -874,7 +874,18 @@
                 <goal>yarn</goal>
               </goals>
               <configuration>
-                <arguments>run build</arguments>
+                <arguments>run build:notests</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>yarn run test</id>
+              <phase>test</phase>
+              <goals>
+                <goal>yarn</goal>
+              </goals>
+              <configuration>
+                <arguments>run test</arguments>
+                <testFailureIgnore>${skipTests}</testFailureIgnore>
               </configuration>
             </execution>
           </executions>
