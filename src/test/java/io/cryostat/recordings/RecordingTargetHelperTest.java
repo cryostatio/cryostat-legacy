@@ -220,7 +220,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
-        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName, false).get();
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
         Mockito.verify(reportService)
@@ -269,7 +269,7 @@ public class RecordingTargetHelperTest {
                 () -> {
                     try {
                         recordingTargetHelper
-                                .deleteRecording(connectionDescriptor, recordingName, false)
+                                .deleteRecording(connectionDescriptor, recordingName)
                                 .get();
                     } catch (ExecutionException ee) {
                         Assertions.assertTrue(ee.getCause() instanceof RecordingNotFoundException);
@@ -438,6 +438,7 @@ public class RecordingTargetHelperTest {
         RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
         String snapshotName = "snapshot-1";
+
         Future<Optional<InputStream>> getFuture = Mockito.mock(Future.class);
         Mockito.doReturn(getFuture)
                 .when(recordingTargetHelperSpy)
@@ -455,11 +456,24 @@ public class RecordingTargetHelperTest {
                 .thenReturn(true);
         Mockito.doThrow(IOException.class).when(snapshot).read();
 
-        Future<Void> deleteFuture = Mockito.mock(Future.class);
-        Mockito.doReturn(deleteFuture)
-                .when(recordingTargetHelperSpy)
-                .deleteRecording(connectionDescriptor, snapshotName, true);
-        Mockito.when(deleteFuture.get()).thenReturn(null);
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor(snapshotName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         boolean verified =
                 recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
