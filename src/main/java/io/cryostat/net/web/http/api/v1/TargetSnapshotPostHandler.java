@@ -113,7 +113,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
-                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotDescriptor, true).get();
         } catch (ExecutionException e) {
             handleExecutionException(e);
         }

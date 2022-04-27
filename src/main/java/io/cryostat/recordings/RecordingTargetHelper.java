@@ -181,13 +181,7 @@ public class RecordingTargetHelper {
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
                                     metadata);
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(CREATE_NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(Map.of("recording", linkedDesc, "target", targetId))
-                            .build()
-                            .send();
+                    notifyRecordingCreated(targetId, linkedDesc);
 
                     Object fixedDuration =
                             recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
@@ -346,9 +340,10 @@ public class RecordingTargetHelper {
     }
 
     public Future<Boolean> verifySnapshot(
-            ConnectionDescriptor connectionDescriptor, String snapshotName) {
+            ConnectionDescriptor connectionDescriptor, HyperlinkedSerializableRecordingDescriptor snapshotDescriptor, boolean issueNotification) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
+            String snapshotName = snapshotDescriptor.getName();
             Optional<InputStream> snapshotOptional =
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
@@ -360,6 +355,9 @@ public class RecordingTargetHelper {
                         this.deleteRecording(connectionDescriptor, snapshotName, false).get();
                         future.complete(false);
                     } else {
+                        if (issueNotification) {
+                            notifyRecordingCreated(connectionDescriptor.getTargetId(), snapshotDescriptor);
+                        }
                         future.complete(true);
                     }
                 }
@@ -453,6 +451,15 @@ public class RecordingTargetHelper {
         return future;
     }
 
+    private void notifyRecordingCreated(String targetId, HyperlinkedSerializableRecordingDescriptor desc) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(CREATE_NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", desc, "target", targetId))
+                .build()
+                .send();
+    }
     private void notifyRecordingStopped(
             String targetId, HyperlinkedSerializableRecordingDescriptor desc) {
         notificationFactory
