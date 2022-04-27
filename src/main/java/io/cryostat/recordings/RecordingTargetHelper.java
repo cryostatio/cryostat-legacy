@@ -253,58 +253,7 @@ public class RecordingTargetHelper {
 
     public Future<Void> deleteRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        try {
-            String targetId = connectionDescriptor.getTargetId();
-            Void v =
-                    targetConnectionManager.executeConnectedTask(
-                            connectionDescriptor,
-                            connection -> {
-                                Optional<IRecordingDescriptor> descriptor =
-                                        getDescriptorByName(connection, recordingName);
-                                if (descriptor.isPresent()) {
-                                    IRecordingDescriptor d = descriptor.get();
-                                    connection.getService().close(d);
-                                    reportService.delete(connectionDescriptor, recordingName);
-                                    this.cancelScheduledNotificationIfExists(
-                                            targetId, recordingName);
-                                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                                            new HyperlinkedSerializableRecordingDescriptor(
-                                                    d,
-                                                    webServer
-                                                            .get()
-                                                            .getDownloadURL(
-                                                                    connection, d.getName()),
-                                                    webServer
-                                                            .get()
-                                                            .getReportURL(connection, d.getName()),
-                                                    recordingMetadataManager.getMetadata(
-                                                            connectionDescriptor.getTargetId(),
-                                                            recordingName));
-                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                            connectionDescriptor.getTargetId(), recordingName);
-                                    notificationFactory
-                                            .createBuilder()
-                                            .metaCategory(DELETION_NOTIFICATION_CATEGORY)
-                                            .metaType(HttpMimeType.JSON)
-                                            .message(
-                                                    Map.of(
-                                                            "recording",
-                                                            linkedDesc,
-                                                            "target",
-                                                            connectionDescriptor.getTargetId()))
-                                            .build()
-                                            .send();
-                                } else {
-                                    throw new RecordingNotFoundException(targetId, recordingName);
-                                }
-                                return null;
-                            });
-            future.complete(v);
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+        return this.deleteRecording(connectionDescriptor, recordingName, true);
     }
 
     public IRecordingDescriptor stopRecording(
@@ -408,7 +357,7 @@ public class RecordingTargetHelper {
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
-                        this.deleteRecording(connectionDescriptor, snapshotName).get();
+                        this.deleteRecording(connectionDescriptor, snapshotName, false).get();
                         future.complete(false);
                     } else {
                         future.complete(true);
@@ -442,6 +391,66 @@ public class RecordingTargetHelper {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();
+    }
+
+    private Future<Void> deleteRecording(
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            boolean issueNotification) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            String targetId = connectionDescriptor.getTargetId();
+            Void v =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> descriptor =
+                                        getDescriptorByName(connection, recordingName);
+                                if (descriptor.isPresent()) {
+                                    IRecordingDescriptor d = descriptor.get();
+                                    connection.getService().close(d);
+                                    reportService.delete(connectionDescriptor, recordingName);
+                                    this.cancelScheduledNotificationIfExists(
+                                            targetId, recordingName);
+                                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                            new HyperlinkedSerializableRecordingDescriptor(
+                                                    d,
+                                                    webServer
+                                                            .get()
+                                                            .getDownloadURL(
+                                                                    connection, d.getName()),
+                                                    webServer
+                                                            .get()
+                                                            .getReportURL(connection, d.getName()),
+                                                    recordingMetadataManager.getMetadata(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName));
+                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                            connectionDescriptor.getTargetId(), recordingName);
+                                    if (issueNotification) {
+                                        notificationFactory
+                                                .createBuilder()
+                                                .metaCategory(DELETION_NOTIFICATION_CATEGORY)
+                                                .metaType(HttpMimeType.JSON)
+                                                .message(
+                                                        Map.of(
+                                                                "recording",
+                                                                linkedDesc,
+                                                                "target",
+                                                                connectionDescriptor.getTargetId()))
+                                                .build()
+                                                .send();
+                                    }
+                                } else {
+                                    throw new RecordingNotFoundException(targetId, recordingName);
+                                }
+                                return null;
+                            });
+            future.complete(v);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     private void notifyRecordingStopped(
