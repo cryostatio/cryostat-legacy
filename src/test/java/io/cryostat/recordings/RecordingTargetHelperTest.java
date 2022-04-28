@@ -401,7 +401,7 @@ public class RecordingTargetHelperTest {
                 .thenReturn(true);
 
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName, false).get();
+                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
 
         Assertions.assertTrue(verified);
     }
