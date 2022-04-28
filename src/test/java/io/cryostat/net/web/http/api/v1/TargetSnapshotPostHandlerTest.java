@@ -114,7 +114,7 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
@@ -177,7 +177,7 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get())
                 .thenThrow(
@@ -215,7 +215,7 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(false);
 

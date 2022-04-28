@@ -81,9 +81,12 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String CREATE_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
+    private static final String CREATION_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
     private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
     private static final String DELETION_NOTIFICATION_CATEGORY = "ActiveRecordingDeleted";
+    private static final String SNAPSHOT_CREATION_NOTIFICATION_CATEGORY = "SnapshotCreated";
+    private static final String SNAPSHOT_DELETION_NOTIFICATION_CATEGORY = "SnapshotDeleted";
+
     private static final long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
 
     private static final Pattern TEMPLATE_PATTERN =
@@ -181,7 +184,7 @@ public class RecordingTargetHelper {
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
                                     metadata);
-                    notifyRecordingCreated(targetId, linkedDesc);
+                    this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
 
                     Object fixedDuration =
                             recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
@@ -247,7 +250,12 @@ public class RecordingTargetHelper {
 
     public Future<Void> deleteRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return this.deleteRecording(connectionDescriptor, recordingName, true);
+        return this.deleteRecording(connectionDescriptor, recordingName, false, true);
+    }
+
+    public Future<Void> deleteSnapshot(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
+        return this.deleteRecording(connectionDescriptor, recordingName, true, true);
     }
 
     public IRecordingDescriptor stopRecording(
@@ -278,7 +286,7 @@ public class RecordingTargetHelper {
                                         d,
                                         webServer.get().getDownloadURL(connection, d.getName()),
                                         webServer.get().getReportURL(connection, d.getName()));
-                        this.notifyRecordingStopped(targetId, linkedDesc);
+                        this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
                         return getDescriptorByName(connection, recordingName).get();
                     } else {
                         throw new RecordingNotFoundException(targetId, recordingName);
@@ -340,6 +348,11 @@ public class RecordingTargetHelper {
     }
 
     public Future<Boolean> verifySnapshot(
+            ConnectionDescriptor connectionDescriptor, HyperlinkedSerializableRecordingDescriptor snapshotDescriptor) {
+        return this.verifySnapshot(connectionDescriptor, snapshotDescriptor, true);
+    }
+
+    public Future<Boolean> verifySnapshot(
             ConnectionDescriptor connectionDescriptor, HyperlinkedSerializableRecordingDescriptor snapshotDescriptor, boolean issueNotification) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
@@ -352,11 +365,11 @@ public class RecordingTargetHelper {
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
-                        this.deleteRecording(connectionDescriptor, snapshotName, false).get();
+                        this.deleteRecording(connectionDescriptor, snapshotName, true, false).get();
                         future.complete(false);
                     } else {
                         if (issueNotification) {
-                            notifyRecordingCreated(connectionDescriptor.getTargetId(), snapshotDescriptor);
+                            this.issueNotification(connectionDescriptor.getTargetId(), snapshotDescriptor, SNAPSHOT_CREATION_NOTIFICATION_CATEGORY);
                         }
                         future.complete(true);
                     }
@@ -394,6 +407,7 @@ public class RecordingTargetHelper {
     private Future<Void> deleteRecording(
             ConnectionDescriptor connectionDescriptor,
             String recordingName,
+            boolean isSnapshot,
             boolean issueNotification) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
@@ -426,18 +440,11 @@ public class RecordingTargetHelper {
                                     recordingMetadataManager.deleteRecordingMetadataIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
                                     if (issueNotification) {
-                                        notificationFactory
-                                                .createBuilder()
-                                                .metaCategory(DELETION_NOTIFICATION_CATEGORY)
-                                                .metaType(HttpMimeType.JSON)
-                                                .message(
-                                                        Map.of(
-                                                                "recording",
-                                                                linkedDesc,
-                                                                "target",
-                                                                connectionDescriptor.getTargetId()))
-                                                .build()
-                                                .send();
+                                        if (isSnapshot) {
+                                            this.issueNotification(connectionDescriptor.getTargetId(), linkedDesc, SNAPSHOT_DELETION_NOTIFICATION_CATEGORY);
+                                        } else {
+                                            this.issueNotification(connectionDescriptor.getTargetId(), linkedDesc, DELETION_NOTIFICATION_CATEGORY);
+                                        }
                                     }
                                 } else {
                                     throw new RecordingNotFoundException(targetId, recordingName);
@@ -451,22 +458,12 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    private void notifyRecordingCreated(String targetId, HyperlinkedSerializableRecordingDescriptor desc) {
+    private void issueNotification(String targetId, HyperlinkedSerializableRecordingDescriptor linkedDesc, String notificationCategory) {
         notificationFactory
                 .createBuilder()
-                .metaCategory(CREATE_NOTIFICATION_CATEGORY)
+                .metaCategory(notificationCategory)
                 .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", desc, "target", targetId))
-                .build()
-                .send();
-    }
-    private void notifyRecordingStopped(
-            String targetId, HyperlinkedSerializableRecordingDescriptor desc) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory(STOP_NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", desc, "target", targetId))
+                .message(Map.of("recording", linkedDesc, "target", targetId))
                 .build()
                 .send();
     }
@@ -567,7 +564,7 @@ public class RecordingTargetHelper {
                                                                     .get()
                                                                     .getReportURL(
                                                                             connection, name));
-                                            this.notifyRecordingStopped(targetId, linkedDesc);
+                                            this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
                                         }
 
                                         return desc;

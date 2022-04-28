@@ -400,8 +400,15 @@ public class RecordingTargetHelperTest {
         Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
                 .thenReturn(true);
 
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotDescriptor).get();
 
         Assertions.assertTrue(verified);
     }
@@ -419,12 +426,19 @@ public class RecordingTargetHelperTest {
         Optional<InputStream> snapshotOptional = Optional.empty();
         Mockito.when(future.get()).thenReturn(snapshotOptional);
 
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+
         Assertions.assertThrows(
                 ExecutionException.class,
                 () -> {
                     try {
                         recordingTargetHelperSpy
-                                .verifySnapshot(connectionDescriptor, snapshotName)
+                                .verifySnapshot(connectionDescriptor, snapshotDescriptor)
                                 .get();
                     } catch (ExecutionException ee) {
                         Assertions.assertTrue(ee.getCause() instanceof SnapshotCreationException);
@@ -474,9 +488,16 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
+        
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
 
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotDescriptor).get();
 
         Assertions.assertFalse(verified);
     }
