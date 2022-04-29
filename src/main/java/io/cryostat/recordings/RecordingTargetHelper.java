@@ -91,6 +91,8 @@ public class RecordingTargetHelper {
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
+    
+    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$"); 
 
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
@@ -248,14 +250,13 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(
-            ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return this.deleteRecording(connectionDescriptor, recordingName, false, true);
-    }
-
-    public Future<Void> deleteSnapshot(
-            ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return this.deleteRecording(connectionDescriptor, recordingName, true, true);
+    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
+        if (m.matches()) {
+            return this.deleteRecording(connectionDescriptor, recordingName, false, true);
+        } else {
+            return this.deleteRecording(connectionDescriptor, recordingName, true, true);
+        }
     }
 
     public IRecordingDescriptor stopRecording(
