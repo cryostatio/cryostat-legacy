@@ -40,6 +40,8 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
@@ -59,6 +61,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
+    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
 
     private final RecordingTargetHelper recordingTargetHelper;
 
@@ -102,7 +105,12 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         try {
-            recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+            Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
+            if(m.matches()) {
+                recordingTargetHelper.deleteSnapshot(connectionDescriptor, recordingName).get();
+            } else {
+                recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+            }
             ctx.response().setStatusCode(200);
             ctx.response().end();
         } catch (ExecutionException e) {
