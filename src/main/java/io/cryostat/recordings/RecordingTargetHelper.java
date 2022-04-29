@@ -251,12 +251,7 @@ public class RecordingTargetHelper {
     }
 
     public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
-        if (m.matches()) {
-            return this.deleteRecording(connectionDescriptor, recordingName, false, true);
-        } else {
-            return this.deleteRecording(connectionDescriptor, recordingName, true, true);
-        }
+        return this.deleteRecording(connectionDescriptor, recordingName, true);
     }
 
     public IRecordingDescriptor stopRecording(
@@ -369,7 +364,7 @@ public class RecordingTargetHelper {
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
-                        this.deleteRecording(connectionDescriptor, snapshotName, true, false).get();
+                        this.deleteRecording(connectionDescriptor, snapshotName, false).get();
                         future.complete(false);
                     } else {
                         if (issueNotification) {
@@ -414,7 +409,6 @@ public class RecordingTargetHelper {
     private Future<Void> deleteRecording(
             ConnectionDescriptor connectionDescriptor,
             String recordingName,
-            boolean isSnapshot,
             boolean issueNotification) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
@@ -447,17 +441,9 @@ public class RecordingTargetHelper {
                                     recordingMetadataManager.deleteRecordingMetadataIfExists(
                                             connectionDescriptor.getTargetId(), recordingName);
                                     if (issueNotification) {
-                                        if (isSnapshot) {
-                                            this.issueNotification(
-                                                    connectionDescriptor.getTargetId(),
-                                                    linkedDesc,
-                                                    SNAPSHOT_DELETION_NOTIFICATION_CATEGORY);
-                                        } else {
-                                            this.issueNotification(
-                                                    connectionDescriptor.getTargetId(),
-                                                    linkedDesc,
-                                                    DELETION_NOTIFICATION_CATEGORY);
-                                        }
+                                        Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
+                                        String notificationCategory = m.matches() ? SNAPSHOT_DELETION_NOTIFICATION_CATEGORY : DELETION_NOTIFICATION_CATEGORY;
+                                        this.issueNotification(targetId, linkedDesc, notificationCategory);
                                     }
                                 } else {
                                     throw new RecordingNotFoundException(targetId, recordingName);
