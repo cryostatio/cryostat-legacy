@@ -59,7 +59,6 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
-    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
 
     private final RecordingTargetHelper recordingTargetHelper;
 
