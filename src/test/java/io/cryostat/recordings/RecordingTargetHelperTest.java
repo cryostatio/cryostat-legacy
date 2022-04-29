@@ -307,7 +307,8 @@ public class RecordingTargetHelperTest {
                 "snapshot-43646h",
                 "snapshot_-_6"
             })
-    void shouldCorrectlyDetermineDeletedRecordingIsNotSnapshot(String recordingName) throws Exception {
+    void shouldCorrectlyDetermineDeletedRecordingIsNotSnapshot(String recordingName)
+            throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -536,11 +537,12 @@ public class RecordingTargetHelperTest {
                 recordingTargetHelperSpy
                         .verifySnapshot(connectionDescriptor, snapshotDescriptor)
                         .get();
-        
+
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("SnapshotCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
@@ -581,11 +583,12 @@ public class RecordingTargetHelperTest {
                 recordingTargetHelperSpy
                         .verifySnapshot(connectionDescriptor, snapshotDescriptor, false)
                         .get();
-        
+
         Mockito.verify(notificationFactory, Mockito.never()).createBuilder();
         Mockito.verify(notificationBuilder, Mockito.never()).metaCategory("SnapshotCreated");
         Mockito.verify(notificationBuilder, Mockito.never()).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder, Mockito.never()).message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder, Mockito.never())
+                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
         Mockito.verify(notificationBuilder, Mockito.never()).build();
         Mockito.verify(notification, Mockito.never()).send();
 
@@ -820,7 +823,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                        .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
