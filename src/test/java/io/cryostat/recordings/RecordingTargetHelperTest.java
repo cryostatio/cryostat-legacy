@@ -305,7 +305,10 @@ public class RecordingTargetHelperTest {
                 "snapshot-h7",
                 "56ysnapshot-6",
                 "snapshot-43646h",
-                "snapshot_-_6"
+                "snapshot_-_6",
+                "snap-8",
+                "shot-22",
+                "snpshot-1"
             })
     void shouldCorrectlyDetermineDeletedRecordingIsNotSnapshot(String recordingName)
             throws Exception {
