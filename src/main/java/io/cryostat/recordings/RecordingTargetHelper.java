@@ -91,8 +91,8 @@ public class RecordingTargetHelper {
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
-    
-    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$"); 
+
+    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
 
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
@@ -250,7 +250,8 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    public Future<Void> deleteRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
         return this.deleteRecording(connectionDescriptor, recordingName, true);
     }
 
@@ -442,8 +443,12 @@ public class RecordingTargetHelper {
                                             connectionDescriptor.getTargetId(), recordingName);
                                     if (issueNotification) {
                                         Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
-                                        String notificationCategory = m.matches() ? SNAPSHOT_DELETION_NOTIFICATION_CATEGORY : DELETION_NOTIFICATION_CATEGORY;
-                                        this.issueNotification(targetId, linkedDesc, notificationCategory);
+                                        String notificationCategory =
+                                                m.matches()
+                                                        ? SNAPSHOT_DELETION_NOTIFICATION_CATEGORY
+                                                        : DELETION_NOTIFICATION_CATEGORY;
+                                        this.issueNotification(
+                                                targetId, linkedDesc, notificationCategory);
                                     }
                                 } else {
                                     throw new RecordingNotFoundException(targetId, recordingName);
