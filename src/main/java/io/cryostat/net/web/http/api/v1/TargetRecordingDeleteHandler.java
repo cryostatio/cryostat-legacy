@@ -106,7 +106,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         try {
             Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
-            if(m.matches()) {
+            if (m.matches()) {
                 recordingTargetHelper.deleteSnapshot(connectionDescriptor, recordingName).get();
             } else {
                 recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();

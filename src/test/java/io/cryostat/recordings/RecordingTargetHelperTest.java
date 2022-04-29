@@ -408,7 +408,9 @@ public class RecordingTargetHelperTest {
                         "http://example.com/report");
 
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotDescriptor).get();
+                recordingTargetHelperSpy
+                        .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                        .get();
 
         Assertions.assertTrue(verified);
     }
@@ -488,7 +490,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
-        
+
         IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
@@ -497,7 +499,9 @@ public class RecordingTargetHelperTest {
                         "http://example.com/report");
 
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotDescriptor).get();
+                recordingTargetHelperSpy
+                        .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                        .get();
 
         Assertions.assertFalse(verified);
     }

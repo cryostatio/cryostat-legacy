@@ -121,7 +121,9 @@ class TargetSnapshotPostHandler
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
-                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotDescriptor).get();
+                    recordingTargetHelper
+                            .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                            .get();
         } catch (ExecutionException e) {
             handleExecutionException(e);
         }

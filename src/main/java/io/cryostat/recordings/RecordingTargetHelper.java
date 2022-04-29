@@ -348,12 +348,15 @@ public class RecordingTargetHelper {
     }
 
     public Future<Boolean> verifySnapshot(
-            ConnectionDescriptor connectionDescriptor, HyperlinkedSerializableRecordingDescriptor snapshotDescriptor) {
+            ConnectionDescriptor connectionDescriptor,
+            HyperlinkedSerializableRecordingDescriptor snapshotDescriptor) {
         return this.verifySnapshot(connectionDescriptor, snapshotDescriptor, true);
     }
 
     public Future<Boolean> verifySnapshot(
-            ConnectionDescriptor connectionDescriptor, HyperlinkedSerializableRecordingDescriptor snapshotDescriptor, boolean issueNotification) {
+            ConnectionDescriptor connectionDescriptor,
+            HyperlinkedSerializableRecordingDescriptor snapshotDescriptor,
+            boolean issueNotification) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
             String snapshotName = snapshotDescriptor.getName();
@@ -369,7 +372,10 @@ public class RecordingTargetHelper {
                         future.complete(false);
                     } else {
                         if (issueNotification) {
-                            this.issueNotification(connectionDescriptor.getTargetId(), snapshotDescriptor, SNAPSHOT_CREATION_NOTIFICATION_CATEGORY);
+                            this.issueNotification(
+                                    connectionDescriptor.getTargetId(),
+                                    snapshotDescriptor,
+                                    SNAPSHOT_CREATION_NOTIFICATION_CATEGORY);
                         }
                         future.complete(true);
                     }
@@ -441,9 +447,15 @@ public class RecordingTargetHelper {
                                             connectionDescriptor.getTargetId(), recordingName);
                                     if (issueNotification) {
                                         if (isSnapshot) {
-                                            this.issueNotification(connectionDescriptor.getTargetId(), linkedDesc, SNAPSHOT_DELETION_NOTIFICATION_CATEGORY);
+                                            this.issueNotification(
+                                                    connectionDescriptor.getTargetId(),
+                                                    linkedDesc,
+                                                    SNAPSHOT_DELETION_NOTIFICATION_CATEGORY);
                                         } else {
-                                            this.issueNotification(connectionDescriptor.getTargetId(), linkedDesc, DELETION_NOTIFICATION_CATEGORY);
+                                            this.issueNotification(
+                                                    connectionDescriptor.getTargetId(),
+                                                    linkedDesc,
+                                                    DELETION_NOTIFICATION_CATEGORY);
                                         }
                                     }
                                 } else {
@@ -458,7 +470,10 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    private void issueNotification(String targetId, HyperlinkedSerializableRecordingDescriptor linkedDesc, String notificationCategory) {
+    private void issueNotification(
+            String targetId,
+            HyperlinkedSerializableRecordingDescriptor linkedDesc,
+            String notificationCategory) {
         notificationFactory
                 .createBuilder()
                 .metaCategory(notificationCategory)
@@ -564,7 +579,10 @@ public class RecordingTargetHelper {
                                                                     .get()
                                                                     .getReportURL(
                                                                             connection, name));
-                                            this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
+                                            this.issueNotification(
+                                                    targetId,
+                                                    linkedDesc,
+                                                    STOP_NOTIFICATION_CATEGORY);
                                         }
 
                                         return desc;
