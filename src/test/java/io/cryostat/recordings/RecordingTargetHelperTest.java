@@ -86,6 +86,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -245,6 +247,133 @@ public class RecordingTargetHelperTest {
     }
 
     @Test
+    void shouldDeleteSnapshot() throws Exception {
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        String recordingName = "snapshot-1";
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+
+        Mockito.verify(service).close(descriptor);
+        Mockito.verify(reportService)
+                .delete(
+                        Mockito.argThat(
+                                arg ->
+                                        arg.getTargetId()
+                                                .equals(connectionDescriptor.getTargetId())),
+                        Mockito.eq(recordingName));
+
+        Metadata metadata = new Metadata();
+        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("SnapshotDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", linkedDesc, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "foo",
+                "someRecording",
+                "my_recording",
+                "snapshot",
+                "snapshot-",
+                "snapshot-h7",
+                "56ysnapshot-6",
+                "snapshot-43646h",
+                "snapshot_-_6",
+                "snap-8",
+                "shot-22",
+                "snpshot-1"
+            })
+    void shouldCorrectlyDetermineDeletedRecordingIsNotSnapshot(String recordingName)
+            throws Exception {
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingDeleted");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "snapshot-0",
+                "snapshot-53",
+                "snapshot-34598",
+                "snapshot-1111111111111111",
+            })
+    void shouldCorrectlyDetermineDeletedRecordingIsSnapshot(String recordingName) throws Exception {
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
+
+        Mockito.verify(notificationBuilder).metaCategory("SnapshotDeleted");
+    }
+
+    @Test
     void shouldHandleDeleteWhenRecordingNotFound() throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
         String recordingName = "someRecording";
@@ -378,7 +507,7 @@ public class RecordingTargetHelperTest {
     }
 
     @Test
-    void shouldVerifySnapshot() throws Exception {
+    void shouldVerifySnapshotWithNotification() throws Exception {
         RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
         String snapshotName = "snapshot-1";
@@ -400,8 +529,71 @@ public class RecordingTargetHelperTest {
         Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
                 .thenReturn(true);
 
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+                recordingTargetHelperSpy
+                        .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                        .get();
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("SnapshotCreated");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
+
+        Assertions.assertTrue(verified);
+    }
+
+    @Test
+    void shouldVerifySnapshotWithoutNotification() throws Exception {
+        RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        String snapshotName = "snapshot-1";
+        Future<Optional<InputStream>> future = Mockito.mock(Future.class);
+        Mockito.doReturn(future)
+                .when(recordingTargetHelperSpy)
+                .getRecording(connectionDescriptor, snapshotName);
+
+        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
+
+        Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
+
+        byte[] src = new byte[1024 * 1024];
+        new Random(123456).nextBytes(src);
+        InputStream snapshot = new ByteArrayInputStream(src);
+        Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
+
+        Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
+                .thenReturn(true);
+
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+
+        boolean verified =
+                recordingTargetHelperSpy
+                        .verifySnapshot(connectionDescriptor, snapshotDescriptor, false)
+                        .get();
+
+        Mockito.verify(notificationFactory, Mockito.never()).createBuilder();
+        Mockito.verify(notificationBuilder, Mockito.never()).metaCategory("SnapshotCreated");
+        Mockito.verify(notificationBuilder, Mockito.never()).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder, Mockito.never())
+                .message(Map.of("recording", snapshotDescriptor, "target", "fooTarget"));
+        Mockito.verify(notificationBuilder, Mockito.never()).build();
+        Mockito.verify(notification, Mockito.never()).send();
 
         Assertions.assertTrue(verified);
     }
@@ -419,12 +611,19 @@ public class RecordingTargetHelperTest {
         Optional<InputStream> snapshotOptional = Optional.empty();
         Mockito.when(future.get()).thenReturn(snapshotOptional);
 
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+
         Assertions.assertThrows(
                 ExecutionException.class,
                 () -> {
                     try {
                         recordingTargetHelperSpy
-                                .verifySnapshot(connectionDescriptor, snapshotName)
+                                .verifySnapshot(connectionDescriptor, snapshotDescriptor)
                                 .get();
                     } catch (ExecutionException ee) {
                         Assertions.assertTrue(ee.getCause() instanceof SnapshotCreationException);
@@ -472,11 +671,17 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(snapshotName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+        IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
 
         boolean verified =
-                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+                recordingTargetHelperSpy
+                        .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                        .get();
 
         Assertions.assertFalse(verified);
     }
