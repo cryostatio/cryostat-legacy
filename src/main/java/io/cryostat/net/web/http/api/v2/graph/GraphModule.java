@@ -100,6 +100,7 @@ public abstract class GraphModule {
             RecordingsFetcher recordingsFetcher,
             ActiveRecordingsFetcher activeRecordingsFetcher,
             ArchivedRecordingsFetcher archivedRecordingsFetcher,
+            AllArchivedRecordingsFetcher allArchivedRecordingsFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
             SnapshotOnTargetMutator snapshotOnTargetMutator,
             StopRecordingMutator stopRecordingMutator,
@@ -129,6 +130,9 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher("targetNodes", targetNodesFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Query")
+                                        .dataFetcher("archivedRecordings", allArchivedRecordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))

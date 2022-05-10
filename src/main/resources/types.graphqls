@@ -38,6 +38,7 @@ input ActiveRecordingFilterInput {
 input ArchivedRecordingFilterInput {
     name: String
     labels: [String]
+    sourceTarget: String
 }
 
 type ServiceRef {
