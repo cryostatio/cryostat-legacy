@@ -85,16 +85,12 @@ class Cryostat {
                 .deployVerticle(
                         client.httpServer(),
                         new DeploymentOptions().setWorker(false),
-                        res -> {
-                            System.out.println("HTTP Server Verticle Started");
-                        });
+                        res -> logger.info("HTTP Server Verticle Started"));
         client.vertx()
                 .deployVerticle(
                         client.webServer(),
                         new DeploymentOptions().setWorker(true),
-                        res -> {
-                            System.out.println("WebServer Verticle Started");
-                        });
+                        res -> logger.info("WebServer Verticle Started"));
         client.messagingServer().start();
         client.platformClient().start();
         client.recordingMetadataManager().load();
