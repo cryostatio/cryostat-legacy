@@ -61,7 +61,6 @@ public abstract class WebModule {
     public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
 
     @Provides
-    @Singleton
     static WebServer provideWebServer(
             HttpServer httpServer,
             NetworkConfiguration netConf,
