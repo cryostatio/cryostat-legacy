@@ -71,12 +71,14 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -85,7 +87,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
 
-public class WebServer {
+public class WebServer extends AbstractVerticle {
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
     public static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
@@ -113,6 +115,7 @@ public class WebServer {
         this.logger = logger;
     }
 
+    @Override
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
         Router router =
                 Router.router(server.getVertx()); // a vertx is only available after server started
@@ -206,7 +209,9 @@ public class WebServer {
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
-                        route = route.blockingHandler(handler, handler.isOrdered());
+                        BlockingHandlerDecorator async =
+                                new BlockingHandlerDecorator(handler, handler.isAsync());
+                        route = route.handler(async);
                     }
                     route = route.failureHandler(failureHandler);
                     if (!handler.isAvailable()) {
@@ -272,6 +277,7 @@ public class WebServer {
         }
     }
 
+    @Override
     public void stop() {
         this.server.requestHandler(null);
     }
