@@ -42,18 +42,19 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.ServerWebSocket;
 
-public class HttpServer {
+public class HttpServer extends AbstractVerticle {
 
     private final NetworkConfiguration netConf;
     private final SslConfiguration sslConf;
@@ -97,37 +98,39 @@ public class HttpServer {
         this.shutdownListeners.remove(runnable);
     }
 
-    public Future<Void> start() throws SocketException, UnknownHostException {
+    @Override
+    public void start(Future<Void> future) {
         if (isAlive()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Already started"));
+            future.fail(new IllegalStateException("Already started"));
+            return;
         }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
         this.server
                 .requestHandler(requestHandlerDelegate)
                 .webSocketHandler(websocketHandlerDelegate)
                 .listen(
                         res -> {
                             if (res.failed()) {
-                                future.completeExceptionally(res.cause());
+                                future.fail(res.cause());
                                 return;
                             }
-                            future.complete(null);
+
+                            try {
+                                logger.info(
+                                        "{} service running on {}://{}:{}",
+                                        isSsl() ? "HTTPS" : "HTTP",
+                                        isSsl() ? "https" : "http",
+                                        netConf.getWebServerHost(),
+                                        netConf.getExternalWebServerPort());
+                                this.isAlive = true;
+                                future.complete();
+                            } catch (SocketException | UnknownHostException e) {
+                                future.fail(e);
+                            }
                         });
-
-        future.join(); // wait for async deployment to complete
-
-        logger.info(
-                "{} service running on {}://{}:{}",
-                isSsl() ? "HTTPS" : "HTTP",
-                isSsl() ? "https" : "http",
-                netConf.getWebServerHost(),
-                netConf.getExternalWebServerPort());
-        this.isAlive = true;
-
-        return CompletableFuture.completedFuture(null);
     }
 
+    @Override
     public void stop() {
         if (!isAlive()) {
             return;
