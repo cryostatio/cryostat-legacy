@@ -56,6 +56,8 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
 
 class Cryostat {
 
@@ -79,8 +81,20 @@ class Cryostat {
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.ruleProcessor().enable();
-        client.httpServer().start();
-        client.webServer().start();
+        client.vertx()
+                .deployVerticle(
+                        client.httpServer(),
+                        new DeploymentOptions().setWorker(false),
+                        res -> {
+                            System.out.println("HTTP Server Verticle Started");
+                        });
+        client.vertx()
+                .deployVerticle(
+                        client.webServer(),
+                        new DeploymentOptions().setWorker(true),
+                        res -> {
+                            System.out.println("WebServer Verticle Started");
+                        });
         client.messagingServer().start();
         client.platformClient().start();
         client.recordingMetadataManager().load();
@@ -96,6 +110,8 @@ class Cryostat {
         RuleRegistry ruleRegistry();
 
         RuleProcessor ruleProcessor();
+
+        Vertx vertx();
 
         HttpServer httpServer();
 
