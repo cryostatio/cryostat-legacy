@@ -274,7 +274,10 @@ public class RecordingArchiveHelper {
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
-        String subdirectory = targetId.equals(UPLOADED_RECORDINGS_SUBDIRECTORY) ? targetId : base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8));
+        String subdirectory =
+                targetId.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
+                        ? targetId
+                        : base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8));
         Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectory);
 
         try {

@@ -132,7 +132,8 @@ public abstract class GraphModule {
                                         .dataFetcher("targetNodes", targetNodesFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("archivedRecordings", allArchivedRecordingsFetcher))
+                                        .dataFetcher(
+                                                "archivedRecordings", allArchivedRecordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
