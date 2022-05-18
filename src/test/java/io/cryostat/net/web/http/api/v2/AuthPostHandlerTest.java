@@ -40,20 +40,8 @@ package io.cryostat.net.web.http.api.v2;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthenticationScheme;
-import io.cryostat.net.UnknownUserException;
-import io.cryostat.net.UserInfo;
-import io.cryostat.net.security.ResourceAction;
-
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -64,6 +52,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.UnknownUserException;
+import io.cryostat.net.UserInfo;
+import io.cryostat.net.security.ResourceAction;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class AuthPostHandlerTest {
@@ -110,7 +110,7 @@ class AuthPostHandlerTest {
         Mockito.when(auth.getUserInfo(Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new UnknownUserException("unknown")));
 
-        HttpStatusException ex =
+        ApiException ex =
                 Assertions.assertThrows(ApiException.class, () -> handler.handle(requestParams));
 
         MatcherAssert.assertThat(

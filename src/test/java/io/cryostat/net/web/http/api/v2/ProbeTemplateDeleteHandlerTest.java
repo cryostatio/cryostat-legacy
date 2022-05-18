@@ -55,8 +55,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -67,6 +66,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 public class ProbeTemplateDeleteHandlerTest {
@@ -146,9 +147,9 @@ public class ProbeTemplateDeleteHandlerTest {
             Mockito.when(requestParams.getPathParams())
                     .thenReturn(Map.of("probetemplateName", "foo.xml"));
             Mockito.doThrow(new IOException()).when(templateService).deleteTemplate("foo.xml");
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParams));
+                            ApiException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 

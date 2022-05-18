@@ -53,7 +53,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -121,8 +121,8 @@ class GrafanaDatasourceUrlGetHandlerTest {
 
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
 
-        HttpStatusException e =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException e =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Internal Server Error"));
         MatcherAssert.assertThat(
                 e.getPayload(), Matchers.equalTo("Deployment has no Grafana configuration"));

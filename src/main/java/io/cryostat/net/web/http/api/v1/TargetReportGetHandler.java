@@ -61,7 +61,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
@@ -133,7 +133,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
             if (targetRecordingNotFound(rootCause)) {
-                throw new HttpStatusException(404, ee);
+                throw new HttpException(404, ee);
             }
             throw ee;
         }

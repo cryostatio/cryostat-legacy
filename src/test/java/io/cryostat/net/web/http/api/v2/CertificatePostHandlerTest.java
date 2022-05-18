@@ -51,6 +51,18 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import com.google.gson.Gson;
+
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -63,8 +75,6 @@ import io.cryostat.net.web.http.api.ApiData;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
-
-import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -72,16 +82,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class CertificatePostHandlerTest {
@@ -141,7 +141,7 @@ class CertificatePostHandlerTest {
     @Test
     void shouldThrow400IfNoCertInRequest() {
         Mockito.when(ctx.fileUploads()).thenReturn(Collections.<FileUpload>emptySet());
-        HttpStatusException ex =
+        ApiException ex =
                 Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
@@ -151,7 +151,7 @@ class CertificatePostHandlerTest {
         Mockito.when(ctx.fileUploads()).thenReturn(Set.<FileUpload>of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(env.hasEnv(Mockito.any())).thenReturn(false);
-        HttpStatusException ex =
+        ApiException ex =
                 Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
@@ -169,7 +169,7 @@ class CertificatePostHandlerTest {
         Mockito.when(truststorePath.normalize()).thenReturn(truststorePath);
         Mockito.when(truststorePath.toString()).thenReturn("/truststore/certificate.cer");
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
-        HttpStatusException ex =
+        ApiException ex =
                 Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(409));
     }

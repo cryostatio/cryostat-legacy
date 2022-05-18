@@ -44,7 +44,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingPatchStop {
 
@@ -61,7 +61,7 @@ class TargetRecordingPatchStop {
         try {
             recordingTargetHelper.stopRecording(connectionDescriptor, recordingName);
         } catch (RecordingNotFoundException rnfe) {
-            throw new HttpStatusException(404, rnfe);
+            throw new HttpException(404, rnfe);
         }
         ctx.response().setStatusCode(200);
         ctx.response().end();

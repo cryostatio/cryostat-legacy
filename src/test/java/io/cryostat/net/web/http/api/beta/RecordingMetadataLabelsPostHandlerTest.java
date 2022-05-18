@@ -43,27 +43,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import io.cryostat.core.net.JFRConnection;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.recordings.RecordingNotFoundException;
-
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -75,6 +56,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import io.cryostat.core.net.JFRConnection;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 public class RecordingMetadataLabelsPostHandlerTest {
@@ -215,9 +215,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
             Mockito.doThrow(new IllegalArgumentException())
                     .when(recordingMetadataManager)
                     .parseRecordingLabels("invalid");
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
@@ -237,9 +237,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
                                     new RecordingNotFoundException(
                                             RecordingArchiveHelper.ARCHIVES, recordingName)));
 
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
             Assertions.assertTrue(
                     ExceptionUtils.getRootCause(ex) instanceof RecordingNotFoundException);

@@ -52,7 +52,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class WebClientAssetsGetHandler implements RequestHandler {
 
@@ -96,7 +96,7 @@ class WebClientAssetsGetHandler implements RequestHandler {
     @Override
     public void handle(RoutingContext ctx) {
         if (!hasIndexHtml) {
-            throw new HttpStatusException(404);
+            throw new HttpException(404);
         }
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         ctx.response().sendFile(INDEX_HTML.toString());

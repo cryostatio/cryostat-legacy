@@ -58,7 +58,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -138,9 +138,9 @@ class TemplateDeleteHandlerTest {
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(templateService.getTemplates()).thenReturn(List.of());
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

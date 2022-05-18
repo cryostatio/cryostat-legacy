@@ -72,7 +72,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -330,8 +330,8 @@ class RecordingsPostHandlerTest {
 
         when(ctx.fileUploads()).thenReturn(new HashSet<FileUpload>());
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
     }
@@ -364,8 +364,8 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
 
@@ -401,8 +401,8 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
@@ -441,8 +441,8 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Incorrect recording file name pattern"));

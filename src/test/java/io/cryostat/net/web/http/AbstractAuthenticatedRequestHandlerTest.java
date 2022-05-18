@@ -62,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -113,8 +113,8 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -126,8 +126,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                 new PermissionDeniedException(
                                         "namespace", "group", "resource", "verb", "reason")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -136,8 +136,8 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -155,8 +155,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                                 "verb",
                                                 "reason"))));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -170,8 +170,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                         new KubernetesClientException(
                                                 "test", new Exception("test2")))));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -180,8 +180,8 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -195,14 +195,14 @@ class AbstractAuthenticatedRequestHandlerTest {
         }
 
         @Test
-        void shouldPropagateIfHandlerThrowsHttpStatusException() {
-            Exception expectedException = new HttpStatusException(200);
+        void shouldPropagateIfHandlerThrowsHttpException() {
+            Exception expectedException = new HttpException(200);
             handler =
                     new ThrowingAuthenticatedHandler(
                             auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex, Matchers.sameInstance(expectedException));
         }
 
@@ -213,8 +213,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                     new ThrowingAuthenticatedHandler(
                             auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
 
@@ -229,8 +229,8 @@ class AbstractAuthenticatedRequestHandlerTest {
 
             Mockito.when(ctx.response()).thenReturn(resp);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             Mockito.verify(resp).putHeader("X-JMX-Authenticate", "Basic");
         }
@@ -244,8 +244,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                     new ThrowingAuthenticatedHandler(
                             auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
             MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target SSL Untrusted"));
         }
@@ -259,8 +259,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                     new ThrowingAuthenticatedHandler(
                             auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
             MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target Not Found"));
         }
@@ -272,8 +272,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                     new ThrowingAuthenticatedHandler(
                             auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
     }
@@ -326,8 +326,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Invalid X-JMX-Authorization format"));
@@ -352,8 +352,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Unacceptable X-JMX-Authorization type"));
@@ -378,8 +378,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(),
@@ -404,8 +404,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(),

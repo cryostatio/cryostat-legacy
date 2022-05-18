@@ -42,6 +42,10 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
+import org.apache.commons.lang3.StringUtils;
+
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
@@ -54,10 +58,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
-import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * TargetProbePostHandler will facilitate adding probes to a target and will have the following form
@@ -153,7 +154,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
             if (StringUtils.isBlank(probeTemplate)) {
                 sb.append("\"probeTemplate\" is required.");
             }
-            throw new HttpStatusException(400, sb.toString().trim());
+            throw new ApiException(400, sb.toString().trim());
         }
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),

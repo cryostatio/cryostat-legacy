@@ -47,7 +47,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
@@ -92,7 +92,7 @@ class RulesPostFormIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -136,7 +136,7 @@ class RulesPostFormIT extends StandardSelfTest {
                     Assertions.assertThrows(
                             ExecutionException.class, () -> duplicatePostResponse.get());
             MatcherAssert.assertThat(
-                    ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(409));
+                    ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(409));
             MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
 
         } finally {
@@ -186,7 +186,7 @@ class RulesPostFormIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 }

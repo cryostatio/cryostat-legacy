@@ -54,7 +54,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -147,8 +147,8 @@ class TargetSnapshotPostHandlerTest {
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }
@@ -186,8 +186,8 @@ class TargetSnapshotPostHandlerTest {
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }

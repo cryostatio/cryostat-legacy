@@ -46,6 +46,11 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import com.nimbusds.jwt.JWT;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
+import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
@@ -57,14 +62,9 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
-
-import com.nimbusds.jwt.JWT;
-import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractJwtConsumingHandler {
 
@@ -135,7 +135,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
             if (targetRecordingNotFound(rootCause)) {
-                throw new HttpStatusException(404, ee);
+                throw new ApiException(404, ee);
             }
             throw ee;
         }

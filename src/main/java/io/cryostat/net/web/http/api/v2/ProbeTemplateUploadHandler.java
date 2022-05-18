@@ -45,6 +45,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
@@ -55,10 +57,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
-import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
@@ -145,10 +145,10 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             }
         } catch (ProbeValidationException pve) {
             logger.error(pve.getMessage());
-            throw new HttpStatusException(400, pve.getMessage(), pve);
+            throw new ApiException(400, pve.getMessage(), pve);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            throw new HttpStatusException(500, e.getMessage(), e);
+            throw new ApiException(500, e.getMessage(), e);
         }
         return new IntermediateResponse().body(null);
     }

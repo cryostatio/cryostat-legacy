@@ -55,7 +55,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class NotificationsUrlGetHandler implements RequestHandler {
 
@@ -109,7 +109,7 @@ class NotificationsUrlGetHandler implements RequestHandler {
                             netConf.getExternalWebServerPort());
             ctx.response().end(gson.toJson(Map.of("notificationsUrl", notificationsUrl)));
         } catch (SocketException | UnknownHostException e) {
-            throw new HttpStatusException(500, e);
+            throw new HttpException(500, e);
         }
     }
 }

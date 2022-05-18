@@ -77,7 +77,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.impl.BlockingHandlerDecorator;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
@@ -123,11 +123,14 @@ public class WebServer extends AbstractVerticle {
         // error page handler
         Handler<RoutingContext> failureHandler =
                 ctx -> {
-                    HttpStatusException exception;
-                    if (ctx.failure() instanceof HttpStatusException) {
-                        exception = (HttpStatusException) ctx.failure();
+                    HttpException exception;
+                    if (ctx.failure() instanceof HttpException) {
+                        exception = (HttpException) ctx.failure();
+                    } else if (ctx.failure() instanceof ApiException) {
+                        ApiException ex = (ApiException) ctx.failure();
+                        exception = new HttpException(ex.getStatusCode(), ex.getFailureReason(), ex);
                     } else {
-                        exception = new HttpStatusException(500, ctx.failure());
+                        exception = new HttpException(500, ctx.failure());
                     }
 
                     String payload =
@@ -154,8 +157,8 @@ public class WebServer extends AbstractVerticle {
 
                     ctx.response().setStatusCode(exception.getStatusCode());
 
-                    if (exception instanceof ApiException) {
-                        ApiException ex = (ApiException) exception;
+                    if (exception.getCause() instanceof ApiException) {
+                        ApiException ex = (ApiException) exception.getCause();
                         String apiStatus =
                                 ex.getApiStatus() != null
                                         ? ex.getApiStatus()
@@ -170,7 +173,7 @@ public class WebServer extends AbstractVerticle {
                                 .end(gson.toJson(resp));
                     } else {
                         // kept for V1 API handler compatibility
-                        if (ExceptionUtils.hasCause(exception, HttpStatusException.class)) {
+                        if (ExceptionUtils.hasCause(exception, HttpException.class)) {
                             payload +=
                                     " caused by " + ExceptionUtils.getRootCauseMessage(exception);
                         }

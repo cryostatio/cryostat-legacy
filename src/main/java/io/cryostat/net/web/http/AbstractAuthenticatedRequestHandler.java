@@ -63,7 +63,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
@@ -92,27 +92,27 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
             if (!permissionGranted) {
                 // expected to go into catch clause below
-                throw new HttpStatusException(401, "HTTP Authorization Failure");
+                throw new HttpException(401, "HTTP Authorization Failure");
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
             handleAuthenticated(ctx);
         } catch (ExecutionException ee) {
             if (isAuthFailure(ee)) {
-                throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
+                throw new HttpException(401, "HTTP Authorization Failure", ee);
             }
             Throwable cause = ee.getCause();
             if (cause instanceof ConnectionException) {
                 handleConnectionException(ctx, (ConnectionException) cause);
             }
-            throw new HttpStatusException(500, ee.getMessage(), ee);
-        } catch (HttpStatusException e) {
+            throw new HttpException(500, ee.getMessage(), ee);
+        } catch (HttpException e) {
             throw e;
         } catch (ConnectionException e) {
             handleConnectionException(ctx, e);
-            throw new HttpStatusException(500, e.getMessage(), e);
+            throw new HttpException(500, e.getMessage(), e);
         } catch (Exception e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
+            throw new HttpException(500, e.getMessage(), e);
         }
     }
 
@@ -129,13 +129,13 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(
+                throw new HttpException(
                         427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             }
             String t = m.group("type");
             if (!"basic".equals(t.toLowerCase())) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(
+                throw new HttpException(
                         427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
             }
             String c;
@@ -146,7 +146,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                                 StandardCharsets.UTF_8);
             } catch (IllegalArgumentException iae) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(
+                throw new HttpException(
                         427,
                         JMX_AUTHORIZATION_HEADER
                                 + " credentials do not appear to be Base64-encoded",
@@ -155,7 +155,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             String[] parts = c.split(":");
             if (parts.length != 2) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(
+                throw new HttpException(
                         427, "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
             }
             credentials = new Credentials(parts[0], parts[1]);
@@ -175,14 +175,14 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         try {
             if (cause instanceof SecurityException || cause instanceof SaslException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(427, "JMX Authentication Failure", e);
+                throw new HttpException(427, "JMX Authentication Failure", e);
             }
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
-                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+                throw new HttpException(502, "Target SSL Untrusted", e);
             }
             if (rootCause instanceof UnknownHostException) {
-                throw new HttpStatusException(404, "Target Not Found", e);
+                throw new HttpException(404, "Target Not Found", e);
             }
         } finally {
             this.removeCredentialsIfPresent(ctx);

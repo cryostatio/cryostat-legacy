@@ -37,16 +37,22 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
-public class ApiException extends HttpStatusException {
+public class ApiException extends RuntimeException {
 
+    protected final int statusCode;
     protected final String apiStatus;
     protected final String reason;
 
+    public ApiException() {
+        this(500);
+    }
+
     public ApiException(int statusCode, String apiStatus, String reason, Throwable cause) {
-        super(statusCode, cause);
-        this.apiStatus = apiStatus;
+        super(reason, cause);
+        this.statusCode = statusCode;
+        this.apiStatus = apiStatus != null ? apiStatus : HttpResponseStatus.valueOf(statusCode).reasonPhrase();
         this.reason = reason;
     }
 
@@ -68,6 +74,10 @@ public class ApiException extends HttpStatusException {
 
     public ApiException(int statusCode) {
         this(statusCode, (String) null);
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 
     public String getApiStatus() {
