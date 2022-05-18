@@ -69,7 +69,7 @@
   <org.apache.commons.io.version>2.8.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
   <io.fabric8.client.version>5.4.1</io.fabric8.client.version>
-  <io.vertx.web.version>3.9.9</io.vertx.web.version>
+  <io.vertx.web.version>4.3.0</io.vertx.web.version>
   <com.nimbusds.jose.jwt.version>9.16.1</com.nimbusds.jose.jwt.version>
   <org.bouncycastle.version>1.69</org.bouncycastle.version>
   <org.slf4j.version>1.7.30</org.slf4j.version>
@@ -150,12 +150,12 @@
   <dependency>
       <!--
       FIXME this needs to be synced with the vertx - is there a BOM to use or something?
-      https://github.com/graphql-java/graphql-java-extended-scalars#extended-scalars-for-graphql-java
-      https://github.com/vert-x3/vertx-web/blob/f1aacf7e3e39a76e26b0bce01165dee846a02b77/vertx-web-graphql/pom.xml#L35
+      https://github.com/graphql-java/graphql-java-extended-scalars/commit/2bc8468753ffe5d2e112416207ab749173712c10
+      https://github.com/vert-x3/vertx-web/blob/4.3.0/vertx-web-graphql/pom.xml#L35
       -->
     <groupId>com.graphql-java</groupId>
     <artifactId>graphql-java-extended-scalars</artifactId>
-    <version>1.0.1</version>
+    <version>18.1</version>
   </dependency>
   <dependency>
     <groupId>com.nimbusds</groupId>
