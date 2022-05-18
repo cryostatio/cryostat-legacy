@@ -46,14 +46,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import javax.inject.Named;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
@@ -76,6 +71,9 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import dagger.Lazy;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -87,41 +85,41 @@ public class RecordingTargetHelper {
     private static final String SNAPSHOT_CREATION_NOTIFICATION_CATEGORY = "SnapshotCreated";
     private static final String SNAPSHOT_DELETION_NOTIFICATION_CATEGORY = "SnapshotDeleted";
 
-    private static final long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
+    private static final long TIMESTAMP_DRIFT_SAFEGUARD = 500L;
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
 
     private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
 
+    private final Vertx vertx;
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
-    private final ScheduledExecutorService scheduler;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
-    private final Map<Pair<String, String>, Future<?>> scheduledStopNotifications;
+    private final Map<Pair<String, String>, Long> scheduledStopNotifications;
 
     RecordingTargetHelper(
+            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
-            @Named(RecordingsModule.NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
             RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
+        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
-        this.scheduler = scheduler;
         this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
         this.scheduledStopNotifications = new ConcurrentHashMap<>();
@@ -477,9 +475,9 @@ public class RecordingTargetHelper {
 
     private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName)
             throws IOException {
-        var f = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
-        if (f != null) {
-            f.cancel(true);
+        Long id = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
+        if (id != null) {
+            this.vertx.cancelTimer(id);
         }
     }
 
@@ -540,50 +538,68 @@ public class RecordingTargetHelper {
     private void scheduleRecordingStopNotification(
             String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
         String targetId = connectionDescriptor.getTargetId();
-        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
-                this.scheduler.schedule(
-                        () -> {
-                            return targetConnectionManager.executeConnectedTask(
-                                    connectionDescriptor,
-                                    connection -> {
-                                        Optional<IRecordingDescriptor> desc =
-                                                getDescriptorByName(connection, recordingName);
 
-                                        desc =
-                                                desc.stream()
-                                                        .filter(
-                                                                r ->
-                                                                        r.getState()
-                                                                                .equals(
-                                                                                        RecordingState
-                                                                                                .STOPPED))
-                                                        .findFirst();
-                                        if (desc.isPresent()) {
-                                            String name = desc.get().getName();
-                                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                                                    new HyperlinkedSerializableRecordingDescriptor(
-                                                            desc.get(),
-                                                            webServer
-                                                                    .get()
-                                                                    .getDownloadURL(
-                                                                            connection, name),
-                                                            webServer
-                                                                    .get()
-                                                                    .getReportURL(
-                                                                            connection, name));
-                                            this.issueNotification(
-                                                    targetId,
-                                                    linkedDesc,
-                                                    STOP_NOTIFICATION_CATEGORY);
-                                        }
+        Handler<Promise<HyperlinkedSerializableRecordingDescriptor>> promiseHandler =
+                promise -> {
+                    try {
+                        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                targetConnectionManager.executeConnectedTask(
+                                        connectionDescriptor,
+                                        connection -> {
+                                            Optional<IRecordingDescriptor> desc =
+                                                    getDescriptorByName(connection, recordingName);
 
-                                        return desc;
-                                    });
-                        },
+                                            desc =
+                                                    desc.stream()
+                                                            .filter(
+                                                                    r ->
+                                                                            r.getState()
+                                                                                    .equals(
+                                                                                            RecordingState
+                                                                                                    .STOPPED))
+                                                            .findFirst();
+                                            if (desc.isPresent()) {
+                                                String name = desc.get().getName();
+                                                HyperlinkedSerializableRecordingDescriptor linked =
+                                                        new HyperlinkedSerializableRecordingDescriptor(
+                                                                desc.get(),
+                                                                webServer
+                                                                        .get()
+                                                                        .getDownloadURL(
+                                                                                connection, name),
+                                                                webServer
+                                                                        .get()
+                                                                        .getReportURL(
+                                                                                connection, name));
+                                                return linked;
+                                            }
+                                            return null;
+                                        });
+                        promise.complete(linkedDesc);
+                    } catch (Exception e) {
+                        promise.fail(e);
+                    }
+                };
+        long task =
+                this.vertx.setTimer(
                         delay + TIMESTAMP_DRIFT_SAFEGUARD,
-                        TimeUnit.MILLISECONDS);
+                        id -> {
+                            vertx.executeBlocking(
+                                    promiseHandler,
+                                    false,
+                                    result -> {
+                                        if (result.succeeded()) {
+                                            return;
+                                        }
+                                        this.issueNotification(
+                                                targetId,
+                                                ((HyperlinkedSerializableRecordingDescriptor)
+                                                        result.result()),
+                                                STOP_NOTIFICATION_CATEGORY);
+                                    });
+                        });
 
-        scheduledStopNotifications.put(Pair.of(targetId, recordingName), scheduledFuture);
+        scheduledStopNotifications.put(Pair.of(targetId, recordingName), task);
     }
 
     /**

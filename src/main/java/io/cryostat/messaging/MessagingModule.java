@@ -37,9 +37,6 @@
  */
 package io.cryostat.messaging;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -55,6 +52,7 @@ import io.cryostat.net.HttpServer;
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
 
 @Module(
         includes = {
@@ -63,30 +61,26 @@ import dagger.Provides;
 public abstract class MessagingModule {
 
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
-    static final String LIMBO_PRUNER = "LIMBO_PRUNER";
-    static final String KEEPALIVE_PINGER = "KEEPALIVE_PINGER";
 
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
+            Vertx vertx,
             HttpServer server,
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
             @Named(WS_MAX_CONNECTIONS) int maxConnections,
-            @Named(LIMBO_PRUNER) ScheduledExecutorService limboPruner,
-            @Named(KEEPALIVE_PINGER) ScheduledExecutorService keepalivePinger,
             Clock clock,
             Logger logger,
             Gson gson) {
         return new MessagingServer(
+                vertx,
                 server,
                 env,
                 authManager,
                 notificationFactory,
                 maxConnections,
-                limboPruner,
-                keepalivePinger,
                 clock,
                 logger,
                 gson);
@@ -111,26 +105,5 @@ public abstract class MessagingModule {
             logger.warn(nfe);
             return Integer.MAX_VALUE;
         }
-    }
-
-    @Provides
-    @Named(LIMBO_PRUNER)
-    static ScheduledExecutorService provideLimboPruner() {
-        ScheduledExecutorService ses =
-                Executors.newSingleThreadScheduledExecutor(
-                        r -> {
-                            Thread t = Executors.defaultThreadFactory().newThread(r);
-                            t.setDaemon(true);
-                            return t;
-                        });
-        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
-        return ses;
-    }
-
-    @Provides
-    @Named(KEEPALIVE_PINGER)
-    static ScheduledExecutorService provideKeepalivePinger() {
-        // just reuse the existing thread - these tasks are light weight and safe
-        return provideLimboPruner();
     }
 }
