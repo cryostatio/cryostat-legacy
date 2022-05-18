@@ -145,8 +145,7 @@ class RecordingUploadPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(501));
     }
 
@@ -172,8 +171,7 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(e.getCause())
                 .thenReturn(new RecordingNotFoundException("archives", recordingName));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -277,8 +275,7 @@ class RecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
@@ -335,8 +332,7 @@ class RecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
@@ -393,8 +389,7 @@ class RecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(

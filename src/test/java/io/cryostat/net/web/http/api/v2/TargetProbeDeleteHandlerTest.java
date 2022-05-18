@@ -45,17 +45,6 @@ import java.util.Map;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import com.google.gson.Gson;
-
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
@@ -72,8 +61,18 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetProbeDeleteHandlerTest {

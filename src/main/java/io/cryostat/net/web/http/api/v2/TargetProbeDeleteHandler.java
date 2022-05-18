@@ -42,10 +42,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
-
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -57,7 +53,9 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 

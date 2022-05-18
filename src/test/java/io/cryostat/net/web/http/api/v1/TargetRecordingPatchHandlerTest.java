@@ -120,8 +120,7 @@ class TargetRecordingPatchHandlerTest {
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -138,8 +137,7 @@ class TargetRecordingPatchHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 

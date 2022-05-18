@@ -128,7 +128,8 @@ public class WebServer extends AbstractVerticle {
                         exception = (HttpException) ctx.failure();
                     } else if (ctx.failure() instanceof ApiException) {
                         ApiException ex = (ApiException) ctx.failure();
-                        exception = new HttpException(ex.getStatusCode(), ex.getFailureReason(), ex);
+                        exception =
+                                new HttpException(ex.getStatusCode(), ex.getFailureReason(), ex);
                     } else {
                         exception = new HttpException(500, ctx.failure());
                     }

@@ -294,15 +294,13 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 
     @Test
     void shouldHandleException() throws Exception {
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -359,8 +357,7 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("events", "template=Foo");
         Mockito.when(req.formAttributes()).thenReturn(attrs);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 

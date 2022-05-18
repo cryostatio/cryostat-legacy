@@ -147,8 +147,7 @@ class TargetSnapshotPostHandlerTest {
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }
@@ -186,8 +185,7 @@ class TargetSnapshotPostHandlerTest {
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }

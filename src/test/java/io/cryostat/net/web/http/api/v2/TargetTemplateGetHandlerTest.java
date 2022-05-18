@@ -40,9 +40,23 @@ package io.cryostat.net.web.http.api.v2;
 import java.util.EnumSet;
 import java.util.Optional;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.TemplateService;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.api.ApiVersion;
+
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
-
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.nodes.Document;
@@ -56,21 +70,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnection;
-import io.cryostat.core.templates.TemplateService;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class TargetTemplateGetHandlerTest {
@@ -162,8 +161,7 @@ class TargetTemplateGetHandlerTest {
                     .thenReturn(Optional.empty());
             ApiException ex =
                     Assertions.assertThrows(
-                            ApiException.class,
-                            () -> handler.handleWithValidJwt(ctx, token));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 

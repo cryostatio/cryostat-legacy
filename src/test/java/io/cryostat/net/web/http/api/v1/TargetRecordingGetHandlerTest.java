@@ -165,8 +165,7 @@ class TargetRecordingGetHandlerTest {
         when(future.get()).thenReturn(stream);
         when(stream.isEmpty()).thenReturn(true);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -197,8 +196,7 @@ class TargetRecordingGetHandlerTest {
                         new ExecutionException(
                                 "fake exception for testing purposes", new NullPointerException()));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -242,8 +240,7 @@ class TargetRecordingGetHandlerTest {
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(false);
         // ********************************************************************
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(
                 ex.getCause().getCause().getMessage(),

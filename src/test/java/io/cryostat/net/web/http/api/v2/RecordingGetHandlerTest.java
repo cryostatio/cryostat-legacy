@@ -136,8 +136,7 @@ class RecordingGetHandlerTest {
             Mockito.when(archive.getRecordingPath(Mockito.anyString())).thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
-                            ApiException.class,
-                            () -> handler.handleWithValidJwt(ctx, token));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 

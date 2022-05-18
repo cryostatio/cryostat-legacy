@@ -166,8 +166,7 @@ class ReportGetHandlerTest {
                         CompletableFuture.failedFuture(
                                 new RecordingNotFoundException(null, "someRecording")));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
         Mockito.verify(reportService).get("someRecording");

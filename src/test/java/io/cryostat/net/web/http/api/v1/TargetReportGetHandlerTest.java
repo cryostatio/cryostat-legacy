@@ -159,8 +159,7 @@ class TargetReportGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -189,8 +188,7 @@ class TargetReportGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -218,8 +216,7 @@ class TargetReportGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 }

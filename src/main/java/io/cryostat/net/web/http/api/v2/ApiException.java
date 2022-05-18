@@ -52,7 +52,10 @@ public class ApiException extends RuntimeException {
     public ApiException(int statusCode, String apiStatus, String reason, Throwable cause) {
         super(reason, cause);
         this.statusCode = statusCode;
-        this.apiStatus = apiStatus != null ? apiStatus : HttpResponseStatus.valueOf(statusCode).reasonPhrase();
+        this.apiStatus =
+                apiStatus != null
+                        ? apiStatus
+                        : HttpResponseStatus.valueOf(statusCode).reasonPhrase();
         this.reason = reason;
     }
 

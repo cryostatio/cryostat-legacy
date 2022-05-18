@@ -122,8 +122,7 @@ class RecordingGetHandlerTest {
         Mockito.when(e.getCause())
                 .thenReturn(new RecordingNotFoundException("archives", recordingName));
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

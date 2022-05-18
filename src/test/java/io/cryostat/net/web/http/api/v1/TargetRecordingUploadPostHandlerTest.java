@@ -162,8 +162,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(501));
     }
 
@@ -329,8 +328,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
@@ -401,8 +399,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
@@ -473,8 +470,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(

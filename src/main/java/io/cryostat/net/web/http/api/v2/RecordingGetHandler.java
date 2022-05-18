@@ -44,9 +44,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import com.nimbusds.jwt.JWT;
-
-import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -56,6 +53,9 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;

@@ -129,14 +129,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpException(
-                        427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
+                throw new HttpException(427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             }
             String t = m.group("type");
             if (!"basic".equals(t.toLowerCase())) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpException(
-                        427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
+                throw new HttpException(427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
             }
             String c;
             try {

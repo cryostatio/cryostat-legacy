@@ -43,8 +43,20 @@ import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import com.nimbusds.jwt.JWT;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.nimbusds.jwt.JWT;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -56,19 +68,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingNotFoundException;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class ReportGetHandlerTest {
@@ -141,8 +140,7 @@ class ReportGetHandlerTest {
             Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
-                            ApiException.class,
-                            () -> handler.handleWithValidJwt(ctx, token));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 

@@ -43,8 +43,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;

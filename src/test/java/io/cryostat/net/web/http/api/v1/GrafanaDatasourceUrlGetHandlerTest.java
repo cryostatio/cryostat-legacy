@@ -121,8 +121,7 @@ class GrafanaDatasourceUrlGetHandlerTest {
 
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
 
-        HttpException e =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Internal Server Error"));
         MatcherAssert.assertThat(
                 e.getPayload(), Matchers.equalTo("Deployment has no Grafana configuration"));

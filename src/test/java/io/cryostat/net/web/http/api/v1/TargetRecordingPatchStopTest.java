@@ -103,8 +103,7 @@ class TargetRecordingPatchStopTest {
 
         HttpException ex =
                 Assertions.assertThrows(
-                        HttpException.class,
-                        () -> patchStop.handle(ctx, connectionDescriptor));
+                        HttpException.class, () -> patchStop.handle(ctx, connectionDescriptor));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

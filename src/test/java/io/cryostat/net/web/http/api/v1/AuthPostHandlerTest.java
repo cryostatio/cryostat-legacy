@@ -123,8 +123,7 @@ class AuthPostHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -137,8 +136,7 @@ class AuthPostHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        HttpException ex =
-                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 }

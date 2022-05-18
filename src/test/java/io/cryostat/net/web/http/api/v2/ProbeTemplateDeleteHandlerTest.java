@@ -55,7 +55,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
-
+import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -66,8 +66,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 public class ProbeTemplateDeleteHandlerTest {

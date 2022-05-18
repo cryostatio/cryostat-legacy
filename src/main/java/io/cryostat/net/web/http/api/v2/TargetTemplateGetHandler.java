@@ -42,9 +42,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.nimbusds.jwt.JWT;
-
-import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
@@ -54,6 +51,9 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;

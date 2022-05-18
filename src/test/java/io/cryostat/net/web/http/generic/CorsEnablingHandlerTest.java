@@ -55,7 +55,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -140,10 +139,9 @@ class CorsEnablingHandlerTest {
         }
 
         @ParameterizedTest
-        @EnumSource(
-                value = HttpMethod.class,
-                names = {"GET", "POST", "PATCH", "OPTIONS", "HEAD", "DELETE"})
-        void shouldRespondOKToOPTIONSWithAcceptedMethod(HttpMethod method) {
+        @ValueSource(strings = {"GET", "POST", "PATCH", "OPTIONS", "HEAD", "DELETE"})
+        void shouldRespondOKToOPTIONSWithAcceptedMethod(String methodName) {
+            HttpMethod method = HttpMethod.valueOf(methodName);
             Mockito.when(req.method()).thenReturn(HttpMethod.OPTIONS);
             Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
             Mockito.when(headers.get(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD))
