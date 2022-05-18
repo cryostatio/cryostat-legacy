@@ -82,7 +82,7 @@ public class TargetRecordingsClientErrorIT extends StandardSelfTest {
         webClient
                 .post(REQ_URL)
                 .sendForm(
-                        null,
+                        MultiMap.caseInsensitiveMultiMap(),
                         ar -> {
                             assertRequestStatus(ar, response);
                         });

@@ -85,7 +85,7 @@ class RulesPostFormIT extends StandardSelfTest {
                 .post("/api/v2/rules")
                 .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.MULTIPART_FORM.mime())
                 .sendForm(
-                        null,
+                        MultiMap.caseInsensitiveMultiMap(),
                         ar -> {
                             assertRequestStatus(ar, response);
                         });
