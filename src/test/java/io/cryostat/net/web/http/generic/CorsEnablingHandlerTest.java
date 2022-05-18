@@ -83,7 +83,7 @@ class CorsEnablingHandlerTest {
 
     @Test
     void shouldApplyToOtherMethod() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.OTHER));
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.nullValue());
     }
 
     @ParameterizedTest

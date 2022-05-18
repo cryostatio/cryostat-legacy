@@ -95,7 +95,7 @@ class CorsEnablingHandler implements RequestHandler {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+        return null; // unused for ALL_PATHS handlers
     }
 
     @Override

@@ -149,7 +149,7 @@
   </dependency>
   <dependency>
       <!--
-      FIXME this needs to be synced with the vertx - is there a BOM to use or something?
+      FIXME this needs to be synced with the vertx version - is there a BOM to use or something?
       https://github.com/graphql-java/graphql-java-extended-scalars/commit/2bc8468753ffe5d2e112416207ab749173712c10
       https://github.com/vert-x3/vertx-web/blob/4.3.0/vertx-web-graphql/pom.xml#L35
       -->
