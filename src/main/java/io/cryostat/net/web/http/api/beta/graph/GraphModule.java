@@ -106,6 +106,7 @@ public abstract class GraphModule {
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
                         .scalar(ExtendedScalars.GraphQLLong)
+                        .scalar(ExtendedScalars.Url)
                         .scalar(Scalars.GraphQLBoolean)
                         .scalar(
                                 ExtendedScalars.newAliasedScalar("ServiceURI")
