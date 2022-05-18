@@ -37,35 +37,33 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.ApiException;
 
-import graphql.GraphQL;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.graphql.GraphQLHandler;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class GraphQLPostHandler implements RequestHandler {
+class GraphQLPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "graphql";
-
-    private final GraphQLHandler handler;
-    private final AuthManager auth;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    GraphQLPostHandler(GraphQL graph, AuthManager auth) {
-        this.handler = GraphQLHandler.create(graph);
-        this.auth = auth;
+    GraphQLPostBodyHandler(AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
@@ -80,33 +78,16 @@ class GraphQLPostHandler implements RequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_TARGET,
-                ResourceAction.CREATE_RECORDING,
-                ResourceAction.READ_RECORDING,
-                ResourceAction.UPDATE_RECORDING,
-                ResourceAction.DELETE_RECORDING,
-                ResourceAction.READ_TEMPLATE,
-                ResourceAction.READ_CREDENTIALS);
+        return ResourceAction.NONE;
     }
 
     @Override
     public String path() {
-        return basePath() + PATH;
+        return basePath() + GraphQLPostHandler.PATH;
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        try {
-            if (!auth.validateHttpHeader(
-                            () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
-                            resourceActions())
-                    .get()) {
-                throw new ApiException(401);
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            throw new ApiException(500, e);
-        }
-        this.handler.handle(ctx);
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

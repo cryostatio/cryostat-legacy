@@ -73,6 +73,10 @@ public abstract class GraphModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindGraphPostHandler(GraphQLPostHandler handler);
 
     @Binds
