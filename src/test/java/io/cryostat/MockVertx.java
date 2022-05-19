@@ -35,16 +35,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.rules;
+package io.cryostat;
 
-import java.io.IOException;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-public class RuleException extends IOException {
-    RuleException(String reason) {
-        super(reason);
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+
+public class MockVertx {
+
+    public static final long PERIODIC_TIMER_ID = 1234L;
+    public static final long TIMER_ID = 5678L;
+
+    public static Vertx vertx() {
+        Vertx vertx = Mockito.mock(Vertx.class);
+
+        Mockito.lenient().doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                Promise promise = Promise.promise();
+
+                Handler<Promise> promiseHandler = invocation.getArgument(0);
+                promiseHandler.handle(promise);
+
+                Handler resultHandler = invocation.getArgument(2);
+                resultHandler.handle(promise.future().result());
+
+                return null;
+            }
+        }).when(vertx).executeBlocking(Mockito.any(), Mockito.anyBoolean(),
+                    Mockito.any());
+
+        Mockito.lenient().when(vertx.executeBlocking(Mockito.any())).thenAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Promise promise = Promise.promise();
+
+                Handler<Promise> promiseHandler = invocation.getArgument(0);
+                promiseHandler.handle(promise);
+
+                return promise.future();
+            }
+        });
+
+        Mockito.lenient().doReturn(PERIODIC_TIMER_ID).when(vertx).setPeriodic(Mockito.anyLong(), Mockito.any());
+
+        return vertx;
     }
 
-    RuleException(Throwable cause) {
-        super(cause);
-    }
 }

@@ -42,11 +42,27 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.tuple.Pair;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -62,28 +78,15 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.lang3.tuple.Pair;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class RuleProcessorTest {
 
     RuleProcessor processor;
-    @Mock Vertx vertx;
+    Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
     @Mock CredentialsManager credentialsManager;
@@ -101,6 +104,7 @@ class RuleProcessorTest {
 
     @BeforeEach
     void setup() {
+        this.vertx = MockVertx.vertx();
         this.processor =
                 new RuleProcessor(
                         vertx,
@@ -343,9 +347,6 @@ class RuleProcessorTest {
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
-        long id = 1234L;
-        Mockito.doReturn(id).when(vertx).setPeriodic(Mockito.anyLong(), Mockito.any());
-
         processor.accept(tde);
 
         Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), Mockito.any());
@@ -361,10 +362,10 @@ class RuleProcessorTest {
                         functionCaptor.capture(),
                         Mockito.any());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(vertx, Mockito.never()).cancelTimer(id);
+        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
-        Mockito.verify(vertx).cancelTimer(id);
+        Mockito.verify(vertx).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
     }
 }
