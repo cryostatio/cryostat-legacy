@@ -37,13 +37,13 @@
  */
 package io.cryostat;
 
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class MockVertx {
 
@@ -53,37 +53,80 @@ public class MockVertx {
     public static Vertx vertx() {
         Vertx vertx = Mockito.mock(Vertx.class);
 
-        Mockito.lenient().doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(InvocationOnMock invocation) throws Throwable {
-                Promise promise = Promise.promise();
+        Mockito.lenient()
+                .doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                Promise promise = Promise.promise();
 
-                Handler<Promise> promiseHandler = invocation.getArgument(0);
-                promiseHandler.handle(promise);
+                                Handler<Promise> promiseHandler = invocation.getArgument(0);
+                                promiseHandler.handle(promise);
 
-                Handler resultHandler = invocation.getArgument(2);
-                resultHandler.handle(promise.future().result());
+                                Handler resultHandler = invocation.getArgument(2);
+                                AsyncResult result =
+                                        new AsyncResult() {
+                                            @Override
+                                            public Object result() {
+                                                return promise.future().result();
+                                            }
 
-                return null;
-            }
-        }).when(vertx).executeBlocking(Mockito.any(), Mockito.anyBoolean(),
-                    Mockito.any());
+                                            @Override
+                                            public Throwable cause() {
+                                                return promise.future().cause();
+                                            }
 
-        Mockito.lenient().when(vertx.executeBlocking(Mockito.any())).thenAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Promise promise = Promise.promise();
+                                            @Override
+                                            public boolean succeeded() {
+                                                return promise.future().succeeded();
+                                            }
 
-                Handler<Promise> promiseHandler = invocation.getArgument(0);
-                promiseHandler.handle(promise);
+                                            @Override
+                                            public boolean failed() {
+                                                return promise.future().failed();
+                                            }
+                                        };
+                                resultHandler.handle(result);
 
-                return promise.future();
-            }
-        });
+                                return null;
+                            }
+                        })
+                .when(vertx)
+                .executeBlocking(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
 
-        Mockito.lenient().doReturn(PERIODIC_TIMER_ID).when(vertx).setPeriodic(Mockito.anyLong(), Mockito.any());
+        Mockito.lenient()
+                .when(vertx.executeBlocking(Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                Promise promise = Promise.promise();
+
+                                Handler<Promise> promiseHandler = invocation.getArgument(0);
+                                promiseHandler.handle(promise);
+
+                                return promise.future();
+                            }
+                        });
+
+        Mockito.lenient()
+                .doAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                Handler action = invocation.getArgument(0);
+                                action.handle(null);
+                                return null;
+                            }
+                        })
+                .when(vertx)
+                .runOnContext(Mockito.any());
+
+        Mockito.lenient()
+                .doReturn(PERIODIC_TIMER_ID)
+                .when(vertx)
+                .setPeriodic(Mockito.anyLong(), Mockito.any());
 
         return vertx;
     }
-
 }
