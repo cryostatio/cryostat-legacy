@@ -1748,7 +1748,7 @@ The handler-specific descriptions below describe how each handler populates the
     belonging to ex. Pods, belonging to Deployments, etc.
 
     ###### request
-    `GET /api/beta/discovery`
+    `GET /api/v2.1/discovery`
 
     ###### response
     `200` - The result is the path of the saved file in the server's storage.
