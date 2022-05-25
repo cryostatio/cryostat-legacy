@@ -39,11 +39,10 @@ package io.cryostat.messaging;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -75,7 +74,7 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
     private final Gson gson;
 
     private long prunerTaskId;
-    private List<Long> pingTaskIds;
+    private final Map<WsClient, Long> pingTasks;
 
     MessagingServer(
             Vertx vertx,
@@ -96,7 +95,7 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
         this.clock = clock;
         this.logger = logger;
         this.gson = gson;
-        this.pingTaskIds = new ArrayList<>();
+        this.pingTasks = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -152,11 +151,17 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                                                         sendClientActivityNotification(
                                                                 remoteAddress, "accepted");
 
-                                                        pingTaskIds.add(
-                                                                vertx.setPeriodic(
-                                                                        TimeUnit.SECONDS.toMillis(
-                                                                                5),
-                                                                        id -> wsc.ping()));
+                                                        Long ping =
+                                                                pingTasks.put(
+                                                                        wsc,
+                                                                        vertx.setPeriodic(
+                                                                                TimeUnit.SECONDS
+                                                                                        .toMillis(
+                                                                                                5),
+                                                                                id -> wsc.ping()));
+                                                        if (ping != null) {
+                                                            vertx.cancelTimer(ping);
+                                                        }
                                                     })
                                             // 1002: WebSocket "Protocol Error" close reason
                                             .onFailure(
@@ -204,9 +209,6 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
     @Override
     public void close() {
         this.vertx.cancelTimer(prunerTaskId);
-        pingTaskIds.forEach(vertx::cancelTimer);
-        pingTaskIds.clear();
-
         synchronized (connections) {
             connections.forEach(this::removeConnection);
             connections.clear();
@@ -225,6 +227,10 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                 wsc.close();
                 logger.info("Disconnected remote client {}", wsc.getRemoteAddress());
                 sendClientActivityNotification(wsc.getRemoteAddress().toString(), "disconnected");
+            }
+            Long ping = pingTasks.remove(wsc);
+            if (ping != null) {
+                vertx.cancelTimer(ping);
             }
         }
     }
