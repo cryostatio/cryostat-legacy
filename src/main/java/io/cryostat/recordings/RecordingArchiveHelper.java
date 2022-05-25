@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
@@ -83,6 +84,7 @@ import io.cryostat.util.URIUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.io.FileUtils;
 
 public class RecordingArchiveHelper {
 
@@ -220,6 +222,9 @@ public class RecordingArchiveHelper {
                     .message(Map.of("recording", archivedRecordingInfo))
                     .build()
                     .send();
+            if (pathIsEmpty(parentPath)) {
+                FileUtils.deleteDirectory(parentPath.toFile());
+            }
             future.complete(archivedRecordingInfo);
         } catch (IOException | InterruptedException | ExecutionException | URISyntaxException e) {
             future.completeExceptionally(e);
@@ -228,6 +233,15 @@ public class RecordingArchiveHelper {
         }
 
         return future;
+    }
+
+    private Boolean pathIsEmpty(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            try (DirectoryStream<Path> entries = Files.newDirectoryStream(path)) {
+                return !entries.iterator().hasNext();
+            }
+        }
+        return false;
     }
 
     private void validateSavePath(String recordingName, Path path) throws IOException {
