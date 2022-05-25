@@ -35,16 +35,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.Mockito.lenient;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
@@ -53,11 +56,10 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -71,9 +73,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class ProbeTemplateDeleteHandlerTest {
+public class ProbeTemplateUploadHandlerTest {
 
-    ProbeTemplateDeleteHandler handler;
+    ProbeTemplateUploadHandler handler;
     @Mock AuthManager auth;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
@@ -98,7 +100,7 @@ public class ProbeTemplateDeleteHandlerTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new ProbeTemplateDeleteHandler(
+                new ProbeTemplateUploadHandler(
                         auth, notificationFactory, templateService, logger, fs, gson);
     }
 
@@ -106,7 +108,7 @@ public class ProbeTemplateDeleteHandlerTest {
     class BasicHandlerDefinition {
         @Test
         void shouldBePOSTHandler() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.POST));
         }
 
         @Test
@@ -124,7 +126,7 @@ public class ProbeTemplateDeleteHandlerTest {
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(Set.of(ResourceAction.DELETE_PROBE_TEMPLATE)));
+                    Matchers.equalTo(Set.of(ResourceAction.CREATE_PROBE_TEMPLATE)));
         }
 
         @Test
@@ -144,24 +146,73 @@ public class ProbeTemplateDeleteHandlerTest {
         @Mock RequestParameters requestParams;
 
         @Test
-        void shouldRespond400WhenTemplateNotFound() throws Exception {
+        void shouldRespond500WhenUploadFails() throws Exception {
+            FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
+            Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
             Mockito.when(requestParams.getPathParams())
                     .thenReturn(Map.of("probetemplateName", "foo.xml"));
-            Mockito.doThrow(new IOException()).when(templateService).deleteTemplate("foo.xml");
+
+            Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+            Path uploadPath = Mockito.mock(Path.class);
+            Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
+
+            Mockito.when(fs.newInputStream(Mockito.any())).thenThrow(IOException.class);
+            HttpStatusException ex =
+                    Assertions.assertThrows(
+                            HttpStatusException.class, () -> handler.handle(requestParams));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+            Mockito.verify(fs).deleteIfExists(uploadPath);
+        }
+
+        @Test
+        void shouldRespond400IfXmlInvalid() throws Exception {
+            FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
+            Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+
+            Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
+            Mockito.when(requestParams.getPathParams())
+                    .thenReturn(Map.of("probetemplateName", "foo.xml"));
+
+            Path uploadPath = Mockito.mock(Path.class);
+            Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
+
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
+
+            Mockito.doThrow(ProbeValidationException.class)
+                    .when(templateService)
+                    .addTemplate(stream, "foo.xml");
+
             HttpStatusException ex =
                     Assertions.assertThrows(
                             HttpStatusException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            Mockito.verify(fs).deleteIfExists(uploadPath);
         }
 
         @Test
-        void shouldCallThroughToService() throws Exception {
+        void shouldProcessGoodRequest() throws Exception {
+            FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
+            Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+
+            Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
             Mockito.when(requestParams.getPathParams())
                     .thenReturn(Map.of("probetemplateName", "foo.xml"));
+
+            Path uploadPath = Mockito.mock(Path.class);
+            Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
+
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
+
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
-            Mockito.verify(templateService).deleteTemplate("foo.xml");
+            Mockito.verify(templateService).addTemplate(stream, "foo.xml");
             Mockito.verifyNoMoreInteractions(templateService);
+            Mockito.verify(fs).deleteIfExists(uploadPath);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.nullValue());

@@ -35,53 +35,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
+import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
-public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
+public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
 
-    static final String PATH = "probes/:probetemplateName";
+    static final String PATH = "targets/:targetId/probes";
 
-    private final Logger logger;
+    private final TargetConnectionManager connectionManager;
+    private static final String NOTIFICATION_CATEGORY = "TargetProbesGet";
     private final NotificationFactory notificationFactory;
-    private final LocalProbeTemplateService probeTemplateService;
-    private final FileSystem fs;
-    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
 
     @Inject
-    ProbeTemplateDeleteHandler(
+    TargetProbesGetHandler(
             AuthManager auth,
+            TargetConnectionManager connectionManager,
             NotificationFactory notificationFactory,
-            LocalProbeTemplateService probeTemplateService,
-            Logger logger,
-            FileSystem fs,
             Gson gson) {
         super(auth, gson);
         this.notificationFactory = notificationFactory;
-        this.logger = logger;
-        this.probeTemplateService = probeTemplateService;
-        this.fs = fs;
+        this.connectionManager = connectionManager;
     }
 
     @Override
@@ -90,23 +80,18 @@ public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
-    }
-
-    @Override
     public String path() {
         return basePath() + PATH;
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
-    public boolean isOrdered() {
-        return true;
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override
@@ -115,30 +100,38 @@ public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
-        String probeTemplateName = params.getPathParams().get("probetemplateName");
-        try {
-            this.probeTemplateService.deleteTemplate(probeTemplateName);
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("probeTemplate", probeTemplateName))
-                    .build()
-                    .send();
-        } catch (Exception e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
+    public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
+        Map<String, String> pathParams = requestParams.getPathParams();
+        String targetId = pathParams.get("targetId");
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isBlank(targetId)) {
+            sb.append("targetId is required.");
+            throw new HttpStatusException(400, sb.toString().trim());
         }
-        return new IntermediateResponse().body(null);
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_PROBE_TEMPLATE);
+        return connectionManager.executeConnectedTask(
+                getConnectionDescriptorFromParams(requestParams),
+                connection -> {
+                    connection.connect();
+                    AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
+                    String probes = helper.retrieveEventProbes();
+                    notificationFactory
+                            .createBuilder()
+                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaType(HttpMimeType.JSON)
+                            .message(Map.of("targetId", targetId))
+                            .build()
+                            .send();
+                    return new IntermediateResponse<String>().body(probes);
+                });
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
     }
 }

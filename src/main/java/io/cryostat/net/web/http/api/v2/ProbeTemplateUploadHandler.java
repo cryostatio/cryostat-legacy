@@ -35,86 +35,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.StringUtils;
 
-/**
- * TargetProbePostHandler will facilitate adding probes to a target and will have the following form
- * and response types:
- *
- * <p>POST /api/v2/targets/:targetId/probes/
- *
- * <p>targetId - The location of the target JVM to connect to, in the form of a service:rmi:jmx://
- * JMX Service URL. Should use percent-encoding.
- *
- * <p>Parameters
- *
- * <p>probeTemplate - name of the probe template to use
- *
- * <p>Responses
- *
- * <p>200 - No body
- *
- * <p>401 - User authentication failed. The body is an error message. There will be an
- * X-WWW-Authenticate: $SCHEME header that indicates the authentication scheme that is used.
- *
- * <p>404 - The target could not be found. The body is an error message.
- *
- * <p>427 - JMX authentication failed. The body is an error message. There will be an
- * X-JMX-Authenticate: $SCHEME header that indicates the authentication scheme that is used.
- */
-public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
+class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "targets/:targetId/probes/:probeTemplate";
+    static final String PATH = "probes/:probetemplateName";
 
     private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
-    private final TargetConnectionManager connectionManager;
-    private final Environment env;
     private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
 
     @Inject
-    TargetProbePostHandler(
-            Logger logger,
-            NotificationFactory notificationFactory,
-            LocalProbeTemplateService service,
-            FileSystem fs,
+    ProbeTemplateUploadHandler(
             AuthManager auth,
-            TargetConnectionManager connectionManager,
-            Environment env,
+            NotificationFactory notificationFactory,
+            LocalProbeTemplateService probeTemplateService,
+            Logger logger,
+            FileSystem fs,
             Gson gson) {
         super(auth, gson);
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
-        this.probeTemplateService = service;
-        this.connectionManager = connectionManager;
-        this.env = env;
+        this.logger = logger;
+        this.probeTemplateService = probeTemplateService;
         this.fs = fs;
     }
 
@@ -124,18 +91,28 @@ public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public String path() {
-        return basePath() + PATH;
-    }
-
-    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
     }
 
     @Override
+    public String path() {
+        return basePath() + PATH;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
+        return EnumSet.of(ResourceAction.CREATE_PROBE_TEMPLATE);
     }
 
     @Override
@@ -144,47 +121,40 @@ public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
-        Map<String, String> pathParams = requestParams.getPathParams();
-        String targetId = pathParams.get("targetId");
-        String probeTemplate = pathParams.get("probeTemplate");
-        if (StringUtils.isAnyBlank(targetId, probeTemplate)) {
-            StringBuilder sb = new StringBuilder();
-            if (StringUtils.isBlank(targetId)) {
-                sb.append("targetId is required.");
-            }
-            if (StringUtils.isBlank(probeTemplate)) {
-                sb.append("\"probeTemplate\" is required.");
-            }
-            throw new HttpStatusException(400, sb.toString().trim());
-        }
-        return connectionManager.executeConnectedTask(
-                getConnectionDescriptorFromParams(requestParams),
-                connection -> {
-                    connection.connect();
-                    AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    helper.defineEventProbes(probeTemplateService.getTemplate(probeTemplate));
+    public IntermediateResponse handle(RequestParameters requestParams) throws Exception {
+        try {
+            for (FileUpload u : requestParams.getFileUploads()) {
+                String templateName = requestParams.getPathParams().get("probetemplateName");
+                Path path = fs.pathOf(u.uploadedFileName());
+                if (!"probeTemplate".equals(u.name())) {
+                    fs.deleteIfExists(path);
+                    continue;
+                }
+                try (InputStream is = fs.newInputStream(path)) {
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            Map.of("targetId", targetId),
-                                            Map.of("probeTemplate", probeTemplate)))
+                            .message(Map.of("probeTemplate", u.uploadedFileName()))
                             .build()
                             .send();
-                    return new IntermediateResponse<Void>().body(null);
-                });
+                    probeTemplateService.addTemplate(is, templateName);
+                } finally {
+                    fs.deleteIfExists(path);
+                }
+            }
+        } catch (ProbeValidationException pve) {
+            logger.error(pve.getMessage());
+            throw new HttpStatusException(400, pve.getMessage(), pve);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new HttpStatusException(500, e.getMessage(), e);
+        }
+        return new IntermediateResponse().body(null);
     }
 
     @Override
     public HttpMimeType mimeType() {
         return HttpMimeType.PLAINTEXT;
-    }
-
-    @Override
-    public boolean isAsync() {
-        return false;
     }
 }

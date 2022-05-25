@@ -35,10 +35,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
-import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +44,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -54,16 +51,12 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
+public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "probes/:probetemplateName";
 
@@ -74,7 +67,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
 
     @Inject
-    ProbeTemplateUploadHandler(
+    ProbeTemplateDeleteHandler(
             AuthManager auth,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
@@ -95,7 +88,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.DELETE;
     }
 
     @Override
@@ -114,46 +107,31 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_PROBE_TEMPLATE);
-    }
-
-    @Override
     public boolean requiresAuthentication() {
         return true;
     }
 
     @Override
-    public IntermediateResponse handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
+        String probeTemplateName = params.getPathParams().get("probetemplateName");
         try {
-            for (FileUpload u : requestParams.getFileUploads()) {
-                String templateName = requestParams.getPathParams().get("probetemplateName");
-                Path path = fs.pathOf(u.uploadedFileName());
-                if (!"probeTemplate".equals(u.name())) {
-                    fs.deleteIfExists(path);
-                    continue;
-                }
-                try (InputStream is = fs.newInputStream(path)) {
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(Map.of("probeTemplate", u.uploadedFileName()))
-                            .build()
-                            .send();
-                    probeTemplateService.addTemplate(is, templateName);
-                } finally {
-                    fs.deleteIfExists(path);
-                }
-            }
-        } catch (ProbeValidationException pve) {
-            logger.error(pve.getMessage());
-            throw new HttpStatusException(400, pve.getMessage(), pve);
+            this.probeTemplateService.deleteTemplate(probeTemplateName);
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("probeTemplate", probeTemplateName))
+                    .build()
+                    .send();
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw new HttpStatusException(500, e.getMessage(), e);
+            throw new HttpStatusException(400, e.getMessage(), e);
         }
         return new IntermediateResponse().body(null);
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.DELETE_PROBE_TEMPLATE);
     }
 
     @Override

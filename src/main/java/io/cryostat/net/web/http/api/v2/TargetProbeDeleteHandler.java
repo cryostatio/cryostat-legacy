@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.Map;
 import java.util.Set;
@@ -43,38 +43,47 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.AgentJMXHelper;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
-public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
+public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes";
 
-    private final TargetConnectionManager connectionManager;
-    private static final String NOTIFICATION_CATEGORY = "TargetProbesGet";
+    private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final FileSystem fs;
+    private final TargetConnectionManager connectionManager;
+    private final Environment env;
+    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateDeleted";
 
     @Inject
-    TargetProbesGetHandler(
+    TargetProbeDeleteHandler(
+            Logger logger,
+            NotificationFactory notificationFactory,
+            FileSystem fs,
             AuthManager auth,
             TargetConnectionManager connectionManager,
-            NotificationFactory notificationFactory,
+            Environment env,
             Gson gson) {
         super(auth, gson);
+        this.logger = logger;
         this.notificationFactory = notificationFactory;
         this.connectionManager = connectionManager;
+        this.env = env;
+        this.fs = fs;
     }
 
     @Override
@@ -89,7 +98,7 @@ public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.DELETE;
     }
 
     @Override
@@ -103,7 +112,7 @@ public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
         Map<String, String> pathParams = requestParams.getPathParams();
         String targetId = pathParams.get("targetId");
         StringBuilder sb = new StringBuilder();
@@ -111,26 +120,33 @@ public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
             sb.append("targetId is required.");
             throw new HttpStatusException(400, sb.toString().trim());
         }
-        return connectionManager.executeConnectedTask(
-                getConnectionDescriptorFromParams(requestParams),
-                connection -> {
-                    connection.connect();
-                    AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    String probes = helper.retrieveEventProbes();
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(Map.of("targetId", targetId))
-                            .build()
-                            .send();
-                    return new IntermediateResponse<String>().body(probes);
-                });
+        try {
+            return connectionManager.executeConnectedTask(
+                    getConnectionDescriptorFromParams(requestParams),
+                    connection -> {
+                        connection.connect();
+                        AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
+                        // The convention for removing probes in the agent controller mbean is to
+                        // call
+                        // defineEventProbes with a null argument.
+                        helper.defineEventProbes(null);
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(Map.of("targetId", targetId))
+                                .build()
+                                .send();
+                        return new IntermediateResponse<Void>().body(null);
+                    });
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+        return HttpMimeType.PLAINTEXT;
     }
 
     @Override
