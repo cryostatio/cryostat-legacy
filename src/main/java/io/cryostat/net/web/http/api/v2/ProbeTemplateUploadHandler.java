@@ -60,7 +60,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
+public class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "probes/:probetemplateName";
 

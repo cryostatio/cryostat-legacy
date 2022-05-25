@@ -39,6 +39,12 @@ package io.cryostat.net.web.http.api.beta;
 
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import io.cryostat.net.web.http.api.v2.ProbeTemplateDeleteHandler;
+import io.cryostat.net.web.http.api.v2.TargetProbePostHandler;
+import io.cryostat.net.web.http.api.v2.TargetProbeDeleteHandler;
+import io.cryostat.net.web.http.api.v2.TargetProbesGetHandler;
+import io.cryostat.net.web.http.api.v2.ProbeTemplateUploadBodyHandler;
+import io.cryostat.net.web.http.api.v2.ProbeTemplateUploadHandler;
 
 import dagger.Binds;
 import dagger.Module;
