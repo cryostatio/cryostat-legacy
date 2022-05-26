@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.Set;
 
@@ -52,7 +52,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
+class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
