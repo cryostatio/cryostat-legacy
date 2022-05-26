@@ -802,8 +802,15 @@ class RecordingArchiveHelperTest {
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
 
         Mockito.verify(fs, Mockito.times(3)).deleteIfExists(Mockito.any());
-        Mockito.verify(fs).deleteIfExists(archivedRecordingsPath.resolve(subdirectories.get(1)).resolve(recordingName).toAbsolutePath());
-        Mockito.verify(fs).deleteIfExists(archivedRecordingsPath.resolve(subdirectories.get(1)).toAbsolutePath());
+        Mockito.verify(fs)
+                .deleteIfExists(
+                        archivedRecordingsPath
+                                .resolve(subdirectories.get(1))
+                                .resolve(recordingName)
+                                .toAbsolutePath());
+        Mockito.verify(fs)
+                .deleteIfExists(
+                        archivedRecordingsPath.resolve(subdirectories.get(1)).toAbsolutePath());
         Mockito.verify(fs).deleteIfExists(archivedRecordingsReportPath);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingDeleted");
