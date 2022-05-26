@@ -220,7 +220,7 @@ public class RecordingArchiveHelper {
                     .message(Map.of("recording", archivedRecordingInfo))
                     .build()
                     .send();
-            if (fs.size(parentPath) == 0) {
+            if (fs.listDirectoryChildren(parentPath).isEmpty()) {
                 fs.deleteIfExists(parentPath);
             }
             future.complete(archivedRecordingInfo);
