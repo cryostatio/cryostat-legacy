@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -61,8 +61,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -79,9 +77,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class TargetProbePostHandlerTest {
+public class TargetProbeGetHandlerTest {
 
-    TargetProbePostHandler handler;
+    TargetProbesGetHandler handler;
     @Mock AuthManager auth;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
@@ -108,22 +106,15 @@ public class TargetProbePostHandlerTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TargetProbePostHandler(
-                        logger,
-                        notificationFactory,
-                        templateService,
-                        fs,
-                        auth,
-                        targetConnectionManager,
-                        env,
-                        gson);
+                new TargetProbesGetHandler(
+                        auth, targetConnectionManager, notificationFactory, gson);
     }
 
     @Nested
     class BasicHandlerDefinition {
         @Test
-        void shouldBePOSTHandler() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.POST));
+        void shouldBeGETHandler() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
         }
 
         @Test
@@ -134,8 +125,7 @@ public class TargetProbePostHandlerTest {
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(),
-                    Matchers.equalTo("/api/v2/targets/:targetId/probes/:probeTemplate"));
+                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/probes"));
         }
 
         @Test
@@ -145,8 +135,8 @@ public class TargetProbePostHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldReturnJSONMimeType() {
+            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
 
         @Test
@@ -162,8 +152,7 @@ public class TargetProbePostHandlerTest {
 
         @Test
         public void shouldRespondOK() throws Exception {
-            Mockito.when(requestParams.getPathParams())
-                    .thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar"));
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "foo"));
             Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
@@ -186,7 +175,7 @@ public class TargetProbePostHandlerTest {
                                     any(Object[].class),
                                     any(String[].class)))
                     .thenReturn(result);
-            IntermediateResponse<Void> response = handler.handle(requestParams);
+            IntermediateResponse<String> response = handler.handle(requestParams);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 
@@ -194,7 +183,7 @@ public class TargetProbePostHandlerTest {
         public void shouldRespond400WhenTargetIdIsMissing() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", ""));
             try {
-                IntermediateResponse<Void> response = handler.handle(requestParams);
+                IntermediateResponse<String> response = handler.handle(requestParams);
             } catch (HttpStatusException e) {
                 MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(400));
             }

@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -48,6 +48,7 @@ import javax.management.ObjectName;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
+import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
@@ -60,8 +61,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -78,10 +77,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class TargetProbeDeleteHandlerTest {
+public class TargetProbePostHandlerTest {
 
-    TargetProbeDeleteHandler handler;
+    TargetProbePostHandler handler;
     @Mock AuthManager auth;
+    @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
@@ -106,26 +106,34 @@ public class TargetProbeDeleteHandlerTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TargetProbeDeleteHandler(
-                        logger, notificationFactory, fs, auth, targetConnectionManager, env, gson);
+                new TargetProbePostHandler(
+                        logger,
+                        notificationFactory,
+                        templateService,
+                        fs,
+                        auth,
+                        targetConnectionManager,
+                        env,
+                        gson);
     }
 
     @Nested
     class BasicHandlerDefinition {
         @Test
-        void shouldBeDELETEHandler() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
+        void shouldBePOSTHandler() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.POST));
         }
 
         @Test
-        void shouldBeBetaAPI() {
+        void shouldBeV2API() {
             MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2));
         }
 
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/probes"));
+                    handler.path(),
+                    Matchers.equalTo("/api/v2/targets/:targetId/probes/:probeTemplate"));
         }
 
         @Test
@@ -149,13 +157,11 @@ public class TargetProbeDeleteHandlerTest {
     class Requests {
 
         @Mock RequestParameters requestParams;
-        private static final String AGENT_OBJECT_NAME =
-                "org.openjdk.jmc.jfr.agent:type=AgentController";
-        private static final String DEFINE_EVENT_PROBES = "defineEventProbes";
 
         @Test
         public void shouldRespondOK() throws Exception {
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "foo"));
+            Mockito.when(requestParams.getPathParams())
+                    .thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar"));
             Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
@@ -170,13 +176,14 @@ public class TargetProbeDeleteHandlerTest {
                                             .execute(connection));
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
+            Object result = Mockito.mock(Object.class);
             Mockito.when(
                             mbsc.invoke(
                                     any(ObjectName.class),
                                     any(String.class),
                                     any(Object[].class),
                                     any(String[].class)))
-                    .thenReturn(null);
+                    .thenReturn(result);
             IntermediateResponse<Void> response = handler.handle(requestParams);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
