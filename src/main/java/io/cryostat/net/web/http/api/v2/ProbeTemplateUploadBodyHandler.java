@@ -52,7 +52,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
+class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 

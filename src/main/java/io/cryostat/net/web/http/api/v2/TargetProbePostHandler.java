@@ -84,7 +84,7 @@ import org.apache.commons.lang3.StringUtils;
  * <p>427 - JMX authentication failed. The body is an error message. There will be an
  * X-JMX-Authenticate: $SCHEME header that indicates the authentication scheme that is used.
  */
-public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
+class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes/:probeTemplate";
 

@@ -56,7 +56,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
+class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "probes/:probetemplateName";
 

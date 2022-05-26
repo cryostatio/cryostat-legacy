@@ -58,7 +58,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
-public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
+class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes";
 
