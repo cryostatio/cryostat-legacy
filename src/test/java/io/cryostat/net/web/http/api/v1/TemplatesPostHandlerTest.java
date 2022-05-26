@@ -42,7 +42,6 @@ import static org.mockito.Mockito.lenient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -128,7 +127,7 @@ class TemplatesPostHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         FileUpload upload = Mockito.mock(FileUpload.class);
         Mockito.when(upload.name()).thenReturn("template");
-        Mockito.when(ctx.fileUploads()).thenReturn(List.of(upload));
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
         Path uploadPath = Mockito.mock(Path.class);
@@ -147,7 +146,7 @@ class TemplatesPostHandlerTest {
         Mockito.when(upload.name()).thenReturn("template");
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        Mockito.when(ctx.fileUploads()).thenReturn(List.of(upload));
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
@@ -173,7 +172,7 @@ class TemplatesPostHandlerTest {
         Mockito.when(upload.name()).thenReturn("invalidUploadName");
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        Mockito.when(ctx.fileUploads()).thenReturn(List.of(upload));
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
@@ -196,7 +195,7 @@ class TemplatesPostHandlerTest {
         Mockito.when(upload.name()).thenReturn("template");
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        Mockito.when(ctx.fileUploads()).thenReturn(List.of(upload));
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
@@ -232,7 +231,7 @@ class TemplatesPostHandlerTest {
         Mockito.when(upload.name()).thenReturn("template");
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        Mockito.when(ctx.fileUploads()).thenReturn(List.of(upload));
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
