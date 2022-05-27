@@ -39,6 +39,8 @@ package io.cryostat.net.web.http.generic;
 
 import java.util.Set;
 
+import javax.inject.Inject;
+
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -48,10 +50,13 @@ import io.vertx.ext.web.RoutingContext;
 
 class LocalHealthGetHandler implements RequestHandler {
 
+    @Inject
+    LocalHealthGetHandler() {}
+
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response()
-            .end("HTTP OK\n");;
+        ctx.response().end("HTTP OK\n");
+        ;
     }
 
     @Override
@@ -73,5 +78,4 @@ class LocalHealthGetHandler implements RequestHandler {
     public Set<ResourceAction> resourceActions() {
         return ResourceAction.NONE;
     }
-    
 }
