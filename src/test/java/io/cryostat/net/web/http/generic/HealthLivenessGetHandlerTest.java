@@ -37,36 +37,52 @@
  */
 package io.cryostat.net.web.http.generic;
 
-import io.cryostat.net.web.http.RequestHandler;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@Module
-public abstract class HttpGenericModule {
+@ExtendWith(MockitoExtension.class)
+class HealthLivenessGetHandlerTest {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+    HealthLivenessGetHandler handler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+    @BeforeEach
+    void setup() {
+        this.handler = new HealthLivenessGetHandler();
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    @Test
+    void shouldHandleGETRequest() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthLivenessGetHandler(HealthLivenessGetHandler handler);
+    @Test
+    void shouldHandleCorrectPath() {
+        MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/health/liveness"));
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Test
+    void shouldHandleLocalHealthRequest() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        HttpServerResponse statusRep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.setStatusCode(Mockito.anyInt())).thenReturn(statusRep);
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+        handler.handle(ctx);
+
+        verify(rep).setStatusCode(204);
+        verify(statusRep).end();
+    }
 }
