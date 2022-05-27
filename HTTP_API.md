@@ -1259,7 +1259,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### synopsis
     Returns whether or not Cryostat itself is running properly
-    by checking for a valid No Content response (since: 2.2.0).
+    by checking for a valid No Content response (since: 2.1.1).
 
     ###### request
     `GET /health/liveness`
