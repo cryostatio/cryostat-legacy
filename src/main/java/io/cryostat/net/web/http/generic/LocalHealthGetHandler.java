@@ -55,8 +55,7 @@ class LocalHealthGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().end("HTTP OK\n");
-        ;
+        ctx.response().setStatusCode(204).end();
     }
 
     @Override
@@ -66,7 +65,7 @@ class LocalHealthGetHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "local";
+        return basePath() + "health/liveness";
     }
 
     @Override
