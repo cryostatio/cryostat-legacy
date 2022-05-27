@@ -60,6 +60,10 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindLocalHealthGetHandler(LocalHealthGetHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
 
     @Binds
