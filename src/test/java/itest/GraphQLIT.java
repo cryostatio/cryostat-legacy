@@ -176,6 +176,37 @@ class GraphQLIT extends ExternalTargetsTest {
         }
     }
 
+    @Test
+    @Order(2)
+    void testQueryForSpecificTargetWithSpecificFields() throws Exception {
+        CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { name nodeType } }");
+        webClient
+                .post("/api/beta/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                TargetNodesQueryResponse.class));
+                            }
+                        });
+        TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        String uri =
+                String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, 9093);
+        TargetNode ext = new TargetNode();
+        ext.name = uri;
+        ext.nodeType = "JVM";
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasItem(ext));
+    }
+
     static class Target {
         String alias;
         String serviceUri;
