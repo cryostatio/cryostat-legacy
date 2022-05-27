@@ -19,7 +19,6 @@
 | Get the URL of Cryostat's Grafana dashboard                               | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
 | Get the URL of Cryostat's Grafana datasource                              | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
 | Check the status of Cryostat's Grafana datasource and dashboard           | [`HealthGetHandler`](#HealthGetHandler)                                     |
-| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                           |
 | **Events and event templates**                                            |                                                                             |
 | Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                         |
 | Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)                   |
@@ -199,24 +198,6 @@
     ```
     $ curl localhost:8181/health
     {"dashboardConfigured":false,"dashboardAvailable":false,"datasourceConfigured":false,"datasourceAvailable":false,"reportsConfigured":false,"reportsAvailable":true}
-    ```
-
-
-* #### `HealthLivenessGetHandler`
-
-    ###### synopsis
-    Returns whether or not Cryostat itself is running properly
-    by checking for a valid No Content response.
-
-    ###### request
-    `GET /health/liveness`
-
-    ###### response
-    `204` - There is no content to display.
-
-    ###### example
-    ```
-    $ curl localhost:8181/health/liveness
     ```
 
 
@@ -1218,6 +1199,7 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
+| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                     |
 | **Target JVMs**                                                           |                                                                                 |
 | Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
 | Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
@@ -1270,6 +1252,24 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
+    ```
+
+
+* #### `HealthLivenessGetHandler`
+
+    ###### synopsis
+    Returns whether or not Cryostat itself is running properly
+    by checking for a valid No Content response (since: 2.1.1).
+
+    ###### request
+    `GET /health/liveness`
+
+    ###### response
+    `204` - There is no content to display.
+
+    ###### example
+    ```
+    $ curl localhost:8181/health/liveness
     ```
 
 
