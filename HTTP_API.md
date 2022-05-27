@@ -19,6 +19,7 @@
 | Get the URL of Cryostat's Grafana dashboard                               | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
 | Get the URL of Cryostat's Grafana datasource                              | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
 | Check the status of Cryostat's Grafana datasource and dashboard           | [`HealthGetHandler`](#HealthGetHandler)                                     |
+| Check the status of Cryostat itself                                       | [`LocalHealthGetHandler`](#LocalHealthGetHandler)                           |
 | **Events and event templates**                                            |                                                                             |
 | Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                         |
 | Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)                   |
@@ -198,6 +199,24 @@
     ```
     $ curl localhost:8181/health
     {"dashboardConfigured":false,"dashboardAvailable":false,"datasourceConfigured":false,"datasourceAvailable":false,"reportsConfigured":false,"reportsAvailable":true}
+    ```
+
+
+* #### `LocalHealthGetHandler`
+
+    ###### synopsis
+    Returns whether or not Cryostat itself is running properly
+    by checking for a valid No Content response.
+
+    ###### request
+    `GET /health/liveness`
+
+    ###### response
+    `204` - There is no content to display.
+
+    ###### example
+    ```
+    $ curl localhost:8181/health/liveness
     ```
 
 
