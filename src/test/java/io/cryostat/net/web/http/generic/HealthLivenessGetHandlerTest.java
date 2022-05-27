@@ -53,13 +53,13 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class LocalHealthGetHandlerTest {
+class HealthLivenessGetHandlerTest {
 
-    LocalHealthGetHandler handler;
+    HealthLivenessGetHandler handler;
 
     @BeforeEach
     void setup() {
-        this.handler = new LocalHealthGetHandler();
+        this.handler = new HealthLivenessGetHandler();
     }
 
     @Test

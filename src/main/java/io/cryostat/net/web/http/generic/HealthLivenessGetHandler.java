@@ -48,10 +48,10 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class LocalHealthGetHandler implements RequestHandler {
+class HealthLivenessGetHandler implements RequestHandler {
 
     @Inject
-    LocalHealthGetHandler() {}
+    HealthLivenessGetHandler() {}
 
     @Override
     public void handle(RoutingContext ctx) {

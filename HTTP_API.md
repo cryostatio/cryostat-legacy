@@ -19,7 +19,7 @@
 | Get the URL of Cryostat's Grafana dashboard                               | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
 | Get the URL of Cryostat's Grafana datasource                              | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
 | Check the status of Cryostat's Grafana datasource and dashboard           | [`HealthGetHandler`](#HealthGetHandler)                                     |
-| Check the status of Cryostat itself                                       | [`LocalHealthGetHandler`](#LocalHealthGetHandler)                           |
+| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                           |
 | **Events and event templates**                                            |                                                                             |
 | Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                         |
 | Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)                   |
@@ -202,7 +202,7 @@
     ```
 
 
-* #### `LocalHealthGetHandler`
+* #### `HealthLivenessGetHandler`
 
     ###### synopsis
     Returns whether or not Cryostat itself is running properly
