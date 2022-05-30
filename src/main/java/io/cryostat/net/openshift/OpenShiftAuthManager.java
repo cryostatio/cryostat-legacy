@@ -63,19 +63,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Scheduler;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
-
-import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AbstractAuthManager;
@@ -89,6 +76,15 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.util.resource.ClassPropertiesLoader;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
+import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
@@ -107,6 +103,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -156,7 +155,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.resourceMap = processResourceMapping(classPropertiesLoader, logger);
     }
 
-    static Map<ResourceType, Set<GroupResource>> processResourceMapping(ClassPropertiesLoader loader, Logger logger) {
+    static Map<ResourceType, Set<GroupResource>> processResourceMapping(
+            ClassPropertiesLoader loader, Logger logger) {
         Map<ResourceType, Set<GroupResource>> resourceMap = new HashMap<>();
         Map<String, String> props;
         try {
@@ -166,21 +166,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return Collections.unmodifiableMap(resourceMap);
         }
         props.entrySet()
-            .forEach(
-                    entry -> {
-                        try {
-                            ResourceType type = ResourceType.valueOf(entry.getKey());
-                            Set<GroupResource> values =
-                                Arrays.asList(entry.getValue().split(",")).stream()
-                                .map(String::strip)
-                                .filter(StringUtils::isNotBlank)
-                                .map(GroupResource::fromString)
-                                .collect(Collectors.toSet());
-                            resourceMap.put(type, values);
-                        } catch (IllegalArgumentException iae) {
-                            logger.error(iae);
-                        }
-                    });
+                .forEach(
+                        entry -> {
+                            try {
+                                ResourceType type = ResourceType.valueOf(entry.getKey());
+                                Set<GroupResource> values =
+                                        Arrays.asList(entry.getValue().split(",")).stream()
+                                                .map(String::strip)
+                                                .filter(StringUtils::isNotBlank)
+                                                .map(GroupResource::fromString)
+                                                .collect(Collectors.toSet());
+                                resourceMap.put(type, values);
+                            } catch (IllegalArgumentException iae) {
+                                logger.error(iae);
+                            }
+                        });
         return Collections.unmodifiableMap(resourceMap);
     }
 
