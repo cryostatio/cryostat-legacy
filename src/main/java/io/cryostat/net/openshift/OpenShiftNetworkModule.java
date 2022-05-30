@@ -128,22 +128,15 @@ public abstract class OpenShiftNetworkModule {
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
-            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> tokenedClient,
             Lazy<OpenShiftClient> serviceAccountClient,
+            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
             Logger logger) {
-        return new OpenShiftAuthManager(
-                logger,
-                fs,
-                classPropertiesLoader,
-                token ->
-                        new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
         return new OpenShiftAuthManager(
                 env,
                 namespace,
                 serviceAccountClient,
-                tokenedClient,
+                clientProvider,
                 classPropertiesLoader,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),

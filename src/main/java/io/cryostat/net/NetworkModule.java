@@ -192,8 +192,4 @@ public abstract class NetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
-
-    @Binds
-    @IntoSet
-    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

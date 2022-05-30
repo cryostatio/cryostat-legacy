@@ -594,6 +594,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     static enum GroupResource {
         DEPLOYMENTS("apps", "deployments"),
         PODS("", "pods"),
+        CRYOSTATS("operator.cryostat.io", "cryostats"),
+        FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
         RECORDINGS("operator.cryostat.io", "recordings"),
         PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),
         ;
@@ -616,7 +618,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         public static GroupResource fromString(String string) {
             for (GroupResource gr : GroupResource.values()) {
-                String persisted = String.format("%s/%s", gr.group, gr.resource);
+                String persisted = gr.group;
+                if (StringUtils.isNotBlank(persisted)) {
+                    persisted += "/";
+                }
+                persisted += gr.resource;
                 if (Objects.equals(persisted, string)) {
                     return gr;
                 }

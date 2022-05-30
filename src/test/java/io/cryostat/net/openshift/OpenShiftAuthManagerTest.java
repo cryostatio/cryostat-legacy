@@ -55,7 +55,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.MissingEnvironmentVariableException;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.TokenNotFoundException;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.openshift.OpenShiftAuthManager.GroupResource;
@@ -166,7 +166,12 @@ class OpenShiftAuthManagerTest {
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
         Mockito.lenient()
                 .when(classPropertiesLoader.loadAsMap(Mockito.any()))
-                .thenReturn(Map.of("RECORDING", "recordings", "CERTIFICATE", "deployments,pods"));
+                .thenReturn(
+                        Map.of(
+                                "RECORDING",
+                                "operator.cryostat.io/recordings",
+                                "CERTIFICATE",
+                                "apps/deployments,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
@@ -311,7 +316,7 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_TARGET)).get(),
+                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_RECORDING)).get(),
                 Matchers.is(true));
     }
 
@@ -548,7 +553,7 @@ class OpenShiftAuthManagerTest {
             expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("recordings");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
-            expectedGroups = Set.of("apps", "", "operator.cryostat.io");
+            expectedGroups = Set.of("apps", "");
             expectedResources = Set.of("deployments", "pods");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
