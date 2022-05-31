@@ -588,7 +588,7 @@ public class RecordingTargetHelper {
                                     promiseHandler,
                                     false,
                                     result -> {
-                                        if (result.succeeded()) {
+                                        if (result.failed()) {
                                             return;
                                         }
                                         this.issueNotification(
