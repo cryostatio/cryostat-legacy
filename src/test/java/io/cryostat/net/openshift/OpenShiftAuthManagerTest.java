@@ -211,7 +211,9 @@ class OpenShiftAuthManagerTest {
                         ResourceType.RECORDING.name(),
                         "operator.cryostat.io/recordings",
                         "expected",
-                        Map.of(ResourceType.RECORDING, Set.of(GroupResource.RECORDINGS))),
+                        Map.of(
+                                ResourceType.RECORDING,
+                                Set.of(new GroupResource("operator.cryostat.io", "recordings")))),
                 Map.of(
                         ResourceType.RECORDING.name(),
                         "",
@@ -228,7 +230,9 @@ class OpenShiftAuthManagerTest {
                         "expected",
                         Map.of(
                                 ResourceType.RECORDING,
-                                Set.of(GroupResource.RECORDINGS, GroupResource.DEPLOYMENTS))));
+                                Set.of(
+                                        new GroupResource("operator.cryostat.io", "recordings"),
+                                        new GroupResource("apps", "deployments")))));
     }
 
     @Test

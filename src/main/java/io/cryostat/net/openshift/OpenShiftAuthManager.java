@@ -109,8 +109,6 @@ import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
-    private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
-            Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
     private static final String WELL_KNOWN_PATH = ".well-known";
     private static final String OAUTH_SERVER_PATH = "oauth-authorization-server";
     private static final String AUTHORIZATION_URL_KEY = "authorization_endpoint";
@@ -293,8 +291,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private Stream<CompletableFuture<Void>> validateAction(
             OpenShiftClient client, String namespace, ResourceAction resourceAction) {
         Set<GroupResource> resources =
-                resourceMap.getOrDefault(resourceAction.getResource(), PERMISSION_NOT_REQUIRED);
-        if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
+                resourceMap.getOrDefault(resourceAction.getResource(), Set.of());
+        if (resources.isEmpty()) {
             return Stream.of(CompletableFuture.completedFuture(null));
         }
         String verb = map(resourceAction.getVerb());
@@ -591,19 +589,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     // A pairing of a Kubernetes group name and resource name
-    static enum GroupResource {
-        DEPLOYMENTS("apps", "deployments"),
-        PODS("", "pods"),
-        CRYOSTATS("operator.cryostat.io", "cryostats"),
-        FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
-        RECORDINGS("operator.cryostat.io", "recordings"),
-        PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),
-        ;
+    static class GroupResource {
 
         private final String group;
         private final String resource;
 
-        private GroupResource(String group, String resource) {
+        GroupResource(String group, String resource) {
             this.group = group;
             this.resource = resource;
         }
@@ -616,18 +607,44 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return resource;
         }
 
-        public static GroupResource fromString(String string) {
-            for (GroupResource gr : GroupResource.values()) {
-                String persisted = gr.group;
-                if (StringUtils.isNotBlank(persisted)) {
-                    persisted += "/";
-                }
-                persisted += gr.resource;
-                if (Objects.equals(persisted, string)) {
-                    return gr;
-                }
+        @Override
+        public String toString() {
+            if (StringUtils.isNotBlank(group)) {
+                return group + "/" + resource;
             }
-            throw new IllegalArgumentException(string);
+            return resource;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(group, resource);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            GroupResource other = (GroupResource) obj;
+            return Objects.equals(group, other.group) && Objects.equals(resource, other.resource);
+        }
+
+        public static GroupResource fromString(String string) {
+            String[] parts = string.split("/");
+            switch (parts.length) {
+                case 1:
+                    return new GroupResource("", parts[0]);
+                case 2:
+                    return new GroupResource(parts[0], parts[1]);
+                default:
+                    throw new IllegalArgumentException(string);
+            }
         }
     }
 
