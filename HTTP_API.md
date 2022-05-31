@@ -1199,6 +1199,7 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
+| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                     |
 | **Target JVMs**                                                           |                                                                                 |
 | Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
 | Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
@@ -1251,6 +1252,24 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
+    ```
+
+
+* #### `HealthLivenessGetHandler`
+
+    ###### synopsis
+    Returns whether or not Cryostat itself is running properly
+    by checking for a valid No Content response (since: 2.2.0).
+
+    ###### request
+    `GET /health/liveness`
+
+    ###### response
+    `204` - There is no content to display.
+
+    ###### example
+    ```
+    $ curl localhost:8181/health/liveness
     ```
 
 
