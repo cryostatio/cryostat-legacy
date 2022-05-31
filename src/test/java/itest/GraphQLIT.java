@@ -76,7 +76,7 @@ class GraphQLIT extends ExternalTargetsTest {
             specs.add(
                     new Podman.ImageSpec(
                             "quay.io/andrewazores/vertx-fib-demo:0.6.0",
-                            Map.of("JMX_PORT", String.valueOf(9093 + i), "USE_AUTH", "true")));
+                            Map.of("JMX_PORT", String.valueOf(9093 + i))));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
@@ -205,6 +205,90 @@ class GraphQLIT extends ExternalTargetsTest {
         ext.name = uri;
         ext.nodeType = "JVM";
         MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasItem(ext));
+    }
+
+    @Test
+    @Order(3)
+    void testStartRecordingMutationOnSpecificTarget() throws Exception {
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { doStartRecording(recording: { name: \"graphql-itest\", duration: 30, template: \"Profiling\", templateType: \"TARGET\"  }) { name state duration }} }");
+        webClient
+                .post("/api/beta/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                            }
+                        });
+        StartRecordingMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        RecordingNodes nodes = new RecordingNodes();
+
+        ActiveRecording recording = new ActiveRecording();
+        recording.name = "graphql-itest";
+        recording.duration = 30_000L;
+        recording.state = "RUNNING";
+
+        StartRecording startRecording = new StartRecording();
+        startRecording.doStartRecording = recording;
+
+        nodes.targetNodes = List.of(startRecording);
+
+        MatcherAssert.assertThat(actual.data, Matchers.equalTo(nodes));
+    }
+
+    @Test
+    @Order(4)
+    void testEnvironmentNodeListing() throws Exception {
+        CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType descendantTargets { name nodeType } } }");
+        webClient
+                .post("/api/beta/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                EnvironmentNodesResponse.class));
+                            }
+                        });
+        EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        EnvironmentNodes expected = new EnvironmentNodes();
+
+        EnvironmentNode jdp = new EnvironmentNode();
+        jdp.name = "JDP";
+        jdp.nodeType = "Realm";
+
+        jdp.descendantTargets = new ArrayList<>();
+        Node cryostat = new Node();
+        cryostat.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
+        cryostat.nodeType = "JVM";
+        jdp.descendantTargets.add(cryostat);
+
+        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
+            Node target = new Node();
+            int port = 9093 + i;
+            target.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:" + port + "/jmxrmi";
+            target.nodeType = "JVM";
+            jdp.descendantTargets.add(target);
+        }
+
+        expected.environmentNodes = List.of(jdp);
+
+        MatcherAssert.assertThat(actual.data, Matchers.equalTo(expected));
     }
 
     static class Target {
@@ -336,6 +420,315 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             TargetNodesQueryResponse other = (TargetNodesQueryResponse) obj;
             return Objects.equals(data, other.data);
+        }
+    }
+
+    static class ActiveRecording {
+        String state;
+        long startTime;
+        long duration;
+        boolean continuous;
+        boolean toDisk;
+        long maxSize;
+        long maxAge;
+        String name;
+        String reportUrl;
+        String downloadUrl;
+        RecordingMetadata metadata;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    continuous,
+                    downloadUrl,
+                    duration,
+                    maxAge,
+                    maxSize,
+                    metadata,
+                    name,
+                    reportUrl,
+                    startTime,
+                    state,
+                    toDisk);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            ActiveRecording other = (ActiveRecording) obj;
+            return continuous == other.continuous
+                    && Objects.equals(downloadUrl, other.downloadUrl)
+                    && duration == other.duration
+                    && maxAge == other.maxAge
+                    && maxSize == other.maxSize
+                    && Objects.equals(metadata, other.metadata)
+                    && Objects.equals(name, other.name)
+                    && Objects.equals(reportUrl, other.reportUrl)
+                    && startTime == other.startTime
+                    && Objects.equals(state, other.state)
+                    && toDisk == other.toDisk;
+        }
+
+        @Override
+        public String toString() {
+            return "ActiveRecording [continuous="
+                    + continuous
+                    + ", downloadUrl="
+                    + downloadUrl
+                    + ", duration="
+                    + duration
+                    + ", maxAge="
+                    + maxAge
+                    + ", maxSize="
+                    + maxSize
+                    + ", metadata="
+                    + metadata
+                    + ", name="
+                    + name
+                    + ", reportUrl="
+                    + reportUrl
+                    + ", startTime="
+                    + startTime
+                    + ", state="
+                    + state
+                    + ", toDisk="
+                    + toDisk
+                    + "]";
+        }
+    }
+
+    static class RecordingMetadata {
+        Map<String, String> labels;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(labels);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            RecordingMetadata other = (RecordingMetadata) obj;
+            return Objects.equals(labels, other.labels);
+        }
+
+        @Override
+        public String toString() {
+            return "RecordingMetadata [labels=" + labels + "]";
+        }
+    }
+
+    static class StartRecording {
+        ActiveRecording doStartRecording;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(doStartRecording);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            StartRecording other = (StartRecording) obj;
+            return Objects.equals(doStartRecording, other.doStartRecording);
+        }
+
+        @Override
+        public String toString() {
+            return "StartRecording [doStartRecording=" + doStartRecording + "]";
+        }
+    }
+
+    static class RecordingNodes {
+        List<StartRecording> targetNodes;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(targetNodes);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            RecordingNodes other = (RecordingNodes) obj;
+            return Objects.equals(targetNodes, other.targetNodes);
+        }
+
+        @Override
+        public String toString() {
+            return "RecordingNodes [targetNodes=" + targetNodes + "]";
+        }
+    }
+
+    static class StartRecordingMutationResponse {
+        RecordingNodes data;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(data);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            StartRecordingMutationResponse other = (StartRecordingMutationResponse) obj;
+            return Objects.equals(data, other.data);
+        }
+
+        @Override
+        public String toString() {
+            return "StartRecordingMutationResponse [data=" + data + "]";
+        }
+    }
+
+    static class Node {
+        String name;
+        String nodeType;
+
+        @Override
+        public String toString() {
+            return "Node [name=" + name + ", nodeType=" + nodeType + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, nodeType);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Node other = (Node) obj;
+            return Objects.equals(name, other.name) && Objects.equals(nodeType, other.nodeType);
+        }
+    }
+
+    static class EnvironmentNode extends Node {
+        List<Node> descendantTargets;
+
+        @Override
+        public String toString() {
+            return "EnvironmentNode [descendantTargets="
+                    + descendantTargets
+                    + ", name="
+                    + name
+                    + ", nodeType="
+                    + nodeType
+                    + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(descendantTargets);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            EnvironmentNode other = (EnvironmentNode) obj;
+            return Objects.equals(descendantTargets, other.descendantTargets);
+        }
+    }
+
+    static class EnvironmentNodes {
+        List<EnvironmentNode> environmentNodes;
+
+        @Override
+        public String toString() {
+            return "EnvironmentNodes [environmentNodes=" + environmentNodes + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(environmentNodes);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            EnvironmentNodes other = (EnvironmentNodes) obj;
+            return Objects.equals(environmentNodes, other.environmentNodes);
+        }
+    }
+
+    static class EnvironmentNodesResponse {
+        EnvironmentNodes data;
+
+        @Override
+        public String toString() {
+            return "EnvironmentNodesResponse [data=" + data + "]";
+        }
+
+        public EnvironmentNodes getData() {
+            return data;
+        }
+
+        public void setData(EnvironmentNodes data) {
+            this.data = data;
         }
     }
 }
