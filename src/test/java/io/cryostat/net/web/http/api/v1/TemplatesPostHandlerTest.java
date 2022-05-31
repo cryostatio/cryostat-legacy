@@ -62,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -157,9 +157,9 @@ class TemplatesPostHandlerTest {
         Mockito.when(templateService.addTemplate(Mockito.any()))
                 .thenThrow(InvalidXmlException.class);
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         Mockito.verify(fs).deleteIfExists(uploadPath);
     }
@@ -177,9 +177,9 @@ class TemplatesPostHandlerTest {
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         Mockito.verify(fs).deleteIfExists(uploadPath);
     }

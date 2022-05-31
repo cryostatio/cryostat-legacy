@@ -56,7 +56,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -120,8 +120,8 @@ class RecordingsGetHandlerTest {
         Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause()).thenReturn(new ArchivePathException("/some/path", "test"));
 
-        HttpStatusException httpEx =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException httpEx =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
         MatcherAssert.assertThat(
                 httpEx.getCause().getCause().getMessage(),

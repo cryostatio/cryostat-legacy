@@ -48,12 +48,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -80,6 +77,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
+import io.vertx.core.Vertx;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -98,6 +96,7 @@ import org.mockito.stubbing.Answer;
 @ExtendWith(MockitoExtension.class)
 public class RecordingTargetHelperTest {
     RecordingTargetHelper recordingTargetHelper;
+    @Mock Vertx vertx;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock WebServer webServer;
@@ -107,7 +106,6 @@ public class RecordingTargetHelperTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
-    @Mock ScheduledExecutorService scheduler;
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
 
@@ -128,15 +126,16 @@ public class RecordingTargetHelperTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient().when(vertx.setTimer(Mockito.anyLong(), Mockito.any())).thenReturn(1234L);
         this.recordingTargetHelper =
                 new RecordingTargetHelper(
+                        vertx,
                         targetConnectionManager,
                         () -> webServer,
                         eventOptionsBuilderFactory,
                         notificationFactory,
                         recordingOptionsBuilderFactory,
                         reportService,
-                        scheduler,
                         recordingMetadataManager,
                         logger);
     }
@@ -739,13 +738,6 @@ public class RecordingTargetHelperTest {
                                 return CompletableFuture.completedFuture(invocation.getArgument(2));
                             }
                         });
-
-        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
-                Mockito.mock(ScheduledFuture.class);
-        Mockito.when(
-                        scheduler.schedule(
-                                Mockito.any(Callable.class), Mockito.anyLong(), Mockito.any()))
-                .thenReturn(scheduledFuture);
 
         recordingTargetHelper.startRecording(
                 false, connectionDescriptor, recordingOptions, templateName, templateType);

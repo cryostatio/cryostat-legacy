@@ -56,7 +56,7 @@ import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
@@ -136,7 +136,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     private void handleExecutionException(ExecutionException e) throws ExecutionException {
         Throwable cause = ExceptionUtils.getRootCause(e);
         if (cause instanceof SnapshotCreationException) {
-            throw new HttpStatusException(500, cause.getMessage());
+            throw new HttpException(500, cause.getMessage());
         }
         throw e;
     }

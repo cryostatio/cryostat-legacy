@@ -55,7 +55,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -111,7 +111,7 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
                             ctx.response().end(doc.toString());
                         },
                         () -> {
-                            throw new HttpStatusException(404);
+                            throw new HttpException(404);
                         });
     }
 }

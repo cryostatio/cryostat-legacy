@@ -57,7 +57,7 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -108,7 +108,7 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {
-                throw new HttpStatusException(501, e.getMessage(), e);
+                throw new HttpException(501, e.getMessage(), e);
             }
             throw e;
         }

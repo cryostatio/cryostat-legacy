@@ -58,7 +58,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -138,7 +138,7 @@ public abstract class StandardSelfTest {
         if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
             System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
             future.completeExceptionally(
-                    new HttpStatusException(response.statusCode(), response.statusMessage()));
+                    new HttpException(response.statusCode(), response.statusMessage()));
             return false;
         }
         return true;
