@@ -65,7 +65,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -193,7 +192,7 @@ public class TargetProbePostHandlerTest {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", ""));
             try {
                 IntermediateResponse<Void> response = handler.handle(requestParams);
-            } catch (HttpStatusException e) {
+            } catch (ApiException e) {
                 MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(400));
             }
         }

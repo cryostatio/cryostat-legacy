@@ -47,8 +47,8 @@ import io.cryostat.core.log.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
@@ -99,7 +99,7 @@ public class HttpServer extends AbstractVerticle {
     }
 
     @Override
-    public void start(Future<Void> future) {
+    public void start(Promise<Void> future) {
         if (isAlive()) {
             future.fail(new IllegalStateException("Already started"));
             return;

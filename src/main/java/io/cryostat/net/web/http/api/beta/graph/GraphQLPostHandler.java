@@ -57,6 +57,8 @@ import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
 class GraphQLPostHandler implements RequestHandler {
 
+    static final String PATH = "graphql";
+
     private final GraphQLHandler handler;
     private final AuthManager auth;
 
@@ -90,7 +92,7 @@ class GraphQLPostHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "graphql";
+        return basePath() + PATH;
     }
 
     @Override

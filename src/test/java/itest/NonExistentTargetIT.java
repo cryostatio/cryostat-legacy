@@ -41,7 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
@@ -70,6 +70,6 @@ public class NonExistentTargetIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
     }
 }

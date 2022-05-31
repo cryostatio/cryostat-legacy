@@ -72,7 +72,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
@@ -134,7 +134,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
@@ -144,7 +144,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         512,
                         String.format(
                                 "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
@@ -154,9 +154,9 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
-            throw new HttpStatusException(501, e);
+            throw new HttpException(501, e);
         } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
+            throw new HttpException(404, e);
         }
     }
 
@@ -221,7 +221,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                                 }
                                 return tempFile;
                             } catch (Exception e) {
-                                throw new HttpStatusException(500, e);
+                                throw new HttpException(500, e);
                             }
                         });
     }

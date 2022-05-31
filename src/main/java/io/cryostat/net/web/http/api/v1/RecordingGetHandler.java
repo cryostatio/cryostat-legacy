@@ -57,7 +57,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -111,7 +111,7 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().sendFile(archivedRecording.toString());
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             }
             throw e;
         }

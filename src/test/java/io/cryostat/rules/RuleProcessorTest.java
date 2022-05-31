@@ -40,9 +40,6 @@ package io.cryostat.rules;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -66,6 +63,8 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
@@ -84,9 +83,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RuleProcessorTest {
 
     RuleProcessor processor;
+    @Mock Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
-    @Mock ScheduledExecutorService scheduler;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock TargetConnectionManager targetConnectionManager;
@@ -104,9 +103,9 @@ class RuleProcessorTest {
     void setup() {
         this.processor =
                 new RuleProcessor(
+                        vertx,
                         platformClient,
                         registry,
-                        scheduler,
                         credentialsManager,
                         recordingOptionsBuilderFactory,
                         targetConnectionManager,
@@ -119,19 +118,19 @@ class RuleProcessorTest {
     }
 
     @Test
-    void testEnableAddsProcessorAsDiscoveryListener() {
+    void testStartAddsProcessorAsDiscoveryListener() {
         Mockito.verifyNoInteractions(platformClient);
 
-        processor.enable();
+        processor.start();
 
         Mockito.verify(platformClient).addTargetDiscoveryListener(processor);
     }
 
     @Test
-    void testDisableRemovesProcessorAsDiscoveryListener() {
+    void testStopRemovesProcessorAsDiscoveryListener() {
         Mockito.verifyNoInteractions(platformClient);
 
-        processor.disable();
+        processor.stop();
 
         Mockito.verify(platformClient).removeTargetDiscoveryListener(processor);
     }
@@ -239,7 +238,12 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
-        Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+        ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), handlerCaptor.capture());
+
+        Mockito.verify(periodicArchiver, Mockito.times(0)).run();
+        handlerCaptor.getValue().handle(1234L);
+        Mockito.verify(periodicArchiver, Mockito.times(1)).run();
     }
 
     @Test
@@ -339,18 +343,12 @@ class RuleProcessorTest {
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
-        ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
-        Mockito.when(
-                        scheduler.scheduleAtFixedRate(
-                                Mockito.any(Runnable.class),
-                                Mockito.anyLong(),
-                                Mockito.anyLong(),
-                                Mockito.any(TimeUnit.class)))
-                .thenReturn(task);
+        long id = 1234L;
+        Mockito.doReturn(id).when(vertx).setPeriodic(Mockito.anyLong(), Mockito.any());
 
         processor.accept(tde);
 
-        Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), Mockito.any());
 
         ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
                 ArgumentCaptor.forClass(Function.class);
@@ -363,10 +361,10 @@ class RuleProcessorTest {
                         functionCaptor.capture(),
                         Mockito.any());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
+        Mockito.verify(vertx, Mockito.never()).cancelTimer(id);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
-        Mockito.verify(task).cancel(true);
+        Mockito.verify(vertx).cancelTimer(id);
     }
 }

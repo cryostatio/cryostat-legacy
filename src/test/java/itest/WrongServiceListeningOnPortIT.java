@@ -44,7 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.Podman;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -110,6 +110,6 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(500));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(500));
     }
 }

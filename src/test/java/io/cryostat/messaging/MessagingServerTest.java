@@ -45,8 +45,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -61,6 +59,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,6 +73,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MessagingServerTest {
 
+    @Mock Vertx vertx;
     MessagingServer server;
     @Mock Environment env;
     @Mock Logger logger;
@@ -81,8 +81,6 @@ class MessagingServerTest {
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson(logger);
     @Mock ServerWebSocket sws;
-    @Mock ScheduledExecutorService limboPruner;
-    @Mock ScheduledExecutorService keepalivePinger;
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -118,13 +116,12 @@ class MessagingServerTest {
 
         server =
                 new MessagingServer(
+                        vertx,
                         httpServer,
                         env,
                         authManager,
                         notificationFactory,
                         2,
-                        limboPruner,
-                        keepalivePinger,
                         clock,
                         logger,
                         gson);
@@ -296,12 +293,14 @@ class MessagingServerTest {
         verify(authAction).onSuccess(authSuccessCaptor.capture());
         authSuccessCaptor.getValue().run();
 
-        verify(keepalivePinger)
-                .scheduleAtFixedRate(
-                        Mockito.any(),
-                        Mockito.anyLong(),
-                        Mockito.anyLong(),
-                        Mockito.any(TimeUnit.class));
+        ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(vertx, Mockito.atLeastOnce())
+                .setPeriodic(Mockito.anyLong(), handlerCaptor.capture());
+        Handler<Long> handler = handlerCaptor.getValue();
+
+        Mockito.verify(sws, Mockito.times(0)).writePing(Mockito.any());
+        handler.handle(1234L);
+        Mockito.verify(sws, Mockito.times(1)).writePing(Mockito.any());
     }
 
     @Test

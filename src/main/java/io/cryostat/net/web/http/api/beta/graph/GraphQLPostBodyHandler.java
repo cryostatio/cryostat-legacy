@@ -35,67 +35,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.generic;
+package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.Variables;
-import io.cryostat.core.sys.Environment;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.CorsHandler;
-import org.apache.http.HttpHeaders;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class CorsEnablingHandler implements RequestHandler {
-    protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected final CorsHandler corsHandler;
-    protected final Environment env;
+class GraphQLPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    CorsEnablingHandler(Environment env) {
-        this.env = env;
-        this.corsHandler =
-                CorsHandler.create(getOrigin())
-                        .allowedHeader(HttpHeaders.AUTHORIZATION)
-                        .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
-                        .allowedHeader(HttpHeaders.CONTENT_TYPE)
-                        .allowedMethod(HttpMethod.GET)
-                        .allowedMethod(HttpMethod.POST)
-                        .allowedMethod(HttpMethod.PATCH)
-                        .allowedMethod(HttpMethod.OPTIONS)
-                        .allowedMethod(HttpMethod.HEAD)
-                        .allowedMethod(HttpMethod.DELETE)
-                        .allowCredentials(true)
-                        .exposedHeader(WebServer.AUTH_SCHEME_HEADER)
-                        .exposedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
-    }
-
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.GENERIC;
+    GraphQLPostBodyHandler(AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
     public int getPriority() {
-        return 1;
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
-    public boolean isAvailable() {
-        return this.env.hasEnv(Variables.ENABLE_CORS_ENV);
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return null; // unused for ALL_PATHS handlers
+        return HttpMethod.POST;
     }
 
     @Override
@@ -105,15 +83,11 @@ class CorsEnablingHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return ALL_PATHS;
+        return basePath() + GraphQLPostHandler.PATH;
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        this.corsHandler.handle(ctx);
-    }
-
-    String getOrigin() {
-        return this.env.getEnv(Variables.ENABLE_CORS_ENV, DEV_ORIGIN);
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

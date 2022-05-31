@@ -45,7 +45,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -72,7 +71,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -159,10 +158,8 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);
-        uploads.add(upload);
-        when(ctx.fileUploads()).thenReturn(uploads);
+        when(ctx.fileUploads()).thenReturn(Set.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -328,10 +325,9 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        when(ctx.fileUploads()).thenReturn(new HashSet<FileUpload>());
+        when(ctx.fileUploads()).thenReturn(Set.of());
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
     }
@@ -352,10 +348,8 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);
-        uploads.add(upload);
-        when(ctx.fileUploads()).thenReturn(uploads);
+        when(ctx.fileUploads()).thenReturn(Set.of(upload));
         when(upload.name()).thenReturn("incorrect_field_name");
         when(upload.uploadedFileName()).thenReturn("foo");
 
@@ -364,8 +358,7 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
 
@@ -388,10 +381,8 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);
-        uploads.add(upload);
-        when(ctx.fileUploads()).thenReturn(uploads);
+        when(ctx.fileUploads()).thenReturn(Set.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn("");
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -401,8 +392,7 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
@@ -428,10 +418,8 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);
-        uploads.add(upload);
-        when(ctx.fileUploads()).thenReturn(uploads);
+        when(ctx.fileUploads()).thenReturn(Set.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -441,8 +429,7 @@ class RecordingsPostHandlerTest {
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Incorrect recording file name pattern"));

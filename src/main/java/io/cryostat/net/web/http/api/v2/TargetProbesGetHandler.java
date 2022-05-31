@@ -52,7 +52,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
 class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
@@ -106,7 +105,7 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
         StringBuilder sb = new StringBuilder();
         if (StringUtils.isBlank(targetId)) {
             sb.append("targetId is required.");
-            throw new HttpStatusException(400, sb.toString().trim());
+            throw new ApiException(400, sb.toString().trim());
         }
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),

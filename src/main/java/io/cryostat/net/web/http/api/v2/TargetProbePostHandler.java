@@ -56,7 +56,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -153,7 +152,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
             if (StringUtils.isBlank(probeTemplate)) {
                 sb.append("\"probeTemplate\" is required.");
             }
-            throw new HttpStatusException(400, sb.toString().trim());
+            throw new ApiException(400, sb.toString().trim());
         }
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),

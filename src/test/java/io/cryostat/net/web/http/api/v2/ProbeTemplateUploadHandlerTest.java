@@ -60,7 +60,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -158,9 +157,9 @@ public class ProbeTemplateUploadHandlerTest {
             Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
             Mockito.when(fs.newInputStream(Mockito.any())).thenThrow(IOException.class);
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParams));
+                            ApiException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
             Mockito.verify(fs).deleteIfExists(uploadPath);
         }
@@ -185,9 +184,9 @@ public class ProbeTemplateUploadHandlerTest {
                     .when(templateService)
                     .addTemplate(stream, "foo.xml");
 
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParams));
+                            ApiException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
             Mockito.verify(fs).deleteIfExists(uploadPath);
         }

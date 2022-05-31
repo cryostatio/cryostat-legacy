@@ -57,7 +57,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -139,10 +138,9 @@ class ReportGetHandlerTest {
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("archive", "myrecording"));
             Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class,
-                            () -> handler.handleWithValidJwt(ctx, token));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 

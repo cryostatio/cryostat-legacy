@@ -41,7 +41,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -94,7 +93,7 @@ class AbstractV2RequestHandlerTest {
     void setup() {
         Mockito.lenient().when(ctx.pathParams()).thenReturn(pathParams);
         Mockito.lenient().when(ctx.queryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.lenient().when(ctx.fileUploads()).thenReturn(Collections.emptySet());
+        Mockito.lenient().when(ctx.fileUploads()).thenReturn(Set.of());
 
         this.headers = MultiMap.caseInsensitiveMultiMap();
 

@@ -62,7 +62,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
@@ -126,7 +126,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                 recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
 
         if (stream.isEmpty()) {
-            throw new HttpStatusException(404, String.format("%s not found", recordingName));
+            throw new HttpException(404, String.format("%s not found", recordingName));
         }
 
         ctx.response().setChunked(true);

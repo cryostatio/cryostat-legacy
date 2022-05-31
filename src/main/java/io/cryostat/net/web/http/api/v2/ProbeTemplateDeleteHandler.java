@@ -54,7 +54,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
@@ -124,7 +123,7 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .build()
                     .send();
         } catch (Exception e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
+            throw new ApiException(400, e.getMessage(), e);
         }
         return new IntermediateResponse().body(null);
     }

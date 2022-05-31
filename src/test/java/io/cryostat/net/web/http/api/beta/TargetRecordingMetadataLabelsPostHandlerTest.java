@@ -55,6 +55,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -65,7 +66,6 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -240,9 +240,9 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
                     .when(recordingMetadataManager)
                     .parseRecordingLabels("invalid");
 
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
@@ -272,9 +272,9 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
                                                     arg0.getArgument(1))
                                             .execute(connection));
 
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
             Assertions.assertTrue(
                     ExceptionUtils.getRootCause(ex) instanceof RecordingNotFoundException);

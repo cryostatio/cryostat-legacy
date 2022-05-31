@@ -49,7 +49,7 @@ import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -101,10 +101,9 @@ class TargetRecordingPatchStopTest {
         Mockito.when(recordingTargetHelper.stopRecording(Mockito.any(), Mockito.anyString()))
                 .thenThrow(new RecordingNotFoundException("myTarget", "someRecording"));
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class,
-                        () -> patchStop.handle(ctx, connectionDescriptor));
+                        HttpException.class, () -> patchStop.handle(ctx, connectionDescriptor));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

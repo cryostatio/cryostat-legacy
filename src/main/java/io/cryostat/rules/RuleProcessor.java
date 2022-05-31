@@ -37,13 +37,12 @@
  */
 package io.cryostat.rules;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -67,15 +66,16 @@ import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RuleProcessor
+public class RuleProcessor extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
-    private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final TargetConnectionManager targetConnectionManager;
@@ -86,12 +86,12 @@ public class RuleProcessor
     private final Logger logger;
     private final Base32 base32;
 
-    private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
+    private final Map<Pair<ServiceRef, Rule>, Long> tasks;
 
     RuleProcessor(
+            Vertx vertx,
             PlatformClient platformClient,
             RuleRegistry registry,
-            ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
@@ -101,9 +101,9 @@ public class RuleProcessor
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger,
             Base32 base32) {
+        this.vertx = vertx;
         this.platformClient = platformClient;
         this.registry = registry;
-        this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.targetConnectionManager = targetConnectionManager;
@@ -118,13 +118,15 @@ public class RuleProcessor
         this.registry.addListener(this);
     }
 
-    public void enable() {
+    @Override
+    public void start() {
         this.platformClient.addTargetDiscoveryListener(this);
     }
 
-    public synchronized void disable() {
+    @Override
+    public void stop() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((ruleExecution, future) -> future.cancel(true));
+        this.tasks.forEach((ruleExecution, id) -> vertx.cancelTimer(id));
         this.tasks.clear();
     }
 
@@ -132,9 +134,22 @@ public class RuleProcessor
     public synchronized void onEvent(Event<RuleEvent, Rule> event) {
         switch (event.getEventType()) {
             case ADDED:
-                platformClient.listDiscoverableServices().stream()
-                        .filter(serviceRef -> registry.applies(event.getPayload(), serviceRef))
-                        .forEach(serviceRef -> activate(event.getPayload(), serviceRef));
+                vertx.executeBlocking(
+                        promise -> promise.complete(platformClient.listDiscoverableServices()),
+                        false,
+                        result ->
+                                ((List<ServiceRef>) result.result())
+                                        .stream()
+                                                .filter(
+                                                        serviceRef ->
+                                                                registry.applies(
+                                                                        event.getPayload(),
+                                                                        serviceRef))
+                                                .forEach(
+                                                        serviceRef ->
+                                                                activate(
+                                                                        event.getPayload(),
+                                                                        serviceRef)));
                 break;
             case REMOVED:
                 deactivate(event.getPayload(), null);
@@ -183,19 +198,19 @@ public class RuleProcessor
             if (rule.getPreservedArchives() <= 0 || rule.getArchivalPeriodSeconds() <= 0) {
                 return;
             }
-            tasks.put(
-                    Pair.of(serviceRef, rule),
-                    scheduler.scheduleAtFixedRate(
-                            periodicArchiverFactory.create(
-                                    serviceRef,
-                                    credentialsManager,
-                                    rule,
-                                    recordingArchiveHelper,
-                                    this::archivalFailureHandler,
-                                    base32),
-                            rule.getArchivalPeriodSeconds(),
-                            rule.getArchivalPeriodSeconds(),
-                            TimeUnit.SECONDS));
+            PeriodicArchiver periodicArchiver =
+                    periodicArchiverFactory.create(
+                            serviceRef,
+                            credentialsManager,
+                            rule,
+                            recordingArchiveHelper,
+                            this::archivalFailureHandler,
+                            base32);
+            long periodicTask =
+                    vertx.setPeriodic(
+                            Duration.ofSeconds(rule.getArchivalPeriodSeconds()).toMillis(),
+                            periodicId -> periodicArchiver.run());
+            tasks.put(Pair.of(serviceRef, rule), periodicTask);
         }
     }
 
@@ -209,26 +224,21 @@ public class RuleProcessor
         if (serviceRef != null) {
             logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
         }
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Long>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
+            Map.Entry<Pair<ServiceRef, Rule>, Long> entry = it.next();
             boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
-                Future<?> task = entry.getValue();
-                if (task != null) {
-                    task.cancel(true);
-                }
+                Long id = entry.getValue();
+                vertx.cancelTimer(id);
                 it.remove();
             }
         }
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
-        Future<?> task = tasks.get(id);
-        if (task != null) {
-            task.cancel(true);
-        }
+        vertx.cancelTimer(tasks.get(id));
         return null;
     }
 
