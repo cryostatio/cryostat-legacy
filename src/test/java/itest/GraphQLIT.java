@@ -59,9 +59,12 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
+@TestMethodOrder(OrderAnnotation.class)
 class GraphQLIT extends ExternalTargetsTest {
 
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
@@ -100,6 +103,53 @@ class GraphQLIT extends ExternalTargetsTest {
                         String.format("Failed to kill container instance with ID %s", id), e);
             }
         }
+    }
+
+    @Test
+    @Order(0)
+    void testEnvironmentNodeListing() throws Exception {
+        CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType descendantTargets { name nodeType } } }");
+        webClient
+                .post("/api/beta/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                EnvironmentNodesResponse.class));
+                            }
+                        });
+        EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        EnvironmentNodes expected = new EnvironmentNodes();
+
+        EnvironmentNode jdp = new EnvironmentNode();
+        jdp.name = "JDP";
+        jdp.nodeType = "Realm";
+
+        jdp.descendantTargets = new ArrayList<>();
+        Node cryostat = new Node();
+        cryostat.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
+        cryostat.nodeType = "JVM";
+        jdp.descendantTargets.add(cryostat);
+
+        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
+            Node target = new Node();
+            int port = 9093 + i;
+            target.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:" + port + "/jmxrmi";
+            target.nodeType = "JVM";
+            jdp.descendantTargets.add(target);
+        }
+
+        expected.environmentNodes = List.of(jdp);
+
+        MatcherAssert.assertThat(actual.data, Matchers.equalTo(expected));
     }
 
     @Test
@@ -246,12 +296,13 @@ class GraphQLIT extends ExternalTargetsTest {
 
     @Test
     @Order(4)
-    void testEnvironmentNodeListing() throws Exception {
-        CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
+    void testArchiveMutation() throws Exception {
+        Thread.sleep(5000);
+        CompletableFuture<ArchiveMutationResponse> resp = new CompletableFuture<>();
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType descendantTargets { name nodeType } } }");
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings { active { name doArchive { name } } } } }");
         webClient
                 .post("/api/beta/graphql")
                 .sendJson(
@@ -261,34 +312,69 @@ class GraphQLIT extends ExternalTargetsTest {
                                 resp.complete(
                                         gson.fromJson(
                                                 ar.result().bodyAsString(),
-                                                EnvironmentNodesResponse.class));
+                                                ArchiveMutationResponse.class));
                             }
                         });
-        EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        ArchiveMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-        EnvironmentNodes expected = new EnvironmentNodes();
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
 
-        EnvironmentNode jdp = new EnvironmentNode();
-        jdp.name = "JDP";
-        jdp.nodeType = "Realm";
+        TargetNode node = actual.data.targetNodes.get(0);
 
-        jdp.descendantTargets = new ArrayList<>();
-        Node cryostat = new Node();
-        cryostat.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
-        cryostat.nodeType = "JVM";
-        jdp.descendantTargets.add(cryostat);
+        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
 
-        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            Node target = new Node();
-            int port = 9093 + i;
-            target.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:" + port + "/jmxrmi";
-            target.nodeType = "JVM";
-            jdp.descendantTargets.add(target);
-        }
+        ActiveRecording activeRecording = node.recordings.active.get(0);
 
-        expected.environmentNodes = List.of(jdp);
+        MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
 
-        MatcherAssert.assertThat(actual.data, Matchers.equalTo(expected));
+        ArchivedRecording archivedRecording = activeRecording.doArchive;
+        MatcherAssert.assertThat(
+                archivedRecording.name,
+                Matchers.matchesRegex(
+                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
+    }
+
+    @Test
+    @Order(5)
+    void testDeleteMutation() throws Exception {
+        CompletableFuture<DeleteMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings { active { name doDelete { name } } archived { name doDelete { name } } } } }");
+        webClient
+                .post("/api/beta/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                String bodyAsString = ar.result().bodyAsString();
+                                System.out.println(bodyAsString);
+                                resp.complete(
+                                        gson.fromJson(bodyAsString, DeleteMutationResponse.class));
+                            }
+                        });
+        DeleteMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        TargetNode node = actual.data.targetNodes.get(0);
+
+        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.archived, Matchers.hasSize(1));
+
+        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ArchivedRecording archivedRecording = node.recordings.archived.get(0);
+
+        MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
+        MatcherAssert.assertThat(activeRecording.doDelete.name, Matchers.equalTo("graphql-itest"));
+
+        MatcherAssert.assertThat(
+                archivedRecording.name,
+                Matchers.matchesRegex(
+                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
+        MatcherAssert.assertThat(
+                archivedRecording.doDelete.name, Matchers.equalTo(archivedRecording.name));
     }
 
     static class Target {
@@ -345,15 +431,112 @@ class GraphQLIT extends ExternalTargetsTest {
         }
     }
 
+    static class ArchivedRecording {
+        String name;
+        String reportUrl;
+        String downloadUrl;
+        RecordingMetadata metadata;
+
+        ArchivedRecording doDelete;
+
+        @Override
+        public String toString() {
+            return "ArchivedRecording [doDelete="
+                    + doDelete
+                    + ", downloadUrl="
+                    + downloadUrl
+                    + ", metadata="
+                    + metadata
+                    + ", name="
+                    + name
+                    + ", reportUrl="
+                    + reportUrl
+                    + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            ArchivedRecording other = (ArchivedRecording) obj;
+            return Objects.equals(doDelete, other.doDelete)
+                    && Objects.equals(downloadUrl, other.downloadUrl)
+                    && Objects.equals(metadata, other.metadata)
+                    && Objects.equals(name, other.name)
+                    && Objects.equals(reportUrl, other.reportUrl);
+        }
+    }
+
+    static class Recordings {
+        List<ActiveRecording> active;
+        List<ArchivedRecording> archived;
+
+        @Override
+        public String toString() {
+            return "Recordings [active=" + active + ", archived=" + archived + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(active, archived);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Recordings other = (Recordings) obj;
+            return Objects.equals(active, other.active) && Objects.equals(archived, other.archived);
+        }
+    }
+
     static class TargetNode {
         String name;
         String nodeType;
         Map<String, String> labels;
         Target target;
+        Recordings recordings;
+        ActiveRecording doStartRecording;
+
+        @Override
+        public String toString() {
+            return "TargetNode [doStartRecording="
+                    + doStartRecording
+                    + ", labels="
+                    + labels
+                    + ", name="
+                    + name
+                    + ", nodeType="
+                    + nodeType
+                    + ", recordings="
+                    + recordings
+                    + ", target="
+                    + target
+                    + "]";
+        }
 
         @Override
         public int hashCode() {
-            return Objects.hash(labels, name, nodeType, target);
+            return Objects.hash(doStartRecording, labels, name, nodeType, recordings, target);
         }
 
         @Override
@@ -368,9 +551,11 @@ class GraphQLIT extends ExternalTargetsTest {
                 return false;
             }
             TargetNode other = (TargetNode) obj;
-            return Objects.equals(labels, other.labels)
+            return Objects.equals(doStartRecording, other.doStartRecording)
+                    && Objects.equals(labels, other.labels)
                     && Objects.equals(name, other.name)
                     && Objects.equals(nodeType, other.nodeType)
+                    && Objects.equals(recordings, other.recordings)
                     && Objects.equals(target, other.target);
         }
     }
@@ -396,6 +581,11 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             TargetNodes other = (TargetNodes) obj;
             return Objects.equals(targetNodes, other.targetNodes);
+        }
+
+        @Override
+        public String toString() {
+            return "TargetNodes [targetNodes=" + targetNodes + "]";
         }
     }
 
@@ -424,6 +614,10 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     static class ActiveRecording {
+        String name;
+        String reportUrl;
+        String downloadUrl;
+        RecordingMetadata metadata;
         String state;
         long startTime;
         long duration;
@@ -431,15 +625,16 @@ class GraphQLIT extends ExternalTargetsTest {
         boolean toDisk;
         long maxSize;
         long maxAge;
-        String name;
-        String reportUrl;
-        String downloadUrl;
-        RecordingMetadata metadata;
+
+        ArchivedRecording doArchive;
+        ActiveRecording doDelete;
 
         @Override
         public int hashCode() {
             return Objects.hash(
                     continuous,
+                    doArchive,
+                    doDelete,
                     downloadUrl,
                     duration,
                     maxAge,
@@ -465,6 +660,8 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             ActiveRecording other = (ActiveRecording) obj;
             return continuous == other.continuous
+                    && Objects.equals(doArchive, other.doArchive)
+                    && Objects.equals(doDelete, other.doDelete)
                     && Objects.equals(downloadUrl, other.downloadUrl)
                     && duration == other.duration
                     && maxAge == other.maxAge
@@ -481,6 +678,10 @@ class GraphQLIT extends ExternalTargetsTest {
         public String toString() {
             return "ActiveRecording [continuous="
                     + continuous
+                    + ", doArchive="
+                    + doArchive
+                    + ", doDelete="
+                    + doDelete
                     + ", downloadUrl="
                     + downloadUrl
                     + ", duration="
@@ -536,10 +737,11 @@ class GraphQLIT extends ExternalTargetsTest {
 
     static class StartRecording {
         ActiveRecording doStartRecording;
+        ArchivedRecording doArchive;
 
         @Override
         public int hashCode() {
-            return Objects.hash(doStartRecording);
+            return Objects.hash(doArchive, doStartRecording);
         }
 
         @Override
@@ -554,12 +756,17 @@ class GraphQLIT extends ExternalTargetsTest {
                 return false;
             }
             StartRecording other = (StartRecording) obj;
-            return Objects.equals(doStartRecording, other.doStartRecording);
+            return Objects.equals(doArchive, other.doArchive)
+                    && Objects.equals(doStartRecording, other.doStartRecording);
         }
 
         @Override
         public String toString() {
-            return "StartRecording [doStartRecording=" + doStartRecording + "]";
+            return "StartRecording [doArchive="
+                    + doArchive
+                    + ", doStartRecording="
+                    + doStartRecording
+                    + "]";
         }
     }
 
@@ -729,6 +936,64 @@ class GraphQLIT extends ExternalTargetsTest {
 
         public void setData(EnvironmentNodes data) {
             this.data = data;
+        }
+    }
+
+    static class ArchiveMutationResponse {
+        TargetNodes data;
+
+        @Override
+        public String toString() {
+            return "ArchiveMutationResponse [data=" + data + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(data);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            ArchiveMutationResponse other = (ArchiveMutationResponse) obj;
+            return Objects.equals(data, other.data);
+        }
+    }
+
+    static class DeleteMutationResponse {
+        TargetNodes data;
+
+        @Override
+        public String toString() {
+            return "DeleteMutationResponse [data=" + data + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(data);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            DeleteMutationResponse other = (DeleteMutationResponse) obj;
+            return Objects.equals(data, other.data);
         }
     }
 }
