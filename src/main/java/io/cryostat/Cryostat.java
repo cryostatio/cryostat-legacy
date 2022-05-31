@@ -80,18 +80,26 @@ class Cryostat {
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
-        client.ruleProcessor().enable();
         client.vertx()
                 .deployVerticle(
                         client.httpServer(),
-                        new DeploymentOptions().setWorker(false),
+                        new DeploymentOptions(),
                         res -> logger.info("HTTP Server Verticle Started"));
         client.vertx()
                 .deployVerticle(
                         client.webServer(),
                         new DeploymentOptions().setWorker(true),
                         res -> logger.info("WebServer Verticle Started"));
-        client.messagingServer().start();
+        client.vertx()
+                .deployVerticle(
+                        client.messagingServer(),
+                        new DeploymentOptions(),
+                        res -> logger.info("MessagingServer Verticle Started"));
+        client.vertx()
+                .deployVerticle(
+                        client.ruleProcessor(),
+                        new DeploymentOptions().setWorker(true),
+                        res -> logger.info("RuleProcessor Verticle Started"));
         client.platformClient().start();
         client.recordingMetadataManager().load();
 

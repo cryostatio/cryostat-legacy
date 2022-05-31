@@ -59,7 +59,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -112,7 +112,7 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
                     templateService.getTemplates().stream()
                             .filter(t -> Objects.equals(templateName, t.getName()))
                             .findFirst();
-            Template t = opt.orElseThrow(() -> new HttpStatusException(404, templateName));
+            Template t = opt.orElseThrow(() -> new HttpException(404, templateName));
             templateService.deleteTemplate(t);
             ctx.response().end();
             notificationFactory
@@ -123,7 +123,7 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
                     .build()
                     .send();
         } catch (InvalidEventTemplateException iete) {
-            throw new HttpStatusException(400, iete.getMessage(), iete);
+            throw new HttpException(400, iete.getMessage(), iete);
         }
     }
 }

@@ -81,7 +81,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -159,7 +159,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(503, "Recording saving not available");
+            throw new HttpException(503, "Recording saving not available");
         }
 
         FileUpload upload = null;
@@ -173,13 +173,13 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         if (upload == null) {
-            throw new HttpStatusException(400, "No recording submission");
+            throw new HttpException(400, "No recording submission");
         }
 
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
             deleteTempFileUpload(upload);
-            throw new HttpStatusException(400, "Recording name must not be empty");
+            throw new HttpException(400, "Recording name must not be empty");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -189,7 +189,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
             deleteTempFileUpload(upload);
-            throw new HttpStatusException(400, "Incorrect recording file name pattern");
+            throw new HttpException(400, "Incorrect recording file name pattern");
         }
 
         String targetName = m.group(1);
@@ -275,7 +275,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         Throwable t;
                         if (res.cause() instanceof CouldNotLoadRecordingException) {
                             t =
-                                    new HttpStatusException(
+                                    new HttpException(
                                             400, "Not a valid JFR recording file", res.cause());
                         } else {
                             t = res.cause();

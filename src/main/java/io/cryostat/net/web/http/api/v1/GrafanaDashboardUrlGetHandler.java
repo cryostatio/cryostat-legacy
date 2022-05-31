@@ -53,7 +53,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class GrafanaDashboardUrlGetHandler implements RequestHandler {
 
@@ -102,7 +102,7 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
             // Fall back to GRAFANA_DASHBOARD_URL if no external URL is provided
             dashboardURL = env.getEnv(Variables.GRAFANA_DASHBOARD_ENV);
         } else {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+            throw new HttpException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())

@@ -42,9 +42,8 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -60,52 +59,51 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 
-public class MessagingServer implements AutoCloseable {
+public class MessagingServer extends AbstractVerticle implements AutoCloseable {
 
     private final Set<WsClient> connections;
     private final HttpServer server;
     private final AuthManager authManager;
     private final NotificationFactory notificationFactory;
-    private final ScheduledExecutorService limboPruner;
-    private final ScheduledExecutorService keepalivePinger;
     private final Clock clock;
     private final int maxConnections;
     private final Logger logger;
     private final Gson gson;
 
-    private Future<?> prunerTask;
-    private Future<?> pingTask;
+    private long prunerTaskId;
+    private final Map<WsClient, Long> pingTasks;
 
     MessagingServer(
+            Vertx vertx,
             HttpServer server,
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
             @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
-            @Named(MessagingModule.LIMBO_PRUNER) ScheduledExecutorService limboPruner,
-            @Named(MessagingModule.KEEPALIVE_PINGER) ScheduledExecutorService keepalivePinger,
             Clock clock,
             Logger logger,
             Gson gson) {
+        this.vertx = vertx;
         this.connections = new HashSet<>();
         this.server = server;
         this.authManager = authManager;
         this.notificationFactory = notificationFactory;
         this.maxConnections = maxConnections;
-        this.limboPruner = limboPruner;
-        this.keepalivePinger = keepalivePinger;
         this.clock = clock;
         this.logger = logger;
         this.gson = gson;
+        this.pingTasks = new ConcurrentHashMap<>();
     }
 
+    @Override
     public void start() throws SocketException, UnknownHostException {
         logger.info("Max concurrent WebSocket connections: {}", maxConnections);
 
-        prunerTask =
-                this.limboPruner.scheduleAtFixedRate(
-                        this::pruneConnections, 0, 1, TimeUnit.SECONDS);
+        prunerTaskId =
+                this.vertx.setPeriodic(TimeUnit.SECONDS.toMillis(1), id -> this.pruneConnections());
 
         server.websocketHandler(
                 (sws) -> {
@@ -153,13 +151,17 @@ public class MessagingServer implements AutoCloseable {
                                                         sendClientActivityNotification(
                                                                 remoteAddress, "accepted");
 
-                                                        pingTask =
-                                                                this.keepalivePinger
-                                                                        .scheduleAtFixedRate(
-                                                                                wsc::ping,
-                                                                                0,
-                                                                                5,
-                                                                                TimeUnit.SECONDS);
+                                                        Long ping =
+                                                                pingTasks.put(
+                                                                        wsc,
+                                                                        vertx.setPeriodic(
+                                                                                TimeUnit.SECONDS
+                                                                                        .toMillis(
+                                                                                                5),
+                                                                                id -> wsc.ping()));
+                                                        if (ping != null) {
+                                                            vertx.cancelTimer(ping);
+                                                        }
                                                     })
                                             // 1002: WebSocket "Protocol Error" close reason
                                             .onFailure(
@@ -200,15 +202,13 @@ public class MessagingServer implements AutoCloseable {
     }
 
     @Override
+    public void stop() {
+        this.close();
+    }
+
+    @Override
     public void close() {
-        if (prunerTask != null) {
-            prunerTask.cancel(false);
-        }
-
-        if (pingTask != null) {
-            pingTask.cancel(false);
-        }
-
+        this.vertx.cancelTimer(prunerTaskId);
         synchronized (connections) {
             connections.forEach(this::removeConnection);
             connections.clear();
@@ -227,6 +227,10 @@ public class MessagingServer implements AutoCloseable {
                 wsc.close();
                 logger.info("Disconnected remote client {}", wsc.getRemoteAddress());
                 sendClientActivityNotification(wsc.getRemoteAddress().toString(), "disconnected");
+            }
+            Long ping = pingTasks.remove(wsc);
+            if (ping != null) {
+                vertx.cancelTimer(ping);
             }
         }
     }

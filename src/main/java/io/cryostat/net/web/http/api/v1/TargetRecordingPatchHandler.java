@@ -51,7 +51,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -105,7 +105,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
         String mtd = ctx.getBodyAsString();
 
         if (mtd == null) {
-            throw new HttpStatusException(400, "Unsupported null operation");
+            throw new HttpException(400, "Unsupported null operation");
         }
         switch (mtd.toLowerCase()) {
             case "save":
@@ -115,7 +115,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
                 patchStop.handle(ctx, getConnectionDescriptorFromContext(ctx));
                 break;
             default:
-                throw new HttpStatusException(400, "Unsupported operation " + mtd);
+                throw new HttpException(400, "Unsupported operation " + mtd);
         }
     }
 }

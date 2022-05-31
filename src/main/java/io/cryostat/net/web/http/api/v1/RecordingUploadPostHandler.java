@@ -68,7 +68,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
@@ -128,7 +128,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
@@ -138,7 +138,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         512,
                         String.format(
                                 "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
@@ -148,7 +148,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
-            throw new HttpStatusException(501, e);
+            throw new HttpException(501, e);
         }
     }
 
@@ -158,7 +158,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             }
             throw e;
         }

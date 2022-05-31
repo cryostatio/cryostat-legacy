@@ -57,7 +57,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.nodes.Document;
@@ -160,10 +159,9 @@ class TargetTemplateGetHandlerTest {
                             });
             Mockito.when(templateService.getXml(Mockito.anyString(), Mockito.any()))
                     .thenReturn(Optional.empty());
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class,
-                            () -> handler.handleWithValidJwt(ctx, token));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 

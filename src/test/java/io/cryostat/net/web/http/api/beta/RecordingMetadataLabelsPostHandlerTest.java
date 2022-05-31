@@ -54,6 +54,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -63,7 +64,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -215,9 +215,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
             Mockito.doThrow(new IllegalArgumentException())
                     .when(recordingMetadataManager)
                     .parseRecordingLabels("invalid");
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
@@ -237,9 +237,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
                                     new RecordingNotFoundException(
                                             RecordingArchiveHelper.ARCHIVES, recordingName)));
 
-            HttpStatusException ex =
+            ApiException ex =
                     Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParameters));
+                            ApiException.class, () -> handler.handle(requestParameters));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
             Assertions.assertTrue(
                     ExceptionUtils.getRootCause(ex) instanceof RecordingNotFoundException);

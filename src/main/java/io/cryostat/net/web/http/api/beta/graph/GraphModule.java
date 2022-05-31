@@ -73,6 +73,10 @@ public abstract class GraphModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindGraphPostHandler(GraphQLPostHandler handler);
 
     @Binds
@@ -105,8 +109,8 @@ public abstract class GraphModule {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
+                        .scalar(ExtendedScalars.GraphQLLong)
                         .scalar(ExtendedScalars.Url)
-                        .scalar(Scalars.GraphQLLong)
                         .scalar(Scalars.GraphQLBoolean)
                         .scalar(
                                 ExtendedScalars.newAliasedScalar("ServiceURI")

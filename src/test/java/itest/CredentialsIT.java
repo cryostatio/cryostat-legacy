@@ -57,7 +57,7 @@ import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
@@ -111,7 +111,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 
@@ -132,7 +132,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -153,7 +153,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -176,7 +176,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -197,7 +197,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -220,7 +220,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -279,7 +279,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ee.getCause()).getStatusCode(), Matchers.equalTo(427));
+                ((HttpException) ee.getCause()).getStatusCode(), Matchers.equalTo(427));
 
         // Confirm invalid credentials automatically deleted by attempting to delete them
         CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
@@ -294,7 +294,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                         ExecutionException.class,
                         () -> deleteResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 

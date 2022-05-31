@@ -56,7 +56,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -128,7 +128,7 @@ class NotificationsUrlGetHandlerTest {
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
             when(netConf.getWebServerHost()).thenThrow(UnknownHostException.class);
-            Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         }
     }
 

@@ -63,7 +63,6 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class ReportGetHandler extends AbstractJwtConsumingHandler {
@@ -132,7 +131,7 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (ExecutionException | CompletionException ee) {
             if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, ee);
+                throw new ApiException(404, ee);
             }
             throw ee;
         }

@@ -78,7 +78,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -147,11 +147,11 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
         MultiMap attrs = ctx.request().formAttributes();
         String recordingName = attrs.get("recordingName");
         if (StringUtils.isBlank(recordingName)) {
-            throw new HttpStatusException(400, "\"recordingName\" form parameter must be provided");
+            throw new HttpException(400, "\"recordingName\" form parameter must be provided");
         }
         String eventSpecifier = attrs.get("events");
         if (StringUtils.isBlank(eventSpecifier)) {
-            throw new HttpStatusException(400, "\"events\" form parameter must be provided");
+            throw new HttpException(400, "\"events\" form parameter must be provided");
         }
 
         try {
@@ -174,7 +174,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                     Pattern bool = Pattern.compile("true|false");
                                     Matcher m = bool.matcher(attrs.get("toDisk"));
                                     if (!m.matches())
-                                        throw new HttpStatusException(400, "Invalid options");
+                                        throw new HttpException(400, "Invalid options");
                                     builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
                                 }
                                 if (attrs.contains("maxAge")) {
@@ -220,7 +220,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {
-                                    throw new HttpStatusException(500, e);
+                                    throw new HttpException(500, e);
                                 }
                             });
 
@@ -229,10 +229,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             ctx.response().end(gson.toJson(linkedDescriptor));
         } catch (NumberFormatException | JsonSyntaxException ex) {
-            throw new HttpStatusException(
+            throw new HttpException(
                     400, String.format("Invalid argument: %s", ex.getMessage()), ex);
         } catch (IllegalArgumentException iae) {
-            throw new HttpStatusException(400, iae.getMessage(), iae);
+            throw new HttpException(400, iae.getMessage(), iae);
         }
     }
 

@@ -62,7 +62,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -139,10 +139,10 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 }
             }
         } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
+            throw new HttpException(400, e.getMessage(), e);
         }
         if (!handledUpload) {
-            throw new HttpStatusException(400, "No template submission");
+            throw new HttpException(400, "No template submission");
         }
         ctx.response().end();
     }

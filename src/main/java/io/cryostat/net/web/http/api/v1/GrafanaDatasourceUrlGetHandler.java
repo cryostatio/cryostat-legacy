@@ -53,7 +53,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class GrafanaDatasourceUrlGetHandler implements RequestHandler {
 
@@ -96,7 +96,7 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
     @Override
     public void handle(RoutingContext ctx) {
         if (!this.env.hasEnv(Variables.GRAFANA_DATASOURCE_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+            throw new HttpException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())

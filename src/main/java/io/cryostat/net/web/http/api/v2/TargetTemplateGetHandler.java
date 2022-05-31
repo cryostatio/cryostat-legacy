@@ -57,7 +57,6 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
 
@@ -114,7 +113,7 @@ class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
                             ctx.response().end(doc.toString());
                         },
                         () -> {
-                            throw new HttpStatusException(404);
+                            throw new ApiException(404);
                         });
     }
 }

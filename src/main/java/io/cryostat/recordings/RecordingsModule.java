@@ -43,8 +43,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -70,34 +68,34 @@ import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class RecordingsModule {
 
-    static final String NOTIFICATION_SCHEDULER = "NOTIFICATION_SCHEDULER";
     public static final String METADATA_SUBDIRECTORY = "metadata";
 
     @Provides
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
+            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
-            @Named(NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
             RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         return new RecordingTargetHelper(
+                vertx,
                 targetConnectionManager,
                 webServer,
                 eventOptionsBuilderFactory,
                 notificationFactory,
                 recordingOptionsBuilderFactory,
                 reportService,
-                scheduler,
                 recordingMetadataManager,
                 logger);
     }
@@ -145,20 +143,6 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
         return new RecordingOptionsCustomizer(cw);
-    }
-
-    @Provides
-    @Named(NOTIFICATION_SCHEDULER)
-    static ScheduledExecutorService provideNotificationScheduler() {
-        ScheduledExecutorService ses =
-                Executors.newSingleThreadScheduledExecutor(
-                        r -> {
-                            Thread t = Executors.defaultThreadFactory().newThread(r);
-                            t.setDaemon(true);
-                            return t;
-                        });
-        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
-        return ses;
     }
 
     @Provides
