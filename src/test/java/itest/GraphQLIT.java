@@ -348,10 +348,10 @@ class GraphQLIT extends ExternalTargetsTest {
                         query,
                         ar -> {
                             if (assertRequestStatus(ar, resp)) {
-                                String bodyAsString = ar.result().bodyAsString();
-                                System.out.println(bodyAsString);
                                 resp.complete(
-                                        gson.fromJson(bodyAsString, DeleteMutationResponse.class));
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                DeleteMutationResponse.class));
                             }
                         });
         DeleteMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
