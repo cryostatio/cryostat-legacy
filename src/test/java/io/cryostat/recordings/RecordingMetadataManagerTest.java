@@ -180,14 +180,18 @@ public class RecordingMetadataManagerTest {
         String recordingName = "someRecording";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
-        String filename = "";
+        String filename = "archivedRecording";
 
         recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
 
         recordingMetadataManager.copyMetadataToArchives(targetId, recordingName, filename);
 
         Metadata actualMetadata =
+<<<<<<< HEAD
                 recordingMetadataManager.getMetadata(RecordingArchiveHelper.ARCHIVES, filename);
+=======
+                recordingMetadataManager.getMetadata(targetId, filename);
+>>>>>>> 5c7883b8 (use runtime info hash instead of guid)
 
         MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(metadata));
     }

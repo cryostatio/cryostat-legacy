@@ -53,6 +53,8 @@ import java.util.regex.Pattern;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -60,28 +62,34 @@ import com.google.gson.reflect.TypeToken;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
+    private static final Integer UPLOADS_ID = -1;
 
     private final Path recordingMetadataDir;
+    private final TargetConnectionManager targetConnectionManager;
     private final FileSystem fs;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
+    private final Map<Pair<Integer, String>, Metadata> recordingMetadataMap;
+    private final Map<String, Integer> jvmIdMap;
 
     RecordingMetadataManager(
-            Path recordingMetadataDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
+            Path recordingMetadataDir, TargetConnectionManager targetConnectionManager, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
+        this.targetConnectionManager = targetConnectionManager;
         this.fs = fs;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
         this.recordingMetadataMap = new ConcurrentHashMap<>();
+        this.jvmIdMap = new ConcurrentHashMap<>();
     }
 
     public void load() throws IOException {
@@ -102,7 +110,7 @@ public class RecordingMetadataManager {
                 .forEach(
                         srm ->
                                 recordingMetadataMap.put(
-                                        Pair.of(srm.getTargetId(), srm.getRecordingName()), srm));
+                                        Pair.of(srm.getJvmId(), srm.getRecordingName()), srm));
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -110,10 +118,13 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
-        this.recordingMetadataMap.put(Pair.of(targetId, recordingName), metadata);
+
+        Integer jvmId = this.getJvmId(targetId);
+
+        this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
         fs.writeString(
-                this.getMetadataPath(targetId, recordingName),
-                gson.toJson(StoredRecordingMetadata.of(targetId, recordingName, metadata)),
+                this.getMetadataPath(jvmId, recordingName),
+                gson.toJson(StoredRecordingMetadata.of(jvmId, recordingName, metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -130,16 +141,20 @@ public class RecordingMetadataManager {
     public Metadata getMetadata(String targetId, String recordingName) {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
+
+        Integer jvmId = this.getJvmId(targetId);
         return this.recordingMetadataMap.computeIfAbsent(
-                Pair.of(targetId, recordingName), k -> new Metadata());
+                Pair.of(jvmId, recordingName), k -> new Metadata());
     }
 
     public Metadata deleteRecordingMetadataIfExists(String targetId, String recordingName)
             throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
-        Metadata deleted = this.recordingMetadataMap.remove(Pair.of(targetId, recordingName));
-        fs.deleteIfExists(this.getMetadataPath(targetId, recordingName));
+        Integer jvmId = this.getJvmId(targetId);
+
+        Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
+        fs.deleteIfExists(this.getMetadataPath(jvmId, recordingName));
         return deleted;
     }
 
@@ -177,29 +192,54 @@ public class RecordingMetadataManager {
         }
     }
 
-    private Path getMetadataPath(String targetId, String recordingName) {
-        String filename = String.format("%s%s", targetId, recordingName);
+    private Path getMetadataPath(Integer jvmId, String recordingName) {
+        String filename = String.format("%s%s", jvmId, recordingName);
         return recordingMetadataDir.resolve(
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
+    private Integer getJvmId(String targetId) {
+        return this.jvmIdMap.computeIfAbsent(
+                targetId,
+                k -> {
+                    if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
+                        return UPLOADS_ID;
+                    }
+
+                    logger.info("attempting jvmId fetch for {}", targetId);
+
+                    try {
+                        return this.targetConnectionManager.executeConnectedTask(
+                                new ConnectionDescriptor(targetId),
+                                connection -> {
+                                    return connection.getJvmId();
+                                });
+                    } catch (Exception e) {
+                        logger.error(e);
+                        logger.error("Caused by: {}", ExceptionUtils.getRootCause(e.getCause()).getMessage());
+                        return 0;
+                    }
+                });
+    }
+
     private static class StoredRecordingMetadata extends Metadata {
-        private final String targetId;
+        private final Integer jvmId;
         private final String recordingName;
 
-        StoredRecordingMetadata(String targetId, String recordingName, Map<String, String> labels) {
+        StoredRecordingMetadata(
+                Integer jvmId, String recordingName, Map<String, String> labels) {
             super(labels);
-            this.targetId = targetId;
+            this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
         static StoredRecordingMetadata of(
-                String targetId, String recordingName, Metadata metadata) {
-            return new StoredRecordingMetadata(targetId, recordingName, metadata.getLabels());
+                Integer jvmId, String recordingName, Metadata metadata) {
+            return new StoredRecordingMetadata(jvmId, recordingName, metadata.getLabels());
         }
 
-        String getTargetId() {
-            return this.targetId;
+        Integer getJvmId() {
+            return this.jvmId;
         }
 
         String getRecordingName() {
@@ -221,7 +261,7 @@ public class RecordingMetadataManager {
             StoredRecordingMetadata srm = (StoredRecordingMetadata) o;
             return new EqualsBuilder()
                     .appendSuper(super.equals(o))
-                    .append(targetId, srm.targetId)
+                    .append(jvmId, srm.jvmId)
                     .append(recordingName, srm.recordingName)
                     .build();
         }
@@ -230,7 +270,7 @@ public class RecordingMetadataManager {
         public int hashCode() {
             return new HashCodeBuilder()
                     .appendSuper(super.hashCode())
-                    .append(targetId)
+                    .append(jvmId)
                     .append(recordingName)
                     .toHashCode();
         }

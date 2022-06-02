@@ -151,6 +151,7 @@ public abstract class RecordingsModule {
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            TargetConnectionManager targetConnectionManager,
             FileSystem fs,
             Gson gson,
             Base32 base32,
@@ -166,7 +167,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(metadataDir, fs, gson, base32, logger);
+            return new RecordingMetadataManager(metadataDir, targetConnectionManager, fs, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
