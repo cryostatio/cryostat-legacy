@@ -43,6 +43,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
 
+import org.apache.commons.lang3.StringUtils;
+
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -80,16 +82,25 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public CompletableFuture<Path> exec(Path recording, Path destination) {
+    public CompletableFuture<Path> exec(Path recording, Path destination, String filter) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
+        System.out.println("OR IS IT HERE IN REMOTE?");
         logger.info("POSTing {} to {}", recording, reportGenerator);
-        var form =
-                MultipartForm.create()
-                        .binaryFileUpload(
-                                "file",
-                                recording.getFileName().toString(),
-                                recording.toAbsolutePath().toString(),
-                                HttpMimeType.OCTET_STREAM.mime());
+        var form = StringUtils.isNotBlank(filter) ? 
+            MultipartForm.create()
+                    .attribute("filter", filter)
+                    .binaryFileUpload(
+                            "file",
+                            recording.getFileName().toString(),
+                            recording.toAbsolutePath().toString(),
+                            HttpMimeType.OCTET_STREAM.mime()) : 
+            MultipartForm.create()
+                    .binaryFileUpload(
+                            "file",
+                            recording.getFileName().toString(),
+                            recording.toAbsolutePath().toString(),
+                            HttpMimeType.OCTET_STREAM.mime());
+
         var f = new CompletableFuture<Path>();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))

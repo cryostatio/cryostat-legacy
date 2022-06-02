@@ -91,6 +91,7 @@ class ActiveRecordingReportCache {
 
     Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<String> f = new CompletableFuture<>();
+        System.out.println("I AM IN ACTIVERECORDINGREPORTCACHE");
         try {
             f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
         } catch (Exception e) {

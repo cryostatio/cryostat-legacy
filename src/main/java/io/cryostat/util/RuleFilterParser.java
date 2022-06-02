@@ -35,13 +35,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.reports;
 
-import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
+package io.cryostat.util;
 
-interface ReportGeneratorService {
-    CompletableFuture<Path> exec(Path in, Path out, String filter) throws Exception;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-    CompletableFuture<Path> exec(RecordingDescriptor rd) throws Exception;
+import org.apache.commons.lang3.StringUtils;
+import org.openjdk.jmc.flightrecorder.rules.IRule;
+import org.openjdk.jmc.flightrecorder.rules.RuleRegistry;
+
+public class RuleFilterParser {
+    private static final Set<String> RULE_IDS_SET =
+            RuleRegistry.getRules().stream().map(rule -> rule.getId()).collect(Collectors.toSet());
+
+    private static final Set<String> TOPIC_IDS_SET =
+            RuleRegistry.getRules().stream()
+                    .map(rule -> rule.getTopic())
+                    .collect(Collectors.toSet());
+
+    private RuleFilterParser () {}
+
+    public static Predicate<IRule> getPredicateRuleFilter(String rawFilter) {
+        if (StringUtils.isNotBlank(rawFilter)) {
+            String[] filterArray = rawFilter.split(",");
+            Predicate<IRule> combinedPredicate = (r) -> false;
+            for (String filter : filterArray) {
+                if (RULE_IDS_SET.contains(filter)) {
+                    Predicate<IRule> pr =
+                            (rule) -> rule.getId().equalsIgnoreCase(filter.trim());
+                    combinedPredicate = combinedPredicate.or(pr);
+                } 
+                else if (TOPIC_IDS_SET.contains(filter)) {
+                    Predicate<IRule> pr =
+                            (rule) -> rule.getTopic().equalsIgnoreCase(filter.trim());
+                    combinedPredicate = combinedPredicate.or(pr);
+                }
+            }
+            return combinedPredicate;
+        }
+        else {
+            return (r) -> true;
+        }
+    }
 }

@@ -73,6 +73,7 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
     @Override
     public final CompletableFuture<Path> exec(RecordingDescriptor recordingDescriptor)
             throws Exception {
+                System.out.println("IS IT HERE IN ABSTRACT?");
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,

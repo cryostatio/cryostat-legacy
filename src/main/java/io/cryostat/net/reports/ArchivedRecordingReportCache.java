@@ -71,22 +71,24 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> get(String recordingName) {
+    Future<Path> get(String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
+        System.out.println("I AM IN ARCHIVEDRECORDINGREPORTCACHE");
         Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
         if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+            System.out.println("IM HERE"); // cached
             f.complete(dest);
             return f;
         }
 
         try {
             logger.trace("Archived report cache miss for {}", recordingName);
-
+            System.out.println("ACTUALLY HERE"); // non-cached
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest)
+                            .exec(archivedRecording, dest, filter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
