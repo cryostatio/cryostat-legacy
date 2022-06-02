@@ -54,6 +54,7 @@
   <org.apache.maven.plugins.assembly.version>3.3.0</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.11.3</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.0.0</org.codehaus.mojo.exec.plugin.version>
+  <org.codehaus.mojo.build.helper.plugin.version>3.3.0</org.codehaus.mojo.build.helper.plugin.version>
   <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.1.1</com.google.cloud.tools.jib.maven.plugin.version>
@@ -444,7 +445,7 @@
               <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
+              <argument>${cryostat.imageStream}:${cryostat.imageVersionLower}</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -589,7 +590,7 @@
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
-          <tags>${cryostat.imageVersion}</tags>
+          <tags>${cryostat.imageVersionLower}</tags>
         </to>
         <container>
           <format>OCI</format>
@@ -722,6 +723,27 @@
             <goal>check</goal>
           </goals>
           <phase>process-sources</phase>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>build-helper-maven-plugin</artifactId>
+      <version>${org.codehaus.mojo.build.helper.plugin.version}</version>
+      <executions>
+        <execution>
+          <id>image-tag-to-lower</id>
+          <goals>
+            <goal>regex-property</goal>
+          </goals>
+          <configuration>
+            <name>cryostat.imageVersionLower</name>
+            <regex>^.*$</regex>
+            <value>${cryostat.imageVersion}</value>
+            <replacement>${cryostat.imageVersion}</replacement>
+            <toLowerCase>true</toLowerCase>
+            <failIfNoMatch>false</failIfNoMatch>
+          </configuration>
         </execution>
       </executions>
     </plugin>
