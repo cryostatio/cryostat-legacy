@@ -148,7 +148,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
