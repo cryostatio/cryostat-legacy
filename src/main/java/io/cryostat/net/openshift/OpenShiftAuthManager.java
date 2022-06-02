@@ -117,6 +117,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final String CRYOSTAT_OAUTH_CLIENT_ID = "CRYOSTAT_OAUTH_CLIENT_ID";
     private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
 
+    static final Pattern RESOURCE_PATTERN =
+            Pattern.compile(
+                    "^([\\w]+)([\\.\\w]+)?(?:/([\\w]+))?$",
+                    Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+
     private final Environment env;
     private final Lazy<String> namespace;
     private final Lazy<OpenShiftClient> serviceAccountClient;
@@ -324,8 +329,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     return CompletableFuture.failedFuture(
                                             new PermissionDeniedException(
                                                     namespace,
-                                                    resource.getGroup(),
-                                                    resource.getResource(),
+                                                    resource.toString(),
                                                     verb,
                                                     accessReview.getStatus().getReason()));
                                 } else {
@@ -589,14 +593,23 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     // A pairing of a Kubernetes group name and resource name
-    static class GroupResource {
+    public static class GroupResource {
 
         private final String group;
         private final String resource;
+        private final String subResource;
 
-        GroupResource(String group, String resource) {
-            this.group = group;
-            this.resource = resource;
+        GroupResource(String group, String resource, String subResource) {
+            this.group = nullable(group);
+            this.resource = nullable(resource);
+            this.subResource = nullable(subResource);
+        }
+
+        private static String nullable(String s) {
+            if (s == null) {
+                return "";
+            }
+            return s;
         }
 
         public String getGroup() {
@@ -607,17 +620,25 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return resource;
         }
 
+        public String getSubResource() {
+            return subResource;
+        }
+
         @Override
         public String toString() {
+            String r = resource;
             if (StringUtils.isNotBlank(group)) {
-                return group + "/" + resource;
+                r += "." + group;
             }
-            return resource;
+            if (StringUtils.isNotBlank(subResource)) {
+                r += "/" + subResource;
+            }
+            return r;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(group, resource);
+            return Objects.hash(group, resource, subResource);
         }
 
         @Override
@@ -632,19 +653,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 return false;
             }
             GroupResource other = (GroupResource) obj;
-            return Objects.equals(group, other.group) && Objects.equals(resource, other.resource);
+            return Objects.equals(group, other.group)
+                    && Objects.equals(resource, other.resource)
+                    && Objects.equals(subResource, other.subResource);
         }
 
-        public static GroupResource fromString(String string) {
-            String[] parts = string.split("/");
-            switch (parts.length) {
-                case 1:
-                    return new GroupResource("", parts[0]);
-                case 2:
-                    return new GroupResource(parts[0], parts[1]);
-                default:
-                    throw new IllegalArgumentException(string);
+        public static GroupResource fromString(String raw) {
+            Matcher m = RESOURCE_PATTERN.matcher(raw);
+            if (!m.matches()) {
+                throw new IllegalArgumentException(raw);
             }
+            String group = m.group(2);
+            if (group != null) {
+                // substring(1) to remove the first character, which will be the '.' delimeter due
+                // to
+                // how the regex is structured
+                group = group.substring(1);
+            }
+            String resource = m.group(1);
+            String subResource = m.group(3);
+            return new GroupResource(group, resource, subResource);
         }
     }
 

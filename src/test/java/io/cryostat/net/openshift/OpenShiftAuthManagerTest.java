@@ -169,9 +169,9 @@ class OpenShiftAuthManagerTest {
                 .thenReturn(
                         Map.of(
                                 "RECORDING",
-                                "operator.cryostat.io/recordings",
+                                "recordings.operator.cryostat.io",
                                 "CERTIFICATE",
-                                "apps/deployments,pods"));
+                                "deployments.apps,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
@@ -209,11 +209,20 @@ class OpenShiftAuthManagerTest {
                 Map.of("expected", Map.of()),
                 Map.of(
                         ResourceType.RECORDING.name(),
-                        "operator.cryostat.io/recordings",
+                        "recordings.operator.cryostat.io",
                         "expected",
                         Map.of(
                                 ResourceType.RECORDING,
-                                Set.of(new GroupResource("operator.cryostat.io", "recordings")))),
+                                Set.of(
+                                        new GroupResource(
+                                                "operator.cryostat.io", "recordings", null)))),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "deployments.apps/scale",
+                        "expected",
+                        Map.of(
+                                ResourceType.RECORDING,
+                                Set.of(new GroupResource("apps", "deployments", "scale")))),
                 Map.of(
                         ResourceType.RECORDING.name(),
                         "",
@@ -226,13 +235,14 @@ class OpenShiftAuthManagerTest {
                         Map.of(ResourceType.RECORDING, Set.<String>of())),
                 Map.of(
                         ResourceType.RECORDING.name(),
-                        "operator.cryostat.io/recordings, apps/deployments",
+                        "recordings.operator.cryostat.io, deployments.apps",
                         "expected",
                         Map.of(
                                 ResourceType.RECORDING,
                                 Set.of(
-                                        new GroupResource("operator.cryostat.io", "recordings"),
-                                        new GroupResource("apps", "deployments")))));
+                                        new GroupResource(
+                                                "operator.cryostat.io", "recordings", null),
+                                        new GroupResource("apps", "deployments", null)))));
     }
 
     @Test
@@ -351,7 +361,8 @@ class OpenShiftAuthManagerTest {
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
-        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("recordings"));
+        MatcherAssert.assertThat(
+                pde.getResourceType(), Matchers.equalTo("recordings.operator.cryostat.io"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
@@ -643,6 +654,54 @@ class OpenShiftAuthManagerTest {
             throws Exception {
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));
+    }
+
+    // the below parsing tests should be in a @Nested class, but this doesn't play nicely with the
+    // OpenShiftMockServerExtension and results in a test NPE
+    @Test
+    void shouldParseBareResource() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("apps");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.emptyString());
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.emptyString());
+    }
+
+    @Test
+    void shouldParseResourceWithGroup() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("deployments.apps");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("deployments"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.emptyString());
+    }
+
+    @Test
+    void shouldParseResourceWithGroupAndSub() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("deployments.apps/scale");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("deployments"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.equalTo("scale"));
+    }
+
+    @Test
+    void shouldParseResourceWithSub() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("apps/scale");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.emptyString());
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.equalTo("scale"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                ".invalid",
+                "/invalid",
+                "bad+format",
+                "with whitespace",
+            })
+    void shouldThrowForInvalidInputs(String s) {
+        Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> OpenShiftAuthManager.GroupResource.fromString(s));
     }
 
     private static class TokenProvider implements Function<String, OpenShiftClient> {

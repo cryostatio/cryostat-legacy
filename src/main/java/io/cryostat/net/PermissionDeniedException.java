@@ -43,11 +43,11 @@ public class PermissionDeniedException extends Exception {
     private final String verb;
 
     public PermissionDeniedException(
-            String namespace, String group, String resource, String verb, String reason) {
+            String namespace, String resource, String verb, String reason) {
         super(
                 String.format(
-                        "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
-                        namespace, verb, resource, group, reason));
+                        "Requesting client in namespace \"%s\" cannot %s %s: %s",
+                        namespace, verb, resource, reason));
         this.namespace = namespace;
         this.resource = resource;
         this.verb = verb;
