@@ -125,6 +125,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Environment env;
     private final Lazy<String> namespace;
     private final Lazy<OpenShiftClient> serviceAccountClient;
+    private final Executor executor;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
     private final Map<ResourceType, Set<GroupResource>> resourceMap;
@@ -137,19 +138,20 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
-            Executor cacheExecutor,
+            Executor executor,
             Scheduler cacheScheduler,
             Logger logger) {
         super(logger);
         this.env = env;
         this.namespace = namespace;
         this.serviceAccountClient = serviceAccountClient;
+        this.executor = executor;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
 
         Caffeine<String, OpenShiftClient> cacheBuilder =
                 Caffeine.newBuilder()
-                        .executor(cacheExecutor)
+                        .executor(executor)
                         .scheduler(cacheScheduler)
                         .expireAfterAccess(Duration.ofMinutes(5)) // should this be configurable?
                         .removalListener((k, v, cause) -> v.close());
@@ -257,8 +259,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         OpenShiftClient client = userClients.get(token);
         try {
             List<CompletableFuture<Void>> results =
-                    resourceActions
-                            .parallelStream()
+                    resourceActions.stream()
                             .flatMap(
                                     resourceAction ->
                                             validateAction(client, namespace.get(), resourceAction))
@@ -301,49 +302,57 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return Stream.of(CompletableFuture.completedFuture(null));
         }
         String verb = map(resourceAction.getVerb());
-        return resources
-                .parallelStream()
+        return resources.stream()
                 .map(
                         resource -> {
                             AuthRequest evt = new AuthRequest();
-                            evt.begin();
-                            try {
-                                SelfSubjectAccessReview accessReview =
-                                        new SelfSubjectAccessReviewBuilder()
-                                                .withNewSpec()
-                                                .withNewResourceAttributes()
-                                                .withNamespace(namespace)
-                                                .withGroup(resource.getGroup())
-                                                .withResource(resource.getResource())
-                                                .withSubresource(resource.getSubResource())
-                                                .withVerb(verb)
-                                                .endResourceAttributes()
-                                                .endSpec()
-                                                .build();
-                                accessReview =
-                                        client.authorization()
-                                                .v1()
-                                                .selfSubjectAccessReview()
-                                                .create(accessReview);
-                                evt.setRequestSuccessful(true);
-                                if (!accessReview.getStatus().getAllowed()) {
-                                    return CompletableFuture.failedFuture(
-                                            new PermissionDeniedException(
-                                                    namespace,
-                                                    resource.toString(),
-                                                    verb,
-                                                    accessReview.getStatus().getReason()));
-                                } else {
-                                    return CompletableFuture.completedFuture(null);
-                                }
-                            } catch (Exception e) {
-                                return CompletableFuture.failedFuture(e);
-                            } finally {
-                                if (evt.shouldCommit()) {
-                                    evt.end();
-                                    evt.commit();
-                                }
-                            }
+                            SelfSubjectAccessReview accessReview =
+                                    new SelfSubjectAccessReviewBuilder()
+                                            .withNewSpec()
+                                            .withNewResourceAttributes()
+                                            .withNamespace(namespace)
+                                            .withGroup(resource.getGroup())
+                                            .withResource(resource.getResource())
+                                            .withSubresource(resource.getSubResource())
+                                            .withVerb(verb)
+                                            .endResourceAttributes()
+                                            .endSpec()
+                                            .build();
+                            CompletableFuture<Void> result = new CompletableFuture<>();
+                            executor.execute(
+                                    () -> {
+                                        evt.begin();
+                                        try {
+                                            SelfSubjectAccessReview accessReviewResult =
+                                                    client.authorization()
+                                                            .v1()
+                                                            .selfSubjectAccessReview()
+                                                            .create(accessReview);
+                                            boolean allowed =
+                                                    accessReviewResult.getStatus().getAllowed();
+                                            evt.setRequestSuccessful(allowed);
+                                            if (!allowed) {
+                                                result.completeExceptionally(
+                                                        new PermissionDeniedException(
+                                                                namespace,
+                                                                resource.toString(),
+                                                                verb,
+                                                                accessReviewResult
+                                                                        .getStatus()
+                                                                        .getReason()));
+                                            } else {
+                                                result.complete(null);
+                                            }
+                                        } catch (Exception e) {
+                                            result.completeExceptionally(e);
+                                        } finally {
+                                            if (evt.shouldCommit()) {
+                                                evt.end();
+                                                evt.commit();
+                                            }
+                                        }
+                                    });
+                            return result;
                         });
     }
 

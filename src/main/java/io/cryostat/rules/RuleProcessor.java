@@ -161,7 +161,6 @@ public class RuleProcessor extends AbstractVerticle
         switch (tde.getEventKind()) {
             case FOUND:
                 registry.getRules(tde.getServiceRef())
-                        .parallelStream()
                         .forEach(rule -> activate(rule, tde.getServiceRef()));
                 break;
             case LOST:

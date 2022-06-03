@@ -356,6 +356,8 @@ class OpenShiftAuthManagerTest {
                                                 () -> "token",
                                                 Set.of(ResourceAction.READ_RECORDING))
                                         .get());
+        ee.printStackTrace();
+        ExceptionUtils.getRootCause(ee).printStackTrace();
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(PermissionDeniedException.class));

@@ -98,8 +98,7 @@ public class MergingPlatformClient implements PlatformClient, Consumer<TargetDis
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
-        return this.clients
-                .parallelStream()
+        return this.clients.stream()
                 .flatMap(client -> client.listDiscoverableServices().stream())
                 .collect(Collectors.toList());
     }
