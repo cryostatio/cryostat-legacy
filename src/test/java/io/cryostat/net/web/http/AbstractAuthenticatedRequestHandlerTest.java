@@ -123,7 +123,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new PermissionDeniedException(
-                                        "namespace", "group", "resource", "verb", "reason")));
+                                        "namespace", "resourc.group", "verb", "reason")));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
@@ -146,11 +146,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                         CompletableFuture.failedFuture(
                                 new ExecutionException(
                                         new PermissionDeniedException(
-                                                "namespace",
-                                                "group",
-                                                "resource",
-                                                "verb",
-                                                "reason"))));
+                                                "namespace", "resource.group", "verb", "reason"))));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));

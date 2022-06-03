@@ -37,8 +37,10 @@
  */
 package io.cryostat.net.openshift;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -55,9 +58,11 @@ import io.cryostat.net.MissingEnvironmentVariableException;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.TokenNotFoundException;
 import io.cryostat.net.UserInfo;
+import io.cryostat.net.openshift.OpenShiftAuthManager.GroupResource;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
@@ -96,6 +101,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -135,6 +141,7 @@ class OpenShiftAuthManagerTest {
 
     OpenShiftAuthManager mgr;
     @Mock Environment env;
+    @Mock ClassPropertiesLoader classPropertiesLoader;
     @Mock Logger logger;
     @Mock OkHttpClient httpClient;
     OpenShiftClient client;
@@ -152,20 +159,90 @@ class OpenShiftAuthManagerTest {
     }
 
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
+        Mockito.lenient()
+                .when(classPropertiesLoader.loadAsMap(Mockito.any()))
+                .thenReturn(
+                        Map.of(
+                                "RECORDING",
+                                "recordings.operator.cryostat.io",
+                                "CERTIFICATE",
+                                "deployments.apps,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
                         () -> NAMESPACE,
                         () -> client,
                         tokenProvider,
+                        classPropertiesLoader,
                         Runnable::run,
                         Scheduler.disabledScheduler(),
                         logger);
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
+    }
+
+    @ParameterizedTest
+    @MethodSource("getResourceMaps")
+    void testPropertiesResourceMapProcessing(Map<String, Object> map) throws IOException {
+        ClassPropertiesLoader loader = Mockito.mock(ClassPropertiesLoader.class);
+
+        Map<String, String> resourcesMap = new HashMap<>();
+        map.entrySet().stream()
+                .filter(e -> !e.getKey().equals("expected"))
+                .forEach(e -> resourcesMap.put((String) e.getKey(), (String) e.getValue()));
+
+        Map<ResourceType, Set<GroupResource>> expected =
+                (Map<ResourceType, Set<GroupResource>>) map.get("expected");
+
+        Mockito.when(loader.loadAsMap(Mockito.any())).thenReturn(resourcesMap);
+        Map<ResourceType, Set<GroupResource>> result =
+                OpenShiftAuthManager.processResourceMapping(loader, logger);
+
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
+    }
+
+    private static Stream<Map<String, Object>> getResourceMaps() {
+        return Stream.of(
+                Map.of("expected", Map.of()),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "recordings.operator.cryostat.io",
+                        "expected",
+                        Map.of(
+                                ResourceType.RECORDING,
+                                Set.of(
+                                        new GroupResource(
+                                                "operator.cryostat.io", "recordings", null)))),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "deployments.apps/scale",
+                        "expected",
+                        Map.of(
+                                ResourceType.RECORDING,
+                                Set.of(new GroupResource("apps", "deployments", "scale")))),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.<String>of())),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        ",",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.<String>of())),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "recordings.operator.cryostat.io, deployments.apps",
+                        "expected",
+                        Map.of(
+                                ResourceType.RECORDING,
+                                Set.of(
+                                        new GroupResource(
+                                                "operator.cryostat.io", "recordings", null),
+                                        new GroupResource("apps", "deployments", null)))));
     }
 
     @Test
@@ -253,7 +330,7 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_TARGET)).get(),
+                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_RECORDING)).get(),
                 Matchers.is(true));
     }
 
@@ -275,14 +352,17 @@ class OpenShiftAuthManagerTest {
                 Assertions.assertThrows(
                         ExecutionException.class,
                         () ->
-                                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_TARGET))
+                                mgr.validateToken(
+                                                () -> "token",
+                                                Set.of(ResourceAction.READ_RECORDING))
                                         .get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
-        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("flightrecorders"));
+        MatcherAssert.assertThat(
+                pde.getResourceType(), Matchers.equalTo("recordings.operator.cryostat.io"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
@@ -466,9 +546,7 @@ class OpenShiftAuthManagerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(
-            mode = EnumSource.Mode.MATCH_ANY,
-            names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE|CREDENTIALS))$")
+    @EnumSource(mode = EnumSource.Mode.MATCH_ANY, names = "^([a-zA-Z]+_(RECORDING|CERTIFICATE))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
         String expectedVerb;
@@ -486,18 +564,12 @@ class OpenShiftAuthManagerTest {
 
         Set<String> expectedGroups;
         Set<String> expectedResources;
-        if (resourceAction.getResource() == ResourceType.TARGET) {
-            expectedGroups = Set.of("operator.cryostat.io");
-            expectedResources = Set.of("flightrecorders");
-        } else if (resourceAction.getResource() == ResourceType.RECORDING) {
+        if (resourceAction.getResource() == ResourceType.RECORDING) {
             expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("recordings");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
-            expectedGroups = Set.of("apps", "", "operator.cryostat.io");
-            expectedResources = Set.of("deployments", "pods", "cryostats");
-        } else if (resourceAction.getResource() == ResourceType.CREDENTIALS) {
-            expectedGroups = Set.of("operator.cryostat.io");
-            expectedResources = Set.of("cryostats");
+            expectedGroups = Set.of("apps", "");
+            expectedResources = Set.of("deployments", "pods");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
         }
@@ -575,15 +647,61 @@ class OpenShiftAuthManagerTest {
     @EnumSource(
             mode = EnumSource.Mode.MATCH_ALL,
             names = {
-                "^[a-zA-Z]+_(?!TARGET).*$",
                 "^[a-zA-Z]+_(?!RECORDING).*$",
                 "^[a-zA-Z]+_(?!CERTIFICATE).*$",
-                "^[a-zA-Z]+_(?!CREDENTIALS).*$"
             })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));
+    }
+
+    // the below parsing tests should be in a @Nested class, but this doesn't play nicely with the
+    // OpenShiftMockServerExtension and results in a test NPE
+    @Test
+    void shouldParseBareResource() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("apps");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.emptyString());
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.emptyString());
+    }
+
+    @Test
+    void shouldParseResourceWithGroup() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("deployments.apps");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("deployments"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.emptyString());
+    }
+
+    @Test
+    void shouldParseResourceWithGroupAndSub() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("deployments.apps/scale");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("deployments"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.equalTo("scale"));
+    }
+
+    @Test
+    void shouldParseResourceWithSub() {
+        GroupResource gr = OpenShiftAuthManager.GroupResource.fromString("apps/scale");
+        MatcherAssert.assertThat(gr.getGroup(), Matchers.emptyString());
+        MatcherAssert.assertThat(gr.getResource(), Matchers.equalTo("apps"));
+        MatcherAssert.assertThat(gr.getSubResource(), Matchers.equalTo("scale"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                ".invalid",
+                "/invalid",
+                "bad+format",
+                "with whitespace",
+            })
+    void shouldThrowForInvalidInputs(String s) {
+        Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> OpenShiftAuthManager.GroupResource.fromString(s));
     }
 
     private static class TokenProvider implements Function<String, OpenShiftClient> {
