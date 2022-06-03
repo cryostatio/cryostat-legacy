@@ -315,6 +315,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 .withNamespace(namespace)
                                                 .withGroup(resource.getGroup())
                                                 .withResource(resource.getResource())
+                                                .withSubresource(resource.getSubResource())
                                                 .withVerb(verb)
                                                 .endResourceAttributes()
                                                 .endSpec()
