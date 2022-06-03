@@ -62,6 +62,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 
 @Module
@@ -131,6 +132,7 @@ public abstract class OpenShiftNetworkModule {
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
+            Vertx vertx,
             Logger logger) {
         return new OpenShiftAuthManager(
                 env,
@@ -140,6 +142,7 @@ public abstract class OpenShiftNetworkModule {
                 classPropertiesLoader,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
+                vertx,
                 logger);
     }
 

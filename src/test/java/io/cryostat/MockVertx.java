@@ -95,6 +95,47 @@ public class MockVertx {
                 .executeBlocking(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
 
         Mockito.lenient()
+                .doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                Promise promise = Promise.promise();
+
+                                Handler<Promise> promiseHandler = invocation.getArgument(0);
+                                promiseHandler.handle(promise);
+
+                                Handler resultHandler = invocation.getArgument(1);
+                                AsyncResult result =
+                                        new AsyncResult() {
+                                            @Override
+                                            public Object result() {
+                                                return promise.future().result();
+                                            }
+
+                                            @Override
+                                            public Throwable cause() {
+                                                return promise.future().cause();
+                                            }
+
+                                            @Override
+                                            public boolean succeeded() {
+                                                return promise.future().succeeded();
+                                            }
+
+                                            @Override
+                                            public boolean failed() {
+                                                return promise.future().failed();
+                                            }
+                                        };
+                                resultHandler.handle(result);
+
+                                return null;
+                            }
+                        })
+                .when(vertx)
+                .executeBlocking(Mockito.any(), Mockito.any());
+
+        Mockito.lenient()
                 .when(vertx.executeBlocking(Mockito.any()))
                 .thenAnswer(
                         new Answer() {
