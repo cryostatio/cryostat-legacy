@@ -1198,6 +1198,7 @@ The handler-specific descriptions below describe how each handler populates the
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
 | Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                     |
 | **Target JVMs**                                                           |                                                                                 |
@@ -1272,6 +1273,20 @@ The handler-specific descriptions below describe how each handler populates the
     $ curl localhost:8181/health/liveness
     ```
 
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/v2.1/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.
 
 ### Target JVMs
 
@@ -1750,29 +1765,10 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Miscellaneous**                                                         |                                                                                 |
-| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
 | **Recordings in archive**                                                 |                                                                                 |
 | Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
-
-### Miscellaneous
-
-* #### `DiscoveryGetHandler`
-
-    ###### synopsis
-    Queries the platform client(s) for the discoverable targets and constructs a
-    hierarchical tree view of the full deployment environment with targets
-    belonging to ex. Pods, belonging to Deployments, etc.
-
-    ###### request
-    `GET /api/v2.1/discovery`
-
-    ###### response
-    `200` - The result is the path of the saved file in the server's storage.
-
-    `401` - The user does not have sufficient permissions.
 
 ### Recordings in Target JVMs
 * #### `TargetRecordingMetadataLabelsPostHandler`
