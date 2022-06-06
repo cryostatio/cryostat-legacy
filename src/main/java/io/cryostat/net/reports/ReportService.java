@@ -62,8 +62,10 @@ public class ReportService {
         return archivedCache.delete(recordingName);
     }
 
-    public Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return activeCache.get(connectionDescriptor, recordingName);
+    public Future<String> get(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
+        System.out.println("I AM IN REPORTSERVICE (ACTIVECACHEGET)");
+        return activeCache.get(connectionDescriptor, recordingName, filter);
     }
 
     public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {

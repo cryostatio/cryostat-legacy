@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -121,12 +122,18 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? null : queriedFilter.get(0);
+
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
             ctx.response()
                     .end(
                             reportService
-                                    .get(getConnectionDescriptorFromContext(ctx), recordingName)
+                                    .get(
+                                            getConnectionDescriptorFromContext(ctx),
+                                            recordingName,
+                                            rawFilter)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

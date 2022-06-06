@@ -73,13 +73,13 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
     @Override
     public final CompletableFuture<Path> exec(RecordingDescriptor recordingDescriptor)
             throws Exception {
-                System.out.println("IS IT HERE IN ABSTRACT?");
+        System.out.println("IS IT HERE IN ABSTRACT?");
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
         Path saveFile = fs.createTempFile(null, null);
-        CompletableFuture<Path> cf = exec(recording, saveFile);
+        CompletableFuture<Path> cf = exec(recording, saveFile, recordingDescriptor.filter);
         return cf.whenComplete(
                 (p, t) -> {
                     try {

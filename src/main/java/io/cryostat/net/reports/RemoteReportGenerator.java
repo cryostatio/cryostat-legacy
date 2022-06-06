@@ -43,8 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
 
-import org.apache.commons.lang3.StringUtils;
-
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -57,6 +55,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.lang3.StringUtils;
 
 class RemoteReportGenerator extends AbstractReportGeneratorService {
 
@@ -86,20 +85,22 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         System.out.println("OR IS IT HERE IN REMOTE?");
         logger.info("POSTing {} to {}", recording, reportGenerator);
-        var form = StringUtils.isNotBlank(filter) ? 
-            MultipartForm.create()
-                    .attribute("filter", filter)
-                    .binaryFileUpload(
-                            "file",
-                            recording.getFileName().toString(),
-                            recording.toAbsolutePath().toString(),
-                            HttpMimeType.OCTET_STREAM.mime()) : 
-            MultipartForm.create()
-                    .binaryFileUpload(
-                            "file",
-                            recording.getFileName().toString(),
-                            recording.toAbsolutePath().toString(),
-                            HttpMimeType.OCTET_STREAM.mime());
+        System.out.println(String.format("IN REMOTE: THIS IS THE FILTER {%s}", filter));
+        var form =
+                StringUtils.isNotBlank(filter)
+                        ? MultipartForm.create()
+                                .attribute("filter", filter)
+                                .binaryFileUpload(
+                                        "file",
+                                        recording.getFileName().toString(),
+                                        recording.toAbsolutePath().toString(),
+                                        HttpMimeType.OCTET_STREAM.mime())
+                        : MultipartForm.create()
+                                .binaryFileUpload(
+                                        "file",
+                                        recording.getFileName().toString(),
+                                        recording.toAbsolutePath().toString(),
+                                        HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
         this.http

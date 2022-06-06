@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -116,7 +117,7 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldRespondBySendingFile() throws Exception {
+    void shouldRespondBySendingFileNullFilter() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -136,12 +137,46 @@ class ReportGetHandlerTest {
         Mockito.when(file.length()).thenReturn(12345L);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString()))
+        when(ctx.queryParam("filter")).thenReturn(List.of());
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(fakePath));
 
         handler.handle(ctx);
 
-        Mockito.verify(reportService).get("someRecording");
+        Mockito.verify(reportService).get("someRecording", null);
+        Mockito.verify(resp).sendFile(fakePath.toString());
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
+    }
+
+    @Test
+    void shouldRespondBySendingFileNonNullFilter() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+
+        Path fakePath = Mockito.mock(Path.class);
+        Mockito.when(fakePath.toAbsolutePath()).thenReturn(fakePath);
+        Mockito.when(fakePath.toString()).thenReturn("/some/fake/path.html");
+        File file = Mockito.mock(File.class);
+        Mockito.when(fakePath.toFile()).thenReturn(file);
+        Mockito.when(file.length()).thenReturn(12345L);
+
+        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        when(ctx.queryParam("filter")).thenReturn(List.of("non-null"));
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+        handler.handle(ctx);
+
+        Mockito.verify(reportService).get("someRecording", "non-null");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -161,7 +196,7 @@ class ReportGetHandlerTest {
                 .thenReturn(resp);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new RecordingNotFoundException(null, "someRecording")));
@@ -169,6 +204,6 @@ class ReportGetHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-        Mockito.verify(reportService).get("someRecording");
+        Mockito.verify(reportService).get("someRecording", null);
     }
 }

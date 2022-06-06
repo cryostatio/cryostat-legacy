@@ -86,14 +86,17 @@ class ActiveRecordingReportCache {
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build(k -> getReport(k));
+                        .build((k) -> getReport(k));
     }
 
-    Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    Future<String> get(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
         System.out.println("I AM IN ACTIVERECORDINGREPORTCACHE");
         try {
-            f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            f.complete(
+                    cache.get(
+                            new RecordingDescriptor(connectionDescriptor, recordingName, filter)));
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
@@ -101,7 +104,8 @@ class ActiveRecordingReportCache {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
+        RecordingDescriptor key =
+                new RecordingDescriptor(connectionDescriptor, recordingName, null);
         boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);

@@ -137,7 +137,7 @@ class ReportGetHandlerTest {
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("archive", "myrecording"));
-            Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
+            Mockito.when(reports.get(Mockito.anyString(), Mockito.any())).thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
                             ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
@@ -156,7 +156,7 @@ class ReportGetHandlerTest {
             Mockito.when(path.toFile()).thenReturn(file);
             Mockito.when(file.length()).thenReturn(1234L);
             Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
+            Mockito.when(reports.get(Mockito.anyString(), Mockito.any())).thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 

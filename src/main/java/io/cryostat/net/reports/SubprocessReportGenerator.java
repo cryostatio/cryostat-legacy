@@ -76,7 +76,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 import io.cryostat.util.RuleFilterParser;
-import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 
@@ -212,7 +211,13 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     private List<String> createProcessArgs(Path recording, Path saveFile, String filter) {
-        return List.of(recording.toAbsolutePath().toString(), saveFile.toAbsolutePath().toString(), filter);
+        filter = (filter == null) ? "" : filter;
+        System.out.println(String.format("filter{%s}", filter));
+        /* Because List.of() cannot take null values */
+        return List.of(
+                recording.toAbsolutePath().toString(),
+                saveFile.toAbsolutePath().toString(),
+                filter);
     }
 
     private String serializeTransformersSet() {
@@ -281,9 +286,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         if (args.length != 3) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
-        if (args[2] == null) {
-            throw new IllegalArgumentException("filter was null...");
-        }
         var recording = Paths.get(args[0]);
         Set<ReportTransformer> transformers = Collections.emptySet();
         var saveFile = Paths.get(args[1]);
@@ -331,8 +333,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
     }
 
-    static ReportResult generateReportFromFile(Path recording, Set<ReportTransformer> transformers, String filter)
-            throws Exception {
+    static ReportResult generateReportFromFile(
+            Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
