@@ -19,7 +19,7 @@
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <ubiImage>registry.access.redhat.com/ubi8/openjdk-11-runtime</ubiImage>
   <ubiImageTag>@sha256:ebc549bf521c93ec3d4661a028e59158cbb6a31c00930f964cbbc85862ff84bd</ubiImageTag><!-- 1.12-1 -->
-  <baseImage>quay.io/cryostat/cryostat-base</baseImage>
+  <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <node.version>v14.17.0</node.version>
   <yarn.version>v1.22.13</yarn.version>
@@ -27,7 +27,6 @@
   <skipTests>false</skipTests>
   <skipITs>${skipTests}</skipITs>
   <skipUTs>${skipTests}</skipUTs>
-  <skipBaseImageBuild>false</skipBaseImageBuild>
   <cryostat.minimal>false</cryostat.minimal>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
@@ -57,7 +56,6 @@
   <com.github.eirslett.frontend.plugin.version>1.11.3</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.0.0</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.build.helper.plugin.version>3.3.0</org.codehaus.mojo.build.helper.plugin.version>
-  <org.codehaus.gmaven.groovy.maven.plugin.version>2.1.1</org.codehaus.gmaven.groovy.maven.plugin.version>
   <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.1.1</com.google.cloud.tools.jib.maven.plugin.version>
@@ -274,6 +272,7 @@
             <name>${baseImage}</name>
             <build>
               <createLatestTag>true</createLatestTag>
+              <format>DOCKER</format>
             </build>
           </image>
         </images>
@@ -286,52 +285,12 @@
             <goal>build</goal>
           </goals>
         </execution>
-      </executions>
-    </plugin>
-    <plugin>
-      <groupId>org.codehaus.gmaven</groupId>
-      <artifactId>groovy-maven-plugin</artifactId>
-      <version>${org.codehaus.gmaven.groovy.maven.plugin.version}</version>
-      <executions>
         <execution>
-          <id>determine-git-version</id>
-          <phase>generate-resources</phase>
+          <id>clean-base-image</id>
+          <phase>clean</phase>
           <goals>
-            <goal>execute</goal>
+            <goal>clean</goal>
           </goals>
-          <configuration>
-            <properties>
-              <script>git describe --dirty --long --always</script>
-            </properties>
-            <source>
-              def command = properties.script
-              def process = command.execute()
-              process.waitFor()
-              def version = process.in.text
-              print version
-              project.properties.gitVersion = version
-            </source>
-          </configuration>
-        </execution>
-        <execution>
-          <id>determine-base-jdk-version</id>
-          <phase>prepare-package</phase>
-          <goals>
-            <goal>execute</goal>
-          </goals>
-          <configuration>
-            <properties>
-              <script>${imageBuilder} run --rm -it ${baseImage}:${baseImageTag} /usr/bin/find -- /usr/lib/jvm -mindepth 1 -maxdepth 1 ! -type l</script>
-            </properties>
-            <source>
-              def command = properties.script
-              def process = command.execute()
-              process.waitFor()
-              def version = process.in.text
-              print version
-              project.properties.baseImageJdk = version
-            </source>
-          </configuration>
         </execution>
       </executions>
     </plugin>
@@ -388,17 +347,38 @@
       </configuration>
       <executions>
         <execution>
-          <id>generate-git-version-file</id>
+          <id>generate-git-version</id>
           <phase>generate-resources</phase>
           <goals>
             <goal>exec</goal>
           </goals>
           <configuration>
-            <executable>echo</executable>
+            <executable>git</executable>
             <arguments>
-              <argument>${gitVersion}</argument>
+              <argument>describe</argument>
+              <argument>--dirty</argument>
+              <argument>--long</argument>
+              <argument>--always</argument>
             </arguments>
             <outputFile>${project.build.directory}/assets/app/resources/io/cryostat/version</outputFile>
+          </configuration>
+        </execution>
+        <execution>
+          <id>save-base-image-tarball</id>
+          <phase>prepare-package</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>save</argument>
+              <argument>--format</argument>
+              <argument>docker-archive</argument>
+              <argument>${baseImage}:${baseImageTag}</argument>
+              <argument>--output</argument>
+              <argument>${project.build.directory}/base.tar.gz</argument>
+            </arguments>
           </configuration>
         </execution>
         <execution>
@@ -659,11 +639,12 @@
         </execution>
       </executions>
       <configuration>
+        <useOnlyProjectCache>true</useOnlyProjectCache>
         <dockerClient>
           <executable>${imageBuilder}</executable>
         </dockerClient>
         <from>
-          <image>${baseImage}:${baseImageTag}</image>
+          <image>tar://${project.build.directory}/base.tar.gz</image>
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
@@ -690,11 +671,6 @@
               <excludes>
                 <exclude>cryostat.jfc</exclude>
               </excludes>
-            </path>
-            <path>
-              <from>src/main/extras</from>
-              <into>${baseImageJdk}/lib/jfr</into>
-              <includes>cryostat.jfc</includes>
             </path>
           </paths>
           <permissions>

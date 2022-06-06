@@ -14,7 +14,9 @@ RUN mkdir -p $CONF_DIR
 ENV SSL_TRUSTSTORE=$CONF_DIR/truststore.p12 \
     SSL_TRUSTSTORE_PASS_FILE=$CONF_DIR/truststore.pass
 
-COPY include $CONF_DIR
+COPY include/truststore-setup.sh $CONF_DIR
+
+COPY include/cryostat.jfc /usr/lib/jvm/jre/lib/jfr/
 
 RUN $CONF_DIR/truststore-setup.sh
 

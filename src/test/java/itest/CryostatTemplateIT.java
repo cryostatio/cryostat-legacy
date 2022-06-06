@@ -69,7 +69,6 @@ public class CryostatTemplateIT extends StandardSelfTest {
     }
 
     @Test
-    /** If this fails, check the baseImageJdkVersion in pom.xml. */
     public void shouldHaveCryostatTemplate() throws Exception {
         XMLModel model = EventConfiguration.createModel(file);
         model.checkErrors();
