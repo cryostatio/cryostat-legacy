@@ -35,33 +35,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.ArrayList;
+import java.util.List;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+class EnvironmentNodeRecurseFetcher implements DataFetcher<List<EnvironmentNode>> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
+        AbstractNode node = environment.getSource();
+        if (node instanceof TargetNode) {
+            return List.of();
+        } else if (node instanceof EnvironmentNode) {
+            EnvironmentNode environmentNode = (EnvironmentNode) node;
+            List<EnvironmentNode> result = new ArrayList<>();
+            result.add(environmentNode);
+            for (AbstractNode child : environmentNode.getChildren()) {
+                DataFetchingEnvironment newEnv =
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                .source(child)
+                                .build();
+                result.addAll(get(newEnv));
+            }
+            return result;
+        } else {
+            throw new IllegalStateException(node.getClass().toString());
+        }
+    }
 }

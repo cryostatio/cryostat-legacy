@@ -35,33 +35,70 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph.labels;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+public class SetMatcher implements LabelMatcher {
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+    private final SetMatcher.Operator operator;
+    private final String key;
+    private final Set<String> values;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    SetMatcher(String key, SetMatcher.Operator operator) {
+        this(key, operator, Set.of());
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    SetMatcher(String key, SetMatcher.Operator operator, Collection<String> values) {
+        this.key = key;
+        this.operator = operator;
+        this.values = new HashSet<>(values);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public boolean test(String s) {
+        return operator.with(values).test(s);
+    }
+
+    public enum Operator {
+        IN("In", args -> v -> contains(args, v)),
+        NOT_IN("NotIn", args -> v -> !contains(args, v)),
+        EXISTS("", args -> v -> v != null),
+        DOES_NOT_EXIST("!", args -> v -> v == null),
+        ;
+
+        private final String token;
+        private final Function<Collection<String>, Predicate<String>> fn;
+
+        Operator(String token, Function<Collection<String>, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
+        }
+
+        Predicate<String> with(Collection<String> values) {
+            return fn.apply(values);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equalsIgnoreCase(str)) {
+                    return op;
+                }
+            }
+            return null;
+        }
+
+        private static boolean contains(Collection<String> args, String v) {
+            return args.stream().anyMatch(s -> s.equals(v));
+        }
+    }
 }

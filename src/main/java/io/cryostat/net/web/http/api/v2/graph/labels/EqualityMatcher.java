@@ -35,33 +35,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph.labels;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+public class EqualityMatcher implements LabelMatcher {
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+    private final String key;
+    private final EqualityMatcher.Operator operator;
+    private final String value;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    EqualityMatcher(String key, EqualityMatcher.Operator operator, String value) {
+        this.key = key;
+        this.operator = operator;
+        this.value = value;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public String getKey() {
+        return key;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public boolean test(String s) {
+        return operator.with(value).test(s);
+    }
+
+    public enum Operator {
+        EQUAL("=", arg -> v -> Objects.equals(arg, v)),
+        DOUBLE_EQUAL("==", arg -> v -> Objects.equals(arg, v)),
+        NOT_EQUAL("!=", arg -> v -> !Objects.equals(arg, v)),
+        ;
+
+        private final String token;
+        private final Function<String, Predicate<String>> fn;
+
+        Operator(String token, Function<String, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
+        }
+
+        Predicate<String> with(String value) {
+            return fn.apply(value);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equals(str)) {
+                    return op;
+                }
+            }
+            return null;
+        }
+    }
 }

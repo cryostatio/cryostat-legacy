@@ -35,33 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+class DeleteArchivedRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    DeleteArchivedRecordingMutator(RecordingArchiveHelper recordingArchiveHelper) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
+    }
+
+    @Override
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        ArchivedRecordingInfo source = environment.getSource();
+        return recordingArchiveHelper.deleteRecording(source.getName()).get();
+    }
 }

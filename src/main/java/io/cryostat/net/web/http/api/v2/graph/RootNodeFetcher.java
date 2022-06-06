@@ -35,33 +35,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+class RootNodeFetcher implements DataFetcher<EnvironmentNode> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    private final PlatformClient client;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    RootNodeFetcher(PlatformClient client) {
+        this.client = client;
+    }
+
+    @Override
+    public EnvironmentNode get(DataFetchingEnvironment environment) throws Exception {
+        return client.getDiscoveryTree();
+    }
 }

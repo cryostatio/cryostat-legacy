@@ -35,33 +35,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import graphql.TypeResolutionEnvironment;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.TypeResolver;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+class RecordingTypeResolver implements TypeResolver {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    RecordingTypeResolver() {}
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
+        Object o = env.getObject();
+        if (o instanceof HyperlinkedSerializableRecordingDescriptor) {
+            return env.getSchema().getObjectType("ActiveRecording");
+        } else if (o instanceof ArchivedRecordingInfo) {
+            return env.getSchema().getObjectType("ArchivedRecording");
+        } else {
+            throw new IllegalStateException(o.getClass().getCanonicalName());
+        }
+    }
 }

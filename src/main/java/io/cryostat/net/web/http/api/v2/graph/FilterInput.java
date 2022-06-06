@@ -35,33 +35,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.Map;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import graphql.schema.DataFetchingEnvironment;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+class FilterInput {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    private static final String FILTER_ARGUMENT = "filter";
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    private final Map<String, Object> filter;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    FilterInput(Map<String, Object> map) {
+        this.filter = map;
+    }
+
+    static FilterInput from(DataFetchingEnvironment env) {
+        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
+        return new FilterInput(map == null ? Map.of() : map);
+    }
+
+    boolean contains(Key key) {
+        return filter.containsKey(key.key());
+    }
+
+    <T> T get(Key key) {
+        return (T) filter.get(key.key());
+    }
+
+    enum Key {
+        NAME("name"),
+        LABELS("labels"),
+        ANNOTATIONS("annotations"),
+        NODE_TYPE("nodeType"),
+        STATE("state"),
+        CONTINUOUS("continuous"),
+        TO_DISK("toDisk"),
+        DURATION_GE("durationMsGreaterThanEqual"),
+        DURATION_LE("durationMsLessThanEqual"),
+        START_TIME_BEFORE("startTimeMsBeforeEqual"),
+        START_TIME_AFTER("startTimeMsAfterEqual"),
+        ;
+
+        private final String key;
+
+        Key(String key) {
+            this.key = key;
+        }
+
+        String key() {
+            return key;
+        }
+    }
 }

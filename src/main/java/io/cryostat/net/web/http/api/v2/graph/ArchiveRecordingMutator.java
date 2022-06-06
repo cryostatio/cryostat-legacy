@@ -35,33 +35,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import javax.inject.Inject;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    private final RecordingArchiveHelper recordingArchiveHelper;
+    private final CredentialsManager credentialsManager;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    ArchiveRecordingMutator(
+            RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
+        this.credentialsManager = credentialsManager;
+    }
+
+    @Override
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+
+        return recordingArchiveHelper.saveRecording(cd, source.getName()).get();
+    }
 }

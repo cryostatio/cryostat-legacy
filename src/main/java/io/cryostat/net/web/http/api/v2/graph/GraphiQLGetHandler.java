@@ -35,33 +35,65 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandler;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandlerOptions;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+class GraphiQLGetHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    private final Environment env;
+    private final GraphiQLHandler handler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    GraphiQLGetHandler(Environment env) {
+        this.env = env;
+        this.handler =
+                GraphiQLHandler.create(
+                        new GraphiQLHandlerOptions()
+                                .setEnabled(true)
+                                .setGraphQLUri("/api/v2.2/graphql"));
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_2;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return this.env.hasEnv(Variables.DEV_MODE);
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "graphiql/*";
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        this.handler.handle(ctx);
+    }
 }

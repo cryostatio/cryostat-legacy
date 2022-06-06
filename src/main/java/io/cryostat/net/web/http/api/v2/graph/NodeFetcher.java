@@ -35,33 +35,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+class NodeFetcher implements DataFetcher<AbstractNode> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    private final RootNodeFetcher rootNodeFetcher;
+
+    @Inject
+    NodeFetcher(RootNodeFetcher rootNodeFetcher) {
+        this.rootNodeFetcher = rootNodeFetcher;
+    }
+
+    @Override
+    public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
+        EnvironmentNode root = rootNodeFetcher.get(environment);
+        String name = environment.getArgument("name");
+        String nodeType = environment.getArgument("nodeType");
+        AbstractNode node = findNode(name, nodeType, root);
+        if (node == null) {
+            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+        }
+        return node;
+    }
+
+    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
+        if (Objects.equals(name, root.getName())
+                && root.getNodeType().getKind().equalsIgnoreCase(nodeType)) {
+            return root;
+        }
+        if (root instanceof EnvironmentNode) {
+            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
+                AbstractNode found = findNode(name, nodeType, child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
 }

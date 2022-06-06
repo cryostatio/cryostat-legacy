@@ -35,33 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
+import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    @Inject
+    ArchivedRecordingsFetcher() {}
+
+    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+        Recordings source = environment.getSource();
+        FilterInput filter = FilterInput.from(environment);
+        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived);
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String recordingName = filter.get(FilterInput.Key.NAME);
+            result =
+                    result.stream()
+                            .filter(r -> Objects.equals(r.getName(), recordingName))
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.LABELS)) {
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                result =
+                        result.stream()
+                                .filter(
+                                        r ->
+                                                LabelSelectorMatcher.parse(label)
+                                                        .test(r.getMetadata().getLabels()))
+                                .collect(Collectors.toList());
+            }
+        }
+        return result;
+    }
 }

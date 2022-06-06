@@ -35,33 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.web.http.RequestHandler;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
+class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescriptor {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
+    protected transient ServiceRef target;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
+    public GraphRecordingDescriptor(
+            ServiceRef target,
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata)
+            throws QuantityConversionException {
+        super(original, downloadUrl, reportUrl, metadata);
+        this.target = target;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
+    public GraphRecordingDescriptor(ServiceRef target, HyperlinkedSerializableRecordingDescriptor o)
+            throws QuantityConversionException {
+        super(o, o.getDownloadUrl(), o.getReportUrl());
+        this.target = target;
+        this.metadata = o.getMetadata();
+    }
 }
