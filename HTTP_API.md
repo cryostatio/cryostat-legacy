@@ -1198,9 +1198,10 @@ The handler-specific descriptions below describe how each handler populates the
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
-| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
-| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                     |
+| Perform batched start/stop/delete operations across target JVMs           | [`GraphQLHandler`](#GraphQLHandler)                                             |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                         |
 | **Target JVMs**                                                           |                                                                                 |
 | Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
 | Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
@@ -1255,6 +1256,42 @@ The handler-specific descriptions below describe how each handler populates the
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
     ```
 
+* #### `GraphQLHandler`
+
+    ##### synopsis
+    Performs various queries using the GraphQL request syntax and response
+    format. See also [GRAPHQL.md](GRAPHQL.md). Requests can query for target
+    JVMs, active and archived recordings, by name, labels, and other properties.
+    A single request can, for example, start identical recordings with one
+    configuration against all target JVMs that have a given label.
+
+    ##### request
+    `POST /api/v2.2/graphql`, the body containing the GraphQL query
+    `GET /api/v2.2/graphql?query=myquery`, where `myquery` is the GraphQL query
+
+    ##### response
+    `200` - The result is the GraphQL query response in JSON format.
+
+    `401` - The user does not have sufficient permissions. The GraphQL endpoint
+    requires a set of permissions representing all possible actions that can be
+    performed by the GraphQL internal interface. Requests may be rejected if the
+    requesting client lacks sufficient permissions, even if the particular
+    request sent does not require such permissions.
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/v2.1/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.
 
 * #### `HealthLivenessGetHandler`
 
@@ -1272,21 +1309,6 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl localhost:8181/health/liveness
     ```
-
-* #### `DiscoveryGetHandler`
-
-    ###### synopsis
-    Queries the platform client(s) for the discoverable targets and constructs a
-    hierarchical tree view of the full deployment environment with targets
-    belonging to ex. Pods, belonging to Deployments, etc.
-
-    ###### request
-    `GET /api/v2.1/discovery`
-
-    ###### response
-    `200` - The result is the path of the saved file in the server's storage.
-
-    `401` - The user does not have sufficient permissions.
 
 ### Target JVMs
 
