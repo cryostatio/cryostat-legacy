@@ -153,7 +153,7 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
-        void shouldSendFileIfFoundNullFilter() throws Exception {
+        void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -173,15 +173,15 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.isNull());
+                            Mockito.eq(""));
         }
 
         @Test
-        void shouldSendFileIfFoundNonNullFilter() throws Exception {
+        void shouldSendFileIfFoundFiltered() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("non-null"));
+            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
             Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
@@ -197,7 +197,7 @@ class TargetReportGetHandlerTest {
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
-                            Mockito.eq("non-null"));
+                            Mockito.eq("someFilter"));
         }
     }
 }

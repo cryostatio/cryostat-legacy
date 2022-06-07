@@ -115,6 +115,9 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         if (saveFile == null) {
             throw new IllegalArgumentException("Destination may not be null");
         }
+        if (filter == null) {
+            throw new IllegalArgumentException("Filter may not be null");
+        }
         fs.writeString(
                 saveFile,
                 serializeTransformersSet(),
@@ -211,9 +214,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     private List<String> createProcessArgs(Path recording, Path saveFile, String filter) {
-        filter = (filter == null) ? "" : filter;
         System.out.println(String.format("filter{%s}", filter));
-        /* Because List.of() cannot take null values */
         return List.of(
                 recording.toAbsolutePath().toString(),
                 saveFile.toAbsolutePath().toString(),
@@ -339,11 +340,11 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
-        Predicate<IRule> pr = RuleFilterParser.getPredicateRuleFilter(filter);
+        Predicate<IRule> rulePr = RuleFilterParser.getPredicateRuleFilter(filter);
         try (InputStream stream = fs.newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
-                    .generateReportInterruptibly(stream, pr)
+                    .generateReportInterruptibly(stream, rulePr)
                     .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();

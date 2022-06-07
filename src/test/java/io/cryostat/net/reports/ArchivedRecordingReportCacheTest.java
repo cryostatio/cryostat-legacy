@@ -90,8 +90,7 @@ class ArchivedRecordingReportCacheTest {
                         new ExecutionException(
                                 new RecordingNotFoundException("archives", recordingName)));
 
-        Assertions.assertThrows(
-                ExecutionException.class, () -> cache.get(recordingName, null).get());
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get(recordingName, "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
@@ -115,14 +114,14 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(recordingName, null);
+        Future<Path> res = cache.get(recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
     @Test
-    void getShouldGenerateAndCacheReportNonNullFilter() throws Exception {
+    void getShouldGenerateAndCacheReportFiltered() throws Exception {
         String recordingName = "foo";
         Mockito.when(recordingArchiveHelper.getCachedReportPath(recordingName))
                 .thenReturn(destinationFile);
@@ -140,7 +139,7 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(recordingName, "non-null");
+        Future<Path> res = cache.get(recordingName, "someFilter");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
@@ -154,7 +153,7 @@ class ArchivedRecordingReportCacheTest {
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
 
-        Future<Path> res = cache.get(recordingName, null);
+        Future<Path> res = cache.get(recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs).isReadable(destinationFile);
@@ -182,7 +181,7 @@ class ArchivedRecordingReportCacheTest {
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY)));
 
-        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo", null).get());
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo", "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }

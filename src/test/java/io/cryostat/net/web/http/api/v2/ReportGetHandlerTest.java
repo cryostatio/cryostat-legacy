@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
@@ -160,6 +161,30 @@ class ReportGetHandlerTest {
 
             handler.handleWithValidJwt(ctx, token);
 
+            InOrder inOrder = Mockito.inOrder(resp);
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
+            inOrder.verify(resp).sendFile("foo.jfr");
+        }
+
+        @Test
+        void shouldSendFileIfFoundFiltered() throws Exception {
+            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+            Mockito.when(ctx.response()).thenReturn(resp);
+            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            Path path = Mockito.mock(Path.class);
+            Mockito.when(path.toAbsolutePath()).thenReturn(path);
+            Mockito.when(path.toString()).thenReturn("foo.jfr");
+            File file = Mockito.mock(File.class);
+            Mockito.when(path.toFile()).thenReturn(file);
+            Mockito.when(file.length()).thenReturn(1234L);
+            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
+            Future<Path> future = CompletableFuture.completedFuture(path);
+            Mockito.when(reports.get(Mockito.anyString(), Mockito.any())).thenReturn(future);
+
+            handler.handleWithValidJwt(ctx, token);
+
+            Mockito.verify(reports).get("myrecording", "someFilter");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");

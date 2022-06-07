@@ -116,7 +116,7 @@ class TargetReportGetHandlerTest {
     }
 
     @Test
-    void shouldHandleRecordingDownloadRequestNullFilter() throws Exception {
+    void shouldHandleRecordingDownloadRequest() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -140,13 +140,13 @@ class TargetReportGetHandlerTest {
 
         handler.handle(ctx);
 
-        verify(reportService).get(cd, recordingName, null);
+        verify(reportService).get(cd, recordingName, "");
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         verify(resp).end("foobar");
     }
 
     @Test
-    void shouldHandleRecordingDownloadRequestNonNullFilter() throws Exception {
+    void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -165,11 +165,11 @@ class TargetReportGetHandlerTest {
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("non-null"));
+        Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
         ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
 
         handler.handle(ctx);
-        verify(reportService).get(cd, recordingName, "non-null");
+        verify(reportService).get(cd, recordingName, "someFilter");
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         verify(resp).end("foobar");
     }

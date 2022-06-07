@@ -94,9 +94,15 @@ class ActiveRecordingReportCache {
         CompletableFuture<String> f = new CompletableFuture<>();
         System.out.println("I AM IN ACTIVERECORDINGREPORTCACHE");
         try {
-            f.complete(
-                    cache.get(
-                            new RecordingDescriptor(connectionDescriptor, recordingName, filter)));
+            if (filter.isBlank()) {
+                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            } else {
+                f.complete(
+                        getReport(
+                                new RecordingDescriptor(connectionDescriptor, recordingName),
+                                filter));
+            }
+
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
@@ -104,8 +110,7 @@ class ActiveRecordingReportCache {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        RecordingDescriptor key =
-                new RecordingDescriptor(connectionDescriptor, recordingName, null);
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);
@@ -117,14 +122,20 @@ class ActiveRecordingReportCache {
     }
 
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
+        return getReport(recordingDescriptor, "");
+    }
+
+    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
+            throws Exception {
         Path saveFile = null;
         try {
+            /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         reportGeneratorServiceProvider
                                 .get()
-                                .exec(recordingDescriptor)
+                                .exec(recordingDescriptor, filter)
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {

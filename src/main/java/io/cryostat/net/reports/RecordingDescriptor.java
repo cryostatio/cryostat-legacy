@@ -47,13 +47,10 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 class RecordingDescriptor {
     final ConnectionDescriptor connectionDescriptor;
     final String recordingName;
-    final String filter;
 
-    RecordingDescriptor(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
+    RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
         this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
         this.recordingName = Objects.requireNonNull(recordingName);
-        this.filter = filter;
     }
 
     @Override

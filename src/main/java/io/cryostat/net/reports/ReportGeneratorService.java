@@ -43,5 +43,5 @@ import java.util.concurrent.CompletableFuture;
 interface ReportGeneratorService {
     CompletableFuture<Path> exec(Path in, Path out, String filter) throws Exception;
 
-    CompletableFuture<Path> exec(RecordingDescriptor rd) throws Exception;
+    CompletableFuture<Path> exec(RecordingDescriptor rd, String filter) throws Exception;
 }

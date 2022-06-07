@@ -121,8 +121,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
-        String rawFilter = queriedFilter.isEmpty() ? null : queriedFilter.get(0);
-
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
             System.out.println("I AM IN REPORTGETHANDLER");
             Path report =

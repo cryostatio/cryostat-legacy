@@ -121,7 +121,7 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
-        String rawFilter = queriedFilter.isEmpty() ? null : queriedFilter.get(0);
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
             Path report =
                     reportService

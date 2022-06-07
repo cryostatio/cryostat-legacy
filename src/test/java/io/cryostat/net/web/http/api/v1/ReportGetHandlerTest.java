@@ -117,7 +117,7 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldRespondBySendingFileNullFilter() throws Exception {
+    void shouldRespondBySendingFile() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -143,14 +143,14 @@ class ReportGetHandlerTest {
 
         handler.handle(ctx);
 
-        Mockito.verify(reportService).get("someRecording", null);
+        Mockito.verify(reportService).get("someRecording", "");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
     }
 
     @Test
-    void shouldRespondBySendingFileNonNullFilter() throws Exception {
+    void shouldRespondBySendingFileFiltered() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -170,13 +170,13 @@ class ReportGetHandlerTest {
         Mockito.when(file.length()).thenReturn(12345L);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(ctx.queryParam("filter")).thenReturn(List.of("non-null"));
+        when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
         when(reportService.get(Mockito.anyString(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(fakePath));
 
         handler.handle(ctx);
 
-        Mockito.verify(reportService).get("someRecording", "non-null");
+        Mockito.verify(reportService).get("someRecording", "someFilter");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -204,6 +204,6 @@ class ReportGetHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-        Mockito.verify(reportService).get("someRecording", null);
+        Mockito.verify(reportService).get("someRecording", "");
     }
 }

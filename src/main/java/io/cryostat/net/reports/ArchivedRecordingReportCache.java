@@ -75,7 +75,10 @@ class ArchivedRecordingReportCache {
         CompletableFuture<Path> f = new CompletableFuture<>();
         System.out.println("I AM IN ARCHIVEDRECORDINGREPORTCACHE");
         Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
-        if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+        /* NOTE: This is just a temporary solution: If a request includes a filter,
+         * the report is never cached and just constructed on demand.
+         */
+        if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
             System.out.println("IM HERE"); // cached
             f.complete(dest);
             return f;

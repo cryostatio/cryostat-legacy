@@ -55,7 +55,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
-import org.apache.commons.lang3.StringUtils;
 
 class RemoteReportGenerator extends AbstractReportGeneratorService {
 
@@ -87,20 +86,13 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
         logger.info("POSTing {} to {}", recording, reportGenerator);
         System.out.println(String.format("IN REMOTE: THIS IS THE FILTER {%s}", filter));
         var form =
-                StringUtils.isNotBlank(filter)
-                        ? MultipartForm.create()
-                                .attribute("filter", filter)
-                                .binaryFileUpload(
-                                        "file",
-                                        recording.getFileName().toString(),
-                                        recording.toAbsolutePath().toString(),
-                                        HttpMimeType.OCTET_STREAM.mime())
-                        : MultipartForm.create()
-                                .binaryFileUpload(
-                                        "file",
-                                        recording.getFileName().toString(),
-                                        recording.toAbsolutePath().toString(),
-                                        HttpMimeType.OCTET_STREAM.mime());
+                MultipartForm.create()
+                        .attribute("filter", filter)
+                        .binaryFileUpload(
+                                "file",
+                                recording.getFileName().toString(),
+                                recording.toAbsolutePath().toString(),
+                                HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
         this.http
