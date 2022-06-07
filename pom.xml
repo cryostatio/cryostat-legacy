@@ -19,6 +19,7 @@
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
+  <baseImageTarball>base.tar.gz</baseImageTarball>
   <node.version>v14.17.0</node.version>
   <yarn.version>v1.22.13</yarn.version>
 
@@ -355,7 +356,7 @@
               <argument>docker-archive</argument>
               <argument>${baseImage}:${baseImageTag}</argument>
               <argument>--output</argument>
-              <argument>${project.build.directory}/base.tar.gz</argument>
+              <argument>${project.build.directory}/${baseImageTarball}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -622,7 +623,7 @@
           <executable>${imageBuilder}</executable>
         </dockerClient>
         <from>
-          <image>tar://${project.build.directory}/base.tar.gz</image>
+          <image>tar://${project.build.directory}/${baseImageTarball}</image>
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
