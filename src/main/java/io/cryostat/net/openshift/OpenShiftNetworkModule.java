@@ -62,7 +62,6 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
-import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 
 @Module

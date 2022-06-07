@@ -51,7 +51,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import io.cryostat.MainModule;
-import io.cryostat.MockVertx;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthenticationScheme;
