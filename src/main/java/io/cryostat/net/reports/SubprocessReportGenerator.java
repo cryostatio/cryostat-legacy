@@ -54,10 +54,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import org.openjdk.jmc.flightrecorder.rules.IRule;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.Variables;
@@ -73,6 +75,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
+import io.cryostat.util.RuleFilterParser;
 
 import com.google.gson.Gson;
 
@@ -102,7 +105,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     @Override
-    public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile)
+    public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile, String filter)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -111,6 +114,9 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
         if (saveFile == null) {
             throw new IllegalArgumentException("Destination may not be null");
+        }
+        if (filter == null) {
+            throw new IllegalArgumentException("Filter may not be null");
         }
         fs.writeString(
                 saveFile,
@@ -128,7 +134,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                         Integer.parseInt(
                                                 env.getEnv(
                                                         Variables.SUBPROCESS_MAX_HEAP_ENV, "0"))))
-                        .processArgs(createProcessArgs(recording, saveFile));
+                        .processArgs(createProcessArgs(recording, saveFile, filter));
         return CompletableFuture.supplyAsync(
                 () -> {
                     Process proc = null;
@@ -207,8 +213,11 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         return args;
     }
 
-    private List<String> createProcessArgs(Path recording, Path saveFile) {
-        return List.of(recording.toAbsolutePath().toString(), saveFile.toAbsolutePath().toString());
+    private List<String> createProcessArgs(Path recording, Path saveFile, String filter) {
+        return List.of(
+                recording.toAbsolutePath().toString(),
+                saveFile.toAbsolutePath().toString(),
+                filter);
     }
 
     private String serializeTransformersSet() {
@@ -274,12 +283,13 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        if (args.length != 2) {
+        if (args.length != 3) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
         var recording = Paths.get(args[0]);
         Set<ReportTransformer> transformers = Collections.emptySet();
         var saveFile = Paths.get(args[1]);
+        String filter = args[2];
         try {
             transformers = deserializeTransformers(fs.readString(saveFile));
         } catch (Exception e) {
@@ -289,7 +299,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
-            ReportResult reportResult = generateReportFromFile(recording, transformers);
+            ReportResult reportResult = generateReportFromFile(recording, transformers, filter);
             Logger.INSTANCE.info(
                     SubprocessReportGenerator.class.getName() + " writing report to file");
 
@@ -323,16 +333,17 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
     }
 
-    static ReportResult generateReportFromFile(Path recording, Set<ReportTransformer> transformers)
-            throws Exception {
+    static ReportResult generateReportFromFile(
+            Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
+        Predicate<IRule> rulePr = RuleFilterParser.getPredicateRuleFilter(filter);
         try (InputStream stream = fs.newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
-                    .generateReportInterruptibly(stream)
+                    .generateReportInterruptibly(stream, rulePr)
                     .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();

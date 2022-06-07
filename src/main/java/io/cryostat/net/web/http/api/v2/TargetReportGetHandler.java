@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -121,13 +122,18 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
             ctx.response()
                     .end(
                             reportService
-                                    .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
+                                    .get(
+                                            getConnectionDescriptorFromJwt(ctx, jwt),
+                                            recordingName,
+                                            rawFilter)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

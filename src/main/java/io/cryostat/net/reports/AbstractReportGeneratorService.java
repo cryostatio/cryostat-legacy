@@ -71,14 +71,14 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
     }
 
     @Override
-    public final CompletableFuture<Path> exec(RecordingDescriptor recordingDescriptor)
-            throws Exception {
+    public final CompletableFuture<Path> exec(
+            RecordingDescriptor recordingDescriptor, String filter) throws Exception {
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
         Path saveFile = fs.createTempFile(null, null);
-        CompletableFuture<Path> cf = exec(recording, saveFile);
+        CompletableFuture<Path> cf = exec(recording, saveFile, filter);
         return cf.whenComplete(
                 (p, t) -> {
                     try {

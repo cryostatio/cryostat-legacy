@@ -71,22 +71,24 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> get(String recordingName) {
+    Future<Path> get(String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
-        if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+        /* NOTE: This is just a temporary solution: If a request includes a filter,
+         * the report is never cached and just constructed on demand.
+         */
+        if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
             f.complete(dest);
             return f;
         }
 
         try {
             logger.trace("Archived report cache miss for {}", recordingName);
-
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest)
+                            .exec(archivedRecording, dest, filter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
