@@ -247,15 +247,19 @@
 </dependencies>
 
 <build>
-    <resources>
-        <resource>
-            <directory>${project.basedir}/src/container</directory>
-            <filtering>true</filtering>
-            <includes>
-                <include>**/Containerfile</include>
-            </includes>
-        </resource>
-    </resources>
+  <resources>
+    <resource>
+      <directory>${project.basedir}/src/main/resources</directory>
+      <filtering>false</filtering>
+    </resource>
+    <resource>
+      <directory>${project.basedir}/src/container</directory>
+      <filtering>true</filtering>
+      <includes>
+        <include>**/Containerfile</include>
+      </includes>
+    </resource>
+  </resources>
   <plugins>
     <plugin>
       <groupId>io.reactiverse</groupId>
