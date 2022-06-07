@@ -93,7 +93,6 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.vertx.core.Vertx;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -127,7 +126,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Environment env;
     private final Lazy<String> namespace;
     private final Lazy<OpenShiftClient> serviceAccountClient;
-    private final Vertx vertx;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
     private final Map<ResourceType, Set<GroupResource>> resourceMap;
@@ -142,13 +140,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             ClassPropertiesLoader classPropertiesLoader,
             Executor cacheExecutor,
             Scheduler cacheScheduler,
-            Vertx vertx,
             Logger logger) {
         super(logger);
         this.env = env;
         this.namespace = namespace;
         this.serviceAccountClient = serviceAccountClient;
-        this.vertx = vertx;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
 
@@ -321,55 +317,38 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                         .build())
                 .map(
                         accessReview -> {
-                            AuthRequest evt = new AuthRequest();
                             CompletableFuture<Void> result = new CompletableFuture<>();
-                            vertx.<SelfSubjectAccessReview>executeBlocking(
-                                    promise -> {
-                                        try {
-                                            evt.begin();
-                                            SelfSubjectAccessReview accessReviewResult =
-                                                    client.authorization()
-                                                            .v1()
-                                                            .selfSubjectAccessReview()
-                                                            .create(accessReview);
-                                            promise.complete(accessReviewResult);
-                                        } catch (Exception e) {
-                                            promise.fail(e);
-                                        }
-                                    },
-                                    false,
-                                    ar -> {
-                                        try {
-                                            if (ar.succeeded()) {
-                                                evt.setRequestSuccessful(true);
-                                                SelfSubjectAccessReview accessReviewResult =
-                                                        ar.result();
-                                                if (accessReviewResult.getStatus().getAllowed()) {
-                                                    result.complete(null);
-                                                } else {
-                                                    result.completeExceptionally(
-                                                            new PermissionDeniedException(
-                                                                    namespace,
-                                                                    new GroupResource(
-                                                                                    accessReview
-                                                                                            .getSpec()
-                                                                                            .getResourceAttributes())
-                                                                            .toString(),
-                                                                    verb,
-                                                                    accessReviewResult
-                                                                            .getStatus()
-                                                                            .getReason()));
-                                                }
-                                            } else {
-                                                result.completeExceptionally(ar.cause());
-                                            }
-                                        } finally {
-                                            if (evt.shouldCommit()) {
-                                                evt.end();
-                                                evt.commit();
-                                            }
-                                        }
-                                    });
+                            AuthRequest evt = new AuthRequest();
+                            try {
+                                evt.begin();
+                                SelfSubjectAccessReview accessReviewResult =
+                                        client.authorization()
+                                                .v1()
+                                                .selfSubjectAccessReview()
+                                                .create(accessReview);
+                                evt.setRequestSuccessful(true);
+                                if (accessReviewResult.getStatus().getAllowed()) {
+                                    result.complete(null);
+                                } else {
+                                    result.completeExceptionally(
+                                            new PermissionDeniedException(
+                                                    namespace,
+                                                    new GroupResource(
+                                                                    accessReview
+                                                                            .getSpec()
+                                                                            .getResourceAttributes())
+                                                            .toString(),
+                                                    verb,
+                                                    accessReviewResult.getStatus().getReason()));
+                                }
+                            } catch (Exception e) {
+                                result.completeExceptionally(e);
+                            } finally {
+                                if (evt.shouldCommit()) {
+                                    evt.end();
+                                    evt.commit();
+                                }
+                            }
                             return result;
                         });
     }

@@ -81,7 +81,6 @@ import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import okhttp3.Call;
@@ -146,7 +145,6 @@ class OpenShiftAuthManagerTest {
     @Mock ClassPropertiesLoader classPropertiesLoader;
     @Mock Logger logger;
     @Mock OkHttpClient httpClient;
-    Vertx vertx;
     OpenShiftClient client;
     OpenShiftMockServer server;
     TokenProvider tokenProvider;
@@ -163,7 +161,6 @@ class OpenShiftAuthManagerTest {
 
     @BeforeEach
     void setup() throws IOException {
-        vertx = MockVertx.vertx();
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -185,7 +182,6 @@ class OpenShiftAuthManagerTest {
                         classPropertiesLoader,
                         Runnable::run,
                         Scheduler.disabledScheduler(),
-                        vertx,
                         logger);
     }
 

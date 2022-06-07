@@ -132,7 +132,6 @@ public abstract class OpenShiftNetworkModule {
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
-            Vertx vertx,
             Logger logger) {
         return new OpenShiftAuthManager(
                 env,
@@ -142,7 +141,6 @@ public abstract class OpenShiftNetworkModule {
                 classPropertiesLoader,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
-                vertx,
                 logger);
     }
 
