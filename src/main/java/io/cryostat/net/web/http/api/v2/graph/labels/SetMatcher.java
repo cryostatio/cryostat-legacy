@@ -35,29 +35,70 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph.labels;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-    private final String version;
+public class SetMatcher implements LabelMatcher {
 
-    ApiVersion(String version) {
-        this.version = version;
+    private final SetMatcher.Operator operator;
+    private final String key;
+    private final Set<String> values;
+
+    SetMatcher(String key, SetMatcher.Operator operator) {
+        this(key, operator, Set.of());
     }
 
-    public String getVersionString() {
-        return version;
+    SetMatcher(String key, SetMatcher.Operator operator, Collection<String> values) {
+        this.key = key;
+        this.operator = operator;
+        this.values = new HashSet<>(values);
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public boolean test(String s) {
+        return operator.with(values).test(s);
+    }
+
+    public enum Operator {
+        IN("In", args -> v -> contains(args, v)),
+        NOT_IN("NotIn", args -> v -> !contains(args, v)),
+        EXISTS("", args -> v -> v != null),
+        DOES_NOT_EXIST("!", args -> v -> v == null),
+        ;
+
+        private final String token;
+        private final Function<Collection<String>, Predicate<String>> fn;
+
+        Operator(String token, Function<Collection<String>, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
+        }
+
+        Predicate<String> with(Collection<String> values) {
+            return fn.apply(values);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equalsIgnoreCase(str)) {
+                    return op;
+                }
+            }
+            return null;
+        }
+
+        private static boolean contains(Collection<String> args, String v) {
+            return args.stream().anyMatch(s -> s.equals(v));
+        }
     }
 }

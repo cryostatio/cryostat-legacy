@@ -35,29 +35,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.Map;
 
-    private final String version;
+import graphql.schema.DataFetchingEnvironment;
 
-    ApiVersion(String version) {
-        this.version = version;
+class FilterInput {
+
+    private static final String FILTER_ARGUMENT = "filter";
+
+    private final Map<String, Object> filter;
+
+    FilterInput(Map<String, Object> map) {
+        this.filter = map;
     }
 
-    public String getVersionString() {
-        return version;
+    static FilterInput from(DataFetchingEnvironment env) {
+        Map<String, Object> map = env.getArgument(FILTER_ARGUMENT);
+        return new FilterInput(map == null ? Map.of() : map);
     }
 
-    @Override
-    public String toString() {
-        return getVersionString();
+    boolean contains(Key key) {
+        return filter.containsKey(key.key());
+    }
+
+    <T> T get(Key key) {
+        return (T) filter.get(key.key());
+    }
+
+    enum Key {
+        NAME("name"),
+        LABELS("labels"),
+        ANNOTATIONS("annotations"),
+        NODE_TYPE("nodeType"),
+        STATE("state"),
+        CONTINUOUS("continuous"),
+        TO_DISK("toDisk"),
+        DURATION_GE("durationMsGreaterThanEqual"),
+        DURATION_LE("durationMsLessThanEqual"),
+        START_TIME_BEFORE("startTimeMsBeforeEqual"),
+        START_TIME_AFTER("startTimeMsAfterEqual"),
+        ;
+
+        private final String key;
+
+        Key(String key) {
+            this.key = key;
+        }
+
+        String key() {
+            return key;
+        }
     }
 }

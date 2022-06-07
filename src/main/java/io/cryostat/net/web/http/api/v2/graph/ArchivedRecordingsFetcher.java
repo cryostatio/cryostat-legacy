@@ -35,29 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-    private final String version;
+import javax.inject.Inject;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
+import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-    public String getVersionString() {
-        return version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    @Override
-    public String toString() {
-        return getVersionString();
+class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+
+    @Inject
+    ArchivedRecordingsFetcher() {}
+
+    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+        Recordings source = environment.getSource();
+        FilterInput filter = FilterInput.from(environment);
+        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived);
+        if (filter.contains(FilterInput.Key.NAME)) {
+            String recordingName = filter.get(FilterInput.Key.NAME);
+            result =
+                    result.stream()
+                            .filter(r -> Objects.equals(r.getName(), recordingName))
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.LABELS)) {
+            List<String> labels = filter.get(FilterInput.Key.LABELS);
+            for (String label : labels) {
+                result =
+                        result.stream()
+                                .filter(
+                                        r ->
+                                                LabelSelectorMatcher.parse(label)
+                                                        .test(r.getMetadata().getLabels()))
+                                .collect(Collectors.toList());
+            }
+        }
+        return result;
     }
 }

@@ -35,29 +35,65 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.Set;
 
-    private final String version;
+import javax.inject.Inject;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    public String getVersionString() {
-        return version;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandler;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandlerOptions;
+
+class GraphiQLGetHandler implements RequestHandler {
+
+    private final Environment env;
+    private final GraphiQLHandler handler;
+
+    @Inject
+    GraphiQLGetHandler(Environment env) {
+        this.env = env;
+        this.handler =
+                GraphiQLHandler.create(
+                        new GraphiQLHandlerOptions()
+                                .setEnabled(true)
+                                .setGraphQLUri("/api/v2.2/graphql"));
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_2;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return this.env.hasEnv(Variables.DEV_MODE);
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "graphiql/*";
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        this.handler.handle(ctx);
     }
 }

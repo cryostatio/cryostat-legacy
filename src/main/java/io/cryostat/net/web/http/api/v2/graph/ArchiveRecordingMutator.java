@@ -35,29 +35,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import javax.inject.Inject;
 
-    private final String version;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public String getVersionString() {
-        return version;
+class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
+
+    private final RecordingArchiveHelper recordingArchiveHelper;
+    private final CredentialsManager credentialsManager;
+
+    @Inject
+    ArchiveRecordingMutator(
+            RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+
+        return recordingArchiveHelper.saveRecording(cd, source.getName()).get();
     }
 }

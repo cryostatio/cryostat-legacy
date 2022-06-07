@@ -35,29 +35,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph.labels;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-    private final String version;
+public class EqualityMatcher implements LabelMatcher {
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+    private final String key;
+    private final EqualityMatcher.Operator operator;
+    private final String value;
 
-    public String getVersionString() {
-        return version;
+    EqualityMatcher(String key, EqualityMatcher.Operator operator, String value) {
+        this.key = key;
+        this.operator = operator;
+        this.value = value;
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public boolean test(String s) {
+        return operator.with(value).test(s);
+    }
+
+    public enum Operator {
+        EQUAL("=", arg -> v -> Objects.equals(arg, v)),
+        DOUBLE_EQUAL("==", arg -> v -> Objects.equals(arg, v)),
+        NOT_EQUAL("!=", arg -> v -> !Objects.equals(arg, v)),
+        ;
+
+        private final String token;
+        private final Function<String, Predicate<String>> fn;
+
+        Operator(String token, Function<String, Predicate<String>> fn) {
+            this.token = token;
+            this.fn = fn;
+        }
+
+        Predicate<String> with(String value) {
+            return fn.apply(value);
+        }
+
+        public static Operator fromString(String str) {
+            for (Operator op : Operator.values()) {
+                if (op.token.equals(str)) {
+                    return op;
+                }
+            }
+            return null;
+        }
     }
 }

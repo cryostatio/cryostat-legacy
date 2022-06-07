@@ -35,29 +35,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.Set;
 
-    private final String version;
+import javax.inject.Inject;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    public String getVersionString() {
-        return version;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+
+class GraphQLPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
+
+    @Inject
+    GraphQLPostBodyHandler(AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_2;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + GraphQLPostHandler.PATH;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

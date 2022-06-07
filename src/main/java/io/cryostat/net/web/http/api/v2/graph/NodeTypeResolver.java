@@ -35,29 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import javax.inject.Inject;
 
-    private final String version;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.TypeResolutionEnvironment;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.TypeResolver;
 
-    public String getVersionString() {
-        return version;
-    }
+class NodeTypeResolver implements TypeResolver {
+
+    @Inject
+    NodeTypeResolver() {}
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
+        Object o = env.getObject();
+        if (o instanceof EnvironmentNode) {
+            return env.getSchema().getObjectType("EnvironmentNode");
+        } else {
+            return env.getSchema().getObjectType("TargetNode");
+        }
     }
 }

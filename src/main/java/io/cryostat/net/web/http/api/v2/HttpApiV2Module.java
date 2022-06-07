@@ -47,13 +47,14 @@ import javax.inject.Singleton;
 
 import io.cryostat.net.security.CertificateValidator;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.v2.graph.GraphModule;
 
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
-@Module
+@Module(includes = {GraphModule.class})
 public abstract class HttpApiV2Module {
     @Binds
     @IntoSet

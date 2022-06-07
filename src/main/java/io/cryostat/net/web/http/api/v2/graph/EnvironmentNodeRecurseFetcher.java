@@ -35,29 +35,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.ArrayList;
+import java.util.List;
 
-    private final String version;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-    public String getVersionString() {
-        return version;
-    }
+class EnvironmentNodeRecurseFetcher implements DataFetcher<List<EnvironmentNode>> {
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
+        AbstractNode node = environment.getSource();
+        if (node instanceof TargetNode) {
+            return List.of();
+        } else if (node instanceof EnvironmentNode) {
+            EnvironmentNode environmentNode = (EnvironmentNode) node;
+            List<EnvironmentNode> result = new ArrayList<>();
+            result.add(environmentNode);
+            for (AbstractNode child : environmentNode.getChildren()) {
+                DataFetchingEnvironment newEnv =
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                .source(child)
+                                .build();
+                result.addAll(get(newEnv));
+            }
+            return result;
+        } else {
+            throw new IllegalStateException(node.getClass().toString());
+        }
     }
 }
