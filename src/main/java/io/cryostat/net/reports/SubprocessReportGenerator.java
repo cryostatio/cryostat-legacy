@@ -214,7 +214,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     private List<String> createProcessArgs(Path recording, Path saveFile, String filter) {
-        System.out.println(String.format("filter{%s}", filter));
         return List.of(
                 recording.toAbsolutePath().toString(),
                 saveFile.toAbsolutePath().toString(),

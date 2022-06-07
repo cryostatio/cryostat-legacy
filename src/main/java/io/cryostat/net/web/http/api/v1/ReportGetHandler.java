@@ -123,7 +123,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
-            System.out.println("I AM IN REPORTGETHANDLER");
+
             Path report =
                     reportService
                             .get(recordingName, rawFilter)

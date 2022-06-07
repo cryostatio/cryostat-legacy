@@ -92,7 +92,6 @@ class ActiveRecordingReportCache {
     Future<String> get(
             ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
-        System.out.println("I AM IN ACTIVERECORDINGREPORTCACHE");
         try {
             if (filter.isBlank()) {
                 f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));

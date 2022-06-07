@@ -54,7 +54,6 @@ public class ReportService {
     }
 
     public Future<Path> get(String recordingName, String filter) {
-        System.out.println("I AM IN REPORTSERVICE");
         return archivedCache.get(recordingName, filter);
     }
 
@@ -64,7 +63,6 @@ public class ReportService {
 
     public Future<String> get(
             ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
-        System.out.println("I AM IN REPORTSERVICE (ACTIVECACHEGET)");
         return activeCache.get(connectionDescriptor, recordingName, filter);
     }
 

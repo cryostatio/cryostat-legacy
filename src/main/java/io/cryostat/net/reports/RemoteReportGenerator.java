@@ -82,9 +82,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public CompletableFuture<Path> exec(Path recording, Path destination, String filter) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
-        System.out.println("OR IS IT HERE IN REMOTE?");
         logger.info("POSTing {} to {}", recording, reportGenerator);
-        System.out.println(String.format("IN REMOTE: THIS IS THE FILTER {%s}", filter));
         var form =
                 MultipartForm.create()
                         .attribute("filter", filter)
