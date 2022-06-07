@@ -35,29 +35,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
-    private final String version;
+import javax.inject.Inject;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-    public String getVersionString() {
-        return version;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+
+class NodeFetcher implements DataFetcher<AbstractNode> {
+
+    private final RootNodeFetcher rootNodeFetcher;
+
+    @Inject
+    NodeFetcher(RootNodeFetcher rootNodeFetcher) {
+        this.rootNodeFetcher = rootNodeFetcher;
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
+        EnvironmentNode root = rootNodeFetcher.get(environment);
+        String name = environment.getArgument("name");
+        String nodeType = environment.getArgument("nodeType");
+        AbstractNode node = findNode(name, nodeType, root);
+        if (node == null) {
+            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+        }
+        return node;
+    }
+
+    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
+        if (Objects.equals(name, root.getName())
+                && root.getNodeType().getKind().equalsIgnoreCase(nodeType)) {
+            return root;
+        }
+        if (root instanceof EnvironmentNode) {
+            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
+                AbstractNode found = findNode(name, nodeType, child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 }

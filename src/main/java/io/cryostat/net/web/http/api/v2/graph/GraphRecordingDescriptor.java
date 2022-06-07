@@ -35,29 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-    private final String version;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
-    ApiVersion(String version) {
-        this.version = version;
+class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescriptor {
+
+    protected transient ServiceRef target;
+
+    public GraphRecordingDescriptor(
+            ServiceRef target,
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata)
+            throws QuantityConversionException {
+        super(original, downloadUrl, reportUrl, metadata);
+        this.target = target;
     }
 
-    public String getVersionString() {
-        return version;
-    }
-
-    @Override
-    public String toString() {
-        return getVersionString();
+    public GraphRecordingDescriptor(ServiceRef target, HyperlinkedSerializableRecordingDescriptor o)
+            throws QuantityConversionException {
+        super(o, o.getDownloadUrl(), o.getReportUrl());
+        this.target = target;
+        this.metadata = o.getMetadata();
     }
 }

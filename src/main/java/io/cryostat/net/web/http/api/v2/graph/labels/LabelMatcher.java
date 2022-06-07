@@ -35,29 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph.labels;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.function.Predicate;
 
-    private final String version;
-
-    ApiVersion(String version) {
-        this.version = version;
-    }
-
-    public String getVersionString() {
-        return version;
-    }
-
-    @Override
-    public String toString() {
-        return getVersionString();
-    }
+interface LabelMatcher extends Predicate<String> {
+    String getKey();
 }

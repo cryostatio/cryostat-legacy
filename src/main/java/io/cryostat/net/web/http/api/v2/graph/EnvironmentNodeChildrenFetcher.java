@@ -35,29 +35,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import java.util.ArrayList;
+import java.util.List;
 
-    private final String version;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public String getVersionString() {
-        return version;
-    }
+class EnvironmentNodeChildrenFetcher implements DataFetcher<List<AbstractNode>> {
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public List<AbstractNode> get(DataFetchingEnvironment environment) throws Exception {
+        EnvironmentNode node = environment.getSource();
+        return new ArrayList<>(node.getChildren());
     }
 }

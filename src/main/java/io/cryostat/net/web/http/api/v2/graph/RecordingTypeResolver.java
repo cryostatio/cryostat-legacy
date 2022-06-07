@@ -35,29 +35,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import javax.inject.Inject;
 
-    private final String version;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.TypeResolutionEnvironment;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.TypeResolver;
 
-    public String getVersionString() {
-        return version;
-    }
+class RecordingTypeResolver implements TypeResolver {
+
+    @Inject
+    RecordingTypeResolver() {}
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
+        Object o = env.getObject();
+        if (o instanceof HyperlinkedSerializableRecordingDescriptor) {
+            return env.getSchema().getObjectType("ActiveRecording");
+        } else if (o instanceof ArchivedRecordingInfo) {
+            return env.getSchema().getObjectType("ArchivedRecording");
+        } else {
+            throw new IllegalStateException(o.getClass().getCanonicalName());
+        }
     }
 }

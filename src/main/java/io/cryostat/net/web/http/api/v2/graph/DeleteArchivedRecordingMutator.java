@@ -35,29 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import javax.inject.Inject;
 
-    private final String version;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public String getVersionString() {
-        return version;
+class DeleteArchivedRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
+
+    private final RecordingArchiveHelper recordingArchiveHelper;
+
+    @Inject
+    DeleteArchivedRecordingMutator(RecordingArchiveHelper recordingArchiveHelper) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        ArchivedRecordingInfo source = environment.getSource();
+        return recordingArchiveHelper.deleteRecording(source.getName()).get();
     }
 }

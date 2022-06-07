@@ -35,29 +35,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.net.web.http.api.v2.graph;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    BETA("beta"),
-    ;
+import javax.inject.Inject;
 
-    private final String version;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingTargetHelper;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    public String getVersionString() {
-        return version;
+class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor> {
+
+    private final RecordingTargetHelper recordingTargetHelper;
+    private final CredentialsManager credentialsManager;
+
+    @Inject
+    SnapshotOnTargetMutator(
+            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        this.recordingTargetHelper = recordingTargetHelper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+        TargetNode node = environment.getSource();
+
+        String uri = node.getTarget().getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+        return new GraphRecordingDescriptor(
+                node.getTarget(), recordingTargetHelper.createSnapshot(cd).get());
     }
 }
