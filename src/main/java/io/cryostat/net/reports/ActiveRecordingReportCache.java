@@ -86,13 +86,22 @@ class ActiveRecordingReportCache {
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build(k -> getReport(k));
+                        .build((k) -> getReport(k));
     }
 
-    Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    Future<String> get(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            if (filter.isBlank()) {
+                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            } else {
+                f.complete(
+                        getReport(
+                                new RecordingDescriptor(connectionDescriptor, recordingName),
+                                filter));
+            }
+
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
@@ -112,14 +121,20 @@ class ActiveRecordingReportCache {
     }
 
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
+        return getReport(recordingDescriptor, "");
+    }
+
+    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
+            throws Exception {
         Path saveFile = null;
         try {
+            /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         reportGeneratorServiceProvider
                                 .get()
-                                .exec(recordingDescriptor)
+                                .exec(recordingDescriptor, filter)
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {

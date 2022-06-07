@@ -139,13 +139,20 @@ class SubprocessReportGeneratorTest {
     void shouldThrowIfRecordingPathIsNull() {
         Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () -> generator.exec(null, Mockito.mock(Path.class)));
+                () -> generator.exec(null, Mockito.mock(Path.class), ""));
     }
 
     @Test
     void shouldThrowIfDestinationFileIsNull() {
         Assertions.assertThrows(
-                IllegalArgumentException.class, () -> generator.exec(recordingFile, null));
+                IllegalArgumentException.class, () -> generator.exec(recordingFile, null, ""));
+    }
+
+    @Test
+    void shouldThrowIfFilterIsNull() {
+        Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> generator.exec(recordingFile, Mockito.mock(Path.class), null));
     }
 
     @Test
@@ -154,7 +161,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingFile, dest);
+        generator.exec(recordingFile, dest, "");
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(fs)
@@ -176,7 +183,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingFile, dest);
+        generator.exec(recordingFile, dest, "");
 
         Mockito.verify(javaProcessBuilder).klazz(SubprocessReportGenerator.class);
     }
@@ -187,7 +194,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingFile, dest);
+        generator.exec(recordingFile, dest, "");
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());
@@ -208,7 +215,7 @@ class SubprocessReportGeneratorTest {
                                 Mockito.anyString()))
                 .thenReturn("0");
 
-        generator.exec(recordingFile, dest);
+        generator.exec(recordingFile, dest, "");
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());
@@ -223,12 +230,27 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingFile, dest);
+        generator.exec(recordingFile, dest, "");
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
 
-        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp");
+        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp", "");
+        MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
+    }
+
+    @Test
+    void shouldSetProcessArgsFiltered() throws Exception {
+        Path dest = Mockito.mock(Path.class);
+        Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
+        Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
+
+        generator.exec(recordingFile, dest, "someFilter");
+
+        ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
+
+        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp", "someFilter");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
@@ -242,7 +264,7 @@ class SubprocessReportGeneratorTest {
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
                 () -> {
-                    Future<Path> path = generator.exec(recordingFile, dest);
+                    Future<Path> path = generator.exec(recordingFile, dest, "");
                     MatcherAssert.assertThat(path.get(), Matchers.sameInstance(dest));
                 });
     }
@@ -261,7 +283,7 @@ class SubprocessReportGeneratorTest {
                     ExecutionException ex =
                             Assertions.assertThrows(
                                     ExecutionException.class,
-                                    () -> generator.exec(recordingFile, dest).get());
+                                    () -> generator.exec(recordingFile, dest, "").get());
                     MatcherAssert.assertThat(
                             ex.getMessage(),
                             Matchers.containsString(
@@ -283,7 +305,7 @@ class SubprocessReportGeneratorTest {
                             }
                         });
 
-        Path result = generator.exec(recordingDescriptor).get();
+        Path result = generator.exec(recordingDescriptor, "").get();
 
         MatcherAssert.assertThat(result, Matchers.sameInstance(tempFile2));
         Mockito.verify(fs).deleteIfExists(tempFile1);
@@ -307,7 +329,7 @@ class SubprocessReportGeneratorTest {
         Assertions.assertThrows(
                 ExecutionException.class,
                 () -> {
-                    generator.exec(recordingDescriptor).get();
+                    generator.exec(recordingDescriptor, "").get();
                 });
 
         Mockito.verify(fs).deleteIfExists(tempFile1);
@@ -331,7 +353,7 @@ class SubprocessReportGeneratorTest {
         Assertions.assertThrows(
                 ExecutionException.class,
                 () -> {
-                    generator.exec(recordingDescriptor).get();
+                    generator.exec(recordingDescriptor, "").get();
                 });
 
         Mockito.verify(fs).deleteIfExists(Path.of(Variables.REPORT_STATS_PATH));

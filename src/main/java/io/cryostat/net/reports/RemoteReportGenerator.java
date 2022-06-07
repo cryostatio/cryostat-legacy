@@ -80,16 +80,18 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public CompletableFuture<Path> exec(Path recording, Path destination) {
+    public CompletableFuture<Path> exec(Path recording, Path destination, String filter) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         logger.info("POSTing {} to {}", recording, reportGenerator);
         var form =
                 MultipartForm.create()
+                        .attribute("filter", filter)
                         .binaryFileUpload(
                                 "file",
                                 recording.getFileName().toString(),
                                 recording.toAbsolutePath().toString(),
                                 HttpMimeType.OCTET_STREAM.mime());
+
         var f = new CompletableFuture<Path>();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
