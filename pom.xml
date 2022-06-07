@@ -17,6 +17,8 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
+  <ubiImage>registry.access.redhat.com/ubi8/openjdk-11-runtime</ubiImage>
+  <ubiImageTag>@sha256:ebc549bf521c93ec3d4661a028e59158cbb6a31c00930f964cbbc85862ff84bd</ubiImageTag><!-- 1.12-1 -->
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <baseImageTarball>base.tar.gz</baseImageTarball>
@@ -245,6 +247,15 @@
 </dependencies>
 
 <build>
+    <resources>
+        <resource>
+            <directory>${project.basedir}/src/container</directory>
+            <filtering>true</filtering>
+            <includes>
+                <include>**/Containerfile</include>
+            </includes>
+        </resource>
+    </resources>
   <plugins>
     <plugin>
       <groupId>io.reactiverse</groupId>
@@ -335,7 +346,7 @@
             <arguments>
               <argument>build</argument>
               <argument>--file</argument>
-              <argument>${project.basedir}/src/container/Containerfile</argument>
+              <argument>${project.build.outputDirectory}/Containerfile</argument>
               <argument>--tag</argument>
               <argument>${baseImage}:${baseImageTag}</argument>
               <argument>${project.basedir}/src/container</argument>
