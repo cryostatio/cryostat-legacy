@@ -4,14 +4,14 @@ This is a temporary notes dump while GraphQL work is ongoing.
 
 ## API Endpoints
 
-### `[GET|POST] /api/beta/graphql`
+### `[GET|POST] /api/v2.2/graphql`
 
 Accepts `GET` or `POST` requests to perform GraphQL queries. See:
 - https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/
 - https://graphql.org/learn/serving-over-http/
 for some more info.
 
-src/main/java/io/cryostat/net/web/http/api/beta/graph/GraphModule.java
+src/main/java/io/cryostat/net/web/http/api/v2/graph/GraphModule.java
 contains the bindings for the GraphQL engine to query custom targets.
 
 `graphql/` contains some sample queries which can be used as in the following
@@ -81,8 +81,8 @@ content-type: application/json
 ```
 
 ```bash
-$ https -v :8181/api/beta/graphql query=@graphql/target-nodes-query.graphql
-POST /api/beta/graphql HTTP/1.1
+$ https -v :8181/api/v2.2/graphql query=@graphql/target-nodes-query.graphql
+POST /api/v2.2/graphql HTTP/1.1
 Accept: application/json, */*;q=0.5
 Accept-Encoding: gzip, deflate
 Connection: keep-alive
@@ -126,10 +126,10 @@ content-type: application/json
     }
 }```
 
-### `GET /api/beta/graphiql/*`
+### `GET /api/v2.2/graphiql/*`
 
 Serves a GraphQL "query IDE" that can be used for testing out writing queries
-and seeing the responses served for those queries by `POST /api/beta/graphql`.
+and seeing the responses served for those queries by `POST /api/v2.2/graphql`.
 Note the `/*` in the path - to open this in your browser while running using
-`run.sh`/`smoketest.sh`, go to `https://localhost:8181/api/beta/graphiql/`. The
+`run.sh`/`smoketest.sh`, go to `https://localhost:8181/api/v2.2/graphiql/`. The
 trailing slash is significant.
