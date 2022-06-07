@@ -96,6 +96,11 @@ class GraphQLPostHandler implements RequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     public void handle(RoutingContext ctx) {
         try {
             if (!auth.validateHttpHeader(
