@@ -41,8 +41,13 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +75,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -103,8 +109,6 @@ import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
-    private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
-            Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
     private static final String WELL_KNOWN_PATH = ".well-known";
     private static final String OAUTH_SERVER_PATH = "oauth-authorization-server";
     private static final String AUTHORIZATION_URL_KEY = "authorization_endpoint";
@@ -113,11 +117,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final String CRYOSTAT_OAUTH_CLIENT_ID = "CRYOSTAT_OAUTH_CLIENT_ID";
     private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
 
+    static final Pattern RESOURCE_PATTERN =
+            Pattern.compile(
+                    "^([\\w]+)([\\.\\w]+)?(?:/([\\w]+))?$",
+                    Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+
     private final Environment env;
     private final Lazy<String> namespace;
     private final Lazy<OpenShiftClient> serviceAccountClient;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
+    private final Map<ResourceType, Set<GroupResource>> resourceMap;
 
     private final LoadingCache<String, OpenShiftClient> userClients;
 
@@ -126,6 +136,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Lazy<String> namespace,
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
+            ClassPropertiesLoader classPropertiesLoader,
             Executor cacheExecutor,
             Scheduler cacheScheduler,
             Logger logger) {
@@ -143,6 +154,37 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         .expireAfterAccess(Duration.ofMinutes(5)) // should this be configurable?
                         .removalListener((k, v, cause) -> v.close());
         this.userClients = cacheBuilder.build(clientProvider::apply);
+
+        this.resourceMap = processResourceMapping(classPropertiesLoader, logger);
+    }
+
+    static Map<ResourceType, Set<GroupResource>> processResourceMapping(
+            ClassPropertiesLoader loader, Logger logger) {
+        Map<ResourceType, Set<GroupResource>> resourceMap = new HashMap<>();
+        Map<String, String> props;
+        try {
+            props = loader.loadAsMap(OpenShiftAuthManager.class);
+        } catch (IOException ioe) {
+            logger.error(ioe);
+            return Collections.unmodifiableMap(resourceMap);
+        }
+        props.entrySet()
+                .forEach(
+                        entry -> {
+                            try {
+                                ResourceType type = ResourceType.valueOf(entry.getKey());
+                                Set<GroupResource> values =
+                                        Arrays.asList(entry.getValue().split(",")).stream()
+                                                .map(String::strip)
+                                                .filter(StringUtils::isNotBlank)
+                                                .map(GroupResource::fromString)
+                                                .collect(Collectors.toSet());
+                                resourceMap.put(type, values);
+                            } catch (IllegalArgumentException iae) {
+                                logger.error(iae);
+                            }
+                        });
+        return Collections.unmodifiableMap(resourceMap);
     }
 
     @Override
@@ -253,8 +295,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Stream<CompletableFuture<Void>> validateAction(
             OpenShiftClient client, String namespace, ResourceAction resourceAction) {
-        Set<GroupResource> resources = map(resourceAction.getResource());
-        if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
+        Set<GroupResource> resources =
+                resourceMap.getOrDefault(resourceAction.getResource(), Set.of());
+        if (resources.isEmpty()) {
             return Stream.of(CompletableFuture.completedFuture(null));
         }
         String verb = map(resourceAction.getVerb());
@@ -272,6 +315,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 .withNamespace(namespace)
                                                 .withGroup(resource.getGroup())
                                                 .withResource(resource.getResource())
+                                                .withSubresource(resource.getSubResource())
                                                 .withVerb(verb)
                                                 .endResourceAttributes()
                                                 .endSpec()
@@ -286,8 +330,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     return CompletableFuture.failedFuture(
                                             new PermissionDeniedException(
                                                     namespace,
-                                                    resource.getGroup(),
-                                                    resource.getResource(),
+                                                    resource.toString(),
                                                     verb,
                                                     accessReview.getStatus().getReason()));
                                 } else {
@@ -515,25 +558,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         return sha256Prefix + StringUtils.removeEnd(encodedTokenHash, "=");
     }
 
-    private static Set<GroupResource> map(ResourceType resource) {
-        switch (resource) {
-            case TARGET:
-                return Set.of(GroupResource.FLIGHTRECORDERS);
-            case RECORDING:
-                return Set.of(GroupResource.RECORDINGS);
-            case CERTIFICATE:
-                return Set.of(
-                        GroupResource.DEPLOYMENTS, GroupResource.PODS, GroupResource.CRYOSTATS);
-            case CREDENTIALS:
-                return Set.of(GroupResource.CRYOSTATS);
-            case TEMPLATE:
-            case REPORT:
-            case RULE:
-            default:
-                return PERMISSION_NOT_REQUIRED;
-        }
-    }
-
     private static String map(ResourceVerb verb) {
         switch (verb) {
             case CREATE:
@@ -570,21 +594,23 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     // A pairing of a Kubernetes group name and resource name
-    private static enum GroupResource {
-        DEPLOYMENTS("apps", "deployments"),
-        PODS("", "pods"),
-        CRYOSTATS("operator.cryostat.io", "cryostats"),
-        FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
-        RECORDINGS("operator.cryostat.io", "recordings"),
-        PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),
-        ;
+    public static class GroupResource {
 
         private final String group;
         private final String resource;
+        private final String subResource;
 
-        private GroupResource(String group, String resource) {
-            this.group = group;
-            this.resource = resource;
+        GroupResource(String group, String resource, String subResource) {
+            this.group = nullable(group);
+            this.resource = nullable(resource);
+            this.subResource = nullable(subResource);
+        }
+
+        private static String nullable(String s) {
+            if (s == null) {
+                return "";
+            }
+            return s;
         }
 
         public String getGroup() {
@@ -593,6 +619,61 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         public String getResource() {
             return resource;
+        }
+
+        public String getSubResource() {
+            return subResource;
+        }
+
+        @Override
+        public String toString() {
+            String r = resource;
+            if (StringUtils.isNotBlank(group)) {
+                r += "." + group;
+            }
+            if (StringUtils.isNotBlank(subResource)) {
+                r += "/" + subResource;
+            }
+            return r;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(group, resource, subResource);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            GroupResource other = (GroupResource) obj;
+            return Objects.equals(group, other.group)
+                    && Objects.equals(resource, other.resource)
+                    && Objects.equals(subResource, other.subResource);
+        }
+
+        public static GroupResource fromString(String raw) {
+            Matcher m = RESOURCE_PATTERN.matcher(raw);
+            if (!m.matches()) {
+                throw new IllegalArgumentException(raw);
+            }
+            String group = m.group(2);
+            if (group != null) {
+                // substring(1) to remove the first character, which will be the '.' delimeter due
+                // to
+                // how the regex is structured
+                group = group.substring(1);
+            }
+            String resource = m.group(1);
+            String subResource = m.group(3);
+            return new GroupResource(group, resource, subResource);
         }
     }
 

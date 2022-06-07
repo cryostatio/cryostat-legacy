@@ -35,33 +35,63 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.util.resource;
 
-public class PermissionDeniedException extends Exception {
-    private final String namespace;
-    private final String resource;
-    private final String verb;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Properties;
 
-    public PermissionDeniedException(
-            String namespace, String resource, String verb, String reason) {
-        super(
-                String.format(
-                        "Requesting client in namespace \"%s\" cannot %s %s: %s",
-                        namespace, verb, resource, reason));
-        this.namespace = namespace;
-        this.resource = resource;
-        this.verb = verb;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class ClassPropertiesLoaderTest {
+
+    ClassPropertiesLoader loader;
+
+    @BeforeEach
+    void setup() {
+        this.loader = new ClassPropertiesLoader();
     }
 
-    public String getNamespace() {
-        return namespace;
+    @Test
+    void testAsProperties() throws IOException {
+        Properties expected = new Properties();
+        expected.putAll(
+                Map.of(
+                        "KEY1", "value1",
+                        "KEY2", "value2",
+                        "KEY3", "value3",
+                        "KEY4", "some,values,list"));
+        Properties result = loader.loadProperties(getClass());
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
-    public String getResourceType() {
-        return resource;
+    @Test
+    void testAsMap() throws IOException {
+        Map<String, String> expected =
+                Map.of(
+                        "KEY1", "value1",
+                        "KEY2", "value2",
+                        "KEY3", "value3",
+                        "KEY4", "some,values,list");
+        Map<String, String> result = loader.loadAsMap(getClass());
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
-    public String getVerb() {
-        return verb;
+    @Test
+    void throwsIfClassHasNoResourcePropertiesFile() {
+        FileNotFoundException fnfe =
+                Assertions.assertThrows(
+                        FileNotFoundException.class, () -> loader.loadProperties(InnerClass.class));
+        MatcherAssert.assertThat(
+                fnfe.getMessage(),
+                Matchers.equalTo(
+                        "io/cryostat/util/resource/ClassPropertiesLoaderTest$InnerClass.properties"));
     }
+
+    static class InnerClass {}
 }

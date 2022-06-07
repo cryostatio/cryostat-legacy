@@ -213,7 +213,7 @@ class AbstractJwtConsumingHandlerTest {
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new PermissionDeniedException(
-                                            "namespace", "group", "resource", "verb", "reason")));
+                                            "namespace", "resource.group", "verb", "reason")));
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -240,8 +240,7 @@ class AbstractJwtConsumingHandlerTest {
                                     new ExecutionException(
                                             new PermissionDeniedException(
                                                     "namespace",
-                                                    "group",
-                                                    "resource",
+                                                    "resource.group",
                                                     "verb",
                                                     "reason"))));
 

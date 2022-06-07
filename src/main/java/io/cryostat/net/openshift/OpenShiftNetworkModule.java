@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
@@ -127,14 +128,16 @@ public abstract class OpenShiftNetworkModule {
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
-            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> tokenedClient,
             Lazy<OpenShiftClient> serviceAccountClient,
+            @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
+            ClassPropertiesLoader classPropertiesLoader,
             Logger logger) {
         return new OpenShiftAuthManager(
                 env,
                 namespace,
                 serviceAccountClient,
-                tokenedClient,
+                clientProvider,
+                classPropertiesLoader,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 logger);

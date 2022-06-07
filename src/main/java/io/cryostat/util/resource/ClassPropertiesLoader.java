@@ -35,33 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.util.resource;
 
-public class PermissionDeniedException extends Exception {
-    private final String namespace;
-    private final String resource;
-    private final String verb;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
-    public PermissionDeniedException(
-            String namespace, String resource, String verb, String reason) {
-        super(
-                String.format(
-                        "Requesting client in namespace \"%s\" cannot %s %s: %s",
-                        namespace, verb, resource, reason));
-        this.namespace = namespace;
-        this.resource = resource;
-        this.verb = verb;
+public class ClassPropertiesLoader {
+
+    public Properties loadProperties(Class<?> klazz) throws IOException {
+        try (InputStream stream =
+                klazz.getResourceAsStream(klazz.getSimpleName() + ".properties")) {
+            if (stream == null) {
+                throw new FileNotFoundException(
+                        klazz.getName().replaceAll("\\.", File.separator) + ".properties");
+            }
+            Properties props = new Properties();
+            props.load(stream);
+            return props;
+        }
     }
 
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public String getResourceType() {
-        return resource;
-    }
-
-    public String getVerb() {
-        return verb;
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Map<String, String> loadAsMap(Class<?> klazz) throws IOException {
+        Map props = loadProperties(klazz);
+        return new HashMap<String, String>(props);
     }
 }

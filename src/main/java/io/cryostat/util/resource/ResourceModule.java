@@ -35,33 +35,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.util.resource;
 
-public class PermissionDeniedException extends Exception {
-    private final String namespace;
-    private final String resource;
-    private final String verb;
+import javax.inject.Singleton;
 
-    public PermissionDeniedException(
-            String namespace, String resource, String verb, String reason) {
-        super(
-                String.format(
-                        "Requesting client in namespace \"%s\" cannot %s %s: %s",
-                        namespace, verb, resource, reason));
-        this.namespace = namespace;
-        this.resource = resource;
-        this.verb = verb;
-    }
+import dagger.Module;
+import dagger.Provides;
 
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public String getResourceType() {
-        return resource;
-    }
-
-    public String getVerb() {
-        return verb;
+@Module
+public abstract class ResourceModule {
+    @Provides
+    @Singleton
+    static ClassPropertiesLoader provideClassPropertiesLoader() {
+        return new ClassPropertiesLoader();
     }
 }
