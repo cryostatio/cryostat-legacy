@@ -17,8 +17,6 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <ubiImage>registry.access.redhat.com/ubi8/openjdk-11-runtime</ubiImage>
-  <ubiImageTag>@sha256:ebc549bf521c93ec3d4661a028e59158cbb6a31c00930f964cbbc85862ff84bd</ubiImageTag><!-- 1.12-1 -->
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <node.version>v14.17.0</node.version>
@@ -59,7 +57,6 @@
   <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.1.1</com.google.cloud.tools.jib.maven.plugin.version>
-  <nl.lexemmens.podman.maven.plugin.version>1.8.0</nl.lexemmens.podman.maven.plugin.version>
 
   <com.google.dagger.version>2.34.1</com.google.dagger.version>
   <com.google.dagger.compiler.version>2.26</com.google.dagger.compiler.version>
@@ -258,43 +255,6 @@
       </configuration>
     </plugin>
     <plugin>
-      <groupId>nl.lexemmens</groupId>
-      <artifactId>podman-maven-plugin</artifactId>
-      <version>${nl.lexemmens.podman.maven.plugin.version}</version>
-      <configuration>
-        <registries>
-          <registry>quay.io</registry>
-          <!-- <registry>registry.access.redhat.com</registry> -->
-        </registries>
-
-        <images>
-          <image>
-            <name>${baseImage}</name>
-            <build>
-              <createLatestTag>true</createLatestTag>
-              <format>DOCKER</format>
-            </build>
-          </image>
-        </images>
-      </configuration>
-      <executions>
-        <execution>
-          <id>build-base-image</id>
-          <phase>prepare-package</phase>
-          <goals>
-            <goal>build</goal>
-          </goals>
-        </execution>
-        <execution>
-          <id>clean-base-image</id>
-          <phase>clean</phase>
-          <goals>
-            <goal>clean</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-    <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-compiler-plugin</artifactId>
       <version>${org.apache.maven.plugins.compiler.version}</version>
@@ -361,6 +321,24 @@
               <argument>--always</argument>
             </arguments>
             <outputFile>${project.build.directory}/assets/app/resources/io/cryostat/version</outputFile>
+          </configuration>
+        </execution>
+        <execution>
+          <id>build-base-image</id>
+          <phase>prepare-package</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>build</argument>
+              <argument>--file</argument>
+              <argument>${project.basedir}/src/container/Containerfile</argument>
+              <argument>--tag</argument>
+              <argument>${baseImage}:${baseImageTag}</argument>
+              <argument>${project.basedir}/src/container</argument>
+            </arguments>
           </configuration>
         </execution>
         <execution>
