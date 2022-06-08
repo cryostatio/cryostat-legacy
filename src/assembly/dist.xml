@@ -17,13 +17,16 @@
       <directory>${project.basedir}/src/main/extras</directory>
       <includes>
         <include>${cryostat.entrypoint}</include>
-        <include>cryostat.jfc</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
       <outputDirectory />
       <directory>${project.build.directory}/assets</directory>
+    </fileSet>
+    <fileSet>
+      <outputDirectory />
+      <directory>${project.basedir}/src/container/include</directory>
     </fileSet>
   </fileSets>
 </assembly>
