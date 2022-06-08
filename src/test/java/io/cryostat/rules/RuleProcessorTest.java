@@ -47,6 +47,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -83,7 +84,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RuleProcessorTest {
 
     RuleProcessor processor;
-    @Mock Vertx vertx;
+    Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
     @Mock CredentialsManager credentialsManager;
@@ -101,6 +102,7 @@ class RuleProcessorTest {
 
     @BeforeEach
     void setup() {
+        this.vertx = MockVertx.vertx();
         this.processor =
                 new RuleProcessor(
                         vertx,
@@ -343,9 +345,6 @@ class RuleProcessorTest {
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
-        long id = 1234L;
-        Mockito.doReturn(id).when(vertx).setPeriodic(Mockito.anyLong(), Mockito.any());
-
         processor.accept(tde);
 
         Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), Mockito.any());
@@ -361,10 +360,10 @@ class RuleProcessorTest {
                         functionCaptor.capture(),
                         Mockito.any());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(vertx, Mockito.never()).cancelTimer(id);
+        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
-        Mockito.verify(vertx).cancelTimer(id);
+        Mockito.verify(vertx).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
     }
 }

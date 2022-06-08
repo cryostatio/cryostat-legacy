@@ -405,8 +405,7 @@ public class RecordingArchiveHelper {
     private Optional<Path> searchSubdirectories(
             List<String> subdirectories, Path parent, String recordingName) throws IOException {
         // TODO refactor this into nicer streaming
-        return subdirectories
-                .parallelStream()
+        return subdirectories.stream()
                 .map(parent::resolve)
                 .map(
                         subdirectory -> {

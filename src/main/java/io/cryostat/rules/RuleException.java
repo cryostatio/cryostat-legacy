@@ -43,4 +43,8 @@ public class RuleException extends IOException {
     RuleException(String reason) {
         super(reason);
     }
+
+    RuleException(Throwable cause) {
+        super(cause);
+    }
 }

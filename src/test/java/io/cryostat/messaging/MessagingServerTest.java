@@ -45,8 +45,11 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
+import io.cryostat.MockVertx;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
@@ -73,7 +76,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MessagingServerTest {
 
-    @Mock Vertx vertx;
+    Vertx vertx;
     MessagingServer server;
     @Mock Environment env;
     @Mock Logger logger;
@@ -89,6 +92,8 @@ class MessagingServerTest {
 
     @BeforeEach
     void setup() {
+        this.vertx = MockVertx.vertx();
+
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
@@ -258,6 +263,30 @@ class MessagingServerTest {
 
     @Test
     void authFailureShouldRejectConnection() throws Exception {
+        AuthenticatedAction authAction =
+                new AuthenticatedAction() {
+                    private Runnable failureHandler;
+
+                    @Override
+                    public AuthenticatedAction onSuccess(Runnable runnable) {
+                        return this;
+                    }
+
+                    @Override
+                    public AuthenticatedAction onFailure(Runnable runnable) {
+                        this.failureHandler = runnable;
+                        return this;
+                    }
+
+                    @Override
+                    public void execute()
+                            throws InterruptedException, ExecutionException, TimeoutException {
+                        failureHandler.run();
+                    }
+                };
+        Mockito.when(authManager.doAuthenticated(Mockito.any(), Mockito.any()))
+                .thenReturn(authAction);
+
         server.start();
 
         ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
@@ -268,10 +297,6 @@ class MessagingServerTest {
         ArgumentCaptor<Handler> textMessageHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
         verify(sws).textMessageHandler(textMessageHandlerCaptor.capture());
         textMessageHandlerCaptor.getValue().handle("irrelevant");
-
-        ArgumentCaptor<Runnable> authFailCaptor = ArgumentCaptor.forClass(Runnable.class);
-        verify(authAction).onFailure(authFailCaptor.capture());
-        authFailCaptor.getValue().run();
 
         verify(sws).close((short) 1002, "Invalid auth subprotocol");
     }

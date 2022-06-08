@@ -37,6 +37,7 @@
  */
 package io.cryostat.messaging;
 
+import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -61,6 +63,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class MessagingServer extends AbstractVerticle implements AutoCloseable {
 
@@ -131,61 +134,78 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                     sws.closeHandler((unused) -> removeConnection(wsc));
                     sws.textMessageHandler(
                             msg -> {
-                                try {
-                                    authManager
-                                            .doAuthenticated(
-                                                    sws::subProtocol,
-                                                    p ->
-                                                            authManager
-                                                                    .validateWebSocketSubProtocol(
-                                                                            p,
-                                                                            ResourceAction
-                                                                                    .READ_ALL))
-                                            .onSuccess(
-                                                    () -> {
-                                                        logger.info(
-                                                                "Authenticated remote client {}",
-                                                                remoteAddress);
-                                                        sws.textMessageHandler(null);
-                                                        wsc.setAccepted();
-                                                        sendClientActivityNotification(
-                                                                remoteAddress, "accepted");
+                                vertx.executeBlocking(
+                                        promise -> {
+                                            try {
+                                                authManager
+                                                        .doAuthenticated(
+                                                                sws::subProtocol,
+                                                                p ->
+                                                                        authManager
+                                                                                .validateWebSocketSubProtocol(
+                                                                                        p,
+                                                                                        ResourceAction
+                                                                                                .READ_ALL))
+                                                        .onSuccess(() -> promise.complete(true))
+                                                        .onFailure(
+                                                                () ->
+                                                                        promise.fail(
+                                                                                new AuthorizationErrorException(
+                                                                                        "")))
+                                                        .execute();
+                                            } catch (InterruptedException
+                                                    | ExecutionException
+                                                    | TimeoutException e) {
+                                                promise.fail(e);
+                                            }
+                                        },
+                                        true,
+                                        result -> {
+                                            if (result.failed()) {
+                                                if (ExceptionUtils.hasCause(
+                                                        result.cause(),
+                                                        AuthorizationErrorException.class)) {
+                                                    logger.info(
+                                                            (AuthorizationErrorException)
+                                                                    result.cause());
+                                                    logger.info(
+                                                            "Disconnected remote client {} due to authentication failure",
+                                                            remoteAddress);
+                                                    sendClientActivityNotification(
+                                                            remoteAddress, "auth failure");
+                                                    sws.close(
+                                                            // 1002: WebSocket "Protocol Error"
+                                                            // close reason
+                                                            (short) 1002,
+                                                            "Invalid auth subprotocol");
+                                                } else {
+                                                    logger.info(new IOException(result.cause()));
+                                                    sws.close(
+                                                            (short) 1011,
+                                                            String.format(
+                                                                    "Internal error: \"%s\"",
+                                                                    result.cause().getMessage()));
+                                                }
+                                                return;
+                                            }
+                                            logger.info(
+                                                    "Authenticated remote client {}",
+                                                    remoteAddress);
+                                            sws.textMessageHandler(null);
+                                            wsc.setAccepted();
+                                            sendClientActivityNotification(
+                                                    remoteAddress, "accepted");
 
-                                                        Long ping =
-                                                                pingTasks.put(
-                                                                        wsc,
-                                                                        vertx.setPeriodic(
-                                                                                TimeUnit.SECONDS
-                                                                                        .toMillis(
-                                                                                                5),
-                                                                                id -> wsc.ping()));
-                                                        if (ping != null) {
-                                                            vertx.cancelTimer(ping);
-                                                        }
-                                                    })
-                                            // 1002: WebSocket "Protocol Error" close reason
-                                            .onFailure(
-                                                    () -> {
-                                                        logger.info(
-                                                                "Disconnected remote client {} due to authentication failure",
-                                                                remoteAddress);
-                                                        sendClientActivityNotification(
-                                                                remoteAddress, "auth failure");
-                                                        sws.close(
-                                                                (short) 1002,
-                                                                "Invalid auth subprotocol");
-                                                    })
-                                            .execute();
-                                } catch (InterruptedException
-                                        | ExecutionException
-                                        | TimeoutException e) {
-                                    logger.info(e);
-                                    // 1011: WebSocket "Internal Error" close reason
-                                    sws.close(
-                                            (short) 1011,
-                                            String.format(
-                                                    "Internal error: \"%s\"", e.getMessage()));
-                                }
+                                            Long ping =
+                                                    pingTasks.put(
+                                                            wsc,
+                                                            vertx.setPeriodic(
+                                                                    TimeUnit.SECONDS.toMillis(5),
+                                                                    id -> wsc.ping()));
+                                            if (ping != null) {
+                                                vertx.cancelTimer(ping);
+                                            }
+                                        });
                             });
                     addConnection(wsc);
                     sws.accept();
@@ -253,12 +273,14 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
     }
 
     private void sendClientActivityNotification(String remote, String status) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory("WsClientActivity")
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of(remote, status))
-                .build()
-                .send();
+        vertx.runOnContext(
+                n ->
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory("WsClientActivity")
+                                .metaType(HttpMimeType.JSON)
+                                .message(Map.of(remote, status))
+                                .build()
+                                .send());
     }
 }

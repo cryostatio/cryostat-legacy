@@ -345,6 +345,12 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     "data", Map.of("result", "Regex_Rule")));
             MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
 
+            // give rule some time to process. Five seconds should be massively overkill, but better
+            // to give extra time and have a reliable test than try to time it quickly and have a
+            // flakey test. Even better would be to listen for the WebSocket notification that
+            // confirms that the recordings created by the rule have been created and then continue
+            Thread.sleep(5_000);
+
             // Assert rule applied to both targets
             CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
             webClient

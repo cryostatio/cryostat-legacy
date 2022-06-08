@@ -168,12 +168,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         EnvironmentNode realmNode = new EnvironmentNode("KubernetesApi", BaseNodeType.REALM);
         realmNode.addChildNode(nsNode);
         try {
-            k8sClient
-                    .endpoints()
-                    .inNamespace(namespace)
-                    .list()
-                    .getItems()
-                    .parallelStream()
+            k8sClient.endpoints().inNamespace(namespace).list().getItems().stream()
                     .flatMap(endpoints -> getTargetTuples(endpoints).stream())
                     .forEach(tuple -> buildOwnerChain(nsNode, tuple));
         } catch (Exception e) {

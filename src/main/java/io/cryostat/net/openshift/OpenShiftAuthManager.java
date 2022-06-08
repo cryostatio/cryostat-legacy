@@ -88,6 +88,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
+import io.fabric8.kubernetes.api.model.authorization.v1.ResourceAttributes;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -257,8 +258,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         OpenShiftClient client = userClients.get(token);
         try {
             List<CompletableFuture<Void>> results =
-                    resourceActions
-                            .parallelStream()
+                    resourceActions.stream()
                             .flatMap(
                                     resourceAction ->
                                             validateAction(client, namespace.get(), resourceAction))
@@ -298,52 +298,58 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Set<GroupResource> resources =
                 resourceMap.getOrDefault(resourceAction.getResource(), Set.of());
         if (resources.isEmpty()) {
-            return Stream.of(CompletableFuture.completedFuture(null));
+            return Stream.of();
         }
         String verb = map(resourceAction.getVerb());
-        return resources
-                .parallelStream()
+        return resources.stream()
                 .map(
-                        resource -> {
+                        resource ->
+                                new SelfSubjectAccessReviewBuilder()
+                                        .withNewSpec()
+                                        .withNewResourceAttributes()
+                                        .withNamespace(namespace)
+                                        .withGroup(resource.getGroup())
+                                        .withResource(resource.getResource())
+                                        .withSubresource(resource.getSubResource())
+                                        .withVerb(verb)
+                                        .endResourceAttributes()
+                                        .endSpec()
+                                        .build())
+                .map(
+                        accessReview -> {
+                            CompletableFuture<Void> result = new CompletableFuture<>();
                             AuthRequest evt = new AuthRequest();
-                            evt.begin();
                             try {
-                                SelfSubjectAccessReview accessReview =
-                                        new SelfSubjectAccessReviewBuilder()
-                                                .withNewSpec()
-                                                .withNewResourceAttributes()
-                                                .withNamespace(namespace)
-                                                .withGroup(resource.getGroup())
-                                                .withResource(resource.getResource())
-                                                .withSubresource(resource.getSubResource())
-                                                .withVerb(verb)
-                                                .endResourceAttributes()
-                                                .endSpec()
-                                                .build();
-                                accessReview =
+                                evt.begin();
+                                SelfSubjectAccessReview accessReviewResult =
                                         client.authorization()
                                                 .v1()
                                                 .selfSubjectAccessReview()
                                                 .create(accessReview);
                                 evt.setRequestSuccessful(true);
-                                if (!accessReview.getStatus().getAllowed()) {
-                                    return CompletableFuture.failedFuture(
+                                if (accessReviewResult.getStatus().getAllowed()) {
+                                    result.complete(null);
+                                } else {
+                                    result.completeExceptionally(
                                             new PermissionDeniedException(
                                                     namespace,
-                                                    resource.toString(),
+                                                    new GroupResource(
+                                                                    accessReview
+                                                                            .getSpec()
+                                                                            .getResourceAttributes())
+                                                            .toString(),
                                                     verb,
-                                                    accessReview.getStatus().getReason()));
-                                } else {
-                                    return CompletableFuture.completedFuture(null);
+                                                    accessReviewResult.getStatus().getReason()));
                                 }
                             } catch (Exception e) {
-                                return CompletableFuture.failedFuture(e);
+                                result.completeExceptionally(e);
                             } finally {
                                 if (evt.shouldCommit()) {
                                     evt.end();
                                     evt.commit();
                                 }
                             }
+                            return result;
                         });
     }
 
@@ -604,6 +610,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             this.group = nullable(group);
             this.resource = nullable(resource);
             this.subResource = nullable(subResource);
+        }
+
+        GroupResource(ResourceAttributes attrs) {
+            this(attrs.getGroup(), attrs.getResource(), attrs.getSubresource());
         }
 
         private static String nullable(String s) {

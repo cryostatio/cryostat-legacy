@@ -214,7 +214,7 @@ public class WebServer extends AbstractVerticle {
                         route = route.handler(handler);
                     } else {
                         BlockingHandlerDecorator async =
-                                new BlockingHandlerDecorator(handler, handler.isAsync());
+                                new BlockingHandlerDecorator(handler, handler.isOrdered());
                         route = route.handler(async);
                     }
                     route = route.failureHandler(failureHandler);
