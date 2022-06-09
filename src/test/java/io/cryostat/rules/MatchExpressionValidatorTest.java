@@ -37,7 +37,7 @@
  */
 package io.cryostat.rules;
 
-import jdk.nashorn.api.scripting.NashornException;
+import org.openjdk.nashorn.api.scripting.NashornException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
