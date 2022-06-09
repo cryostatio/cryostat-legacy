@@ -410,6 +410,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
+              <argument>--pull=always</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=jfr-datasource-itest</argument>
               <argument>--detach</argument>
@@ -429,6 +430,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
+              <argument>--pull=always</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=grafana-itest</argument>
               <argument>--env</argument>
