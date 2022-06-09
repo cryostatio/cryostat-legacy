@@ -12,13 +12,14 @@
 
 <properties>
   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  <java.version>11</java.version>
+  <java.version>17</java.version>
   <maven.compiler.target>${java.version}</maven.compiler.target>
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <ubiImage>registry.access.redhat.com/ubi8/openjdk-11-runtime</ubiImage>
-  <ubiImageTag>@sha256:ebc549bf521c93ec3d4661a028e59158cbb6a31c00930f964cbbc85862ff84bd</ubiImageTag><!-- 1.12-1 -->
+
+  <ubiImage>registry.access.redhat.com/ubi8/openjdk-17-runtime</ubiImage>
+  <ubiImageTag>@sha256:03d27b5a2df56ceb1f040085de696d594ade2ffa48b6c9bc51ac24b7c5b37b0f</ubiImageTag><!-- 1.13-1 -->
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <baseImageTarball>base.tar.gz</baseImageTarball>
@@ -66,6 +67,7 @@
 
   <io.cryostat.core.version>2.10.0</io.cryostat.core.version>
 
+  <org.openjdk.nashorn.core.version>15.4</org.openjdk.nashorn.core.version>
   <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.15</org.apache.commons.codec.version>
   <org.apache.commons.validator.version>1.7</org.apache.commons.validator.version>
@@ -81,11 +83,11 @@
 
   <com.github.spotbugs.version>4.5.3</com.github.spotbugs.version>
   <com.github.spotbugs.plugin.version>4.5.3.0</com.github.spotbugs.plugin.version>
-  <org.junit.jupiter.version>5.7.1</org.junit.jupiter.version>
+  <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
-  <org.mockito.version>3.9.0</org.mockito.version>
-  <org.jacoco.maven.plugin.version>0.8.6</org.jacoco.maven.plugin.version>
-  <com.diffplug.spotless.maven.plugin.version>2.10.1</com.diffplug.spotless.maven.plugin.version>
+  <org.mockito.version>4.6.1</org.mockito.version>
+  <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
+  <com.diffplug.spotless.maven.plugin.version>2.22.6</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.14.2</org.jsoup.version>
 </properties>
 
@@ -94,6 +96,11 @@
     <groupId>io.cryostat</groupId>
     <artifactId>cryostat-core</artifactId>
     <version>${io.cryostat.core.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>org.openjdk.nashorn</groupId>
+    <artifactId>nashorn-core</artifactId>
+    <version>${org.openjdk.nashorn.core.version}</version>
   </dependency>
   <dependency>
     <groupId>io.fabric8</groupId>
@@ -727,8 +734,9 @@
       <configuration>
         <java>
           <googleJavaFormat>
-            <version>1.7</version>
+            <version>1.15.0</version>
             <style>AOSP</style>
+            <reflowLongStrings>true</reflowLongStrings>
           </googleJavaFormat>
           <trimTrailingWhitespace/>
           <endWithNewline/>
