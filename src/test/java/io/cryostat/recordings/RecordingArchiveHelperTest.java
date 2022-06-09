@@ -764,14 +764,16 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of(recordingName));
 
+        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
+                .thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+
+        Mockito.when(base32.decode(Mockito.anyString()))
+                .thenReturn(subdirectories.get(1).getBytes(StandardCharsets.UTF_8));
+
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
-
-        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
-                .thenReturn(archivedRecordingsReportPath);
-        Mockito.when(archivedRecordingsReportPath.toAbsolutePath())
-                .thenReturn(archivedRecordingsReportPath);
 
         Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
                 .thenAnswer(
@@ -811,7 +813,7 @@ class RecordingArchiveHelperTest {
         Mockito.verify(fs)
                 .deleteIfExists(
                         archivedRecordingsPath.resolve(subdirectories.get(1)).toAbsolutePath());
-        Mockito.verify(fs).deleteIfExists(archivedRecordingsReportPath);
+        Mockito.verify(fs).deleteIfExists(destinationFile);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
@@ -828,7 +830,9 @@ class RecordingArchiveHelperTest {
                                         Path.of(subdirectories.get(1)).toAbsolutePath().toString(),
                                         recordingName,
                                         "/some/path/download/" + recordingName,
-                                        "/some/path/archive/" + recordingName))));
+                                        "/some/path/archive/" + recordingName),
+                                "target",
+                                subdirectories.get(1))));
     }
 
     @ParameterizedTest
