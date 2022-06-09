@@ -60,6 +60,7 @@ function runJfrDatasource() {
     local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name jfr-datasource \
+        --pull always \
         --pod cryostat-pod \
         --rm -d "${stream}:${tag}"
 }
@@ -71,6 +72,7 @@ function runGrafana() {
     local port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     podman run \
         --name grafana \
+        --pull always \
         --pod cryostat-pod \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
@@ -82,6 +84,7 @@ function runReportGenerator() {
     local RJMX_PORT=10000
     podman run \
         --name reports \
+        --pull always \
         --pod cryostat-pod \
         --cpus 1 \
         --memory 512M \
