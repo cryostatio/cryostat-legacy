@@ -147,7 +147,8 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                                                         "name",
                                                         "Max Age",
                                                         "description",
-                                                        "Maximum age of the events in the recording",
+                                                        "Maximum age of the events in the"
+                                                                + " recording",
                                                         "defaultValue",
                                                         "0s[s]"),
                                                 Map.of(

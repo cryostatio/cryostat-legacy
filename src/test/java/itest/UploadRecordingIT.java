@@ -101,7 +101,9 @@ public class UploadRecordingIT extends StandardSelfTest {
     }
 
     @Disabled(
-            "TODO, this test needs to be updated to actually trigger a file to be uploaded to jfr-datasource/grafana-dashboard now that the integration tests have these additional containers configured")
+            "TODO, this test needs to be updated to actually trigger a file to be uploaded to"
+                    + " jfr-datasource/grafana-dashboard now that the integration tests have these"
+                    + " additional containers configured")
     @Test
     public void shouldHandleBadDatasourceUrl() throws Exception {
         CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();

@@ -94,7 +94,8 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
             justification =
-                    "The Recordings fields are serialized and returned to the client by the GraphQL engine")
+                    "The Recordings fields are serialized and returned to the client by the GraphQL"
+                            + " engine")
     public Recordings get(DataFetchingEnvironment environment) throws Exception {
         TargetNode source = (TargetNode) environment.getSource();
         ServiceRef target = source.getTarget();

@@ -322,7 +322,8 @@ public class RecordingTargetHelper {
 
                                 if (updatedDescriptor.isEmpty()) {
                                     throw new SnapshotCreationException(
-                                            "The newly created Snapshot could not be found under its rename");
+                                            "The newly created Snapshot could not be found under"
+                                                    + " its rename");
                                 }
 
                                 Metadata metadata =

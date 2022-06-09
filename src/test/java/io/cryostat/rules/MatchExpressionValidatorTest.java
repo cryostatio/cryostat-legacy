@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-import org.openjdk.nashorn.api.scripting.NashornException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -48,6 +47,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.nashorn.api.scripting.NashornException;
 
 @ExtendWith(MockitoExtension.class)
 class MatchExpressionValidatorTest {
@@ -66,7 +66,8 @@ class MatchExpressionValidatorTest {
             strings = {
                 "true",
                 "target.alias == \"io.cryostat.Cryostat\"",
-                "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'",
+                "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN =="
+                        + " 'io.cryostat.Cryostat'",
                 "target.connectUrl != '' && target.labels.SOMETHING == 'other'",
                 "/^[a-z]+$/.test(target.alias)",
                 "/^[a-z]+$/.test(target.noSuchProperty)",

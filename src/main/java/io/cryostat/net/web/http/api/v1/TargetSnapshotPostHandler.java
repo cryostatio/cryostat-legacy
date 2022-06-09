@@ -125,7 +125,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response()
                     .end(
                             String.format(
-                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    "Snapshot %s failed to create: The resultant recording was"
+                                        + " unreadable for some reason, likely due to a lack of"
+                                        + " Active, non-Snapshot source recordings to take event"
+                                        + " data from.",
                                     snapshotName));
         } else {
             ctx.response().setStatusCode(200);

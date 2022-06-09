@@ -114,7 +114,8 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
                         out.write(buff, 0, n);
                         if (!targetConnectionManager.markConnectionInUse(cd)) {
                             throw new IOException(
-                                    "Target connection unexpectedly closed while streaming recording");
+                                    "Target connection unexpectedly closed while streaming"
+                                            + " recording");
                         }
                     }
                     out.flush();

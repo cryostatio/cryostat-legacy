@@ -93,7 +93,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 }
                 System.err.println(
                         String.format(
-                                "%d targets found - too many (expected %d)! Waiting to see if JDP settles...",
+                                "%d targets found - too many (expected %d)! Waiting to see if JDP"
+                                        + " settles...",
                                 numTargets, expectedTargets + 1));
                 successes = 0;
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS);

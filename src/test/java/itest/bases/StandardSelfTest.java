@@ -99,7 +99,9 @@ public abstract class StandardSelfTest {
                                                 future.completeExceptionally(
                                                         new Exception(
                                                                 String.format(
-                                                                        "Unexpected command response %s for command %s",
+                                                                        "Unexpected command"
+                                                                                + " response %s for"
+                                                                                + " command %s",
                                                                         commandName, command)));
                                             }
                                         });
