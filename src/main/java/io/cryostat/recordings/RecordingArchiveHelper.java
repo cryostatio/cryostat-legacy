@@ -217,13 +217,15 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     ARCHIVES, recordingName));
-            byte[] decodedParentPath = base32.decode(parentPath.getFileName().toString());
-            String decodedTargetId = new String(decodedParentPath, StandardCharsets.UTF_8);
+            String targetId = parentPath.getFileName().toString();
+            if (!targetId.equals("unlabelled")) {
+                targetId = new String(base32.decode(targetId), StandardCharsets.UTF_8);
+            }
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo, "target", decodedTargetId))
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
                     .build()
                     .send();
             if (fs.listDirectoryChildren(parentPath).isEmpty()) {
