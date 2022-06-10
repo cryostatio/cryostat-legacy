@@ -308,7 +308,8 @@ class RecordingsPostHandlerTest {
         Mockito.verify(notification).send();
 
         MatcherAssert.assertThat(
-                messageCaptor.getValue(), Matchers.equalTo(Map.of("recording", recordingInfo)));
+                messageCaptor.getValue(),
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", "unlabelled")));
     }
 
     @Test

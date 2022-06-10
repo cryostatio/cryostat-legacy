@@ -242,7 +242,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedReportURL(
-                                                                                        fsName))))
+                                                                                        fsName)),
+                                                                "target",
+                                                                subdirectoryName))
                                                 .build()
                                                 .send();
                                     } catch (UnknownHostException
