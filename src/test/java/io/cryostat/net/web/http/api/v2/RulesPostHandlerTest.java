@@ -273,7 +273,8 @@ class RulesPostHandlerTest {
                                     "description", "AutoRulesIT automated rule",
                                     "eventSpecifier", "template=Continuous,type=TARGET",
                                     "matchExpression",
-                                            "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
+                                            "target.annotations.cryostat.JAVA_MAIN =="
+                                                    + " 'es.andrewazor.demo.Main'",
                                     "archivalPeriodSeconds", val));
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
@@ -356,7 +357,8 @@ class RulesPostHandlerTest {
                                     "eventSpecifier",
                                     "template=Continuous,type=TARGET",
                                     "matchExpression",
-                                    "target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'",
+                                    "target.annotations.cryostat.JAVA_MAIN =="
+                                            + " 'io.cryostat.Cryostat'",
                                     "archivalPeriodSeconds",
                                     60,
                                     "preservedArchives",
@@ -383,7 +385,8 @@ class RulesPostHandlerTest {
                                     .name("Auto Rule")
                                     .description("AutoRulesIT automated rule")
                                     .matchExpression(
-                                            "target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'")
+                                            "target.annotations.cryostat.JAVA_MAIN =="
+                                                    + " 'io.cryostat.Cryostat'")
                                     .eventSpecifier("template=Continuous,type=TARGET")
                                     .archivalPeriodSeconds(60)
                                     .preservedArchives(5)

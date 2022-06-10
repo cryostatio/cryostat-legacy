@@ -303,7 +303,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             handler.handle(
                     makeFailedAsyncResult(
                             new IOException(
-                                    "Recording could not be saved. File already exists and rename attempts were exhausted.")));
+                                    "Recording could not be saved. File already exists and rename"
+                                            + " attempts were exhausted.")));
             return;
         }
 

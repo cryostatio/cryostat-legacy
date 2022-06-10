@@ -65,7 +65,9 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     public static final Template ALL_EVENTS_TEMPLATE =
             new Template(
                     "ALL",
-                    "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing Cryostat's own capabilities.",
+                    "Enable all available events in the target JVM, with default option values."
+                            + " This will be very expensive and is intended primarily for testing"
+                            + " Cryostat's own capabilities.",
                     "Cryostat",
                     TemplateType.TARGET);
 

@@ -37,9 +37,9 @@
  */
 package io.cryostat.rules;
 
-import jdk.nashorn.api.tree.CompilationUnitTree;
-import jdk.nashorn.api.tree.Parser;
-import jdk.nashorn.api.tree.TreeVisitor;
+import org.openjdk.nashorn.api.tree.CompilationUnitTree;
+import org.openjdk.nashorn.api.tree.Parser;
+import org.openjdk.nashorn.api.tree.TreeVisitor;
 
 public class MatchExpressionValidator {
 

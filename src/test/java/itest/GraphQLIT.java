@@ -112,7 +112,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType descendantTargets { name nodeType } } }");
+                "query { environmentNodes(filter: { name: \"JDP\" }) { name nodeType"
+                        + " descendantTargets { name nodeType } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -159,7 +160,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { targetNodes { name nodeType labels target { alias serviceUri annotations { cryostat platform } } } }");
+                "query { targetNodes { name nodeType labels target { alias serviceUri annotations {"
+                        + " cryostat platform } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -233,7 +235,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { name nodeType } }");
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { name nodeType }"
+                        + " }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -264,7 +267,10 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { doStartRecording(recording: { name: \"graphql-itest\", duration: 30, template: \"Profiling\", templateType: \"TARGET\"  }) { name state duration }} }");
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
+                    + " template: \"Profiling\", templateType: \"TARGET\"  }) { name state duration"
+                    + " }} }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -302,7 +308,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings { active { name doArchive { name } } } } }");
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
+                        + " active { name doArchive { name } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -341,7 +348,9 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings { active { name doDelete { name } } archived { name doDelete { name } } } } }");
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
+                    + " active { name doDelete { name } } archived { name doDelete { name } } } }"
+                    + " }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(

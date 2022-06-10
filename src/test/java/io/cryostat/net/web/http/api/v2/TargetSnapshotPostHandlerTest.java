@@ -266,7 +266,9 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .setStatusMessage(
-                        "Snapshot snapshot-1 failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.");
+                        "Snapshot snapshot-1 failed to create: The resultant recording was"
+                                + " unreadable for some reason, likely due to a lack of Active,"
+                                + " non-Snapshot source recordings to take event data from.");
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

@@ -281,7 +281,8 @@ class RecordingUploadPostHandlerTest {
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 418 I'm a teapot"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 418 I'm a teapot"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());
@@ -338,7 +339,8 @@ class RecordingUploadPostHandlerTest {
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 200 null"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 200 null"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());
@@ -395,7 +397,8 @@ class RecordingUploadPostHandlerTest {
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 200 OK"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 200 OK"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());

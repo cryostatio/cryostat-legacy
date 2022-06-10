@@ -131,7 +131,9 @@ public class RecordingArchiveHelper {
     @SuppressFBWarnings(
             value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
             justification =
-                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and getFileName() of the Path are not null, barring some exceptional circumstance like some external filesystem access race.")
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     public Future<ArchivedRecordingInfo> saveRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
 
@@ -193,7 +195,9 @@ public class RecordingArchiveHelper {
     @SuppressFBWarnings(
             value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
             justification =
-                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and getFileName() of the Path are not null, barring some exceptional circumstance like some external filesystem access race.")
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     public Future<ArchivedRecordingInfo> deleteRecording(String recordingName) {
 
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
@@ -473,7 +477,8 @@ public class RecordingArchiveHelper {
                     String.format("%s_%s_%s.%d", targetName, recordingName, timestamp, count++);
             if (count == Byte.MAX_VALUE) {
                 throw new IOException(
-                        "Recording could not be saved; file already exists and rename attempts were exhausted.");
+                        "Recording could not be saved; file already exists and rename attempts were"
+                                + " exhausted.");
             }
         }
         destination += ".jfr";

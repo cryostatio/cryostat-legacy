@@ -147,7 +147,9 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 throw new HttpException(
                         512,
                         String.format(
-                                "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
+                                "Invalid response from datasource server; datasource URL may be"
+                                    + " incorrect, or server may not be functioning properly: %d"
+                                    + " %s",
                                 response.statusCode, response.statusMessage));
             }
             ctx.response().setStatusCode(response.statusCode);

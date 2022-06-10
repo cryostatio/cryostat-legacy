@@ -37,7 +37,7 @@
  */
 package io.cryostat.rules;
 
-import jdk.nashorn.api.tree.Tree;
+import org.openjdk.nashorn.api.tree.Tree;
 
 class IllegalMatchExpressionException extends RuntimeException {
     IllegalMatchExpressionException() {

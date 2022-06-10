@@ -121,7 +121,8 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                     synchronized (connections) {
                         if (connections.size() >= maxConnections) {
                             logger.info(
-                                    "Dropping remote client {} due to too many concurrent connections",
+                                    "Dropping remote client {} due to too many concurrent"
+                                            + " connections",
                                     remoteAddress);
                             sws.reject();
                             sendClientActivityNotification(remoteAddress, "dropped");
@@ -169,7 +170,8 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                                                             (AuthorizationErrorException)
                                                                     result.cause());
                                                     logger.info(
-                                                            "Disconnected remote client {} due to authentication failure",
+                                                            "Disconnected remote client {} due to"
+                                                                    + " authentication failure",
                                                             remoteAddress);
                                                     sendClientActivityNotification(
                                                             remoteAddress, "auth failure");

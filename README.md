@@ -29,7 +29,7 @@ Cryostat currently implements.
 ## REQUIREMENTS
 Build Requirements:
 - Git
-- JDK11+
+- JDK17+
 - Maven 3+
 - Podman 2.0+
 
