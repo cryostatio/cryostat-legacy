@@ -309,7 +309,7 @@ class RecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", "unlabelled")));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", "")));
     }
 
     @Test
