@@ -218,10 +218,11 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     ARCHIVES, recordingName));
-            String targetId = parentPath.getFileName().toString();
-            if (!targetId.equals(UNLABELLED)) {
-                targetId = new String(base32.decode(targetId), StandardCharsets.UTF_8);
-            }
+            String subdirectoryName = parentPath.getFileName().toString();
+            String targetId =
+                    (subdirectoryName.equals(UNLABELLED))
+                            ? ""
+                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
