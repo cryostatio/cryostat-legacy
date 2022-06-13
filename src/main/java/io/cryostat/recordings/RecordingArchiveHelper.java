@@ -101,6 +101,7 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
+    public static final String UNLABELLED = "unlabelled";
     public static final String ARCHIVES = "archives";
 
     RecordingArchiveHelper(
@@ -217,11 +218,16 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     ARCHIVES, recordingName));
+            String subdirectoryName = parentPath.getFileName().toString();
+            String targetId =
+                    (subdirectoryName.equals(UNLABELLED))
+                            ? ""
+                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", archivedRecordingInfo))
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
                     .build()
                     .send();
             if (fs.listDirectoryChildren(parentPath).isEmpty()) {
