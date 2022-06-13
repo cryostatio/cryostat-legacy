@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import org.openjdk.jmc.common.item.Aggregators.AggregatorBase;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -64,6 +65,7 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.SelectedField;
 
 class RecordingsFetcher implements DataFetcher<Recordings> {
 
@@ -102,19 +104,21 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
         String targetId = target.getServiceUri().toString();
         Recordings recordings = new Recordings();
 
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
-        // FIXME populating these two struct members are each async tasks. we should do them in
-        // parallel
-        recordings.archived = archiveHelper.getRecordings(targetId).get();
-        recordings.active =
-                tcm.executeConnectedTask(
-                        cd,
-                        conn -> {
+        List<String> requestedFields = environment.getSelectionSet().getFields().stream().map(field -> field.getName()).collect(Collectors.toList());
+
+        if (requestedFields.contains("active")) {
+            ConnectionDescriptor cd =
+                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+            // FIXME populating these two struct members are each async tasks. we should do them in
+            // parallel
+            recordings.active =
+                    tcm.executeConnectedTask(
+                            cd,
+                            conn -> {
                             return conn.getService().getAvailableRecordings().stream()
                                     .map(
                                             r -> {
-                                                try {
+                                                    try {
                                                     String downloadUrl =
                                                             webServer
                                                                     .get()
@@ -134,23 +138,42 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
                                                             downloadUrl,
                                                             reportUrl,
                                                             metadata);
-                                                } catch (QuantityConversionException
-                                                        | URISyntaxException
-                                                        | IOException e) {
+                                                    } catch (QuantityConversionException
+                                                            | URISyntaxException
+                                                            | IOException e) {
                                                     logger.error(e);
                                                     return null;
-                                                }
+                                                    }
                                             })
                                     .filter(Objects::nonNull)
                                     .collect(Collectors.toList());
-                        },
-                        false);
+                            },
+                            false);
+        }
+
+        if (requestedFields.contains("archived")) {
+            Archived archived = new Archived();
+            AggregateInfo aggregate = new AggregateInfo();
+            archived.recordings = archiveHelper.getRecordings(targetId).get();
+            aggregate.count = Long.valueOf(archived.recordings.size());
+            archived.aggregate = aggregate;
+            recordings.archived = archived;
+        }
 
         return recordings;
     }
 
     static class Recordings {
         List<GraphRecordingDescriptor> active;
-        List<ArchivedRecordingInfo> archived;
+        Archived archived;
+    }
+
+    static class Archived {
+        List<ArchivedRecordingInfo> recordings;
+        AggregateInfo aggregate;
+    }
+
+    static class AggregateInfo {
+        Long count;
     }
 }

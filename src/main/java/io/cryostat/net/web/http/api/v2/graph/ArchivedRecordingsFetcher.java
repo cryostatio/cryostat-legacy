@@ -59,7 +59,7 @@ class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInf
     public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
-        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived);
+        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived.recordings);
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
             result =
