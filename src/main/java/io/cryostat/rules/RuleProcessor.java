@@ -354,15 +354,15 @@ public class RuleProcessor extends AbstractVerticle
                         return;
                     }
                     IRecordingDescriptor recording = result.result();
-                    Map<String, String> labels =
-                            new HashMap<>(
-                                    metadataManager
-                                            .getMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recording.getName())
-                                            .getLabels());
-                    labels.put("rule", rule.getName());
                     try {
+                        Map<String, String> labels =
+                                new HashMap<>(
+                                        metadataManager
+                                                .getMetadata(
+                                                        connectionDescriptor.getTargetId(),
+                                                        recording.getName())
+                                                .getLabels());
+                        labels.put("rule", rule.getName());
                         metadataManager.setRecordingMetadata(
                                 connectionDescriptor.getTargetId(),
                                 recording.getName(),

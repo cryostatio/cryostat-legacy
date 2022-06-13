@@ -39,11 +39,9 @@ package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -315,10 +313,8 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getMetadata(ARCHIVES, file));
-                                } catch (SocketException
-                                        | UnknownHostException
-                                        | URISyntaxException e) {
+                                            recordingMetadataManager.getMetadata(UPLOADS, file));
+                                } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
                                 }
@@ -367,9 +363,7 @@ public class RecordingArchiveHelper {
                                                         webServer.getArchivedReportURL(file),
                                                         recordingMetadataManager.getMetadata(
                                                                 ARCHIVES, file));
-                                            } catch (SocketException
-                                                    | UnknownHostException
-                                                    | URISyntaxException e) {
+                                            } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
                                             }

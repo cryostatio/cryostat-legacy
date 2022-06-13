@@ -51,7 +51,9 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -62,7 +64,6 @@ import com.google.gson.reflect.TypeToken;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager {
@@ -72,7 +73,7 @@ public class RecordingMetadataManager {
 
     private final Path recordingMetadataDir;
     private final TargetConnectionManager targetConnectionManager;
-    private final FileSystem fs;
+    private final CredentialsManager credentialsManager;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
@@ -81,10 +82,16 @@ public class RecordingMetadataManager {
     private final Map<String, Integer> jvmIdMap;
 
     RecordingMetadataManager(
-            Path recordingMetadataDir, TargetConnectionManager targetConnectionManager, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
+            Path recordingMetadataDir,
+            FileSystem fs,
+            TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
+            Gson gson,
+            Base32 base32,
+            Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
         this.targetConnectionManager = targetConnectionManager;
-        this.fs = fs;
+        this.credentialsManager = credentialsManager;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
@@ -138,7 +145,7 @@ public class RecordingMetadataManager {
         return this.setRecordingMetadata(RecordingArchiveHelper.ARCHIVES, recordingName, metadata);
     }
 
-    public Metadata getMetadata(String targetId, String recordingName) {
+    public Metadata getMetadata(String targetId, String recordingName) throws IOException {
         Objects.requireNonNull(targetId);
         Objects.requireNonNull(recordingName);
 
@@ -198,43 +205,46 @@ public class RecordingMetadataManager {
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    private Integer getJvmId(String targetId) {
-        return this.jvmIdMap.computeIfAbsent(
-                targetId,
-                k -> {
-                    if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
-                        return UPLOADS_ID;
-                    }
+    private Integer getJvmId(String targetId) throws IOException {
+        Integer jvmId =
+                this.jvmIdMap.computeIfAbsent(
+                        targetId,
+                        k -> {
+                            if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
+                                return UPLOADS_ID;
+                            }
 
-                    logger.info("attempting jvmId fetch for {}", targetId);
-
-                    try {
-                        return this.targetConnectionManager.executeConnectedTask(
-                                new ConnectionDescriptor(targetId),
-                                connection -> {
-                                    return connection.getJvmId();
-                                });
-                    } catch (Exception e) {
-                        logger.error(e);
-                        logger.error("Caused by: {}", ExceptionUtils.getRootCause(e.getCause()).getMessage());
-                        return 0;
-                    }
-                });
+                            try {
+                                Credentials credentials =
+                                        credentialsManager.getCredentials(targetId);
+                                return this.targetConnectionManager.executeConnectedTask(
+                                        new ConnectionDescriptor(targetId, credentials),
+                                        connection -> {
+                                            return connection.getJvmId();
+                                        });
+                            } catch (Exception e) {
+                                logger.error(e);
+                                return 0;
+                            }
+                        });
+        if (jvmId == 0) {
+            this.jvmIdMap.remove(targetId);
+            throw new IOException(String.format("Unable to connect to target %s", targetId));
+        }
+        return jvmId;
     }
 
     private static class StoredRecordingMetadata extends Metadata {
         private final Integer jvmId;
         private final String recordingName;
 
-        StoredRecordingMetadata(
-                Integer jvmId, String recordingName, Map<String, String> labels) {
+        StoredRecordingMetadata(Integer jvmId, String recordingName, Map<String, String> labels) {
             super(labels);
             this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
-        static StoredRecordingMetadata of(
-                Integer jvmId, String recordingName, Metadata metadata) {
+        static StoredRecordingMetadata of(Integer jvmId, String recordingName, Metadata metadata) {
             return new StoredRecordingMetadata(jvmId, recordingName, metadata.getLabels());
         }
 

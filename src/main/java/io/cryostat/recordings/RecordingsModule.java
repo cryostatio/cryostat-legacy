@@ -52,6 +52,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
@@ -152,7 +153,7 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             TargetConnectionManager targetConnectionManager,
-            FileSystem fs,
+            CredentialsManager credentialsManager,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -167,7 +168,8 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(metadataDir, targetConnectionManager, fs, gson, base32, logger);
+            return new RecordingMetadataManager(
+                    metadataDir, fs, targetConnectionManager, credentialsManager, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

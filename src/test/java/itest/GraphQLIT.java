@@ -295,6 +295,9 @@ class GraphQLIT extends ExternalTargetsTest {
         recording.name = "graphql-itest";
         recording.duration = 30_000L;
         recording.state = "RUNNING";
+        recording.metadata =
+                RecordingMetadata.of(
+                        Map.of("template.name", "Profiling", "template.type", "TARGET"));
 
         StartRecording startRecording = new StartRecording();
         startRecording.doStartRecording = recording;
@@ -781,6 +784,10 @@ class GraphQLIT extends ExternalTargetsTest {
 
     static class RecordingMetadata {
         Map<String, String> labels;
+
+        public static RecordingMetadata of(Map<String, String> of) {
+            return null;
+        }
 
         @Override
         public int hashCode() {
