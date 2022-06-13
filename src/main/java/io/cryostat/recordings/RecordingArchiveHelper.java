@@ -101,6 +101,7 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
+    public static final String UNLABELLED = "unlabelled";
     public static final String ARCHIVES = "archives";
 
     RecordingArchiveHelper(
@@ -218,7 +219,7 @@ public class RecordingArchiveHelper {
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     ARCHIVES, recordingName));
             String targetId = parentPath.getFileName().toString();
-            if (!targetId.equals("unlabelled")) {
+            if (!targetId.equals(UNLABELLED)) {
                 targetId = new String(base32.decode(targetId), StandardCharsets.UTF_8);
             }
             notificationFactory
