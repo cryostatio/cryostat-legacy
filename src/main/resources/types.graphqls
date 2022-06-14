@@ -116,7 +116,7 @@ type ArchivedRecording implements Recording {
 }
 
 type Archived {
-    recordings: [ArchivedRecording!]!
+    data: [ArchivedRecording!]!
     aggregate: AggregateInfo!
 }
 

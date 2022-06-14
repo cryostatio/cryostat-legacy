@@ -152,12 +152,7 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
         }
 
         if (requestedFields.contains("archived")) {
-            Archived archived = new Archived();
-            AggregateInfo aggregate = new AggregateInfo();
-            archived.recordings = archiveHelper.getRecordings(targetId).get();
-            aggregate.count = Long.valueOf(archived.recordings.size());
-            archived.aggregate = aggregate;
-            recordings.archived = archived;
+            recordings.archived = archiveHelper.getRecordings(targetId).get();
         }
 
         return recordings;
@@ -165,15 +160,6 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
 
     static class Recordings {
         List<GraphRecordingDescriptor> active;
-        Archived archived;
-    }
-
-    static class Archived {
-        List<ArchivedRecordingInfo> recordings;
-        AggregateInfo aggregate;
-    }
-
-    static class AggregateInfo {
-        Long count;
+        List<ArchivedRecordingInfo> archived;
     }
 }

@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -51,34 +52,50 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class ArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
 
     @Inject
     ArchivedRecordingsFetcher() {}
 
-    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+    public Archived get(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
-        List<ArchivedRecordingInfo> result = new ArrayList<>(source.archived.recordings);
+        List<ArchivedRecordingInfo> recordings = new ArrayList<>(source.archived);
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
-            result =
-                    result.stream()
-                            .filter(r -> Objects.equals(r.getName(), recordingName))
-                            .collect(Collectors.toList());
+            recordings =
+                        recordings.stream()
+                                     .filter(r -> Objects.equals(r.getName(), recordingName))
+                                     .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
-                result =
-                        result.stream()
-                                .filter(
-                                        r ->
-                                                LabelSelectorMatcher.parse(label)
-                                                        .test(r.getMetadata().getLabels()))
-                                .collect(Collectors.toList());
+                recordings =
+                            recordings.stream()
+                                       .filter(
+                                            r ->
+                                                    LabelSelectorMatcher.parse(label)
+                                                            .test(r.getMetadata().getLabels()))
+                                       .collect(Collectors.toList());
             }
         }
-        return result;
+        
+        Archived archived = new Archived();
+        AggregateInfo aggregate = new AggregateInfo();
+        archived.data = recordings;
+        aggregate.count = Long.valueOf(archived.data.size());
+        archived.aggregate = aggregate;
+
+        return archived;
+    }
+
+    static class Archived {
+        List<ArchivedRecordingInfo> data;
+        AggregateInfo aggregate;
+    }
+
+    static class AggregateInfo {
+        Long count;
     }
 }
