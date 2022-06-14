@@ -69,7 +69,7 @@ import org.apache.commons.lang3.tuple.Pair;
 public class RecordingMetadataManager {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
-    private static final Integer UPLOADS_ID = -1;
+    private static final Integer UNLABELLED_ARCHIVES_ID = -1;
 
     private final Path recordingMetadataDir;
     private final TargetConnectionManager targetConnectionManager;
@@ -142,7 +142,8 @@ public class RecordingMetadataManager {
             throws IOException {
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
-        return this.setRecordingMetadata(RecordingArchiveHelper.ARCHIVES, recordingName, metadata);
+        return this.setRecordingMetadata(
+                RecordingArchiveHelper.UNLABELLED, recordingName, metadata);
     }
 
     public Metadata getMetadata(String targetId, String recordingName) throws IOException {
@@ -211,7 +212,7 @@ public class RecordingMetadataManager {
                         targetId,
                         k -> {
                             if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
-                                return UPLOADS_ID;
+                                return UNLABELLED_ARCHIVES_ID;
                             }
 
                             try {

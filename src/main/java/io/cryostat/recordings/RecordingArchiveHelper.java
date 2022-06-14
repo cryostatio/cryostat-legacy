@@ -313,7 +313,7 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getMetadata(UPLOADS, file));
+                                            recordingMetadataManager.getMetadata(ARCHIVES, file));
                                 } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
