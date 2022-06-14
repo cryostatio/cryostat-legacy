@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.openjdk.jmc.common.item.Aggregators.AggregatorBase;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -65,7 +64,6 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.SelectedField;
 
 class RecordingsFetcher implements DataFetcher<Recordings> {
 
@@ -104,7 +102,10 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
         String targetId = target.getServiceUri().toString();
         Recordings recordings = new Recordings();
 
-        List<String> requestedFields = environment.getSelectionSet().getFields().stream().map(field -> field.getName()).collect(Collectors.toList());
+        List<String> requestedFields =
+                environment.getSelectionSet().getFields().stream()
+                        .map(field -> field.getName())
+                        .collect(Collectors.toList());
 
         if (requestedFields.contains("active")) {
             ConnectionDescriptor cd =
@@ -115,38 +116,38 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
                     tcm.executeConnectedTask(
                             cd,
                             conn -> {
-                            return conn.getService().getAvailableRecordings().stream()
-                                    .map(
-                                            r -> {
+                                return conn.getService().getAvailableRecordings().stream()
+                                        .map(
+                                                r -> {
                                                     try {
-                                                    String downloadUrl =
-                                                            webServer
-                                                                    .get()
-                                                                    .getDownloadURL(
-                                                                            conn, r.getName());
-                                                    String reportUrl =
-                                                            webServer
-                                                                    .get()
-                                                                    .getReportURL(
-                                                                            conn, r.getName());
-                                                    Metadata metadata =
-                                                            metadataManager.getMetadata(
-                                                                    targetId, r.getName());
-                                                    return new GraphRecordingDescriptor(
-                                                            target,
-                                                            r,
-                                                            downloadUrl,
-                                                            reportUrl,
-                                                            metadata);
+                                                        String downloadUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getDownloadURL(
+                                                                                conn, r.getName());
+                                                        String reportUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getReportURL(
+                                                                                conn, r.getName());
+                                                        Metadata metadata =
+                                                                metadataManager.getMetadata(
+                                                                        targetId, r.getName());
+                                                        return new GraphRecordingDescriptor(
+                                                                target,
+                                                                r,
+                                                                downloadUrl,
+                                                                reportUrl,
+                                                                metadata);
                                                     } catch (QuantityConversionException
                                                             | URISyntaxException
                                                             | IOException e) {
-                                                    logger.error(e);
-                                                    return null;
+                                                        logger.error(e);
+                                                        return null;
                                                     }
-                                            })
-                                    .filter(Objects::nonNull)
-                                    .collect(Collectors.toList());
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList());
                             },
                             false);
         }

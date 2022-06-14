@@ -64,23 +64,23 @@ class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
             recordings =
-                        recordings.stream()
-                                     .filter(r -> Objects.equals(r.getName(), recordingName))
-                                     .collect(Collectors.toList());
+                    recordings.stream()
+                            .filter(r -> Objects.equals(r.getName(), recordingName))
+                            .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
                 recordings =
-                            recordings.stream()
-                                       .filter(
-                                            r ->
-                                                    LabelSelectorMatcher.parse(label)
-                                                            .test(r.getMetadata().getLabels()))
-                                       .collect(Collectors.toList());
+                        recordings.stream()
+                                .filter(
+                                        r ->
+                                                LabelSelectorMatcher.parse(label)
+                                                        .test(r.getMetadata().getLabels()))
+                                .collect(Collectors.toList());
             }
         }
-        
+
         Archived archived = new Archived();
         AggregateInfo aggregate = new AggregateInfo();
         archived.data = recordings;
