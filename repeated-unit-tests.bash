@@ -11,7 +11,7 @@ else
 fi
 
 FLAGS=(
-    "-Dcryostat.minimal=true"
+    "-Dheadless=true"
 )
 
 if command -v ansi2txt >/dev/null; then

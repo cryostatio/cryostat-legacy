@@ -29,7 +29,7 @@
   <skipTests>false</skipTests>
   <skipITs>${skipTests}</skipITs>
   <skipUTs>${skipTests}</skipUTs>
-  <cryostat.minimal>false</cryostat.minimal>
+  <headless>false</headless>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
@@ -842,15 +842,15 @@
 
 <profiles>
   <profile>
-    <id>minimal</id>
+    <id>headless</id>
     <activation>
       <property>
-        <name>cryostat.minimal</name>
+        <name>headless</name>
         <value>true</value>
       </property>
     </activation>
     <properties>
-      <cryostat.imageVersion>${project.version}-minimal</cryostat.imageVersion>
+      <cryostat.imageVersion>${project.version}-headless</cryostat.imageVersion>
     </properties>
     <build>
       <plugins>
@@ -860,7 +860,7 @@
           <version>${org.apache.maven.plugins.failsafe.version}</version>
           <configuration>
             <systemPropertyVariables>
-              <isMinimalBuild>true</isMinimalBuild>
+              <isHeadlessBuild>true</isHeadlessBuild>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -868,10 +868,10 @@
     </build>
   </profile>
   <profile>
-    <id>non-minimal</id>
+    <id>headfull</id>
     <activation>
       <property>
-        <name>cryostat.minimal</name>
+        <name>headless</name>
         <value>!true</value>
       </property>
     </activation>
@@ -909,7 +909,7 @@
               </fileset>
             </filesets>
             <systemPropertyVariables>
-              <isMinimalBuild>false</isMinimalBuild>
+              <isHeadlessBuild>false</isHeadlessBuild>
             </systemPropertyVariables>
           </configuration>
         </plugin>

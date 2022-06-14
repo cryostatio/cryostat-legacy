@@ -18,7 +18,7 @@ cluster as well as exposing the Cryostat API as Kubernetes Custom Resources.
 
 * [cryostat-web](https://github.com/cryostatio/cryostat-web) : the React
 frontend included as a submodule in Cryostat and built into
-Cryostat's (non-minimal mode) OCI images.
+Cryostat's (non-headless mode) OCI images.
 
 * [JDK Mission Control](https://github.com/openjdk/jmc) for the original JDK
 Mission Control, which is the desktop application complement to JFR. Some parts
@@ -56,7 +56,7 @@ the `web-client` frontend for hot-reload development, see
 
 ### Build and push to local podman image registry
 * `mvn package`
-* Run `mvn -Dcryostat.minimal=true clean package` to exclude web-client assets.
+* Run `mvn -Dheadless=true clean package` to exclude web-client assets.
 The `clean` phase should always be specified here, or else previously-generated
 client assets will still be included into the built image.
 * For other OCI builders, use the `imageBuilder` Maven property. For example, to
