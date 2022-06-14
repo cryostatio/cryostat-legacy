@@ -169,7 +169,13 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    metadataDir, fs, targetConnectionManager, credentialsManager, gson, base32, logger);
+                    metadataDir,
+                    fs,
+                    targetConnectionManager,
+                    credentialsManager,
+                    gson,
+                    base32,
+                    logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

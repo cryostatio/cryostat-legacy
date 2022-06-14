@@ -265,6 +265,7 @@ public abstract class GraphModule {
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         return new StartRecordingOnTargetMutator(
                 auth,
@@ -272,6 +273,7 @@ public abstract class GraphModule {
                 recordingTargetHelper,
                 recordingOptionsBuilderFactory,
                 credentialsManager,
+                metadataManager,
                 webServer);
     }
 

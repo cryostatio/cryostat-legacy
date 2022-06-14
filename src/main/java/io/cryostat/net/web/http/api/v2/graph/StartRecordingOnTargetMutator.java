@@ -57,6 +57,8 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -69,6 +71,7 @@ class StartRecordingOnTargetMutator
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final CredentialsManager credentialsManager;
+    private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
 
     @Inject
@@ -78,12 +81,14 @@ class StartRecordingOnTargetMutator
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
+            RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.credentialsManager = credentialsManager;
+        this.metadataManager = metadataManager;
         this.webServer = webServer;
     }
 
@@ -135,10 +140,12 @@ class StartRecordingOnTargetMutator
                                     TemplateType.valueOf(
                                             ((String) settings.get("templateType")).toUpperCase()));
                     WebServer ws = webServer.get();
+                    Metadata metadata = metadataManager.getMetadata(uri, desc.getName());
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
-                            ws.getReportURL(conn, desc.getName()));
+                            ws.getReportURL(conn, desc.getName()),
+                            metadata);
                 },
                 true);
     }
