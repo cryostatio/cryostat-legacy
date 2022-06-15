@@ -56,6 +56,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -266,7 +267,8 @@ public abstract class GraphModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer) {
+            Provider<WebServer> webServer,
+            Gson gson) {
         return new StartRecordingOnTargetMutator(
                 auth,
                 targetConnectionManager,
@@ -274,7 +276,8 @@ public abstract class GraphModule {
                 recordingOptionsBuilderFactory,
                 credentialsManager,
                 metadataManager,
-                webServer);
+                webServer,
+                gson);
     }
 
     @Provides

@@ -62,6 +62,9 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
@@ -73,6 +76,7 @@ class StartRecordingOnTargetMutator
     private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
+    private final Gson gson;
 
     @Inject
     StartRecordingOnTargetMutator(
@@ -82,7 +86,8 @@ class StartRecordingOnTargetMutator
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer) {
+            Provider<WebServer> webServer,
+            Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
@@ -90,6 +95,7 @@ class StartRecordingOnTargetMutator
         this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
+        this.gson = gson;
     }
 
     @Override
@@ -131,6 +137,16 @@ class StartRecordingOnTargetMutator
                     }
                     if (settings.containsKey("maxSize")) {
                         builder = builder.maxSize((Long) settings.get("maxSize"));
+                    }
+                    if (settings.containsKey("metadata")) {
+                        Metadata m =
+                                (Metadata)
+                                        gson.fromJson(
+                                                settings.get("metadata").toString(),
+                                                new TypeToken<Metadata>() {}.getType());
+                        metadataManager
+                                .setRecordingMetadata(uri, (String) settings.get("name"), m)
+                                .get();
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(

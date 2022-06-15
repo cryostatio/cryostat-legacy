@@ -144,4 +144,5 @@ input RecordingSettings {
     toDisk: Boolean
     maxSize: Long
     maxAge: Long
+    metadata: Object
 }
