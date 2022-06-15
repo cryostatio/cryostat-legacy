@@ -69,6 +69,7 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class GraphModule {
@@ -107,6 +108,8 @@ public abstract class GraphModule {
             SnapshotOnTargetMutator snapshotOnTargetMutator,
             StopRecordingMutator stopRecordingMutator,
             ArchiveRecordingMutator archiveRecordingMutator,
+            PutActiveRecordingMetadataMutator putActiveRecordingMetadataMutator,
+            PutArchivedRecordingMetadataMutator putArchivedRecordingMetadataMutator,
             DeleteActiveRecordingMutator deleteActiveRecordingMutator,
             DeleteArchivedRecordingMutator deleteArchivedRecordingMutator) {
         RuntimeWiring wiring =
@@ -164,6 +167,15 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("doStop", stopRecordingMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
+                                        .dataFetcher(
+                                                "doPutMetadata", putActiveRecordingMetadataMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
+                                        .dataFetcher(
+                                                "doPutMetadata",
+                                                putArchivedRecordingMetadataMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("doDelete", deleteActiveRecordingMutator))
@@ -311,6 +323,32 @@ public abstract class GraphModule {
                 credentialsManager,
                 metadataManager,
                 webServer);
+    }
+
+    @Provides
+    static PutActiveRecordingMetadataMutator providePutActiveRecordingMetadataMutator(
+            CredentialsManager credentialsManager,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson) {
+        return new PutActiveRecordingMetadataMutator(
+                credentialsManager,
+                targetConnectionManager,
+                recordingTargetHelper,
+                metadataManager,
+                webServer,
+                gson);
+    }
+
+    @Provides
+    static PutArchivedRecordingMetadataMutator providePutArchivedRecordingMetadataMutator(
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson,
+            Base32 base32) {
+        return new PutArchivedRecordingMetadataMutator(metadataManager, webServer, gson, base32);
     }
 
     @Provides
