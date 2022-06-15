@@ -435,11 +435,11 @@ public class RecordingTargetHelper {
                                                     webServer
                                                             .get()
                                                             .getReportURL(connection, d.getName()),
-                                                    recordingMetadataManager.getMetadata(
-                                                            connectionDescriptor.getTargetId(),
-                                                            recordingName));
-                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                            connectionDescriptor.getTargetId(), recordingName);
+                                                    recordingMetadataManager
+                                                            .deleteRecordingMetadataIfExists(
+                                                                    connectionDescriptor
+                                                                            .getTargetId(),
+                                                                    recordingName));
                                     if (issueNotification) {
                                         Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
                                         String notificationCategory =
