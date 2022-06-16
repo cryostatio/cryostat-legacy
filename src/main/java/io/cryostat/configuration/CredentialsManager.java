@@ -45,6 +45,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -241,7 +242,7 @@ public class CredentialsManager {
 
         private MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
             this.matchExpression = matchExpression;
-            this.targets = targets;
+            this.targets = new HashSet<>(targets);
         }
 
         public String getMatchExpression() {
@@ -249,7 +250,7 @@ public class CredentialsManager {
         }
 
         public Collection<ServiceRef> getTargets() {
-            return targets;
+            return Collections.unmodifiableCollection(targets);
         }
     }
 
