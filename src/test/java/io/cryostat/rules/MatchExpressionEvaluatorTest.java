@@ -46,6 +46,7 @@ import java.util.Set;
 import javax.script.Bindings;
 import javax.script.ScriptException;
 
+import io.cryostat.MainModule;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 
@@ -64,9 +65,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class RuleMatcherTest {
+class MatchExpressionEvaluatorTest {
 
-    RuleMatcher ruleMatcher;
+    MatchExpressionEvaluator ruleMatcher;
     @Mock ServiceRef serviceRef;
 
     URI serviceUri;
@@ -77,7 +78,7 @@ class RuleMatcherTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.ruleMatcher = new RuleMatcher();
+        this.ruleMatcher = new MatchExpressionEvaluator(MainModule.provideScriptEngine());
 
         this.serviceUri = new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         this.alias = "someAlias";
@@ -117,13 +118,15 @@ class RuleMatcherTest {
         @Test
         void targetShouldHaveServiceUriAsUri() {
             URI uri = (URI) ((Map<String, Object>) bindings.get("target")).get("connectUrl");
-            MatcherAssert.assertThat(uri, Matchers.equalTo(RuleMatcherTest.this.serviceUri));
+            MatcherAssert.assertThat(
+                    uri, Matchers.equalTo(MatchExpressionEvaluatorTest.this.serviceUri));
         }
 
         @Test
         void targetShouldHaveAliasAsString() {
             String alias = (String) (((Map<String, Object>) bindings.get("target")).get("alias"));
-            MatcherAssert.assertThat(alias, Matchers.equalTo(RuleMatcherTest.this.alias));
+            MatcherAssert.assertThat(
+                    alias, Matchers.equalTo(MatchExpressionEvaluatorTest.this.alias));
         }
 
         @Test
@@ -131,7 +134,8 @@ class RuleMatcherTest {
             Map<String, String> labels =
                     (Map<String, String>)
                             (((Map<String, Object>) bindings.get("target")).get("labels"));
-            MatcherAssert.assertThat(labels, Matchers.equalTo(RuleMatcherTest.this.labels));
+            MatcherAssert.assertThat(
+                    labels, Matchers.equalTo(MatchExpressionEvaluatorTest.this.labels));
         }
 
         @Test
@@ -153,7 +157,8 @@ class RuleMatcherTest {
                                                     .get("annotations"))
                                     .get("platform");
             MatcherAssert.assertThat(
-                    annotations, Matchers.equalTo(RuleMatcherTest.this.platformAnnotations));
+                    annotations,
+                    Matchers.equalTo(MatchExpressionEvaluatorTest.this.platformAnnotations));
         }
 
         @Test
@@ -166,7 +171,7 @@ class RuleMatcherTest {
                                     .get("cryostat");
             Map<String, String> expected = new HashMap<>();
             for (Map.Entry<ServiceRef.AnnotationKey, String> entry :
-                    RuleMatcherTest.this.cryostatAnnotations.entrySet()) {
+                    MatchExpressionEvaluatorTest.this.cryostatAnnotations.entrySet()) {
                 expected.put(entry.getKey().name(), entry.getValue());
             }
             MatcherAssert.assertThat(annotations, Matchers.equalTo(expected));
@@ -176,80 +181,69 @@ class RuleMatcherTest {
     @Nested
     class ExpressionEvaluation {
 
-        @Mock Rule rule;
-
         @Test
         void shouldMatchOnTrue() throws Exception {
-            Mockito.when(rule.getMatchExpression()).thenReturn("true");
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            Assertions.assertTrue(ruleMatcher.applies("true", serviceRef));
         }
 
         @Test
         void shouldNotMatchOnFalse() throws Exception {
-            Mockito.when(rule.getMatchExpression()).thenReturn("false");
-            Assertions.assertFalse(ruleMatcher.applies(rule, serviceRef));
+            Assertions.assertFalse(ruleMatcher.applies("false", serviceRef));
         }
 
         @Test
         void shouldMatchOnAlias() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn(String.format("target.alias == '%s'", RuleMatcherTest.this.alias));
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            String expr =
+                    String.format("target.alias == '%s'", MatchExpressionEvaluatorTest.this.alias);
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"foo", "somethingelse", "true"})
         @NullAndEmptySource
         void shouldNotMatchOnWrongAlias(String s) throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn(String.format("target.alias == '%s'", s));
-            Assertions.assertFalse(ruleMatcher.applies(rule, serviceRef));
+            String expr = String.format("target.alias == '%s'", s);
+            Assertions.assertFalse(ruleMatcher.applies(expr, serviceRef));
         }
 
         @Test
         void shouldMatchOnConnectUrl() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn(
-                            String.format(
-                                    "target.connectUrl == '%s'",
-                                    RuleMatcherTest.this.serviceUri.toString()));
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            String expr =
+                    String.format(
+                            "target.connectUrl == '%s'",
+                            MatchExpressionEvaluatorTest.this.serviceUri.toString());
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
         }
 
         @Test
         void shouldMatchOnLabels() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn("target.labels.label1 == 'someLabel'");
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            String expr = "target.labels.label1 == 'someLabel'";
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
         }
 
         @Test
         void shouldNotMatchOnMissingLabels() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn("target.labels.label2 == 'someLabel'");
-            Assertions.assertFalse(ruleMatcher.applies(rule, serviceRef));
+            String expr = "target.labels.label2 == 'someLabel'";
+            Assertions.assertFalse(ruleMatcher.applies(expr, serviceRef));
         }
 
         @Test
         void shouldMatchOnPlatformAnnotations() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn("target.annotations.platform.annotation1 == 'someAnnotation'");
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            String expr = "target.annotations.platform.annotation1 == 'someAnnotation'";
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
         }
 
         @Test
         void shouldMatchOnCryostatAnnotations() throws Exception {
-            Mockito.when(rule.getMatchExpression())
-                    .thenReturn("target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'");
-            Assertions.assertTrue(ruleMatcher.applies(rule, serviceRef));
+            String expr = "target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'";
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"1", "null", "target.alias", "\"a string\""})
         void shouldThrowExceptionOnNonBooleanExpressionEval(String expr) throws Exception {
-            Mockito.when(rule.getMatchExpression()).thenReturn(expr);
             Assertions.assertThrows(
-                    ScriptException.class, () -> ruleMatcher.applies(rule, serviceRef));
+                    ScriptException.class, () -> ruleMatcher.applies(expr, serviceRef));
         }
     }
 }

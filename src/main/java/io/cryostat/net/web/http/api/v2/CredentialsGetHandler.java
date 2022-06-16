@@ -37,17 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.util.EnumSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -55,27 +53,16 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 
-class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
-
-    static final String PATH = "targets/:targetId/credentials";
+class CredentialsGetHandler extends AbstractV2RequestHandler<List<MatchedCredentials>> {
 
     private final CredentialsManager credentialsManager;
-    private final NotificationFactory notificationFactory;
-    private final Logger logger;
 
     @Inject
-    TargetCredentialsPostHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            NotificationFactory notificationFactory,
-            Gson gson,
-            Logger logger) {
+    CredentialsGetHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.notificationFactory = notificationFactory;
-        this.logger = logger;
     }
 
     @Override
@@ -85,27 +72,27 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2;
+        return ApiVersion.V2_2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_CREDENTIALS);
+        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
     }
 
     @Override
     public String path() {
-        return basePath() + PATH;
+        return basePath() + "credentials";
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+        return HttpMimeType.JSON;
     }
 
     @Override
@@ -114,44 +101,9 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public boolean isOrdered() {
-        return true;
-    }
-
-    @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String targetId =
-                CredentialsManager.targetIdToMatchExpression(
-                        params.getPathParams().get("targetId"));
-        String username = params.getFormAttributes().get("username");
-        String password = params.getFormAttributes().get("password");
-
-        if (StringUtils.isAnyBlank(username, password)) {
-            StringBuilder sb = new StringBuilder();
-            if (StringUtils.isBlank(username)) {
-                sb.append("\"username\" is required.");
-            }
-            if (StringUtils.isBlank(password)) {
-                sb.append(" \"password\" is required.");
-            }
-
-            throw new ApiException(400, sb.toString().trim());
-        }
-
-        try {
-            this.credentialsManager.addCredentials(targetId, new Credentials(username, password));
-
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory("TargetCredentialsStored")
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("target", targetId))
-                    .build()
-                    .send();
-        } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while persisting credentials", e);
-        }
-
-        return new IntermediateResponse<Void>().body(null);
+    public IntermediateResponse<List<MatchedCredentials>> handle(RequestParameters requestParams)
+            throws Exception {
+        return new IntermediateResponse<List<MatchedCredentials>>()
+                .body(credentialsManager.getMatchExpressionsWithMatchedTargets());
     }
 }

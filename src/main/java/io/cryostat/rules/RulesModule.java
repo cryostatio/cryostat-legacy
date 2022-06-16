@@ -45,6 +45,7 @@ import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
@@ -81,7 +82,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            RuleMatcher ruleMatcher,
+            MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -90,7 +91,7 @@ public abstract class RulesModule {
             if (!fs.isDirectory(rulesDir)) {
                 Files.createDirectory(rulesDir);
             }
-            return new RuleRegistry(rulesDir, ruleMatcher, fs, gson, logger);
+            return new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,8 +99,8 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static RuleMatcher provideRuleMatcher() {
-        return new RuleMatcher();
+    static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
+        return new MatchExpressionEvaluator(scriptEngine);
     }
 
     @Provides

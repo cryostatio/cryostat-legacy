@@ -143,7 +143,7 @@ class TargetCredentialsGetHandlerTest {
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(new ArrayList<>()));
-            Mockito.verify(credentialsManager).getCredentialKeys();
+            Mockito.verify(credentialsManager).getServiceRefsWithCredentials();
         }
     }
 }

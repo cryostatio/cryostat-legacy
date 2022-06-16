@@ -44,6 +44,8 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
@@ -154,5 +156,11 @@ public abstract class MainModule {
         String archivePath = env.getEnv(Variables.ARCHIVE_PATH, "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
+    }
+
+    @Provides
+    @Singleton
+    public static ScriptEngine provideScriptEngine() {
+        return new ScriptEngineManager().getEngineByName("nashorn");
     }
 }

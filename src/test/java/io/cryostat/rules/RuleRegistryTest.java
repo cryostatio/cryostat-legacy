@@ -73,7 +73,7 @@ class RuleRegistryTest {
 
     RuleRegistry registry;
     @Mock Path rulesDir;
-    @Mock RuleMatcher ruleMatcher;
+    @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock FileSystem fs;
     @Mock Logger logger;
     Gson gson = Mockito.spy(MainModule.provideGson(logger));
@@ -84,7 +84,7 @@ class RuleRegistryTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.registry = new RuleRegistry(rulesDir, ruleMatcher, fs, gson, logger);
+        this.registry = new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
         this.testRule =
                 new Rule.Builder()
                         .name("test rule")
@@ -240,7 +240,8 @@ class RuleRegistryTest {
         Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
         Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
-        Mockito.when(ruleMatcher.applies(Mockito.any(), Mockito.any())).thenReturn(true);
+        Mockito.when(matchExpressionEvaluator.applies(Mockito.any(), Mockito.any()))
+                .thenReturn(true);
 
         registry.addRule(testRule);
 

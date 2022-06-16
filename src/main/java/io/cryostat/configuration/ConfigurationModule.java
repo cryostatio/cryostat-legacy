@@ -53,6 +53,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.MatchExpressionEvaluator;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -77,6 +78,7 @@ public abstract class ConfigurationModule {
     @Singleton
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir,
+            MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
@@ -95,7 +97,14 @@ public abstract class ConfigurationModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new CredentialsManager(
-                    credentialsDir, fs, platformClient, notificationFactory, gson, base32, logger);
+                    credentialsDir,
+                    matchExpressionEvaluator,
+                    fs,
+                    platformClient,
+                    notificationFactory,
+                    gson,
+                    base32,
+                    logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

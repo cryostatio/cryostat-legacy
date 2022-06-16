@@ -114,7 +114,9 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String targetId = params.getPathParams().get("targetId");
+        String targetId =
+                CredentialsManager.targetIdToMatchExpression(
+                        params.getPathParams().get("targetId"));
         try {
             boolean status = this.credentialsManager.removeCredentials(targetId);
 
