@@ -39,6 +39,10 @@ jobs:
       with:
         repository: cryostatio/cryostat-core
         ref: ${{ needs.get-pom-properties.outputs.core-version }}
+    - uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'adopt'
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
