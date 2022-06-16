@@ -883,6 +883,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of("123recording"));
 
+        Mockito.when(base32.decode(Mockito.anyString()))
+                .thenReturn(subdirectories.get(0).getBytes());
+
         Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {

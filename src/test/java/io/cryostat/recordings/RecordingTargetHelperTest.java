@@ -218,7 +218,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(
+                        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -266,7 +268,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(
+                        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -329,7 +333,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(
+                        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -364,7 +370,9 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(
+                        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
