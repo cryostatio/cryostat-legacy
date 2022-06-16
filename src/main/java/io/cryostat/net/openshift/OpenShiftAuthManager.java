@@ -534,7 +534,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         String tokenScope =
                 String.format(
-                        "user:check-access role:%s:%s",
+                        "user:check-access user:info role:%s:%s",
                         baseOAuthRole.orElseThrow(
                                 () ->
                                         new MissingEnvironmentVariableException(

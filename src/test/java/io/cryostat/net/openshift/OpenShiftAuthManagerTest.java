@@ -120,7 +120,7 @@ class OpenShiftAuthManagerTest {
     static final String BASE_ROLE_SCOPE = "oauth-role-scope";
     static final String CUSTOM_ROLE_SCOPE = "custom-oauth-role-scope";
     static final String BASE_TOKEN_SCOPE =
-            String.format("user:check-access+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
+            String.format("user:check-access+user:info+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
     static final String CUSTOM_TOKEN_SCOPE =
             String.format("%s+role:%s:%s", BASE_TOKEN_SCOPE, CUSTOM_ROLE_SCOPE, NAMESPACE);
     static final String BASE_OAUTH_QUERY_PARAMETERS =
