@@ -131,16 +131,33 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        try {
 
-            Path report =
-                    reportService
-                            .get(recordingName, rawFilter)
+        String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
+        accept = accept == HttpMimeType.UNKNOWN.mime() ? HttpMimeType.HTML.mime() : accept; 
+        try {
+            switch (accept) {
+                case "*/*":
+                case "text/html":
+                    Path report =
+                        reportService
+                                .get(recordingName, rawFilter)
+                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+                        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+                        ctx.response()
+                            .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
+                        ctx.response().sendFile(report.toAbsolutePath().toString());
+                    break;
+                case "application/json":
+                    Path evalReport = 
+                        reportService
+                            .getArchivedEval(recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
-            ctx.response().sendFile(report.toAbsolutePath().toString());
+                    ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+                    ctx.response().sendFile(evalReport.toAbsolutePath().toString());
+                    break;
+                default:
+                    throw new HttpException(406);
+            }
         } catch (ExecutionException | CompletionException ee) {
             if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
                 ReportGenerationException rge =

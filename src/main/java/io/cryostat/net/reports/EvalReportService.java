@@ -37,8 +37,8 @@
  */
 package io.cryostat.net.reports;
 
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -53,97 +53,82 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Scheduler;
+class EvalReportService {
 
-class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
+    protected final RecordingArchiveHelper recordingArchiveHelper;
     protected final FileSystem fs;
-    protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
     protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
-    ActiveRecordingReportCache(
+    EvalReportService(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
+            RecordingArchiveHelper recordingArchiveHelper,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
-        this.cache =
-                Caffeine.newBuilder()
-                        .scheduler(Scheduler.systemScheduler())
-                        .expireAfterWrite(30, TimeUnit.MINUTES)
-                        .refreshAfterWrite(5, TimeUnit.MINUTES)
-                        .softValues()
-                        .build((k) -> getReport(k));
     }
 
-    Future<String> get(
+    Future<Path> getArchived(String recordingName, String filter) {
+        CompletableFuture<Path> f = new CompletableFuture<>();
+        Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
+        try {
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            Path saveFile =
+                    reportGeneratorServiceProvider
+                            .get()
+                            .exec(archivedRecording, dest, filter, HttpMimeType.JSON.mime())
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            f.complete(saveFile);
+        } catch (Exception e) {
+            logger.error(e);
+            f.completeExceptionally(e);
+            try {
+                fs.deleteIfExists(dest);
+            } catch (IOException ioe) {
+                logger.warn(ioe);
+            }
+        }
+        return f;
+}
+
+    Future<String> getActive(
             ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            if (filter.isBlank()) {
-                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
-            } else {
-                f.complete(
-                        getReport(
-                                new RecordingDescriptor(connectionDescriptor, recordingName),
-                                filter));
-            }
-
+            f.complete(getReport(new RecordingDescriptor(connectionDescriptor, recordingName), filter, HttpMimeType.JSON.mime()));
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
         return f;
     }
 
-    boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
-        boolean hasKey = cache.asMap().containsKey(key);
-        if (hasKey) {
-            logger.trace("Invalidated active report cache for {}", recordingName);
-            cache.invalidate(key);
-        } else {
-            logger.trace("No cache entry for {} to invalidate", recordingName);
-        }
-        return hasKey;
-    }
-
-    protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
-        return getReport(recordingDescriptor, "");
-    }
-
-    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
+    protected String getReport(RecordingDescriptor recordingDescriptor, String filter, String acceptHeader)
             throws Exception {
         Path saveFile = null;
         try {
-            /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
-            logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         reportGeneratorServiceProvider
                                 .get()
-                                .exec(recordingDescriptor, filter, HttpMimeType.HTML.mime())
+                                .exec(recordingDescriptor, filter, acceptHeader)
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {
                 logger.error(e);
-
-                delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
 
                 if (e.getCause()
                         instanceof SubprocessReportGenerator.SubprocessReportGenerationException) {
@@ -178,23 +163,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }
-        }
-    }
-
-    @Override
-    public void onNotification(Notification<Map<String, Object>> notification) {
-        String category = notification.getCategory();
-        switch (category) {
-            case RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY:
-                String targetId = notification.getMessage().get("target").toString();
-                String recordingName =
-                        ((HyperlinkedSerializableRecordingDescriptor)
-                                        notification.getMessage().get("recording"))
-                                .getName();
-                delete(new ConnectionDescriptor(targetId), recordingName);
-                break;
-            default:
-                break;
         }
     }
 }
