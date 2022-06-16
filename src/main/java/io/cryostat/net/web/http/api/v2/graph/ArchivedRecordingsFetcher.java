@@ -49,9 +49,15 @@ import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
+@SuppressFBWarnings(
+        value = "URF_UNREAD_FIELD",
+        justification =
+                "The Archived and AggregateInfo fields are serialized and returned to the client by"
+                        + " the GraphQL engine")
 class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
 
     @Inject

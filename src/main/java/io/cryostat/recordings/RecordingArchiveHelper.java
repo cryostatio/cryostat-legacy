@@ -101,7 +101,6 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
-    public static final String UNLABELLED = "unlabelled";
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
 
@@ -221,7 +220,7 @@ public class RecordingArchiveHelper {
                                     ARCHIVES, recordingName));
             String subdirectoryName = parentPath.getFileName().toString();
             String targetId =
-                    (subdirectoryName.equals(UNLABELLED))
+                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
                             ? ""
                             : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             notificationFactory
