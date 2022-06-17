@@ -53,6 +53,7 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -127,6 +128,7 @@ class ReportGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -160,6 +162,7 @@ class ReportGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
@@ -193,6 +196,7 @@ class ReportGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(ctx.response()).thenReturn(resp);
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);

@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.reports;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +81,8 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public CompletableFuture<Path> exec(Path recording, Path destination, String filter, String acceptHeader) {
+    public CompletableFuture<Path> exec(
+            Path recording, Path destination, String filter, String acceptHeader) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         logger.info("POSTing {} to {}", recording, reportGenerator);
         var form =

@@ -129,16 +129,37 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+        String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
+        accept = accept == HttpMimeType.UNKNOWN.mime() ? HttpMimeType.HTML.mime() : accept;
         try {
-            ctx.response()
-                    .end(
-                            reportService
-                                    .get(
-                                            getConnectionDescriptorFromContext(ctx),
-                                            recordingName,
-                                            rawFilter)
-                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+            switch (accept) {
+                case "*/*":
+                case "text/html":
+                    ctx.response()
+                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime())
+                            .end(
+                                    reportService
+                                            .get(
+                                                    getConnectionDescriptorFromContext(ctx),
+                                                    recordingName,
+                                                    rawFilter)
+                                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+                    break;
+                case "application/json":
+                    ctx.response()
+                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                            .end(
+                                    reportService
+                                            .getActiveEval(
+                                                    getConnectionDescriptorFromContext(ctx),
+                                                    recordingName,
+                                                    rawFilter)
+                                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+                    break;
+                default:
+                    throw new HttpException(406);
+            }
+
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

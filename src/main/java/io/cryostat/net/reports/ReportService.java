@@ -40,9 +40,6 @@ package io.cryostat.net.reports;
 import java.nio.file.Path;
 import java.util.concurrent.Future;
 
-import io.cryostat.configuration.Variables;
-import io.cryostat.core.reports.InterruptibleReportGenerator.ReportResult;
-import io.cryostat.core.sys.Environment;
 import io.cryostat.net.ConnectionDescriptor;
 
 public class ReportService {
@@ -52,7 +49,9 @@ public class ReportService {
     private final EvalReportService evalReportService;
 
     ReportService(
-            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache, EvalReportService evalReportService) {
+            ActiveRecordingReportCache activeCache,
+            ArchivedRecordingReportCache archivedCache,
+            EvalReportService evalReportService) {
         this.activeCache = activeCache;
         this.archivedCache = archivedCache;
         this.evalReportService = evalReportService;
@@ -91,9 +90,8 @@ public class ReportService {
         return evalReportService.getArchived(recordingName, filter);
     }
 
-    public Future<String> getActiveEval(ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
+    public Future<String> getActiveEval(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         return evalReportService.getActive(connectionDescriptor, recordingName, filter);
     }
-
-
 }

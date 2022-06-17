@@ -126,6 +126,8 @@ class TargetReportGetHandlerTest {
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
@@ -159,6 +161,8 @@ class TargetReportGetHandlerTest {
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         String targetId = "fooHost:0";
         String recordingName = "foo";

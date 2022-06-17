@@ -72,7 +72,8 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
 
     @Override
     public final CompletableFuture<Path> exec(
-            RecordingDescriptor recordingDescriptor, String filter, String acceptHeader) throws Exception {
+            RecordingDescriptor recordingDescriptor, String filter, String acceptHeader)
+            throws Exception {
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,

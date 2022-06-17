@@ -103,20 +103,22 @@ class EvalReportService {
             }
         }
         return f;
-}
+    }
 
     Future<String> getActive(
             ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            f.complete(getReport(new RecordingDescriptor(connectionDescriptor, recordingName), filter, HttpMimeType.JSON.mime()));
+            f.complete(
+                    getReport(
+                            new RecordingDescriptor(connectionDescriptor, recordingName), filter));
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
         return f;
     }
 
-    protected String getReport(RecordingDescriptor recordingDescriptor, String filter, String acceptHeader)
+    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
             throws Exception {
         Path saveFile = null;
         try {
@@ -124,7 +126,7 @@ class EvalReportService {
                 saveFile =
                         reportGeneratorServiceProvider
                                 .get()
-                                .exec(recordingDescriptor, filter, acceptHeader)
+                                .exec(recordingDescriptor, filter, HttpMimeType.JSON.mime())
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {
