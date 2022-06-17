@@ -1,3 +1,4 @@
 [submodule "web-client"]
 	path = web-client
 	url = https://github.com/cryostatio/cryostat-web
+	branch = main
