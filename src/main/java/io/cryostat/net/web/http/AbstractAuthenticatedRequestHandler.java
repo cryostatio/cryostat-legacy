@@ -121,7 +121,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        Credentials credentials = credentialsManager.getCredentials(targetId);
+        Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
         if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
             String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);

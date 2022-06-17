@@ -170,7 +170,7 @@ public class CredentialsManager {
         return deleted != null;
     }
 
-    public Credentials getCredentials(String targetId) {
+    public Credentials getCredentialsByTargetId(String targetId) {
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
                 return getCredentials(service);
@@ -213,8 +213,6 @@ public class CredentialsManager {
         List<ServiceRef> targets = platformClient.listDiscoverableServices();
         for (String expr : getMatchExpressions()) {
             Set<ServiceRef> matchedTargets = new HashSet<>();
-            MatchedCredentials match = new MatchedCredentials(expr, matchedTargets);
-            result.add(match);
             for (ServiceRef target : targets) {
                 try {
                     if (matchExpressionEvaluator.applies(expr, target)) {
@@ -225,6 +223,8 @@ public class CredentialsManager {
                     continue;
                 }
             }
+            MatchedCredentials match = new MatchedCredentials(expr, matchedTargets);
+            result.add(match);
         }
         return result;
     }
@@ -240,7 +240,7 @@ public class CredentialsManager {
         private final String matchExpression;
         private final Collection<ServiceRef> targets;
 
-        private MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
+        MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
             this.matchExpression = matchExpression;
             this.targets = new HashSet<>(targets);
         }
@@ -251,6 +251,27 @@ public class CredentialsManager {
 
         public Collection<ServiceRef> getTargets() {
             return Collections.unmodifiableCollection(targets);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(matchExpression, targets);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            MatchedCredentials other = (MatchedCredentials) obj;
+            return Objects.equals(matchExpression, other.matchExpression)
+                    && Objects.equals(targets, other.targets);
         }
     }
 
@@ -270,6 +291,27 @@ public class CredentialsManager {
         Credentials getCredentials() {
             return this.credentials;
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(credentials, matchExpression);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            StoredCredentials other = (StoredCredentials) obj;
+            return Objects.equals(credentials, other.credentials)
+                    && Objects.equals(matchExpression, other.matchExpression);
+        }
     }
 
     @Deprecated(since = "2.2", forRemoval = true)
@@ -288,6 +330,27 @@ public class CredentialsManager {
 
         Credentials getCredentials() {
             return this.credentials;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(credentials, targetId);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            TargetSpecificStoredCredentials other = (TargetSpecificStoredCredentials) obj;
+            return Objects.equals(credentials, other.credentials)
+                    && Objects.equals(targetId, other.targetId);
         }
     }
 }
