@@ -73,7 +73,7 @@ jobs:
         name: cryostat-core
         path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - run: git submodule init
-    - run: git submodule update
+    - run: git submodule update --remote
     - run: mvn -B -U clean verify
     - name: Print itest logs
       if: ${{ failure() }}
