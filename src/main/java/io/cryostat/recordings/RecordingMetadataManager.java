@@ -55,8 +55,10 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -74,6 +76,7 @@ public class RecordingMetadataManager {
     private final Path recordingMetadataDir;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
@@ -86,12 +89,14 @@ public class RecordingMetadataManager {
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
@@ -135,6 +140,7 @@ public class RecordingMetadataManager {
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+
         return CompletableFuture.completedFuture(metadata);
     }
 
@@ -198,6 +204,24 @@ public class RecordingMetadataManager {
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public void notifyRecordingMetadataUpdated(
+            String targetId, String recordingName, Metadata metadata) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(
+                        Map.of(
+                                "recordingName",
+                                recordingName,
+                                "target",
+                                targetId,
+                                "metadata",
+                                metadata))
+                .build()
+                .send();
     }
 
     private Path getMetadataPath(Integer jvmId, String recordingName) {

@@ -154,6 +154,7 @@ public abstract class RecordingsModule {
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -173,6 +174,7 @@ public abstract class RecordingsModule {
                     fs,
                     targetConnectionManager,
                     credentialsManager,
+                    notificationFactory,
                     gson,
                     base32,
                     logger);

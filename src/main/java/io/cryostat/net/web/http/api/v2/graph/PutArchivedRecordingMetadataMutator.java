@@ -81,7 +81,7 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
         ArchivedRecordingInfo source = environment.getSource();
         String uri =
                 new String(base32.decode(source.getEncodedServiceUri()), StandardCharsets.UTF_8);
-
+        String recordingName = source.getName();
         Map<String, Object> settings = environment.getArgument("metadata");
         Map<String, String> labels = new HashMap<>();
 
@@ -94,15 +94,21 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
                 labels.put(l.getKey(), l.getValue());
             }
         }
-        Metadata metadata = new Metadata(labels);
+
+        Metadata metadata =
+                metadataManager
+                        .setRecordingMetadata(uri, recordingName, new Metadata(labels))
+                        .get();
 
         WebServer ws = webServer.get();
 
+        metadataManager.notifyRecordingMetadataUpdated(uri, recordingName, metadata);
+
         return new ArchivedRecordingInfo(
                 uri,
-                source.getName(),
-                ws.getArchivedDownloadURL(source.getName()),
-                ws.getArchivedReportURL(source.getName()),
-                metadataManager.setRecordingMetadata(uri, source.getName(), metadata).get());
+                recordingName,
+                ws.getArchivedDownloadURL(recordingName),
+                ws.getArchivedReportURL(recordingName),
+                metadata);
     }
 }

@@ -47,8 +47,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.net.JFRConnection;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -83,9 +81,6 @@ public class RecordingMetadataLabelsPostHandlerTest {
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     @Mock RequestParameters params;
     @Mock ConnectionDescriptor connectionDescriptor;
     @Mock IRecordingDescriptor descriptor;
@@ -95,28 +90,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.message(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
-
         this.handler =
                 new RecordingMetadataLabelsPostHandler(
-                        authManager,
-                        gson,
-                        recordingArchiveHelper,
-                        recordingMetadataManager,
-                        notificationFactory);
+                        authManager, gson, recordingArchiveHelper, recordingMetadataManager);
     }
 
     @Nested
@@ -201,21 +177,6 @@ public class RecordingMetadataLabelsPostHandlerTest {
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(metadata));
-
-            Mockito.verify(notificationFactory).createBuilder();
-            Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
-            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-            Mockito.verify(notificationBuilder)
-                    .message(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "sourceTarget",
-                                    sourceTarget,
-                                    "metadata",
-                                    metadata));
-            Mockito.verify(notificationBuilder).build();
-            Mockito.verify(notification).send();
         }
 
         @Test

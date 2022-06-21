@@ -45,7 +45,10 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
@@ -73,6 +76,9 @@ public class RecordingMetadataManagerTest {
     @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
 
     @BeforeEach
@@ -80,12 +86,28 @@ public class RecordingMetadataManagerTest {
         Gson gson = new Gson();
         Base32 base32 = new Base32();
 
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
                         recordingMetadataDir,
                         fs,
                         targetConnectionManager,
                         credentialsManager,
+                        notificationFactory,
                         gson,
                         base32,
                         logger);
@@ -119,8 +141,23 @@ public class RecordingMetadataManagerTest {
                         Mockito.any(OpenOption.class),
                         Mockito.any(OpenOption.class));
 
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
+        Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, recordingName);
+        Map<String, String> actualLabelsMap = actualMetadata.getLabels();
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "target",
+                                targetId,
+                                "recordingName",
+                                recordingName,
+                                "metadata",
+                                new Metadata(labels)));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
 
         MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
     }

@@ -45,7 +45,6 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -71,7 +70,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetRecordingMetadataLabelsPostHandler(
@@ -79,13 +77,11 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
             Gson gson,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            NotificationFactory notificationFactory) {
+            RecordingMetadataManager recordingMetadataManager) {
         super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -146,20 +142,9 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
                             .setRecordingMetadata(targetId, recordingName, metadata)
                             .get();
 
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "target",
-                                    targetId,
-                                    "metadata",
-                                    updatedMetadata))
-                    .build()
-                    .send();
+            recordingMetadataManager.notifyRecordingMetadataUpdated(
+                    targetId, recordingName, updatedMetadata);
+
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (RecordingNotFoundException e) {
             throw new ApiException(404, e);

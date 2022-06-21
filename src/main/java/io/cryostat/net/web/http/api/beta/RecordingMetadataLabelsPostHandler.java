@@ -37,13 +37,11 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -66,19 +64,16 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
     RecordingMetadataLabelsPostHandler(
             AuthManager auth,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            NotificationFactory notificationFactory) {
+            RecordingMetadataManager recordingMetadataManager) {
         super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -132,20 +127,8 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
                             .setRecordingMetadata(sourceTarget, recordingName, metadata)
                             .get();
 
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "sourceTarget",
-                                    sourceTarget,
-                                    "metadata",
-                                    updatedMetadata))
-                    .build()
-                    .send();
+            recordingMetadataManager.notifyRecordingMetadataUpdated(
+                    sourceTarget, recordingName, updatedMetadata);
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (ExecutionException e) {

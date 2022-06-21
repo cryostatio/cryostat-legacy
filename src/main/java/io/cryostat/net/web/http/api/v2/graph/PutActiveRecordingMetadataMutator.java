@@ -93,6 +93,7 @@ class PutActiveRecordingMetadataMutator
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();
+        String recordingName = source.getName();
         Map<String, Object> settings = environment.getArgument("metadata");
         Map<String, String> labels = new HashMap<>();
 
@@ -106,38 +107,47 @@ class PutActiveRecordingMetadataMutator
             }
         }
 
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata =
+                metadataManager
+                        .setRecordingMetadata(uri, recordingName, new Metadata(labels))
+                        .get();
 
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(uri));
+
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
                     IRecordingDescriptor desc =
-                            recordingTargetHelper.getDescriptorByName(conn, source.getName()).get();
+                            recordingTargetHelper.getDescriptorByName(conn, recordingName).get();
 
                     WebServer ws = webServer.get();
+
+                    metadataManager.notifyRecordingMetadataUpdated(uri, recordingName, metadata);
 
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
-                            metadataManager
-                                    .setRecordingMetadata(uri, source.getName(), metadata)
-                                    .get());
+                            metadata);
                 },
                 true);
     }
 
     public static class InputRecordingLabel {
-        String key;
-        String value;
+        private String key;
+        private String value;
 
-        String getKey() {
+        public InputRecordingLabel(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
             return this.key;
         }
 
-        String getValue() {
+        public String getValue() {
             return this.value;
         }
     }
