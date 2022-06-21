@@ -273,8 +273,8 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                     + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                    + " template: \"Profiling\", templateType: \"TARGET\"  }) { name state duration"
-                    + " }} }");
+                    + " template: \"Profiling\", templateType: \"TARGET\", metadata: { labels: {"
+                    + " newLabel: someValue } }  }) { name state duration }} }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -297,7 +297,13 @@ class GraphQLIT extends ExternalTargetsTest {
         recording.state = "RUNNING";
         recording.metadata =
                 RecordingMetadata.of(
-                        Map.of("template.name", "Profiling", "template.type", "TARGET"));
+                        Map.of(
+                                "template.name",
+                                "Profiling",
+                                "template.type",
+                                "TARGET",
+                                "newLabel",
+                                "someValue"));
 
         StartRecording startRecording = new StartRecording();
         startRecording.doStartRecording = recording;
@@ -350,6 +356,104 @@ class GraphQLIT extends ExternalTargetsTest {
 
     @Test
     @Order(5)
+    void testActiveRecordingMetadataMutation() throws Exception {
+        CompletableFuture<ActiveMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + "recordings { active {"
+                        + " doPutMetadata(metadata: { labels: ["
+                        + " {key:\"template.name\",value:\"Profiling\"},"
+                        + " {key:\"template.type\",value:\"TARGET\"},"
+                        + " {key:\"newLabel\",value:\"newValue\"}] })"
+                        + " { metadata { labels } } } } } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                ActiveMutationResponse.class));
+                            }
+                        });
+        ActiveMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        TargetNode node = actual.data.targetNodes.get(0);
+
+        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+
+        ActiveRecording activeRecording = node.recordings.active.get(0);
+
+        MatcherAssert.assertThat(
+                activeRecording.metadata,
+                Matchers.equalTo(
+                        RecordingMetadata.of(
+                                Map.of(
+                                        "template.name",
+                                        "Profiling",
+                                        "template.type",
+                                        "TARGET",
+                                        "newLabel",
+                                        "newValue"))));
+    }
+
+    @Test
+    @Order(6)
+    void testArchivedRecordingMetadataMutation() throws Exception {
+        CompletableFuture<ArchiveMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + "recordings { archived {"
+                        + " doPutMetadata(metadata: { labels: ["
+                        + " {key:\"template.name\",value:\"Profiling\"},"
+                        + " {key:\"template.type\",value:\"TARGET\"},"
+                        + " {key:\"newArchivedLabel\",value:\"newArchivedValue\"}] })"
+                        + " { metadata { labels } } } } } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                ArchiveMutationResponse.class));
+                            }
+                        });
+        ArchiveMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        TargetNode node = actual.data.targetNodes.get(0);
+
+        MatcherAssert.assertThat(node.recordings.archived, Matchers.hasSize(1));
+
+        ArchivedRecording archivedRecording = node.recordings.archived.get(0);
+
+        MatcherAssert.assertThat(
+                archivedRecording.metadata,
+                Matchers.equalTo(
+                        RecordingMetadata.of(
+                                Map.of(
+                                        "template.name",
+                                        "Profiling",
+                                        "template.type",
+                                        "TARGET",
+                                        "newArchivedLabel",
+                                        "newArchivedValue"))));
+    }
+
+    @Test
+    @Order(7)
     void testDeleteMutation() throws Exception {
         CompletableFuture<DeleteMutationResponse> resp = new CompletableFuture<>();
         JsonObject query = new JsonObject();
@@ -818,10 +922,11 @@ class GraphQLIT extends ExternalTargetsTest {
     static class StartRecording {
         ActiveRecording doStartRecording;
         ArchivedRecording doArchive;
+        ActiveRecording doPutMetadata;
 
         @Override
         public int hashCode() {
-            return Objects.hash(doArchive, doStartRecording);
+            return Objects.hash(doArchive, doStartRecording, doPutMetadata);
         }
 
         @Override
@@ -837,7 +942,8 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             StartRecording other = (StartRecording) obj;
             return Objects.equals(doArchive, other.doArchive)
-                    && Objects.equals(doStartRecording, other.doStartRecording);
+                    && Objects.equals(doStartRecording, other.doStartRecording)
+                    && Objects.equals(doPutMetadata, other.doPutMetadata);
         }
 
         @Override
@@ -846,6 +952,8 @@ class GraphQLIT extends ExternalTargetsTest {
                     + doArchive
                     + ", doStartRecording="
                     + doStartRecording
+                    + ", doPutMetadata="
+                    + doPutMetadata
                     + "]";
         }
     }
@@ -1045,6 +1153,13 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             ArchiveMutationResponse other = (ArchiveMutationResponse) obj;
             return Objects.equals(data, other.data);
+        }
+    }
+
+    static class ActiveMutationResponse extends ArchiveMutationResponse {
+        @Override
+        public String toString() {
+            return "ActiveMutationResponse [data=" + data + "]";
         }
     }
 
