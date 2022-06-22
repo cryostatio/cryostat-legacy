@@ -2182,9 +2182,14 @@ The handler-specific descriptions below describe how each handler populates the
     Create metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording.
 
     ##### request
-    `POST /api/v2/recordings/:recordingName/metadata/labels`
+    `POST /api/v2/recordings/:sourceTarget/:recordingName/metadata/labels`
 
     The request should be a JSON document with the labels specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording.
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding. If a recording was re-uploaded to archives, this field should be
+    set to `unlabelled`.
 
     `recordingName` - The name of the recording to attach labels to.
 
@@ -2201,6 +2206,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### example
     ```
-    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
+    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost%3A0/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"updatedValue","another-key":"another-updated-value","new-key":"new-value"}}}
     ```
