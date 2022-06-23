@@ -217,7 +217,7 @@ public class RecordingMetadataManagerTest {
 
         Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, recordingName);
 
-        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(updatedMetadata));
+        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
     }
 
     @Test

@@ -74,6 +74,7 @@ public class RecordingMetadataManager {
     private static final Integer UNLABELLED_ARCHIVES_ID = -1;
 
     private final Path recordingMetadataDir;
+    private final FileSystem fs;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
@@ -94,6 +95,7 @@ public class RecordingMetadataManager {
             Base32 base32,
             Logger logger) {
         this.recordingMetadataDir = recordingMetadataDir;
+        this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
@@ -178,7 +180,7 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(filename);
         Metadata metadata = this.getMetadata(targetId, recordingName);
-        return this.setRecordingMetadata(filename, metadata);
+        return this.setRecordingMetadata(targetId, filename, metadata);
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {

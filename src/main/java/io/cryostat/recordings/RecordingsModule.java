@@ -152,6 +152,7 @@ public abstract class RecordingsModule {
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
