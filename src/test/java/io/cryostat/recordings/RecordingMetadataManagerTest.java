@@ -141,25 +141,9 @@ public class RecordingMetadataManagerTest {
                         Mockito.any(OpenOption.class),
                         Mockito.any(OpenOption.class));
 
-        Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, recordingName);
-        Map<String, String> actualLabelsMap = actualMetadata.getLabels();
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingMetadataUpdated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "target",
-                                targetId,
-                                "recordingName",
-                                recordingName,
-                                "metadata",
-                                new Metadata(labels)));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
-
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
+        MatcherAssert.assertThat(
+                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels(),
+                Matchers.equalTo(labels));
     }
 
     @ParameterizedTest
@@ -197,9 +181,9 @@ public class RecordingMetadataManagerTest {
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
 
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
+        MatcherAssert.assertThat(
+                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels(),
+                Matchers.equalTo(labels));
 
         recordingMetadataManager.deleteRecordingMetadataIfExists(targetId, recordingName);
 
@@ -253,6 +237,6 @@ public class RecordingMetadataManagerTest {
 
         Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, filename);
 
-        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(metadata));
+        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(labels));
     }
 }
