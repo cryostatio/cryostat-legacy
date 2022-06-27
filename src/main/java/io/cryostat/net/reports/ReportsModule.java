@@ -168,26 +168,8 @@ public abstract class ReportsModule {
     @Singleton
     static ReportService provideReportService(
             ActiveRecordingReportCache activeCache,
-            ArchivedRecordingReportCache archivedCache,
-            EvalReportService evalReportService) {
-        return new ReportService(activeCache, archivedCache, evalReportService);
+            ArchivedRecordingReportCache archivedCache) {
+        return new ReportService(activeCache, archivedCache);
     }
 
-    @Provides
-    @Singleton
-    static EvalReportService provideEvalReportService(
-            FileSystem fs,
-            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
-            RecordingArchiveHelper recordingArchiveHelper,
-            TargetConnectionManager targetConnectionManager,
-            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
-        return new EvalReportService(
-                reportGeneratorServiceProvider,
-                recordingArchiveHelper,
-                fs,
-                targetConnectionManager,
-                generationTimeoutSeconds,
-                logger);
-    }
 }

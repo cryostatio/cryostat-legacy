@@ -142,7 +142,8 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                                             .get(
                                                     getConnectionDescriptorFromContext(ctx),
                                                     recordingName,
-                                                    rawFilter)
+                                                    rawFilter, 
+                                                    true)
                                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
                     break;
                 case "application/json":
@@ -150,10 +151,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                             .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
                             .end(
                                     reportService
-                                            .getActiveEval(
+                                            .get(
                                                     getConnectionDescriptorFromContext(ctx),
                                                     recordingName,
-                                                    rawFilter)
+                                                    rawFilter,
+                                                    false)
                                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
                     break;
                 default:

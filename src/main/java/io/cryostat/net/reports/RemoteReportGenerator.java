@@ -82,7 +82,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public CompletableFuture<Path> exec(
-            Path recording, Path destination, String filter, String acceptHeader) {
+            Path recording, Path destination, String filter, boolean formatted) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         logger.info("POSTing {} to {}", recording, reportGenerator);
         var form =

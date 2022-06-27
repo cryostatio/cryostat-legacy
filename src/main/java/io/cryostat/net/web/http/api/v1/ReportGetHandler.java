@@ -135,31 +135,28 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
         accept = accept == HttpMimeType.UNKNOWN.mime() ? HttpMimeType.HTML.mime() : accept;
         try {
+            Path report = null;
             switch (accept) {
                 case "*/*":
                 case "text/html":
-                    Path report =
-                            reportService
-                                    .get(recordingName, rawFilter)
-                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                    ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+                    report = reportService
+                                .get(recordingName, rawFilter, true)
+                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
                     ctx.response()
                             .putHeader(
                                     HttpHeaders.CONTENT_LENGTH,
                                     Long.toString(report.toFile().length()));
-                    ctx.response().sendFile(report.toAbsolutePath().toString());
                     break;
                 case "application/json":
-                    Path evalReport =
-                            reportService
-                                    .getArchivedEval(recordingName, rawFilter)
-                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                    ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-                    ctx.response().sendFile(evalReport.toAbsolutePath().toString());
+                    report = reportService
+                                .get(recordingName, rawFilter,false)
+                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
                     break;
                 default:
                     throw new HttpException(406);
             }
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, accept);
+            ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (ExecutionException | CompletionException ee) {
             if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
                 ReportGenerationException rge =

@@ -135,7 +135,8 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
                                     .get(
                                             getConnectionDescriptorFromJwt(ctx, jwt),
                                             recordingName,
-                                            rawFilter)
+                                            rawFilter,
+                                            true)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

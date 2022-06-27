@@ -48,7 +48,6 @@ import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 class ArchivedRecordingReportCache {
@@ -130,7 +129,7 @@ class ArchivedRecordingReportCache {
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, filter, HttpMimeType.HTML.mime())
+                            .exec(archivedRecording, dest, filter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {

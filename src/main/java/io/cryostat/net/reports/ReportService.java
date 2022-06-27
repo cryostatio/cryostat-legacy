@@ -46,15 +46,12 @@ public class ReportService {
 
     private final ActiveRecordingReportCache activeCache;
     private final ArchivedRecordingReportCache archivedCache;
-    private final EvalReportService evalReportService;
 
     ReportService(
             ActiveRecordingReportCache activeCache,
-            ArchivedRecordingReportCache archivedCache,
-            EvalReportService evalReportService) {
+            ArchivedRecordingReportCache archivedCache) {
         this.activeCache = activeCache;
         this.archivedCache = archivedCache;
-        this.evalReportService = evalReportService;
     }
 
     public Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
@@ -78,20 +75,11 @@ public class ReportService {
     }
 
     public Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
-        return activeCache.get(connectionDescriptor, recordingName, filter);
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter, boolean formatted) {
+        return activeCache.get(connectionDescriptor, recordingName, filter, formatted);
     }
 
     public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
         return activeCache.delete(connectionDescriptor, recordingName);
-    }
-
-    public Future<Path> getArchivedEval(String recordingName, String filter) {
-        return evalReportService.getArchived(recordingName, filter);
-    }
-
-    public Future<String> getActiveEval(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
-        return evalReportService.getActive(connectionDescriptor, recordingName, filter);
     }
 }

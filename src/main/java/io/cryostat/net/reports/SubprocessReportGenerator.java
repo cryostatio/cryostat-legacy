@@ -109,7 +109,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     public synchronized CompletableFuture<Path> exec(
-            Path recording, Path saveFile, String filter, String acceptHeader)
+            Path recording, Path saveFile, String filter, boolean formatted)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -121,9 +121,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
         if (filter == null) {
             throw new IllegalArgumentException("Filter may not be null");
-        }
-        if (acceptHeader == null) {
-            throw new IllegalArgumentException("AcceptHeader may not be null");
         }
         fs.writeString(
                 saveFile,
@@ -141,7 +138,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                         Integer.parseInt(
                                                 env.getEnv(
                                                         Variables.SUBPROCESS_MAX_HEAP_ENV, "0"))))
-                        .processArgs(createProcessArgs(recording, saveFile, filter, acceptHeader));
+                        .processArgs(createProcessArgs(recording, saveFile, filter, formatted));
         return CompletableFuture.supplyAsync(
                 () -> {
                     Process proc = null;
@@ -221,12 +218,11 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     private List<String> createProcessArgs(
-            Path recording, Path saveFile, String filter, String acceptHeader) {
+            Path recording, Path saveFile, String filter, boolean formatted) {
         return List.of(
                 recording.toAbsolutePath().toString(),
                 saveFile.toAbsolutePath().toString(),
-                filter,
-                acceptHeader);
+                filter, String.valueOf(formatted));
     }
 
     private String serializeTransformersSet() {
@@ -299,7 +295,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         Set<ReportTransformer> transformers = Collections.emptySet();
         var saveFile = Paths.get(args[1]);
         String filter = args[2];
-        String acceptHeader = args[3];
+        String formatted = args[3];
         try {
             transformers = deserializeTransformers(fs.readString(saveFile));
         } catch (Exception e) {
@@ -309,7 +305,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
-            if (acceptHeader == "application/json") {
+            if (Boolean.parseBoolean(formatted)) {
                 Map<String, RuleEvaluation> evalMapResult =
                         generateEvalMapFromFile(recording, transformers, filter);
                 fs.writeString(
