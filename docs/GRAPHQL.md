@@ -124,7 +124,8 @@ content-type: application/json
             }
         ]
     }
-}```
+}
+```
 
 ### `GET /api/v2.2/graphiql/*`
 
@@ -133,3 +134,132 @@ and seeing the responses served for those queries by `POST /api/v2.2/graphql`.
 Note the `/*` in the path - to open this in your browser while running using
 `run.sh`/`smoketest.sh`, go to `https://localhost:8181/api/v2.2/graphiql/`. The
 trailing slash is significant.
+
+## GraphQL API
+
+### Quick Reference
+
+| What you want to do                                                       | Which handler you should use                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Recordings in Target JVMs**                                             |                                                                                 |
+| Update metadata for a recording in a target JVM                    | [`PutActiveRecordingMetadataMutator`](#PutActiveRecordingMetadataMutator) |
+| **Recordings in archive**                                                 |                                                                                 |
+| Update metadata for an archived recording                          | [`PutArchivedRecordingMetadataMutator`](#PutArchivedRecordingMetadataMutator)     |
+
+### Recordings in Target JVMs
+* #### `PutActiveRecordingMetadataMutator`
+
+    ##### synopsis
+    Updates metadata for a recording in a target JVM. Overwrites any existing labels for that recording. If multiple recordings match the query, the metadata for all selected recordings will be replaced with the request metadata.
+
+    ##### request
+    `doPutMetadata(metadata: { labels: []})`
+
+    `labels` - An array consisting of key-value label objects. The label objects should follow the `{key: "myLabelKey", value: "myValue"}` format.
+
+    ##### response
+    `ActiveRecording` - The result contains an `ActiveRecording` which can be queried for fields such as `name` and `metadata`.
+
+    `DataFetchingException` - An argument was invalid. The body is an error message.
+
+    ##### example
+    ```
+    query {
+    targetNodes(filter: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi" }) {
+        recordings {
+            active(filter: { name: "myActiveRecording" }) {
+                doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Profiling"},{key:"template.type",value:"TARGET"}] }) {
+                    name
+                    metadata {
+                        labels
+                    }
+                }
+            }
+        }
+    }
+    }
+
+    {
+        "data": {
+            "targetNodes": [
+                {
+                    "recordings": {
+                        "active": [
+                            {
+                                "doPutMetadata": {
+                                    "metadata": {
+                                        "labels": {
+                                            "app": "cryostat",
+                                            "template.name": "Continuous",
+                                            "template.type": "TARGET"
+                                        }
+                                    },
+                                    "name": "myActiveRecording"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+    ```
+
+### Recordings in Archives
+* #### `PutArchivedRecordingMetadataMutator`
+
+    ##### synopsis
+    Updates metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording. If multiple recordings match the query, the metadata for all selected recordings will be replaced with the request metadata.
+
+    ##### request
+    `doPutMetadata(metadata: { labels: []})`
+
+    `labels` - An array consisting of key-value label objects. The label objects should follow the `{key: "myLabelKey", value: "myValue"}` format.
+
+    ##### response
+    `ActiveRecording` - The result contains an `ActiveRecording` which can be queried for fields such as `name` and `metadata`.
+
+    `DataFetchingException` - An argument was invalid. The body is an error message.
+
+    ##### example
+    ```
+    query {
+    targetNodes(filter: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi" }) {
+        recordings {
+            archived(filter: { name: "myArchivedRecording" }) {
+                doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Continuous"},{key:"template.type",value:"TARGET"}] }) {
+                    name
+                    metadata {
+                        labels
+                    }
+                }
+            }
+        }
+    }
+    }
+
+    {
+        "data": {
+            "targetNodes": [
+                {
+                    "recordings": {
+                        "archived": [
+                            {
+                                "doPutMetadata": {
+                                    "metadata": {
+                                        "labels": {
+                                            "app": "cryostat",
+                                            "template.name": "Continuous",
+                                            "template.type": "TARGET"
+                                        }
+                                    },
+                                    "name": "myArchivedRecording"
+                                }
+                            }
+                        ],
+                    }
+                }
+            ]
+        }
+    }
+    ```
