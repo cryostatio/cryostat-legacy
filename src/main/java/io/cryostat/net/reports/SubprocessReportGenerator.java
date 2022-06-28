@@ -339,7 +339,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
-        Predicate<IRule> rulePr = RuleFilterParser.getPredicateRuleFilter(filter);
+        RuleFilterParser rfp = new RuleFilterParser();
+        Predicate<IRule> rulePr = rfp.parse(filter);
         try (InputStream stream = fs.newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
