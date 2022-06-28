@@ -220,7 +220,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -270,7 +270,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -335,7 +335,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -372,7 +372,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -450,7 +450,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         HyperlinkedSerializableRecordingDescriptor result =
@@ -731,13 +731,11 @@ public class RecordingTargetHelperTest {
         Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of(events));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
-                                Mockito.anyString(),
-                                Mockito.anyString(),
-                                Mockito.any(Metadata.class)))
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
                 .thenAnswer(
                         new Answer<Future<Metadata>>() {
                             @Override

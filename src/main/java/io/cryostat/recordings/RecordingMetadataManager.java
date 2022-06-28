@@ -51,7 +51,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
@@ -76,7 +75,6 @@ public class RecordingMetadataManager {
     private final Path recordingMetadataDir;
     private final FileSystem fs;
     private final TargetConnectionManager targetConnectionManager;
-    private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
     private final Gson gson;
     private final Base32 base32;
@@ -89,7 +87,6 @@ public class RecordingMetadataManager {
             Path recordingMetadataDir,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
-            CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
@@ -97,7 +94,6 @@ public class RecordingMetadataManager {
         this.recordingMetadataDir = recordingMetadataDir;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
-        this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
         this.gson = gson;
         this.base32 = base32;
@@ -128,12 +124,13 @@ public class RecordingMetadataManager {
     }
 
     public Future<Metadata> setRecordingMetadata(
-            String targetId, String recordingName, Metadata metadata) throws IOException {
-        Objects.requireNonNull(targetId);
+            ConnectionDescriptor connectionDescriptor, String recordingName, Metadata metadata)
+            throws IOException {
+        Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
 
-        Integer jvmId = this.getJvmId(targetId);
+        Integer jvmId = this.getJvmId(connectionDescriptor);
 
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
         fs.writeString(
@@ -151,23 +148,26 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
         return this.setRecordingMetadata(
-                RecordingArchiveHelper.UNLABELLED, recordingName, metadata);
+                new ConnectionDescriptor(RecordingArchiveHelper.ARCHIVES),
+                recordingName,
+                metadata);
     }
 
-    public Metadata getMetadata(String targetId, String recordingName) throws IOException {
-        Objects.requireNonNull(targetId);
+    public Metadata getMetadata(ConnectionDescriptor connectionDescriptor, String recordingName)
+            throws IOException {
+        Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
 
-        Integer jvmId = this.getJvmId(targetId);
+        Integer jvmId = this.getJvmId(connectionDescriptor);
         return this.recordingMetadataMap.computeIfAbsent(
                 Pair.of(jvmId, recordingName), k -> new Metadata());
     }
 
-    public Metadata deleteRecordingMetadataIfExists(String targetId, String recordingName)
-            throws IOException {
-        Objects.requireNonNull(targetId);
+    public Metadata deleteRecordingMetadataIfExists(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws IOException {
+        Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Integer jvmId = this.getJvmId(targetId);
+        Integer jvmId = this.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(jvmId, recordingName));
@@ -175,12 +175,13 @@ public class RecordingMetadataManager {
     }
 
     public Future<Metadata> copyMetadataToArchives(
-            String targetId, String recordingName, String filename) throws IOException {
-        Objects.requireNonNull(targetId);
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filename)
+            throws IOException {
+        Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(filename);
-        Metadata metadata = this.getMetadata(targetId, recordingName);
-        return this.setRecordingMetadata(targetId, filename, metadata);
+        Metadata metadata = this.getMetadata(connectionDescriptor, recordingName);
+        return this.setRecordingMetadata(connectionDescriptor, filename, metadata);
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
@@ -232,7 +233,8 @@ public class RecordingMetadataManager {
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    private Integer getJvmId(String targetId) throws IOException {
+    private Integer getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
+        String targetId = connectionDescriptor.getTargetId();
         Integer jvmId =
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
@@ -245,7 +247,7 @@ public class RecordingMetadataManager {
                                 Credentials credentials =
                                         credentialsManager.getCredentialsByTargetId(targetId);
                                 return this.targetConnectionManager.executeConnectedTask(
-                                        new ConnectionDescriptor(targetId, credentials),
+                                        connectionDescriptor,
                                         connection -> {
                                             return connection.getJvmId();
                                         });

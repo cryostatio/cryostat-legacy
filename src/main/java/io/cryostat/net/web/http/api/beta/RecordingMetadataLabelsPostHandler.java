@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -124,7 +125,8 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(sourceTarget, recordingName, metadata)
+                            .setRecordingMetadata(
+                                    new ConnectionDescriptor(sourceTarget), recordingName, metadata)
                             .get();
 
             recordingMetadataManager.notifyRecordingMetadataUpdated(

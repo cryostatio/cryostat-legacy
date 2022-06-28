@@ -205,7 +205,7 @@ class TargetRecordingsPostHandlerTest {
                                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(descriptor);
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         handler.handle(ctx);

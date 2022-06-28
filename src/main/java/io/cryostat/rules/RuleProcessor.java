@@ -359,14 +359,11 @@ public class RuleProcessor extends AbstractVerticle
                                 new HashMap<>(
                                         metadataManager
                                                 .getMetadata(
-                                                        connectionDescriptor.getTargetId(),
-                                                        recording.getName())
+                                                        connectionDescriptor, recording.getName())
                                                 .getLabels());
                         labels.put("rule", rule.getName());
                         metadataManager.setRecordingMetadata(
-                                connectionDescriptor.getTargetId(),
-                                recording.getName(),
-                                new Metadata(labels));
+                                connectionDescriptor, recording.getName(), new Metadata(labels));
                     } catch (IOException ioe) {
                         logger.error(ioe);
                     }

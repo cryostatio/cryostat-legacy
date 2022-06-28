@@ -107,11 +107,6 @@ class PutActiveRecordingMetadataMutator
             }
         }
 
-        Metadata metadata =
-                metadataManager
-                        .setRecordingMetadata(uri, recordingName, new Metadata(labels))
-                        .get();
-
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(uri));
 
@@ -122,6 +117,11 @@ class PutActiveRecordingMetadataMutator
                             recordingTargetHelper.getDescriptorByName(conn, recordingName).get();
 
                     WebServer ws = webServer.get();
+
+                    Metadata metadata =
+                            metadataManager
+                                    .setRecordingMetadata(cd, recordingName, new Metadata(labels))
+                                    .get();
 
                     metadataManager.notifyRecordingMetadataUpdated(uri, recordingName, metadata);
 

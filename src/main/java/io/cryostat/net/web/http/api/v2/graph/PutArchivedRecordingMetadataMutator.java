@@ -45,6 +45,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -97,7 +98,8 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
 
         Metadata metadata =
                 metadataManager
-                        .setRecordingMetadata(uri, recordingName, new Metadata(labels))
+                        .setRecordingMetadata(
+                                new ConnectionDescriptor(uri), recordingName, new Metadata(labels))
                         .get();
 
         WebServer ws = webServer.get();

@@ -161,8 +161,7 @@ public class RecordingArchiveHelper {
             String filename = filenamePath.toString();
             Metadata metadata =
                     recordingMetadataManager
-                            .copyMetadataToArchives(
-                                    connectionDescriptor.getTargetId(), recordingName, filename)
+                            .copyMetadataToArchives(connectionDescriptor, recordingName, filename)
                             .get();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -221,7 +220,7 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                metadataSourceTarget, recordingName));
+                                new ConnectionDescriptor(metadataSourceTarget), recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -314,7 +313,8 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getMetadata(targetId, file));
+                                            recordingMetadataManager.getMetadata(
+                                                    new ConnectionDescriptor(targetId), file));
                                 } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
@@ -367,7 +367,9 @@ public class RecordingArchiveHelper {
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
                                                         recordingMetadataManager.getMetadata(
-                                                                metadataSourceTarget, file));
+                                                                new ConnectionDescriptor(
+                                                                        metadataSourceTarget),
+                                                                file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;

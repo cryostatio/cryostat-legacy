@@ -171,7 +171,9 @@ public class RecordingMetadataLabelsPostHandlerTest {
 
             Mockito.when(
                             recordingMetadataManager.setRecordingMetadata(
-                                    sourceTarget, recordingName, metadata))
+                                    new ConnectionDescriptor(sourceTarget),
+                                    recordingName,
+                                    metadata))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);

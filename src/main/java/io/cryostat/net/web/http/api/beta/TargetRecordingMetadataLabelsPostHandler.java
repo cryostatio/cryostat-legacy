@@ -132,14 +132,15 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
             Metadata metadata = new Metadata(labels);
 
-            if (!this.targetRecordingFound(
-                    getConnectionDescriptorFromParams(params), recordingName)) {
+            ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(params);
+
+            if (!this.targetRecordingFound(connectionDescriptor, recordingName)) {
                 throw new RecordingNotFoundException(targetId, recordingName);
             }
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(targetId, recordingName, metadata)
+                            .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
                             .get();
 
             recordingMetadataManager.notifyRecordingMetadataUpdated(

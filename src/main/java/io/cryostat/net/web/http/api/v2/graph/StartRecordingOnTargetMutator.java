@@ -145,7 +145,7 @@ class StartRecordingOnTargetMutator
                                                 settings.get("metadata").toString(),
                                                 new TypeToken<Metadata>() {}.getType());
                         metadataManager
-                                .setRecordingMetadata(uri, (String) settings.get("name"), m)
+                                .setRecordingMetadata(cd, (String) settings.get("name"), m)
                                 .get();
                     }
                     IRecordingDescriptor desc =
@@ -156,7 +156,7 @@ class StartRecordingOnTargetMutator
                                     TemplateType.valueOf(
                                             ((String) settings.get("templateType")).toUpperCase()));
                     WebServer ws = webServer.get();
-                    Metadata metadata = metadataManager.getMetadata(uri, desc.getName());
+                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),

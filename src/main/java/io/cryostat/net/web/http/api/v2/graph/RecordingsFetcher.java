@@ -145,7 +145,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                                                 conn, r.getName());
                                                         Metadata metadata =
                                                                 metadataManager.getMetadata(
-                                                                        targetId, r.getName());
+                                                                        cd, r.getName());
                                                         return new GraphRecordingDescriptor(
                                                                 target,
                                                                 r,

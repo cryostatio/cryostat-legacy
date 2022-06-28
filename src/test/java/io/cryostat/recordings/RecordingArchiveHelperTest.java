@@ -247,7 +247,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -330,7 +330,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -423,7 +423,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -504,7 +504,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -591,7 +591,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -729,7 +729,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
-                                Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(new Metadata()));
 
         ArchivedRecordingInfo info =
@@ -796,7 +796,7 @@ class RecordingArchiveHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.anyString(), Mockito.anyString()))
+                                Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingArchiveHelper.deleteRecording(recordingName);
@@ -905,7 +905,7 @@ class RecordingArchiveHelperTest {
                             }
                         });
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
