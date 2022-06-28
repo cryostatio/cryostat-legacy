@@ -72,10 +72,10 @@ import io.cryostat.core.reports.InterruptibleReportGenerator.ReportStats;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.core.util.RuleFilterParser;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
-import io.cryostat.util.RuleFilterParser;
 
 import com.google.gson.Gson;
 
@@ -339,7 +339,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
-        Predicate<IRule> rulePr = RuleFilterParser.getPredicateRuleFilter(filter);
+        RuleFilterParser rfp = new RuleFilterParser();
+        Predicate<IRule> rulePr = rfp.parse(filter);
         try (InputStream stream = fs.newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
