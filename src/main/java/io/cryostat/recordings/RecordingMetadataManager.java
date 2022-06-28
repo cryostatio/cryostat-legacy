@@ -124,7 +124,10 @@ public class RecordingMetadataManager {
     }
 
     public Future<Metadata> setRecordingMetadata(
-            ConnectionDescriptor connectionDescriptor, String recordingName, Metadata metadata)
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            Metadata metadata,
+            boolean issueNotification)
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
@@ -140,7 +143,33 @@ public class RecordingMetadataManager {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
 
+        if (issueNotification) {
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(
+                            Map.of(
+                                    "recordingName",
+                                    recordingName,
+                                    "target",
+                                    connectionDescriptor.getTargetId(),
+                                    "metadata",
+                                    metadata))
+                    .build()
+                    .send();
+        }
+
         return CompletableFuture.completedFuture(metadata);
+    }
+
+    public Future<Metadata> setRecordingMetadata(
+            ConnectionDescriptor connectionDescriptor, String recordingName, Metadata metadata)
+            throws IOException {
+        Objects.requireNonNull(connectionDescriptor);
+        Objects.requireNonNull(recordingName);
+        Objects.requireNonNull(metadata);
+        return setRecordingMetadata(connectionDescriptor, recordingName, metadata, false);
     }
 
     public Future<Metadata> setRecordingMetadata(String recordingName, Metadata metadata)
@@ -207,24 +236,6 @@ public class RecordingMetadataManager {
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    public void notifyRecordingMetadataUpdated(
-            String targetId, String recordingName, Metadata metadata) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(
-                        Map.of(
-                                "recordingName",
-                                recordingName,
-                                "target",
-                                targetId,
-                                "metadata",
-                                metadata))
-                .build()
-                .send();
     }
 
     private Path getMetadataPath(Integer jvmId, String recordingName) {

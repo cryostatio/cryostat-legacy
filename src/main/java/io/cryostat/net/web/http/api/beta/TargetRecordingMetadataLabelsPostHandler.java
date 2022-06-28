@@ -140,11 +140,9 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                            .setRecordingMetadata(
+                                    connectionDescriptor, recordingName, metadata, true)
                             .get();
-
-            recordingMetadataManager.notifyRecordingMetadataUpdated(
-                    targetId, recordingName, updatedMetadata);
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (RecordingNotFoundException e) {

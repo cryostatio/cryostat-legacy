@@ -120,10 +120,9 @@ class PutActiveRecordingMetadataMutator
 
                     Metadata metadata =
                             metadataManager
-                                    .setRecordingMetadata(cd, recordingName, new Metadata(labels))
+                                    .setRecordingMetadata(
+                                            cd, recordingName, new Metadata(labels), true)
                                     .get();
-
-                    metadataManager.notifyRecordingMetadataUpdated(uri, recordingName, metadata);
 
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,

@@ -126,11 +126,11 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
             Metadata updatedMetadata =
                     recordingMetadataManager
                             .setRecordingMetadata(
-                                    new ConnectionDescriptor(sourceTarget), recordingName, metadata)
+                                    new ConnectionDescriptor(sourceTarget),
+                                    recordingName,
+                                    metadata,
+                                    true)
                             .get();
-
-            recordingMetadataManager.notifyRecordingMetadataUpdated(
-                    sourceTarget, recordingName, updatedMetadata);
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (ExecutionException e) {

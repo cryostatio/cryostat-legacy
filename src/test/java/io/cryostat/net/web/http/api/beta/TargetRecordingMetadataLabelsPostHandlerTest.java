@@ -187,7 +187,10 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
                     .thenReturn(labels);
             Mockito.when(
                             recordingMetadataManager.setRecordingMetadata(
-                                    Mockito.any(), Mockito.anyString(), Mockito.any()))
+                                    Mockito.any(),
+                                    Mockito.anyString(),
+                                    Mockito.any(),
+                                    Mockito.anyBoolean()))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);

@@ -99,12 +99,13 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
         Metadata metadata =
                 metadataManager
                         .setRecordingMetadata(
-                                new ConnectionDescriptor(uri), recordingName, new Metadata(labels))
+                                new ConnectionDescriptor(uri),
+                                recordingName,
+                                new Metadata(labels),
+                                true)
                         .get();
 
         WebServer ws = webServer.get();
-
-        metadataManager.notifyRecordingMetadataUpdated(uri, recordingName, metadata);
 
         return new ArchivedRecordingInfo(
                 uri,

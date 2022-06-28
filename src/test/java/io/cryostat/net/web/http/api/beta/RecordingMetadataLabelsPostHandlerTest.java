@@ -173,7 +173,8 @@ public class RecordingMetadataLabelsPostHandlerTest {
                             recordingMetadataManager.setRecordingMetadata(
                                     new ConnectionDescriptor(sourceTarget),
                                     recordingName,
-                                    metadata))
+                                    metadata,
+                                    true))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);
