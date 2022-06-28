@@ -2148,7 +2148,7 @@ The handler-specific descriptions below describe how each handler populates the
     Add metadata labels for a recording in a target JVM. Overwrites any existing labels for that recording.
 
     ##### request
-    `POST /api/v2/targets/:targetId/recordings/:recordingName/metadata/labels`
+    `POST /api/beta/targets/:targetId/recordings/:recordingName/metadata/labels`
 
     The request should be a JSON document with the `labels` specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
 
@@ -2182,7 +2182,7 @@ The handler-specific descriptions below describe how each handler populates the
     Create metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording.
 
     ##### request
-    `POST /api/v2/recordings/:sourceTarget/:recordingName/metadata/labels`
+    `POST /api/beta/recordings/:sourceTarget/:recordingName/metadata/labels`
 
     The request should be a JSON document with the labels specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
 
@@ -2206,6 +2206,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### example
     ```
-    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/v2/recordings/localhost%3A0/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
+    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost%3A0/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"updatedValue","another-key":"another-updated-value","new-key":"new-value"}}}
     ```
