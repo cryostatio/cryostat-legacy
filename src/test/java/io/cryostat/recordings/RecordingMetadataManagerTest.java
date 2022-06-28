@@ -115,7 +115,7 @@ public class RecordingMetadataManagerTest {
     @Test
     void shouldParseAndStoreLabelsInRecordingLabelsMap() throws Exception {
         String recordingName = "someRecording";
-        Integer jvmId = 1234;
+        String jvmId = "id";
 
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
@@ -169,7 +169,7 @@ public class RecordingMetadataManagerTest {
     @Test
     void shouldDeleteLabels() throws Exception {
         String recordingName = "someRecording";
-        Integer jvmId = 1234;
+        String jvmId = "id";
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
@@ -204,7 +204,7 @@ public class RecordingMetadataManagerTest {
     @Test
     void shouldOverwriteLabelsForExistingLabelEntries() throws Exception {
         String recordingName = "someRecording";
-        Integer jvmId = 1234;
+        String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
         Map<String, String> updatedLabels =
@@ -234,7 +234,7 @@ public class RecordingMetadataManagerTest {
     @Test
     void shouldCopyLabelsToArchivedRecordings() throws Exception {
         String recordingName = "someRecording";
-        Integer jvmId = 1234;
+        String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
         String filename = "archivedRecording";

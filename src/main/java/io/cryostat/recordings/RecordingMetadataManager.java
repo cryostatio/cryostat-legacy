@@ -70,7 +70,6 @@ import org.apache.commons.lang3.tuple.Pair;
 public class RecordingMetadataManager {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
-    private static final Integer UNLABELLED_ARCHIVES_ID = -1;
 
     private final Path recordingMetadataDir;
     private final FileSystem fs;
@@ -80,8 +79,8 @@ public class RecordingMetadataManager {
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<Integer, String>, Metadata> recordingMetadataMap;
-    private final Map<String, Integer> jvmIdMap;
+    private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
+    private final Map<String, String> jvmIdMap;
 
     RecordingMetadataManager(
             Path recordingMetadataDir,
@@ -133,7 +132,7 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
 
-        Integer jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = this.getJvmId(connectionDescriptor);
 
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
         fs.writeString(
@@ -187,7 +186,7 @@ public class RecordingMetadataManager {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
 
-        Integer jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = this.getJvmId(connectionDescriptor);
         return this.recordingMetadataMap.computeIfAbsent(
                 Pair.of(jvmId, recordingName), k -> new Metadata());
     }
@@ -196,7 +195,7 @@ public class RecordingMetadataManager {
             ConnectionDescriptor connectionDescriptor, String recordingName) throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Integer jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = this.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(jvmId, recordingName));
@@ -238,20 +237,20 @@ public class RecordingMetadataManager {
         }
     }
 
-    private Path getMetadataPath(Integer jvmId, String recordingName) {
+    private Path getMetadataPath(String jvmId, String recordingName) {
         String filename = String.format("%s%s", jvmId, recordingName);
         return recordingMetadataDir.resolve(
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    private Integer getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
+    private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
         String targetId = connectionDescriptor.getTargetId();
-        Integer jvmId =
+        String jvmId =
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
                         k -> {
-                            if (targetId.equals(RecordingArchiveHelper.ARCHIVES)) {
-                                return UNLABELLED_ARCHIVES_ID;
+                            if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
+                                return RecordingArchiveHelper.UNLABELLED;
                             }
 
                             try {
@@ -260,35 +259,35 @@ public class RecordingMetadataManager {
                                 return this.targetConnectionManager.executeConnectedTask(
                                         connectionDescriptor,
                                         connection -> {
-                                            return connection.getJvmId();
+                                            return (String) connection.getJvmId();
                                         });
                             } catch (Exception e) {
                                 logger.error(e);
-                                return 0;
+                                return null;
                             }
                         });
-        if (jvmId == 0) {
+        if (jvmId == null) {
             this.jvmIdMap.remove(targetId);
-            throw new IOException(String.format("Unable to connect to target %s", targetId));
+            throw new IOException(String.format("Error connecting to target %s", targetId));
         }
         return jvmId;
     }
 
     private static class StoredRecordingMetadata extends Metadata {
-        private final Integer jvmId;
+        private final String jvmId;
         private final String recordingName;
 
-        StoredRecordingMetadata(Integer jvmId, String recordingName, Map<String, String> labels) {
+        StoredRecordingMetadata(String jvmId, String recordingName, Map<String, String> labels) {
             super(labels);
             this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
-        static StoredRecordingMetadata of(Integer jvmId, String recordingName, Metadata metadata) {
+        static StoredRecordingMetadata of(String jvmId, String recordingName, Metadata metadata) {
             return new StoredRecordingMetadata(jvmId, recordingName, metadata.getLabels());
         }
 
-        Integer getJvmId() {
+        String getJvmId() {
             return this.jvmId;
         }
 
