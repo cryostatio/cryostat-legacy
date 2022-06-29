@@ -117,9 +117,11 @@ public class RecordingMetadataManager {
                 .filter(Objects::nonNull)
                 .map(reader -> gson.fromJson(reader, StoredRecordingMetadata.class))
                 .forEach(
-                        srm ->
-                                recordingMetadataMap.put(
-                                        Pair.of(srm.getJvmId(), srm.getRecordingName()), srm));
+                        srm -> {
+                            recordingMetadataMap.put(
+                                    Pair.of(srm.getJvmId(), srm.getRecordingName()), srm);
+                            jvmIdMap.putIfAbsent(srm.getTargetId(), srm.getJvmId());
+                        });
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -137,7 +139,12 @@ public class RecordingMetadataManager {
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
         fs.writeString(
                 this.getMetadataPath(jvmId, recordingName),
-                gson.toJson(StoredRecordingMetadata.of(jvmId, recordingName, metadata)),
+                gson.toJson(
+                        StoredRecordingMetadata.of(
+                                connectionDescriptor.getTargetId(),
+                                jvmId,
+                                recordingName,
+                                metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -276,15 +283,24 @@ public class RecordingMetadataManager {
     private static class StoredRecordingMetadata extends Metadata {
         private final String jvmId;
         private final String recordingName;
+        private final String targetId;
 
-        StoredRecordingMetadata(String jvmId, String recordingName, Map<String, String> labels) {
+        StoredRecordingMetadata(
+                String targetId, String jvmId, String recordingName, Map<String, String> labels) {
             super(labels);
+            this.targetId = targetId;
             this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
-        static StoredRecordingMetadata of(String jvmId, String recordingName, Metadata metadata) {
-            return new StoredRecordingMetadata(jvmId, recordingName, metadata.getLabels());
+        static StoredRecordingMetadata of(
+                String targetId, String jvmId, String recordingName, Metadata metadata) {
+            return new StoredRecordingMetadata(
+                    targetId, jvmId, recordingName, metadata.getLabels());
+        }
+
+        String getTargetId() {
+            return this.targetId;
         }
 
         String getJvmId() {
@@ -310,6 +326,7 @@ public class RecordingMetadataManager {
             StoredRecordingMetadata srm = (StoredRecordingMetadata) o;
             return new EqualsBuilder()
                     .appendSuper(super.equals(o))
+                    .append(targetId, srm.targetId)
                     .append(jvmId, srm.jvmId)
                     .append(recordingName, srm.recordingName)
                     .build();
@@ -319,6 +336,7 @@ public class RecordingMetadataManager {
         public int hashCode() {
             return new HashCodeBuilder()
                     .appendSuper(super.hashCode())
+                    .append(targetId)
                     .append(jvmId)
                     .append(recordingName)
                     .toHashCode();
