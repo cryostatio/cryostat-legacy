@@ -176,10 +176,7 @@ public class RuleProcessor extends AbstractVerticle
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
         vertx.<Credentials>executeBlocking(
-                        promise ->
-                                promise.complete(
-                                        credentialsManager.getCredentials(
-                                                serviceRef.getServiceUri().toString())))
+                        promise -> promise.complete(credentialsManager.getCredentials(serviceRef)))
                 .onSuccess(c -> logger.trace("Rule activation successful"))
                 .onSuccess(
                         credentials -> {

@@ -168,7 +168,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 
@@ -268,7 +268,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 
@@ -316,7 +316,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 

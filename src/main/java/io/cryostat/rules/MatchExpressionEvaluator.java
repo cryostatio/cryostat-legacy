@@ -42,7 +42,6 @@ import java.util.Map;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import io.cryostat.platform.ServiceRef;
@@ -53,23 +52,26 @@ import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 
-class RuleMatcher {
+public class MatchExpressionEvaluator {
 
-    private final ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("nashorn");
+    private final ScriptEngine scriptEngine;
 
-    public boolean applies(Rule rule, ServiceRef serviceRef) throws ScriptException {
-        RuleAppliesEvent evt = new RuleAppliesEvent(rule.getName());
+    MatchExpressionEvaluator(ScriptEngine scriptEngine) {
+        this.scriptEngine = scriptEngine;
+    }
+
+    public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
+        MatchExpressionAppliesEvent evt = new MatchExpressionAppliesEvent(matchExpression);
         try {
             evt.begin();
-            Object result =
-                    this.scriptEngine.eval(rule.getMatchExpression(), createBindings(serviceRef));
+            Object result = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
             if (result instanceof Boolean) {
                 return (Boolean) result;
             } else {
                 throw new ScriptException(
                         String.format(
-                                "Rule %s non-boolean match expression evaluation result: %s",
-                                rule.getName(), result));
+                                "Non-boolean match expression evaluation result: %s",
+                                matchExpression, result));
             }
         } finally {
             evt.end();
@@ -114,23 +116,23 @@ class RuleMatcher {
         }
     }
 
-    @Name("io.cryostat.rules.RuleMatcher.RuleAppliesEvent")
-    @Label("Rule Expression Matching")
+    @Name("io.cryostat.rules.MatchExpressionEvaluator.MatchExpressionAppliesEvent")
+    @Label("Match Expression Evaluation")
     @Category("Cryostat")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
-    public static class RuleAppliesEvent extends Event {
+    public static class MatchExpressionAppliesEvent extends Event {
 
-        String ruleName;
+        String matchExpression;
 
-        RuleAppliesEvent(String ruleName) {
-            this.ruleName = ruleName;
+        MatchExpressionAppliesEvent(String matchExpression) {
+            this.matchExpression = matchExpression;
         }
     }
 
-    @Name("io.cryostat.rules.RuleMatcher.BindingsCreationEvent")
-    @Label("Rule Binding Creation")
+    @Name("io.cryostat.rules.MatchExpressionEvaluator.BindingsCreationEvent")
+    @Label("Match Expression Binding Creation")
     @Category("Cryostat")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",

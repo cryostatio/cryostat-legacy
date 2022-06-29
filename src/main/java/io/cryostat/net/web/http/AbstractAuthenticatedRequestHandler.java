@@ -37,12 +37,10 @@
  */
 package io.cryostat.net.web.http;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -123,7 +121,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        Credentials credentials = credentialsManager.getCredentials(targetId);
+        Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
         if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
             String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
@@ -170,35 +168,16 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
         Throwable cause = e.getCause();
-        try {
-            if (cause instanceof SecurityException || cause instanceof SaslException) {
-                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpException(427, "JMX Authentication Failure", e);
-            }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new HttpException(502, "Target SSL Untrusted", e);
-            }
-            if (rootCause instanceof UnknownHostException) {
-                throw new HttpException(404, "Target Not Found", e);
-            }
-        } finally {
-            this.removeCredentialsIfPresent(ctx);
+        if (cause instanceof SecurityException || cause instanceof SaslException) {
+            ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new HttpException(427, "JMX Authentication Failure", e);
         }
-    }
-
-    private void removeCredentialsIfPresent(RoutingContext ctx) {
-        Optional<String> targetId = Optional.ofNullable(ctx.pathParam("targetId"));
-
-        targetId.ifPresent(
-                id -> {
-                    if (credentialsManager.getCredentials(id) != null) {
-                        try {
-                            credentialsManager.removeCredentials(id);
-                        } catch (IOException ioe) {
-                            logger.error(ioe);
-                        }
-                    }
-                });
+        Throwable rootCause = ExceptionUtils.getRootCause(e);
+        if (rootCause instanceof ConnectIOException) {
+            throw new HttpException(502, "Target SSL Untrusted", e);
+        }
+        if (rootCause instanceof UnknownHostException) {
+            throw new HttpException(404, "Target Not Found", e);
+        }
     }
 }

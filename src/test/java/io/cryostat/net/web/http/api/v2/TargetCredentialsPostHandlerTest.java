@@ -230,6 +230,7 @@ class TargetCredentialsPostHandlerTest {
         @Test
         void shouldDelegateToCredentialsManager() throws Exception {
             String targetId = "fooTarget";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             String username = "adminuser";
             String password = "abc123";
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
@@ -243,12 +244,12 @@ class TargetCredentialsPostHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.nullValue());
             Mockito.verify(credentialsManager)
-                    .addCredentials(targetId, new Credentials(username, password));
+                    .addCredentials(matchExpression, new Credentials(username, password));
 
             Mockito.verify(notificationFactory).createBuilder();
             Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsStored");
             Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-            Mockito.verify(notificationBuilder).message(Map.of("target", targetId));
+            Mockito.verify(notificationBuilder).message(Map.of("target", matchExpression));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
         }

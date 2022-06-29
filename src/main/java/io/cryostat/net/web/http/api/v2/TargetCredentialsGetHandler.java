@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -104,6 +105,6 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
             throws Exception {
         return new IntermediateResponse<List<ServiceRef>>()
-                .body(this.credentialsManager.getCredentialKeys());
+                .body(new ArrayList<>(this.credentialsManager.getServiceRefsWithCredentials()));
     }
 }

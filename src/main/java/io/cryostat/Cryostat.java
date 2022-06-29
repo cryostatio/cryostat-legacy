@@ -78,6 +78,7 @@ class Cryostat {
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
 
+        client.credentialsManager().migrate();
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.vertx()

@@ -152,6 +152,7 @@ class TargetCredentialsDeleteHandlerTest {
         @Test
         void shouldRespond200OnSuccess() throws Exception {
             String targetId = "fooTarget";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
             Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
                     .thenReturn(true);
@@ -159,12 +160,12 @@ class TargetCredentialsDeleteHandlerTest {
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
+            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
 
             Mockito.verify(notificationFactory).createBuilder();
             Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsDeleted");
             Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-            Mockito.verify(notificationBuilder).message(Map.of("target", targetId));
+            Mockito.verify(notificationBuilder).message(Map.of("target", matchExpression));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
         }
@@ -172,6 +173,7 @@ class TargetCredentialsDeleteHandlerTest {
         @Test
         void shouldRespond404OnFailure() throws Exception {
             String targetId = "fooTarget";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
             Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
                     .thenReturn(false);
@@ -179,12 +181,13 @@ class TargetCredentialsDeleteHandlerTest {
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(404));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
+            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
         }
 
         @Test
         void shouldWrapIOExceptions() throws Exception {
             String targetId = "fooTarget";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
             Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
                     .thenThrow(IOException.class);
@@ -195,7 +198,7 @@ class TargetCredentialsDeleteHandlerTest {
 
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
             MatcherAssert.assertThat(ex.getCause(), Matchers.instanceOf(IOException.class));
-            Mockito.verify(credentialsManager).removeCredentials(targetId);
+            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
         }
     }
 }
