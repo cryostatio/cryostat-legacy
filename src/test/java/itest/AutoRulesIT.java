@@ -121,6 +121,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("description", "AutoRulesIT automated rule");
         form.add("eventSpecifier", "template=Continuous,type=TARGET");
         form.add("archivalPeriodSeconds", "60");
+        form.add("initialDelaySeconds", "55");
         form.add("preservedArchives", "3");
         webClient
                 .post("/api/v2/rules")
@@ -171,6 +172,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
                                 "archivalPeriodSeconds",
                                 60,
+                                "initialDelaySeconds",
+                                55,
                                 "preservedArchives",
                                 3,
                                 "maxAgeSeconds",

@@ -22,6 +22,7 @@ trap cleanup EXIT
 cleanup
 
 STARTFLAGS=(
+    "build-helper:regex-property@image-tag-to-lower"
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
