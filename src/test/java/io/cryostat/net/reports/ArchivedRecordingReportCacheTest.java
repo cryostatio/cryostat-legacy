@@ -145,7 +145,7 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
                                 Mockito.anyString(),
-                                Mockito.anyString()))
+                                Mockito.anyBoolean()))
                 .thenReturn(pathFuture);
 
         Future<Path> res = cache.get(sourceTarget, recordingName, "");
@@ -180,7 +180,7 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
                                 Mockito.anyString(),
-                                Mockito.anyString()))
+                                Mockito.anyBoolean()))
                 .thenReturn(pathFuture);
 
         Future<Path> res = cache.get(sourceTarget, recordingName, "someFilter");
@@ -231,7 +231,7 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class),
                                 Mockito.any(Path.class),
                                 Mockito.anyString(),
-                                Mockito.anyString()))
+                                Mockito.anyBoolean()))
                 .thenThrow(
                         new CompletionException(
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(

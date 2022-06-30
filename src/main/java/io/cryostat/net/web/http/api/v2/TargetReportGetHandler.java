@@ -65,6 +65,8 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
@@ -126,18 +128,40 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+        String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
+        if (StringUtils.isBlank(accept)) {
+            throw new HttpException(406);
+        }
         try {
-            ctx.response()
-                    .end(
+            String report = null;
+            switch (accept) {
+                case "*/*":
+                case "text/html":
+                    report =
                             reportService
                                     .get(
                                             getConnectionDescriptorFromJwt(ctx, jwt),
                                             recordingName,
                                             rawFilter,
                                             true)
-                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+                    break;
+                case "application/json":
+                    report =
+                            reportService
+                                    .get(
+                                            getConnectionDescriptorFromJwt(ctx, jwt),
+                                            recordingName,
+                                            rawFilter,
+                                            false)
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+                    break;
+                default:
+                    throw new HttpException(406);
+            }
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, accept);
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            ctx.response().end(report);
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

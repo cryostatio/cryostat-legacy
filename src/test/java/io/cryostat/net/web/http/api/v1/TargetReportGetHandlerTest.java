@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +54,6 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.MultiMap;
@@ -69,6 +67,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -91,43 +90,61 @@ class TargetReportGetHandlerTest {
                         authManager, credentialsManager, reportService, 30, logger);
     }
 
-    @Test
-    void shouldHandleGETRequest() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    @Nested
+    class ApiSpec {
+        @Test
+        void shouldHandleGETRequest() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+        }
+
+        @Test
+        void shouldHandleCorrectPath() {
+            MatcherAssert.assertThat(
+                    handler.path(),
+                    Matchers.equalTo("/api/v1/targets/:targetId/reports/:recordingName"));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(),
+                    Matchers.equalTo(
+                            Set.of(
+                                    ResourceAction.READ_TARGET,
+                                    ResourceAction.READ_RECORDING,
+                                    ResourceAction.CREATE_REPORT,
+                                    ResourceAction.READ_REPORT)));
+        }
     }
 
-    @Test
-    void shouldHandleCorrectPath() {
-        MatcherAssert.assertThat(
-                handler.path(),
-                Matchers.equalTo("/api/v1/targets/:targetId/reports/:recordingName"));
-    }
+    @Nested
+    class Behaviour {
+        @Mock RoutingContext ctx;
+        @Mock HttpServerRequest req;
+        @Mock HttpServerResponse resp;
+        @Mock MultiMap headers;
 
-    @Test
-    void shouldHaveExpectedRequiredPermissions() {
-        MatcherAssert.assertThat(
-                handler.resourceActions(),
-                Matchers.equalTo(
-                        Set.of(
-                                ResourceAction.READ_TARGET,
-                                ResourceAction.READ_RECORDING,
-                                ResourceAction.CREATE_REPORT,
-                                ResourceAction.READ_REPORT)));
-    }
+        @Test
+        void shouldHandleRecordingDownloadRequest() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
-    @Test
-    void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ctx.response()).thenReturn(resp);
+            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
-                .thenReturn(resp);
+            String targetId = "fooHost:0";
+            String recordingName = "foo";
+            Future<String> content = CompletableFuture.completedFuture("foobar");
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(content);
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
@@ -138,31 +155,34 @@ class TargetReportGetHandlerTest {
                         Mockito.anyString()))
                 .thenReturn(content);
 
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
-        ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+            handler.handle(ctx);
 
-        handler.handle(ctx);
+            verify(reportService).get(cd, recordingName, "", true);
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).end("foobar");
+        }
 
-        verify(reportService).get(cd, recordingName, "");
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(resp).end("foobar");
-    }
+        @Test
+        void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
-    @Test
-    void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ctx.response()).thenReturn(resp);
+            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
-                .thenReturn(resp);
+            String targetId = "fooHost:0";
+            String recordingName = "foo";
+            Future<String> content = CompletableFuture.completedFuture("foobar");
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(content);
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
@@ -173,28 +193,33 @@ class TargetReportGetHandlerTest {
                         Mockito.anyString()))
                 .thenReturn(content);
 
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-        ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+            handler.handle(ctx);
+            verify(reportService).get(cd, recordingName, "someFilter", true);
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).end("foobar");
+        }
 
-        handler.handle(ctx);
-        verify(reportService).get(cd, recordingName, "someFilter");
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(resp).end("foobar");
-    }
+        @Test
+        void shouldHandleRecordingDownloadRequestUnformatted() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
-    @Test
-    void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("application/json");
+            when(ctx.response()).thenReturn(resp);
+            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
+            String targetId = "fooHost:0";
+            String recordingName = "foo";
+            Future<String> content = CompletableFuture.completedFuture("foobar");
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(content);
 
         when(reportService.get(
                         Mockito.any(ConnectionDescriptor.class),
@@ -204,25 +229,30 @@ class TargetReportGetHandlerTest {
                         new CompletionException(
                                 new RecordingNotFoundException("fooHost:0", "someRecording")));
 
-        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(ctx.queryParam("filter")).thenReturn(List.of(""));
+            handler.handle(ctx);
+            verify(reportService).get(cd, recordingName, "someFilter", false);
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            verify(resp).end("foobar");
+        }
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-    }
+        @Test
+        void shouldRespond404IfRecordingNameNotFound() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
-    @Test
-    void shouldRespond404IfTargetNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ctx.response()).thenReturn(resp);
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenThrow(
+                            new CompletionException(
+                                    new RecordingNotFoundException("fooHost:0", "someRecording")));
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
@@ -238,24 +268,36 @@ class TargetReportGetHandlerTest {
                         Mockito.anyString()))
                 .thenReturn(content);
 
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        }
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-    }
+        @Test
+        void shouldRespond404IfTargetNotFound() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
-    @Test
-    void shouldRespond404IfRecordingNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ctx.response()).thenReturn(resp);
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
+            String targetId = "fooHost:0";
+            String recordingName = "foo";
+            Future<String> content =
+                    CompletableFuture.failedFuture(
+                            new ExecutionException(
+                                    new SubprocessReportGenerator
+                                            .SubprocessReportGenerationException(
+                                            SubprocessReportGenerator.ExitStatus
+                                                    .TARGET_CONNECTION_FAILURE)));
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(content);
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
@@ -270,10 +312,42 @@ class TargetReportGetHandlerTest {
                         Mockito.anyString()))
                 .thenReturn(content);
 
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        }
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        @Test
+        void shouldRespond404IfRecordingNotFound() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ctx.response()).thenReturn(resp);
+
+            String targetId = "fooHost:0";
+            String recordingName = "foo";
+            Future<String> content =
+                    CompletableFuture.failedFuture(
+                            new ExecutionException(
+                                    new SubprocessReportGenerator
+                                            .SubprocessReportGenerationException(
+                                            SubprocessReportGenerator.ExitStatus
+                                                    .NO_SUCH_RECORDING)));
+            when(reportService.get(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(content);
+
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        }
     }
 }

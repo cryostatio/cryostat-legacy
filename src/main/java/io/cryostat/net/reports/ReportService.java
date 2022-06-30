@@ -48,8 +48,7 @@ public class ReportService {
     private final ArchivedRecordingReportCache archivedCache;
 
     ReportService(
-            ActiveRecordingReportCache activeCache,
-            ArchivedRecordingReportCache archivedCache) {
+            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
         this.activeCache = activeCache;
         this.archivedCache = archivedCache;
     }
@@ -75,7 +74,10 @@ public class ReportService {
     }
 
     public Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter, boolean formatted) {
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            String filter,
+            boolean formatted) {
         return activeCache.get(connectionDescriptor, recordingName, filter, formatted);
     }
 

@@ -222,7 +222,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         return List.of(
                 recording.toAbsolutePath().toString(),
                 saveFile.toAbsolutePath().toString(),
-                filter, String.valueOf(formatted));
+                filter,
+                String.valueOf(formatted));
     }
 
     private String serializeTransformersSet() {

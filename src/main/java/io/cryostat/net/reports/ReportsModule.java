@@ -167,9 +167,7 @@ public abstract class ReportsModule {
     @Provides
     @Singleton
     static ReportService provideReportService(
-            ActiveRecordingReportCache activeCache,
-            ArchivedRecordingReportCache archivedCache) {
+            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
         return new ReportService(activeCache, archivedCache);
     }
-
 }

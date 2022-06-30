@@ -63,6 +63,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
@@ -130,7 +131,9 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
-        accept = accept == HttpMimeType.UNKNOWN.mime() ? HttpMimeType.HTML.mime() : accept;
+        if (StringUtils.isBlank(accept)) {
+            throw new HttpException(406);
+        }
         try {
             switch (accept) {
                 case "*/*":
@@ -142,7 +145,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                                             .get(
                                                     getConnectionDescriptorFromContext(ctx),
                                                     recordingName,
-                                                    rawFilter, 
+                                                    rawFilter,
                                                     true)
                                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
                     break;

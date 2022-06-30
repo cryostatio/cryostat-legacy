@@ -93,7 +93,10 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     }
 
     Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter, boolean formatted) {
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            String filter,
+            boolean formatted) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
             if (filter.isBlank() && formatted) {
@@ -102,7 +105,8 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                 f.complete(
                         getReport(
                                 new RecordingDescriptor(connectionDescriptor, recordingName),
-                                filter, formatted));
+                                filter,
+                                formatted));
             }
 
         } catch (Exception e) {
@@ -127,7 +131,8 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         return getReport(recordingDescriptor, "", true);
     }
 
-    protected String getReport(RecordingDescriptor recordingDescriptor, String filter, boolean formatted)
+    protected String getReport(
+            RecordingDescriptor recordingDescriptor, String filter, boolean formatted)
             throws Exception {
         Path saveFile = null;
         try {
