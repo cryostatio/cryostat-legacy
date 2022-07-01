@@ -131,7 +131,6 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-
         String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
         if (StringUtils.isBlank(accept)) {
             throw new HttpException(406);

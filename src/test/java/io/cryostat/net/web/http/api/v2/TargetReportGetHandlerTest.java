@@ -55,7 +55,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -172,6 +171,19 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
+        void shouldRespond406IfAcceptInvalid() throws Exception {
+            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(req.headers()).thenReturn(headers);
+            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+
+            ApiException ex =
+                    Assertions.assertThrows(
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
+        }
+
+        @Test
         void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
@@ -250,14 +262,21 @@ class TargetReportGetHandlerTest {
 
             Mockito.when(ctx.request()).thenReturn(req);
             Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("application/json");
+            Mockito.when(headers.get(Mockito.any(CharSequence.class)))
+                    .thenReturn("application/json");
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
             Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
 
-            Future<String> future = CompletableFuture.completedFuture("{\"coolJson\": \"unformatted\"}");
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+            Future<String> future =
+                    CompletableFuture.completedFuture("{\"coolJson\": \"unformatted\"}");
+            Mockito.when(
+                            reports.get(
+                                    Mockito.any(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.anyBoolean()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);

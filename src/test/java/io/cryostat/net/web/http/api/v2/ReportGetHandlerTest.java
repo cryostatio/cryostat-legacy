@@ -160,6 +160,19 @@ class ReportGetHandlerTest {
         }
 
         @Test
+        void shouldRespond406IfAcceptInvalid() throws Exception {
+            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(req.headers()).thenReturn(headers);
+            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+
+            ApiException ex =
+                    Assertions.assertThrows(
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
+        }
+
+        @Test
         void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
@@ -231,7 +244,8 @@ class ReportGetHandlerTest {
 
             Mockito.when(ctx.request()).thenReturn(req);
             Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("application/json");
+            Mockito.when(headers.get(Mockito.any(CharSequence.class)))
+                    .thenReturn("application/json");
 
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);

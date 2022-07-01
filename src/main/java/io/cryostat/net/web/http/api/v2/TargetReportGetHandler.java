@@ -56,7 +56,6 @@ import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -65,7 +64,6 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -130,7 +128,7 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
         if (StringUtils.isBlank(accept)) {
-            throw new HttpException(406);
+            throw new ApiException(406);
         }
         try {
             String report = null;
@@ -157,7 +155,7 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
                     break;
                 default:
-                    throw new HttpException(406);
+                    throw new ApiException(406);
             }
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, accept);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");

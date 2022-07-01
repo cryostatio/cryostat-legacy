@@ -249,8 +249,23 @@ class ReportGetHandlerTest {
             HttpException ex =
                     Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        }
 
-            Mockito.verify(reportService).get("someRecording", "", true);
+        @Test
+        void shouldRespond406IfAcceptInvalid() throws Exception {
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+            when(ctx.response()).thenReturn(resp);
+            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
+
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
         }
     }
 }

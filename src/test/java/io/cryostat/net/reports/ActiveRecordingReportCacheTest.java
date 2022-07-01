@@ -84,6 +84,7 @@ class ActiveRecordingReportCacheTest {
     @Mock JavaProcess.Builder javaProcessBuilder;
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
     final String REPORT_DOC = "<html><body><p>This is a report</p></body></html>";
+    final String REPORT_JSON = "{\"report\": \"This is an unformatted report\"";
 
     @BeforeEach
     void setup() {
@@ -132,7 +133,7 @@ class ActiveRecordingReportCacheTest {
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
         Mockito.verify(subprocessReportGenerator)
-                .exec(Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean());
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.eq(""), Mockito.eq(true));
         Mockito.verify(fs).readString(destinationFile);
     }
 
@@ -152,7 +153,33 @@ class ActiveRecordingReportCacheTest {
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
         Mockito.verify(subprocessReportGenerator)
-                .exec(Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean());
+                .exec(
+                        Mockito.any(RecordingDescriptor.class),
+                        Mockito.eq("non-null"),
+                        Mockito.eq(true));
+        Mockito.verify(fs).readString(destinationFile);
+    }
+
+    @Test
+    void shouldReturnGeneratedReportResultUnformatted() throws Exception {
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
+                .thenReturn(pathFuture);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_JSON);
+
+        String targetId = "foo";
+
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        Future<String> report = cache.get(connectionDescriptor, "foo", "non-null", false);
+        MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_JSON));
+
+        Mockito.verify(subprocessReportGenerator)
+                .exec(
+                        Mockito.any(RecordingDescriptor.class),
+                        Mockito.eq("non-null"),
+                        Mockito.eq(false));
         Mockito.verify(fs).readString(destinationFile);
     }
 

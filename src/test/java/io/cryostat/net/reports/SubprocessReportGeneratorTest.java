@@ -63,6 +63,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -241,23 +243,24 @@ class SubprocessReportGeneratorTest {
     }
 
     @Test
-    void shouldSetProcessArgsFiltered() throws Exception {
+    void shouldSetProcessArgsFilteredUnformatted() throws Exception {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingFile, dest, "someFilter", true);
+        generator.exec(recordingFile, dest, "someFilter", false);
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
 
         List<String> expected =
-                List.of("/dest/recording.tmp", "/dest/somefile.tmp", "someFilter", "true");
+                List.of("/dest/recording.tmp", "/dest/somefile.tmp", "someFilter", "false");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
-    @Test
-    void shouldExecuteProcessAndReturnPathOnOkExit() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldExecuteProcessAndReturnPathOnOkExit(boolean formatted) throws Exception {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
@@ -266,7 +269,7 @@ class SubprocessReportGeneratorTest {
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
                 () -> {
-                    Future<Path> path = generator.exec(recordingFile, dest, "", true);
+                    Future<Path> path = generator.exec(recordingFile, dest, "", formatted);
                     MatcherAssert.assertThat(path.get(), Matchers.sameInstance(dest));
                 });
     }

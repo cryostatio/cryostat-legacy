@@ -190,6 +190,34 @@ class ArchivedRecordingReportCacheTest {
     }
 
     @Test
+    void getShouldGenerateReportUnformatted() throws Exception {
+        String recordingName = "foo";
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(recordingName))
+                .thenReturn(destinationFile);
+        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Path recording = Mockito.mock(Path.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Mockito.when(future.get()).thenReturn(recording);
+
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(Path.class),
+                                Mockito.any(Path.class),
+                                Mockito.anyString(),
+                                Mockito.anyBoolean()))
+                .thenReturn(pathFuture);
+
+        Future<Path> res = cache.get(recordingName, "someFilter", false);
+
+        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
+        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
+    }
+
+    @Test
     void getShouldReturnCachedFileIfAvailable() throws Exception {
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(future.get()).thenReturn(destinationFile);
