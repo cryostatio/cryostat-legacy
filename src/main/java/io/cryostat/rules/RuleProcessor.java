@@ -40,10 +40,12 @@ package io.cryostat.rules;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -87,7 +89,7 @@ public class RuleProcessor extends AbstractVerticle
     private final Logger logger;
     private final Base32 base32;
 
-    private final Map<Pair<ServiceRef, Rule>, Long> tasks;
+    private final Map<Pair<ServiceRef, Rule>, Set<Long>> tasks;
 
     RuleProcessor(
             Vertx vertx,
@@ -127,7 +129,7 @@ public class RuleProcessor extends AbstractVerticle
     @Override
     public void stop() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((ruleExecution, id) -> vertx.cancelTimer(id));
+        this.tasks.forEach((ruleExecution, ids) -> ids.forEach(vertx::cancelTimer));
         this.tasks.clear();
     }
 
@@ -197,10 +199,6 @@ public class RuleProcessor extends AbstractVerticle
                                     logger.error(e);
                                 }
 
-                                if (rule.getPreservedArchives() <= 0
-                                        || rule.getArchivalPeriodSeconds() <= 0) {
-                                    return;
-                                }
                                 PeriodicArchiver periodicArchiver =
                                         periodicArchiverFactory.create(
                                                 serviceRef,
@@ -209,12 +207,31 @@ public class RuleProcessor extends AbstractVerticle
                                                 recordingArchiveHelper,
                                                 this::archivalFailureHandler,
                                                 base32);
-                                long periodicTask =
-                                        vertx.setPeriodic(
-                                                Duration.ofSeconds(rule.getArchivalPeriodSeconds())
+                                Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
+                                Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
+                                long initialTask =
+                                        vertx.setTimer(
+                                                Duration.ofSeconds(rule.getInitialDelaySeconds())
                                                         .toMillis(),
-                                                periodicId -> periodicArchiver.run());
-                                tasks.put(Pair.of(serviceRef, rule), periodicTask);
+                                                initialId -> {
+                                                    tasks.get(key).remove(initialId);
+                                                    periodicArchiver.run();
+                                                    if (rule.getPreservedArchives() <= 0
+                                                            || rule.getArchivalPeriodSeconds()
+                                                                    <= 0) {
+                                                        return;
+                                                    }
+                                                    long periodicTask =
+                                                            vertx.setPeriodic(
+                                                                    Duration.ofSeconds(
+                                                                                    rule
+                                                                                            .getArchivalPeriodSeconds())
+                                                                            .toMillis(),
+                                                                    periodicId ->
+                                                                            periodicArchiver.run());
+                                                    ids.add(periodicTask);
+                                                });
+                                ids.add(initialTask);
                             }
                         });
     }
@@ -229,21 +246,22 @@ public class RuleProcessor extends AbstractVerticle
         if (serviceRef != null) {
             logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
         }
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Long>> it = tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Set<Long>>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Long> entry = it.next();
+            Map.Entry<Pair<ServiceRef, Rule>, Set<Long>> entry = it.next();
             boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
-                Long id = entry.getValue();
-                vertx.cancelTimer(id);
+                Set<Long> ids = entry.getValue();
+                ids.forEach(vertx::cancelTimer);
                 it.remove();
             }
         }
     }
 
-    private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
-        vertx.cancelTimer(tasks.get(id));
+    private Void archivalFailureHandler(Pair<ServiceRef, Rule> key) {
+        tasks.get(key).forEach(vertx::cancelTimer);
+        tasks.remove(key);
         return null;
     }
 

@@ -60,6 +60,7 @@ public class Rule {
     private final String matchExpression;
     private final String eventSpecifier;
     private final int archivalPeriodSeconds;
+    private final int initialDelaySeconds;
     private final int preservedArchives;
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
@@ -74,7 +75,18 @@ public class Rule {
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
-        this.preservedArchives = builder.preservedArchives;
+        this.initialDelaySeconds =
+                builder.initialDelaySeconds <= 0
+                        ? builder.archivalPeriodSeconds
+                        : builder.initialDelaySeconds;
+        int preservedArchives = builder.preservedArchives;
+        // specifically allow the case where the rule only defines an initialDelay but no ongoing,
+        // repeated archivalPeriod - a rule that only copies to archives once, ex. on target
+        // application startup or shortly thereafter
+        if (archivalPeriodSeconds <= 0 && initialDelaySeconds > 0 && preservedArchives <= 0) {
+            preservedArchives = 1;
+        }
+        this.preservedArchives = preservedArchives;
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
@@ -110,6 +122,10 @@ public class Rule {
         return this.archivalPeriodSeconds;
     }
 
+    public int getInitialDelaySeconds() {
+        return this.initialDelaySeconds;
+    }
+
     public int getPreservedArchives() {
         return this.preservedArchives;
     }
@@ -142,12 +158,14 @@ public class Rule {
 
         if (isArchiver()) {
             requireNonPositive(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonPositive(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
         } else {
             requireNonBlank(this.name, Attribute.NAME);
             requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonNegative(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         }
     }
@@ -199,6 +217,7 @@ public class Rule {
         private String matchExpression = "";
         private String eventSpecifier = "";
         private int archivalPeriodSeconds = 0;
+        private int initialDelaySeconds = 0;
         private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
@@ -225,6 +244,11 @@ public class Rule {
 
         public Builder archivalPeriodSeconds(int archivalPeriodSeconds) {
             this.archivalPeriodSeconds = archivalPeriodSeconds;
+            return this;
+        }
+
+        public Builder initialDelaySeconds(int initialDelaySeconds) {
+            this.initialDelaySeconds = initialDelaySeconds;
             return this;
         }
 
@@ -261,6 +285,7 @@ public class Rule {
                                             Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, formAttributes);
             builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, formAttributes);
             builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, formAttributes);
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, formAttributes);
@@ -280,6 +305,7 @@ public class Rule {
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
                                             .getAsString());
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
             builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
@@ -350,6 +376,9 @@ public class Rule {
                 case ARCHIVAL_PERIOD_SECONDS:
                     fn = this::archivalPeriodSeconds;
                     break;
+                case INITIAL_DELAY_SECONDS:
+                    fn = this::initialDelaySeconds;
+                    break;
                 case PRESERVED_ARCHIVES:
                     fn = this::preservedArchives;
                     break;
@@ -373,6 +402,7 @@ public class Rule {
         MATCH_EXPRESSION("matchExpression"),
         EVENT_SPECIFIER("eventSpecifier"),
         ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),
+        INITIAL_DELAY_SECONDS("initialDelaySeconds"),
         PRESERVED_ARCHIVES("preservedArchives"),
         MAX_AGE_SECONDS("maxAgeSeconds"),
         MAX_SIZE_BYTES("maxSizeBytes"),

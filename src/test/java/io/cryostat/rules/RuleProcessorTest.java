@@ -241,11 +241,16 @@ class RuleProcessorTest {
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
         ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
-        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), handlerCaptor.capture());
+        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());
 
         Mockito.verify(periodicArchiver, Mockito.times(0)).run();
         handlerCaptor.getValue().handle(1234L);
         Mockito.verify(periodicArchiver, Mockito.times(1)).run();
+
+        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), handlerCaptor.capture());
+
+        handlerCaptor.getValue().handle(1234L);
+        Mockito.verify(periodicArchiver, Mockito.times(2)).run();
     }
 
     @Test
@@ -347,7 +352,7 @@ class RuleProcessorTest {
 
         processor.accept(tde);
 
-        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), Mockito.any());
+        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), Mockito.any());
 
         ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
                 ArgumentCaptor.forClass(Function.class);
@@ -360,10 +365,10 @@ class RuleProcessorTest {
                         functionCaptor.capture(),
                         Mockito.any());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
+        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.TIMER_ID);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
-        Mockito.verify(vertx).cancelTimer(MockVertx.PERIODIC_TIMER_ID);
+        Mockito.verify(vertx).cancelTimer(MockVertx.TIMER_ID);
     }
 }

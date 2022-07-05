@@ -168,6 +168,8 @@ public class MockVertx {
                 .when(vertx)
                 .setPeriodic(Mockito.anyLong(), Mockito.any());
 
+        Mockito.lenient().doReturn(TIMER_ID).when(vertx).setTimer(Mockito.anyLong(), Mockito.any());
+
         return vertx;
     }
 }
