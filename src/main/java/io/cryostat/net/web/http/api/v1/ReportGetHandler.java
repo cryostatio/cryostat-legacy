@@ -59,11 +59,11 @@ import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AcceptHeaderParser;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.MIMEHeader;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -132,33 +132,28 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        AcceptHeaderParser ahp = new AcceptHeaderParser();
-        List<String> acceptHeaders = ahp.parse(ctx);
-
+        List<MIMEHeader> accept = ctx.parsedHeaders().accept();
+        if (accept.isEmpty() || accept == null) {
+            throw new HttpException(406);
+        }
+        boolean returnHtml =
+                accept.stream()
+                        .anyMatch(
+                                header ->
+                                        header.component().equals("text")
+                                                && (header.subComponent().equals("html")
+                                                        || header.subComponent().equals("*")));
         try {
             /* TODO: Default HTML until vert.x .produces() on routes is supported */
-            Path report = null;
-            if (acceptHeaders.contains(HttpMimeType.HTML.mime())
-                    || acceptHeaders.contains("text/*")
-                    || acceptHeaders.contains("*/*")) {
-                report =
-                        reportService
-                                .get(recordingName, rawFilter, true)
-                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            } else if (acceptHeaders.contains(HttpMimeType.JSON.mime())
-                    || acceptHeaders.contains("application/*")) {
-                report =
-                        reportService
-                                .get(recordingName, rawFilter, false)
-                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            } else {
-                throw new HttpException(
-                        406,
-                        "Invalid Accept header. Only text/html and application/json MIME types are"
-                                + " supported.");
-            }
+            Path report =
+                    reportService
+                            .get(recordingName, rawFilter, returnHtml)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_TYPE,
+                            returnHtml ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime());
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());

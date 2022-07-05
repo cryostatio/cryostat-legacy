@@ -58,8 +58,9 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.MIMEHeader;
+import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -138,16 +139,19 @@ class TargetReportGetHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
-        @Mock HttpServerRequest req;
-        @Mock AcceptHeaderParser ahp;
+        @Mock ParsedHeaderValues phv;
+        @Mock MIMEHeader header;
+        @Mock MultiMap headers;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -172,8 +176,9 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldRespond406IfAcceptInvalid() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ahp.parse(ctx)).thenReturn(List.of("unacceptable"));
+
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of());
 
             ApiException ex =
                     Assertions.assertThrows(
@@ -188,8 +193,10 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -222,8 +229,10 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -256,8 +265,9 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("application/json"));
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("application");
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);

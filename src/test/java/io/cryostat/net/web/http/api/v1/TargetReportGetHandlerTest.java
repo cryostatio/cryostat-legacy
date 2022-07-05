@@ -46,7 +46,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Stream;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -55,8 +54,6 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.v2.AcceptHeaderParser;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.MultiMap;
@@ -124,10 +121,12 @@ class TargetReportGetHandlerTest {
 
     @Nested
     class Behaviour {
+        
         @Mock RoutingContext ctx;
         @Mock HttpServerRequest req;
         @Mock HttpServerResponse resp;
-        @Mock AcceptHeaderParser ahp;
+        @Mock ParsedHeaderValues phv;
+        @Mock MIMEHeader header;
 
         @Test
         void shouldHandleRecordingDownloadRequest() throws Exception {
@@ -135,7 +134,12 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("text");
+            when(header.subComponent()).thenReturn("html");
+
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);
@@ -172,10 +176,14 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("text");
+            when(header.subComponent()).thenReturn("html");
+
             when(ctx.response()).thenReturn(resp);
-            when(resp.putHeader(Mockito.any(), Mockito.any(CharSequence.class)))
-                    .thenReturn(resp);
+            when(resp.putHeader(Mockito.any(), Mockito.any(CharSequence.class))).thenReturn(resp);
 
             String targetId = "fooHost:0";
             String recordingName = "foo";
@@ -208,7 +216,11 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("application");
+
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);
@@ -243,7 +255,12 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("application/json"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("text");
+            when(header.subComponent()).thenReturn("html");
+
             when(ctx.response()).thenReturn(resp);
 
             when(reportService.get(
@@ -280,7 +297,12 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("text");
+            when(header.subComponent()).thenReturn("html");
+
             when(ctx.response()).thenReturn(resp);
 
             String targetId = "fooHost:0";
@@ -322,7 +344,12 @@ class TargetReportGetHandlerTest {
             when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of(header));
+            when(header.component()).thenReturn("text");
+            when(header.subComponent()).thenReturn("html");
+
             when(ctx.response()).thenReturn(resp);
 
             String targetId = "fooHost:0";
@@ -354,7 +381,10 @@ class TargetReportGetHandlerTest {
             when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
             when(ctx.request()).thenReturn(req);
-            when(ahp.parse(Mockito.any())).thenReturn(List.of("unacceptable"));
+
+            when(ctx.parsedHeaders()).thenReturn(phv);
+            when(phv.accept()).thenReturn(List.of());
+
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);

@@ -55,11 +55,11 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.MIMEHeader;
+import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -139,15 +139,16 @@ class ReportGetHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
-        @Mock HttpServerRequest req;
-        @Mock MultiMap headers;
+        @Mock ParsedHeaderValues phv;
+        @Mock MIMEHeader header;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
@@ -162,9 +163,8 @@ class ReportGetHandlerTest {
         @Test
         void shouldRespond406IfAcceptInvalid() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of());
 
             ApiException ex =
                     Assertions.assertThrows(
@@ -178,9 +178,10 @@ class ReportGetHandlerTest {
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);
@@ -208,9 +209,10 @@ class ReportGetHandlerTest {
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("text");
+            Mockito.when(header.subComponent()).thenReturn("html");
 
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);
@@ -242,10 +244,9 @@ class ReportGetHandlerTest {
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class)))
-                    .thenReturn("application/json");
+            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
+            Mockito.when(phv.accept()).thenReturn(List.of(header));
+            Mockito.when(header.component()).thenReturn("application");
 
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);

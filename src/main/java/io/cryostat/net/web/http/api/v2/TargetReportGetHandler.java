@@ -64,6 +64,7 @@ import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.MIMEHeader;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -126,42 +127,31 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        AcceptHeaderParser ahp = new AcceptHeaderParser();
-        List<String> acceptHeaders = ahp.parse(ctx);
-
+        List<MIMEHeader> accept = ctx.parsedHeaders().accept();
+        if (accept.isEmpty() || accept == null) {
+            throw new ApiException(406);
+        }
+        boolean returnHtml =
+                accept.stream()
+                        .anyMatch(
+                                header ->
+                                        header.component().equals("text")
+                                                && (header.subComponent().equals("html")
+                                                        || header.subComponent().equals("*")));
         try {
             /* TODO: Default HTML until vert.x .produces() on routes is supported */
-            String report = null;
-            if (acceptHeaders.contains(HttpMimeType.HTML.mime())
-                    || acceptHeaders.contains("text/*")
-                    || acceptHeaders.contains("*/*")) {
-                report =
-                        reportService
-                                .get(
-                                        getConnectionDescriptorFromJwt(ctx, jwt),
-                                        recordingName,
-                                        rawFilter,
-                                        true)
-                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            } else if (acceptHeaders.contains(HttpMimeType.JSON.mime())
-                    || acceptHeaders.contains("application/*")) {
-                report =
-                        reportService
-                                .get(
-                                        getConnectionDescriptorFromJwt(ctx, jwt),
-                                        recordingName,
-                                        rawFilter,
-                                        false)
-                                .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            } else {
-                throw new ApiException(
-                        406,
-                        "Invalid Accept header. Only text/html and application/json are"
-                                + " supported.");
-            }
-
+            String report =
+                    reportService
+                            .get(
+                                    getConnectionDescriptorFromJwt(ctx, jwt),
+                                    recordingName,
+                                    rawFilter,
+                                    returnHtml)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_TYPE,
+                            returnHtml ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime());
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().end(report);
         } catch (CompletionException | ExecutionException ee) {
