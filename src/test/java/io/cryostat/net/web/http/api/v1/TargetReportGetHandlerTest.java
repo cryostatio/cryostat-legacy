@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -54,6 +55,8 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.v2.AcceptHeaderParser;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.MultiMap;
@@ -61,6 +64,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.MIMEHeader;
+import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
@@ -122,7 +127,7 @@ class TargetReportGetHandlerTest {
         @Mock RoutingContext ctx;
         @Mock HttpServerRequest req;
         @Mock HttpServerResponse resp;
-        @Mock MultiMap headers;
+        @Mock AcceptHeaderParser ahp;
 
         @Test
         void shouldHandleRecordingDownloadRequest() throws Exception {
@@ -130,8 +135,7 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);
@@ -168,10 +172,9 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
             when(ctx.response()).thenReturn(resp);
-            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+            when(resp.putHeader(Mockito.any(), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);
 
             String targetId = "fooHost:0";
@@ -205,8 +208,7 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("application/json");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);
@@ -241,8 +243,7 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("application/json"));
             when(ctx.response()).thenReturn(resp);
 
             when(reportService.get(
@@ -279,8 +280,7 @@ class TargetReportGetHandlerTest {
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
             when(ctx.response()).thenReturn(resp);
 
             String targetId = "fooHost:0";
@@ -322,8 +322,7 @@ class TargetReportGetHandlerTest {
             when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("text/html"));
             when(ctx.response()).thenReturn(resp);
 
             String targetId = "fooHost:0";
@@ -355,8 +354,7 @@ class TargetReportGetHandlerTest {
             when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
             when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(headers);
-            when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+            when(ahp.parse(Mockito.any())).thenReturn(List.of("unacceptable"));
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);

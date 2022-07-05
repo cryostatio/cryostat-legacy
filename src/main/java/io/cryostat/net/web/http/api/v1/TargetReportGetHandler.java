@@ -57,13 +57,13 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AcceptHeaderParser;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
@@ -130,39 +130,47 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        String accept = ctx.request().headers().get(HttpHeaders.ACCEPT);
-        if (StringUtils.isBlank(accept)) {
-            throw new HttpException(406);
+        AcceptHeaderParser ahp = new AcceptHeaderParser();
+        System.out.println("HEERERERE");
+        List<String> acceptHeaders = ahp.parse(ctx);
+        System.out.println("HEEREREREsdfhsfdh34t624624624642");
+
+        for (var s : acceptHeaders) {
+            System.out.println("Accept header: {}" + s);
         }
+
         try {
-            switch (accept) {
-                case "*/*":
-                case "text/html":
-                    ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime())
-                            .end(
-                                    reportService
-                                            .get(
-                                                    getConnectionDescriptorFromContext(ctx),
-                                                    recordingName,
-                                                    rawFilter,
-                                                    true)
-                                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
-                    break;
-                case "application/json":
-                    ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                            .end(
-                                    reportService
-                                            .get(
-                                                    getConnectionDescriptorFromContext(ctx),
-                                                    recordingName,
-                                                    rawFilter,
-                                                    false)
-                                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
-                    break;
-                default:
-                    throw new HttpException(406);
+            /* TODO: Default HTML until vert.x .produces() on routes is supported */
+            if (acceptHeaders.contains(HttpMimeType.HTML.mime())
+                    || acceptHeaders.contains("text/*")
+                    || acceptHeaders.contains("*/*")) {
+                ctx.response()
+                        .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime())
+                        .end(
+                                reportService
+                                        .get(
+                                                getConnectionDescriptorFromContext(ctx),
+                                                recordingName,
+                                                rawFilter,
+                                                true)
+                                        .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+            } else if (acceptHeaders.contains(HttpMimeType.JSON.mime())
+                    || acceptHeaders.contains("application/*")) {
+                ctx.response()
+                        .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                        .end(
+                                reportService
+                                        .get(
+                                                getConnectionDescriptorFromContext(ctx),
+                                                recordingName,
+                                                rawFilter,
+                                                false)
+                                        .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+            } else {
+                throw new HttpException(
+                        406,
+                        "Invalid Accept header. Only text/html and application/json are"
+                                + " supported.");
             }
 
         } catch (CompletionException | ExecutionException ee) {

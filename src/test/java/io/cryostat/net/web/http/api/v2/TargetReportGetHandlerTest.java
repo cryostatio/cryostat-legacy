@@ -139,7 +139,7 @@ class TargetReportGetHandlerTest {
         @Mock RoutingContext ctx;
         @Mock JWT token;
         @Mock HttpServerRequest req;
-        @Mock MultiMap headers;
+        @Mock AcceptHeaderParser ahp;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
@@ -147,8 +147,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
 
             Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -174,8 +173,7 @@ class TargetReportGetHandlerTest {
         void shouldRespond406IfAcceptInvalid() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
             Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("unacceptable");
+            Mockito.when(ahp.parse(ctx)).thenReturn(List.of("unacceptable"));
 
             ApiException ex =
                     Assertions.assertThrows(
@@ -191,8 +189,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
 
             Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -226,8 +223,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
             Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class))).thenReturn("text/html");
+            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("text/html"));
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
@@ -261,9 +257,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
             Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(req.headers()).thenReturn(headers);
-            Mockito.when(headers.get(Mockito.any(CharSequence.class)))
-                    .thenReturn("application/json");
+            Mockito.when(ahp.parse(Mockito.any(RoutingContext.class))).thenReturn(List.of("application/json"));
 
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
