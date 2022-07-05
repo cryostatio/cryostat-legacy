@@ -121,7 +121,7 @@ class TargetReportGetHandlerTest {
 
     @Nested
     class Behaviour {
-        
+
         @Mock RoutingContext ctx;
         @Mock HttpServerRequest req;
         @Mock HttpServerResponse resp;

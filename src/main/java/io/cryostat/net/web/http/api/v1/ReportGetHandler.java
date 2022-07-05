@@ -60,10 +60,10 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.util.ReportGetAcceptHeaderParser;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.MIMEHeader;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -132,17 +132,8 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        List<MIMEHeader> accept = ctx.parsedHeaders().accept();
-        if (accept.isEmpty() || accept == null) {
-            throw new HttpException(406);
-        }
-        boolean returnHtml =
-                accept.stream()
-                        .anyMatch(
-                                header ->
-                                        header.component().equals("text")
-                                                && (header.subComponent().equals("html")
-                                                        || header.subComponent().equals("*")));
+        boolean returnHtml = ReportGetAcceptHeaderParser.isAcceptable(ctx, apiVersion());
+
         try {
             /* TODO: Default HTML until vert.x .produces() on routes is supported */
             Path report =

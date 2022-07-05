@@ -242,7 +242,7 @@ class ReportGetHandlerTest {
             when(phv.accept()).thenReturn(List.of(header));
             when(header.component()).thenReturn("text");
             when(header.subComponent()).thenReturn("html");
-            
+
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                     .thenReturn(resp);

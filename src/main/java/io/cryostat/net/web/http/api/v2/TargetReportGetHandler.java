@@ -59,12 +59,12 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.util.ReportGetAcceptHeaderParser;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.MIMEHeader;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -127,17 +127,7 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        List<MIMEHeader> accept = ctx.parsedHeaders().accept();
-        if (accept.isEmpty() || accept == null) {
-            throw new ApiException(406);
-        }
-        boolean returnHtml =
-                accept.stream()
-                        .anyMatch(
-                                header ->
-                                        header.component().equals("text")
-                                                && (header.subComponent().equals("html")
-                                                        || header.subComponent().equals("*")));
+        boolean returnHtml = ReportGetAcceptHeaderParser.isAcceptable(ctx, apiVersion());
         try {
             /* TODO: Default HTML until vert.x .produces() on routes is supported */
             String report =
