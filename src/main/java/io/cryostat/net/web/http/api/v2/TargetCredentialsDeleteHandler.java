@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Map;
@@ -118,7 +119,7 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
                 CredentialsManager.targetIdToMatchExpression(
                         params.getPathParams().get("targetId"));
         try {
-            boolean status = this.credentialsManager.removeCredentials(targetId);
+            this.credentialsManager.removeCredentials(targetId);
 
             notificationFactory
                     .createBuilder()
@@ -128,7 +129,9 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .build()
                     .send();
 
-            return new IntermediateResponse<Void>().statusCode(status ? 200 : 404);
+            return new IntermediateResponse<Void>().statusCode(200);
+        } catch (FileNotFoundException e) {
+            return new IntermediateResponse<Void>().statusCode(404);
         } catch (IOException e) {
             throw new ApiException(
                     500, "IOException occurred while clearing persisted credentials", e);

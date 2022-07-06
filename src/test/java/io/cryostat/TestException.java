@@ -39,7 +39,7 @@ package io.cryostat;
 
 public class TestException extends Exception {
 
-    TestException() {
+    public TestException() {
         super("This is a generic exception thrown by tests");
     }
 }

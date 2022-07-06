@@ -38,18 +38,16 @@
 package io.cryostat.configuration;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,40 +60,42 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
+import io.cryostat.rules.MatchExpressionValidationException;
+import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
-import org.apache.commons.codec.binary.Base32;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringUtils;
 
 public class CredentialsManager {
 
     private final Path credentialsDir;
+    private final MatchExpressionValidator matchExpressionValidator;
     private final MatchExpressionEvaluator matchExpressionEvaluator;
     private final FileSystem fs;
     private final PlatformClient platformClient;
     private final Gson gson;
-    private final Base32 base32;
     private final Logger logger;
 
-    private final Map<String, Credentials> credentialsMap;
+    private int nextId = 0;
 
     CredentialsManager(
             Path credentialsDir,
+            MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
             Gson gson,
-            Base32 base32,
             Logger logger) {
         this.credentialsDir = credentialsDir;
+        this.matchExpressionValidator = matchExpressionValidator;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.fs = fs;
         this.platformClient = platformClient;
         this.gson = gson;
-        this.base32 = base32;
         this.logger = logger;
-        this.credentialsMap = new HashMap<>();
     }
 
     public void migrate() throws Exception {
@@ -130,28 +130,33 @@ public class CredentialsManager {
     }
 
     public void load() throws IOException {
-        this.fs.listDirectoryChildren(credentialsDir).stream()
-                .peek(n -> logger.trace("Credentials file: {}", n))
-                .map(credentialsDir::resolve)
-                .map(
-                        path -> {
-                            try {
-                                return fs.readFile(path);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                                return null;
-                            }
-                        })
-                .filter(Objects::nonNull)
-                .map(reader -> gson.fromJson(reader, StoredCredentials.class))
-                .forEach(sc -> credentialsMap.put(sc.getMatchExpression(), sc.getCredentials()));
+        this.nextId =
+                this.fs.listDirectoryChildren(credentialsDir).stream()
+                        .peek(n -> logger.trace("Credentials file: {}", n))
+                        .map(credentialsDir::resolve)
+                        .map(
+                                path -> {
+                                    try {
+                                        String filename = path.getFileName().toString();
+                                        return Integer.parseInt(filename);
+                                    } catch (NumberFormatException nfe) {
+                                        logger.error(nfe);
+                                        try {
+                                            fs.deleteIfExists(path);
+                                        } catch (IOException ioe) {
+                                            logger.error(ioe);
+                                        }
+                                        return 0;
+                                    }
+                                })
+                        .reduce(Math::max)
+                        .orElse(0);
     }
 
-    public boolean addCredentials(String matchExpression, Credentials credentials)
-            throws IOException {
-        boolean replaced = credentialsMap.containsKey(matchExpression);
-        credentialsMap.put(matchExpression, credentials);
-        Path destination = getPersistedPath(matchExpression);
+    public int addCredentials(String matchExpression, Credentials credentials)
+            throws IOException, MatchExpressionValidationException {
+        matchExpressionValidator.validate(matchExpression);
+        Path destination = getPersistedPath(nextId);
         fs.writeString(
                 destination,
                 gson.toJson(new StoredCredentials(matchExpression, credentials)),
@@ -161,16 +166,30 @@ public class CredentialsManager {
         fs.setPosixFilePermissions(
                 destination,
                 Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        return replaced;
+        return nextId++;
     }
 
-    public boolean removeCredentials(String matchExpression) throws IOException {
-        Credentials deleted = this.credentialsMap.remove(matchExpression);
-        fs.deleteIfExists(getPersistedPath(matchExpression));
-        return deleted != null;
+    public int removeCredentials(String matchExpression) throws IOException {
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                if (Objects.equals(matchExpression, sc.getMatchExpression())) {
+                    Path filenamePath = path.getFileName();
+                    if (filenamePath == null) {
+                        throw new IllegalStateException(path.toString());
+                    }
+                    String filename = filenamePath.toString();
+                    fs.deleteIfExists(path);
+                    return Integer.parseInt(filename);
+                }
+            }
+        }
+        throw new FileNotFoundException();
     }
 
-    public Credentials getCredentialsByTargetId(String targetId) {
+    public Credentials getCredentialsByTargetId(String targetId)
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
                 return getCredentials(service);
@@ -179,21 +198,22 @@ public class CredentialsManager {
         return null;
     }
 
-    public Credentials getCredentials(ServiceRef serviceRef) {
-        for (Map.Entry<String, Credentials> entry : credentialsMap.entrySet()) {
-            try {
-                if (matchExpressionEvaluator.applies(entry.getKey(), serviceRef)) {
-                    return entry.getValue();
+    public Credentials getCredentials(ServiceRef serviceRef)
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                if (matchExpressionEvaluator.applies(sc.getMatchExpression(), serviceRef)) {
+                    return sc.getCredentials();
                 }
-            } catch (ScriptException e) {
-                logger.error(e);
-                continue;
             }
         }
         return null;
     }
 
-    public Collection<ServiceRef> getServiceRefsWithCredentials() {
+    public Collection<ServiceRef> getServiceRefsWithCredentials()
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
         List<ServiceRef> result = new ArrayList<>();
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             Credentials credentials = getCredentials(service);
@@ -204,11 +224,21 @@ public class CredentialsManager {
         return result;
     }
 
-    public Collection<String> getMatchExpressions() {
-        return credentialsMap.keySet();
+    public Collection<String> getMatchExpressions()
+            throws JsonSyntaxException, JsonIOException, IOException {
+        Set<String> expressions = new HashSet<>();
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                expressions.add(sc.getMatchExpression());
+            }
+        }
+        return expressions;
     }
 
-    public List<MatchedCredentials> getMatchExpressionsWithMatchedTargets() {
+    public List<MatchedCredentials> getMatchExpressionsWithMatchedTargets()
+            throws JsonSyntaxException, JsonIOException, IOException {
         List<MatchedCredentials> result = new ArrayList<>();
         List<ServiceRef> targets = platformClient.listDiscoverableServices();
         for (String expr : getMatchExpressions()) {
@@ -229,11 +259,8 @@ public class CredentialsManager {
         return result;
     }
 
-    private Path getPersistedPath(String matchExpression) {
-        return credentialsDir.resolve(
-                String.format(
-                        "%s.json",
-                        base32.encodeAsString(matchExpression.getBytes(StandardCharsets.UTF_8))));
+    private Path getPersistedPath(int id) {
+        return credentialsDir.resolve(String.valueOf(id));
     }
 
     public static class MatchedCredentials {

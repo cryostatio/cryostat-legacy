@@ -99,6 +99,12 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
+    static MatchExpressionValidator provideMatchExpressionValidator() {
+        return new MatchExpressionValidator();
+    }
+
+    @Provides
+    @Singleton
     static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
         return new MatchExpressionEvaluator(scriptEngine);
     }

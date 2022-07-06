@@ -54,11 +54,11 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.MatchExpressionEvaluator;
+import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
-import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class ConfigurationModule {
@@ -78,12 +78,12 @@ public abstract class ConfigurationModule {
     @Singleton
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir,
+            MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
             Gson gson,
-            Base32 base32,
             Logger logger) {
         try {
             Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
@@ -98,12 +98,12 @@ public abstract class ConfigurationModule {
             }
             return new CredentialsManager(
                     credentialsDir,
+                    matchExpressionValidator,
                     matchExpressionEvaluator,
                     fs,
                     platformClient,
                     notificationFactory,
                     gson,
-                    base32,
                     logger);
         } catch (IOException e) {
             throw new RuntimeException(e);

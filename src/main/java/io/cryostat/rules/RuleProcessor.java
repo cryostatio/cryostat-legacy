@@ -48,6 +48,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import javax.script.ScriptException;
+
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -178,7 +180,14 @@ public class RuleProcessor extends AbstractVerticle
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
         vertx.<Credentials>executeBlocking(
-                        promise -> promise.complete(credentialsManager.getCredentials(serviceRef)))
+                        promise -> {
+                            try {
+                                Credentials creds = credentialsManager.getCredentials(serviceRef);
+                                promise.complete(creds);
+                            } catch (IOException | ScriptException e) {
+                                promise.fail(e);
+                            }
+                        })
                 .onSuccess(c -> logger.trace("Rule activation successful"))
                 .onSuccess(
                         credentials -> {

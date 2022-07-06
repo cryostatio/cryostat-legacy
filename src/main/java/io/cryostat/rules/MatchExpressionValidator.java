@@ -47,20 +47,26 @@ public class MatchExpressionValidator {
 
     private final TreeVisitor<Void, String> treeVisitor = new MatchExpressionTreeVisitor();
 
+    public String validate(String matchExpression) throws MatchExpressionValidationException {
+        return validate("", matchExpression);
+    }
+
     String validate(Rule rule) throws MatchExpressionValidationException {
+        String name = rule.getName();
+        return validate(name == null ? "" : name, rule.getMatchExpression());
+    }
+
+    private String validate(String name, String matchExpression)
+            throws MatchExpressionValidationException {
         try {
-            String name = rule.getName();
-            if (name == null) {
-                name = "";
-            }
-            CompilationUnitTree cut = parser.parse(name, rule.getMatchExpression(), null);
+            CompilationUnitTree cut = parser.parse(name, matchExpression, null);
             if (cut == null) {
                 throw new IllegalMatchExpressionException();
             }
-            cut.accept(treeVisitor, rule.getMatchExpression());
+            cut.accept(treeVisitor, matchExpression);
         } catch (IllegalMatchExpressionException imee) {
             throw new MatchExpressionValidationException(imee);
         }
-        return rule.getMatchExpression();
+        return matchExpression;
     }
 }

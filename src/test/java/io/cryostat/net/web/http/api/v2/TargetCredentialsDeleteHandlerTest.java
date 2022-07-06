@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -154,8 +155,7 @@ class TargetCredentialsDeleteHandlerTest {
             String targetId = "fooTarget";
             String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenReturn(true);
+            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString())).thenReturn(1);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
@@ -176,7 +176,7 @@ class TargetCredentialsDeleteHandlerTest {
             String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
             Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenReturn(false);
+                    .thenThrow(FileNotFoundException.class);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 

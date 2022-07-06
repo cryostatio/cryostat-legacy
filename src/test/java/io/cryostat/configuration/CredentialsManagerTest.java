@@ -38,6 +38,7 @@
 package io.cryostat.configuration;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +51,7 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
+import io.cryostat.configuration.CredentialsManager.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
@@ -57,6 +59,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
+import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -81,6 +84,7 @@ class CredentialsManagerTest {
 
     CredentialsManager credentialsManager;
     @Mock Path credentialsDir;
+    @Mock MatchExpressionValidator matchExpressionValidator;
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock FileSystem fs;
     @Mock PlatformClient platformClient;
@@ -94,12 +98,12 @@ class CredentialsManagerTest {
         this.credentialsManager =
                 new CredentialsManager(
                         credentialsDir,
+                        matchExpressionValidator,
                         matchExpressionEvaluator,
                         fs,
                         platformClient,
                         notificationFactory,
                         gson,
-                        base32,
                         logger);
     }
 
@@ -112,7 +116,8 @@ class CredentialsManagerTest {
                 credentialsManager.getServiceRefsWithCredentials(), Matchers.empty());
         MatcherAssert.assertThat(
                 credentialsManager.getMatchExpressionsWithMatchedTargets(), Matchers.empty());
-        Assertions.assertFalse(credentialsManager.removeCredentials("foo"));
+        Assertions.assertThrows(
+                FileNotFoundException.class, () -> credentialsManager.removeCredentials("foo"));
         MatcherAssert.assertThat(
                 credentialsManager.getCredentials(new ServiceRef(new URI("foo"), "foo")),
                 Matchers.nullValue());
@@ -125,10 +130,7 @@ class CredentialsManagerTest {
         String targetId = "foo";
         String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
 
-        String filename =
-                String.format(
-                        "%s.json",
-                        base32.encodeToString(matchExpression.getBytes(StandardCharsets.UTF_8)));
+        String filename = "0";
         Path path = Mockito.mock(Path.class);
         Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
 
@@ -159,6 +161,22 @@ class CredentialsManagerTest {
                         Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         Mockito.verifyNoMoreInteractions(fs);
 
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of(filename));
+        Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
+        Mockito.when(fs.readFile(path))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
+
         String newContents = contentsCaptor.getValue();
 
         JsonObject json = gson.fromJson(newContents, JsonObject.class);
@@ -181,22 +199,41 @@ class CredentialsManagerTest {
         String targetId = "foo";
         String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
 
-        String filename =
-                String.format(
-                        "%s.json",
-                        base32.encodeToString(matchExpression.getBytes(StandardCharsets.UTF_8)));
-        Path path = Mockito.mock(Path.class);
-        Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
-
         String username = "user";
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
-        Assertions.assertFalse(credentialsManager.removeCredentials(matchExpression));
+        Assertions.assertThrows(
+                FileNotFoundException.class,
+                () -> credentialsManager.removeCredentials(matchExpression));
+
+        String filename = "1";
+        Path writePath = Mockito.mock(Path.class);
+        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
+        Path filenamePath = Mockito.mock(Path.class);
+        Mockito.when(filenamePath.toString()).thenReturn(filename);
+        Mockito.when(writePath.getFileName()).thenReturn(filenamePath);
 
         credentialsManager.addCredentials(matchExpression, credentials);
 
-        Assertions.assertTrue(credentialsManager.removeCredentials(matchExpression));
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of(filename));
+        Mockito.when(credentialsDir.resolve(filename)).thenReturn(writePath);
+        Mockito.when(fs.readFile(writePath))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
+
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression), Matchers.equalTo(1));
     }
 
     @Test
@@ -221,11 +258,43 @@ class CredentialsManagerTest {
                             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                                 ServiceRef sr = (ServiceRef) invocation.getArgument(1);
                                 String alias = sr.getAlias().orElseThrow();
-                                return Set.of("target1Alias", "target2Alias").contains(alias);
+                                return Set.of(target1.getAlias().get(), target2.getAlias().get())
+                                        .contains(alias);
                             }
                         });
 
+        Path writePath = Mockito.mock(Path.class);
+        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
+
         credentialsManager.addCredentials(matchExpression, credentials);
+
+        Mockito.verify(fs)
+                .writeString(
+                        Mockito.eq(writePath),
+                        Mockito.anyString(),
+                        Mockito.eq(StandardOpenOption.WRITE),
+                        Mockito.eq(StandardOpenOption.CREATE),
+                        Mockito.eq(StandardOpenOption.TRUNCATE_EXISTING));
+        Mockito.verify(fs)
+                .setPosixFilePermissions(
+                        writePath,
+                        Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+        Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
+        Mockito.when(fs.readFile(writePath))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
 
         MatcherAssert.assertThat(
                 credentialsManager.getCredentials(target1), Matchers.equalTo(credentials));
@@ -268,11 +337,31 @@ class CredentialsManagerTest {
                             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                                 ServiceRef sr = (ServiceRef) invocation.getArgument(1);
                                 String alias = sr.getAlias().orElseThrow();
-                                return Set.of("target1Alias", "target2Alias").contains(alias);
+                                return Set.of(target1.getAlias().get(), target2.getAlias().get())
+                                        .contains(alias);
                             }
                         });
 
+        Path writePath = Mockito.mock(Path.class);
+        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
+
         credentialsManager.addCredentials(matchExpression, credentials);
+
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+        Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
+        Mockito.when(fs.readFile(writePath))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
 
         MatcherAssert.assertThat(
                 credentialsManager.getServiceRefsWithCredentials(),
@@ -305,6 +394,39 @@ class CredentialsManagerTest {
                             }
                         });
 
+        Path writePath = Mockito.mock(Path.class);
+        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
+
+        credentialsManager.addCredentials(matchExpression, credentials);
+
+        Mockito.verify(fs)
+                .writeString(
+                        Mockito.eq(writePath),
+                        Mockito.anyString(),
+                        Mockito.eq(StandardOpenOption.WRITE),
+                        Mockito.eq(StandardOpenOption.CREATE),
+                        Mockito.eq(StandardOpenOption.TRUNCATE_EXISTING));
+        Mockito.verify(fs)
+                .setPosixFilePermissions(
+                        writePath,
+                        Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+        Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
+        Mockito.when(fs.readFile(writePath))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
+
         credentialsManager.addCredentials(matchExpression, credentials);
 
         MatchedCredentials matchedCredentials =
@@ -322,7 +444,38 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+        Path writePath = Mockito.mock(Path.class);
+        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
+
         credentialsManager.addCredentials(matchExpression, credentials);
+
+        Mockito.verify(fs)
+                .writeString(
+                        Mockito.eq(writePath),
+                        Mockito.anyString(),
+                        Mockito.eq(StandardOpenOption.WRITE),
+                        Mockito.eq(StandardOpenOption.CREATE),
+                        Mockito.eq(StandardOpenOption.TRUNCATE_EXISTING));
+        Mockito.verify(fs)
+                .setPosixFilePermissions(
+                        writePath,
+                        Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+
+        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+        Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
+        Mockito.when(fs.readFile(writePath))
+                .thenAnswer(
+                        new Answer<BufferedReader>() {
+                            @Override
+                            public BufferedReader answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return new BufferedReader(
+                                        new StringReader(
+                                                gson.toJson(
+                                                        new StoredCredentials(
+                                                                matchExpression, credentials))));
+                            }
+                        });
 
         MatcherAssert.assertThat(
                 credentialsManager.getMatchExpressions(),
@@ -347,11 +500,7 @@ class CredentialsManagerTest {
         @Test
         void doesNothingIfAllFilesInNewFormat() throws Exception {
             String matchExpression = "target.connectUrl == \"foo\"";
-            String filename =
-                    String.format(
-                            "%s.json",
-                            base32.encodeToString(
-                                    matchExpression.getBytes(StandardCharsets.UTF_8)));
+            String filename = "0";
             Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(filename));
 
             Path path = Mockito.mock(Path.class);
@@ -388,11 +537,7 @@ class CredentialsManagerTest {
             Mockito.when(fs.listDirectoryChildren(Mockito.any()))
                     .thenReturn(List.of(originalFilename));
 
-            String newFilename =
-                    String.format(
-                            "%s.json",
-                            base32.encodeToString(
-                                    matchExpression.getBytes(StandardCharsets.UTF_8)));
+            String newFilename = "0";
 
             Path originalPath = Mockito.mock(Path.class);
             Path newPath = Mockito.mock(Path.class);
@@ -462,19 +607,30 @@ class CredentialsManagerTest {
             Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(filename));
 
             Path path = Mockito.mock(Path.class);
-            Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
+            Path filenamePath = Mockito.mock(Path.class);
+            Mockito.when(filenamePath.toString()).thenReturn("0");
+            Mockito.when(path.getFileName()).thenReturn(filenamePath);
 
             String username = "user";
             String password = "pass";
-            String contents =
-                    gson.toJson(
-                            Map.of(
-                                    "matchExpression",
-                                    matchExpression,
-                                    "credentials",
-                                    Map.of("username", username, "password", password)));
+
+            Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+            Mockito.when(credentialsDir.resolve("0")).thenReturn(path);
             Mockito.when(fs.readFile(path))
-                    .thenReturn(new BufferedReader(new StringReader(contents)));
+                    .thenAnswer(
+                            new Answer<BufferedReader>() {
+                                @Override
+                                public BufferedReader answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    return new BufferedReader(
+                                            new StringReader(
+                                                    gson.toJson(
+                                                            new StoredCredentials(
+                                                                    matchExpression,
+                                                                    new Credentials(
+                                                                            username, password)))));
+                                }
+                            });
 
             ServiceRef serviceRef = new ServiceRef(new URI(targetId), "foo");
             Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
@@ -483,56 +639,10 @@ class CredentialsManagerTest {
 
             credentialsManager.load();
 
-            InOrder inOrder = Mockito.inOrder(fs, credentialsDir);
-            inOrder.verify(fs).listDirectoryChildren(credentialsDir);
-            inOrder.verify(credentialsDir).resolve(filename);
-            inOrder.verify(fs).readFile(path);
+            Mockito.verify(fs).listDirectoryChildren(credentialsDir);
             Mockito.verifyNoMoreInteractions(fs);
 
             Credentials found = credentialsManager.getCredentialsByTargetId(targetId);
-            MatcherAssert.assertThat(found.getUsername(), Matchers.equalTo(username));
-            MatcherAssert.assertThat(found.getPassword(), Matchers.equalTo(password));
-        }
-
-        @Test
-        void loadingFilesMakesContentsAvailable2() throws Exception {
-            String targetId = "foo";
-            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
-            String filename =
-                    String.format(
-                            "%s.json",
-                            base32.encodeToString(
-                                    matchExpression.getBytes(StandardCharsets.UTF_8)));
-            Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(filename));
-
-            Path path = Mockito.mock(Path.class);
-            Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
-
-            String username = "user";
-            String password = "pass";
-            String contents =
-                    gson.toJson(
-                            Map.of(
-                                    "matchExpression",
-                                    matchExpression,
-                                    "credentials",
-                                    Map.of("username", username, "password", password)));
-            Mockito.when(fs.readFile(path))
-                    .thenReturn(new BufferedReader(new StringReader(contents)));
-
-            ServiceRef serviceRef = new ServiceRef(new URI(targetId), "foo");
-            Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
-                    .thenReturn(true);
-
-            credentialsManager.load();
-
-            InOrder inOrder = Mockito.inOrder(fs, credentialsDir);
-            inOrder.verify(fs).listDirectoryChildren(credentialsDir);
-            inOrder.verify(credentialsDir).resolve(filename);
-            inOrder.verify(fs).readFile(path);
-            Mockito.verifyNoMoreInteractions(fs);
-
-            Credentials found = credentialsManager.getCredentials(serviceRef);
             MatcherAssert.assertThat(found.getUsername(), Matchers.equalTo(username));
             MatcherAssert.assertThat(found.getPassword(), Matchers.equalTo(password));
         }
