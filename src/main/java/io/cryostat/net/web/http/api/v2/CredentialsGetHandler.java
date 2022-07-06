@@ -38,13 +38,12 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -54,7 +53,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<MatchedCredentials>> {
+class CredentialsGetHandler extends AbstractV2RequestHandler<Map<Integer, String>> {
 
     private final CredentialsManager credentialsManager;
 
@@ -101,9 +100,9 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<MatchedCredent
     }
 
     @Override
-    public IntermediateResponse<List<MatchedCredentials>> handle(RequestParameters requestParams)
-            throws Exception {
-        return new IntermediateResponse<List<MatchedCredentials>>()
-                .body(credentialsManager.getMatchExpressionsWithMatchedTargets());
+    public IntermediateResponse<Map<Integer, String>> handle(
+            RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<Map<Integer, String>>()
+                .body(credentialsManager.getAll());
     }
 }

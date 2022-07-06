@@ -46,8 +46,10 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -224,7 +226,60 @@ public class CredentialsManager {
         return result;
     }
 
-    public Collection<String> getMatchExpressions()
+    public MatchedCredentials get(int id) throws IOException {
+        Path path = credentialsDir.resolve(String.valueOf(id));
+        if (!fs.isRegularFile(path)) {
+            throw new FileNotFoundException();
+        }
+        try (BufferedReader br = fs.readFile(path)) {
+            StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+            Set<ServiceRef> matchedTargets = new HashSet<>();
+            for (ServiceRef target : platformClient.listDiscoverableServices()) {
+                try {
+                    if (matchExpressionEvaluator.applies(sc.getMatchExpression(), target)) {
+                        matchedTargets.add(target);
+                    }
+                } catch (ScriptException e) {
+                    logger.error(e);
+                    break;
+                }
+            }
+            return new MatchedCredentials(sc.getMatchExpression(), matchedTargets);
+        }
+    }
+
+    public void delete(int id) throws IOException {
+        Path path = credentialsDir.resolve(String.valueOf(id));
+        if (!fs.isRegularFile(path)) {
+            throw new FileNotFoundException();
+        }
+        fs.deleteIfExists(path);
+    }
+
+    public Map<Integer, String> getAll()
+            throws JsonSyntaxException, JsonIOException, NumberFormatException, IOException {
+        Map<Integer, String> result = new HashMap<>();
+
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            Path filenamePath = path.getFileName();
+            if (filenamePath == null) {
+                continue;
+            }
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                result.put(Integer.valueOf(filenamePath.toString()), sc.getMatchExpression());
+            }
+        }
+
+        return result;
+    }
+
+    @Deprecated(since = "2.2")
+    /**
+     * @deprecated use {@link getAll} instead
+     */
+    Collection<String> getMatchExpressions()
             throws JsonSyntaxException, JsonIOException, IOException {
         Set<String> expressions = new HashSet<>();
         for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
@@ -237,6 +292,10 @@ public class CredentialsManager {
         return expressions;
     }
 
+    @Deprecated(since = "2.2")
+    /**
+     * @deprecated use {@link getAll} instead
+     */
     public List<MatchedCredentials> getMatchExpressionsWithMatchedTargets()
             throws JsonSyntaxException, JsonIOException, IOException {
         List<MatchedCredentials> result = new ArrayList<>();
