@@ -20,6 +20,10 @@ FLAGS=(
     "surefire:test"
 )
 
+if [ ! -z $2 ]; then
+    FLAGS+=("-Dtest=$2")
+fi
+
 if command -v ansi2txt >/dev/null; then
     FLAGS+=("-Dstyle.color=always")
     PIPECLEANER=ansi2txt

@@ -36,7 +36,12 @@ STARTFLAGS=(
     "exec:exec@wait-for-grafana"
     "failsafe:integration-test"
     "failsafe:verify"
+    "-DfailIfNoTests=true"
 )
+
+if [ ! -z $2 ]; then
+    STARTFLAGS+=("-Dit.test=$2")
+fi
 
 STOPFLAGS=(
     "exec:exec@destroy-pod"
