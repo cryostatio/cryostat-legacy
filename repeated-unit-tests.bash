@@ -10,6 +10,10 @@ else
     runs=1
 fi
 
+if [ -z "${MVN}" ]; then
+    MVN="$(which mvn)"
+fi
+
 FLAGS=(
     "-Dheadless=true"
 )
@@ -26,7 +30,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 runcount=0
 while [ "${runcount}" -lt ${runs} ]; do
     logfile="$DIR/target/cryostat-unittests-$(date -Iminutes).log"
-    mvn "${FLAGS[@]}" surefire:test |& tee >($PIPECLEANER > "${logfile}")
+     "${MVN}" "${FLAGS[@]}" surefire:test |& tee >($PIPECLEANER > "${logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
