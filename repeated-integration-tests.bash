@@ -52,6 +52,8 @@ fi
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
+"${MVN}" -Dheadless=true test-compile
+
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"

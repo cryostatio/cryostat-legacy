@@ -16,6 +16,8 @@ fi
 
 FLAGS=(
     "-Dheadless=true"
+    "test-compile"
+    "surefire:test"
 )
 
 if command -v ansi2txt >/dev/null; then
@@ -32,7 +34,7 @@ while [ "${runcount}" -lt ${runs} ]; do
     logfile="$DIR/target/cryostat-unittests-$(date -Iminutes).log"
     mkdir -p "$(dirname logfile)"
     >"${logfile}"
-     "${MVN}" "${FLAGS[@]}" surefire:test |& tee >($PIPECLEANER > "${logfile}")
+     "${MVN}" "${FLAGS[@]}" |& tee >($PIPECLEANER > "${logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
