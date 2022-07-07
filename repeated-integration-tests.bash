@@ -57,6 +57,10 @@ while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
     server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
+    mkdir -p "$(dirname $client_logfile)"
+    mkdir -p "$(dirname $server_logfile)"
+    >"${client_logfile}"
+    >"${server_logfile}"
     "${MVN}" "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
