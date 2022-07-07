@@ -10,12 +10,16 @@ else
     runs=1
 fi
 
+if [ -z "${MVN}" ]; then
+    MVN="$(which mvn)"
+fi
+
 POD_NAME="$(xpath -q -e 'project/properties/cryostat.itest.podName/text()' pom.xml)"
 CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
 
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then
-        mvn exec:exec@destroy-pod
+        "${MVN}" exec:exec@destroy-pod
     fi
 }
 trap cleanup EXIT
@@ -32,7 +36,12 @@ STARTFLAGS=(
     "exec:exec@wait-for-grafana"
     "failsafe:integration-test"
     "failsafe:verify"
+    "-DfailIfNoTests=true"
 )
+
+if [ ! -z $2 ]; then
+    STARTFLAGS+=("-Dit.test=$2")
+fi
 
 STOPFLAGS=(
     "exec:exec@destroy-pod"
@@ -48,18 +57,24 @@ fi
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
+"${MVN}" -Dheadless=true test-compile
+
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
     server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
-    mvn "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
+    mkdir -p "$(dirname $client_logfile)"
+    mkdir -p "$(dirname $server_logfile)"
+    >"${client_logfile}"
+    >"${server_logfile}"
+    "${MVN}" "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
     podman pod logs -c "${CONTAINER_NAME}" "${POD_NAME}" &>> "${server_logfile}"
-    mvn "${STOPFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
+    "${MVN}" "${STOPFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
 done
 
 echo
