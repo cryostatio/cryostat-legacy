@@ -37,34 +37,38 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
+class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialDeleteHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -79,22 +83,22 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.DELETE;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+        return EnumSet.of(ResourceAction.DELETE_CREDENTIALS);
     }
 
     @Override
     public String path() {
-        return basePath() + "credentials";
+        return basePath() + "credentials/:id";
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+        return HttpMimeType.PLAINTEXT;
     }
 
     @Override
@@ -103,21 +107,31 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     }
 
     @Override
-    public IntermediateResponse<List<Cred>> handle(RequestParameters requestParams)
-            throws Exception {
-        Map<Integer, String> credentials = credentialsManager.getAll();
-        List<Cred> result = new ArrayList<>(credentials.size());
-        for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
-            Cred cred = new Cred();
-            cred.id = entry.getKey();
-            cred.matchExpression = entry.getValue();
-            result.add(cred);
-        }
-        return new IntermediateResponse<List<Cred>>().body(result);
+    public boolean isOrdered() {
+        return true;
     }
 
-    static class Cred {
-        int id;
-        String matchExpression;
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
+        int id = Integer.parseInt(params.getPathParams().get("id"));
+        try {
+            String matchExpression = credentialsManager.get(id);
+            this.credentialsManager.delete(id);
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("CredentialsDeleted")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .build()
+                    .send();
+
+            return new IntermediateResponse<Void>().statusCode(200);
+        } catch (FileNotFoundException e) {
+            return new IntermediateResponse<Void>().statusCode(404);
+        } catch (IOException e) {
+            throw new ApiException(
+                    500, "IOException occurred while clearing persisted credentials", e);
+        }
     }
 }

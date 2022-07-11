@@ -37,10 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -49,27 +45,26 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
-import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
+class CredentialsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final CredentialsManager credentialsManager;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+    CredentialsPostBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
-    public boolean requiresAuthentication() {
-        return true;
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
@@ -79,45 +74,21 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+        return ResourceAction.NONE;
     }
 
     @Override
     public String path() {
-        return basePath() + "credentials";
+        return basePath() + CredentialsPostHandler.PATH;
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
-    }
-
-    @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    public IntermediateResponse<List<Cred>> handle(RequestParameters requestParams)
-            throws Exception {
-        Map<Integer, String> credentials = credentialsManager.getAll();
-        List<Cred> result = new ArrayList<>(credentials.size());
-        for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
-            Cred cred = new Cred();
-            cred.id = entry.getKey();
-            cred.matchExpression = entry.getValue();
-            result.add(cred);
-        }
-        return new IntermediateResponse<List<Cred>>().body(result);
-    }
-
-    static class Cred {
-        int id;
-        String matchExpression;
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

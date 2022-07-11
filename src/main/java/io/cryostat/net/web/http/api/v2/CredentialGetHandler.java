@@ -37,34 +37,38 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
+import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
+class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> {
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -89,7 +93,7 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Override
     public String path() {
-        return basePath() + "credentials";
+        return basePath() + "credentials/:id";
     }
 
     @Override
@@ -103,21 +107,21 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     }
 
     @Override
-    public IntermediateResponse<List<Cred>> handle(RequestParameters requestParams)
-            throws Exception {
-        Map<Integer, String> credentials = credentialsManager.getAll();
-        List<Cred> result = new ArrayList<>(credentials.size());
-        for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
-            Cred cred = new Cred();
-            cred.id = entry.getKey();
-            cred.matchExpression = entry.getValue();
-            result.add(cred);
-        }
-        return new IntermediateResponse<List<Cred>>().body(result);
+    public boolean isOrdered() {
+        return true;
     }
 
-    static class Cred {
-        int id;
-        String matchExpression;
+    @Override
+    public IntermediateResponse<MatchedCredentials> handle(RequestParameters params)
+            throws ApiException {
+        int id = Integer.parseInt(params.getPathParams().get("id"));
+        try {
+            String matchExpression = credentialsManager.get(id);
+            Set<ServiceRef> targets = credentialsManager.resolveMatchingTargets(id);
+            MatchedCredentials match = new MatchedCredentials(matchExpression, targets);
+            return new IntermediateResponse<MatchedCredentials>().body(match);
+        } catch (IOException ioe) {
+            throw new ApiException(500, ioe);
+        }
     }
 }

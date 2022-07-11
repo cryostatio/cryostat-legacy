@@ -226,11 +226,19 @@ public class CredentialsManager {
         return result;
     }
 
-    public MatchedCredentials get(int id) throws IOException {
+    public String get(int id) throws IOException {
         Path path = credentialsDir.resolve(String.valueOf(id));
         if (!fs.isRegularFile(path)) {
             throw new FileNotFoundException();
         }
+        try (BufferedReader br = fs.readFile(path)) {
+            StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+            return sc.getMatchExpression();
+        }
+    }
+
+    public Set<ServiceRef> resolveMatchingTargets(int id) throws IOException {
+        Path path = credentialsDir.resolve(String.valueOf(id));
         try (BufferedReader br = fs.readFile(path)) {
             StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
             Set<ServiceRef> matchedTargets = new HashSet<>();
@@ -244,7 +252,7 @@ public class CredentialsManager {
                     break;
                 }
             }
-            return new MatchedCredentials(sc.getMatchExpression(), matchedTargets);
+            return matchedTargets;
         }
     }
 
@@ -326,7 +334,7 @@ public class CredentialsManager {
         private final String matchExpression;
         private final Collection<ServiceRef> targets;
 
-        MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
+        public MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
             this.matchExpression = matchExpression;
             this.targets = new HashSet<>(targets);
         }
