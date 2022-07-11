@@ -54,6 +54,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
 import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 
 class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
@@ -116,6 +117,10 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
         return new IntermediateResponse<List<Cred>>().body(result);
     }
 
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification =
+                    "The fields are serialized for JSON HTTP response instead of accessed directly")
     static class Cred {
         int id;
         String matchExpression;
