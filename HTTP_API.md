@@ -1218,6 +1218,10 @@ The handler-specific descriptions below describe how each handler populates the
 | Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
 | Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
 | Get a list of targets with stored credentials                             | [`TargetCredentialsGetHandler`](#TargetCredentialsGetHandler)                   |
+| Add stored credentials                                                    | [`CredentialsPostHandler`](#CredentialsPostHandler)                             |
+| Get a list of stored credentials                                          | [`CredentialsGetHandler`](#CredentialsGetHandler)                               |
+| Get a stored credential and its matching targets                          | [`CredentialGetHandler`](#CredentialGetHandler)                                 |
+| Delete stored credentials                                                 | [`CredentialDeleteHandler`](#CredentialDeleteHandler)                         |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
@@ -1683,10 +1687,9 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `TargetCredentialsPostHandler`
 
     ##### synopsis
-    Creates stored credentials for a given target. These are used for automated
-    rules processing - if a Target JVM requires JMX authentication, Cryostat
-    will use stored credentials when attempting to open JMX connections to the
-    target.
+    Creates stored credentials for a given target. When an API request is made
+    that requires Cryostat to connect to a JVM target with JMX authentication
+    enabled, the credentials stored using this endpoint will be used.
 
     ##### request
     `POST /api/v2/targets/:targetId/credentials`
@@ -1753,6 +1756,108 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -X GET http://0.0.0.0:8181/api/v2.1/credentials
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9091","JAVA_MAIN":"io.cryostat.Cryostat"}}},{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9094","JAVA_MAIN":"es.andrewazor.demo.Main"}}}]}}
+    ```
+
+* #### `CredentialsPostHandler`
+
+    ##### synopsis
+    Creates stored credentials for a target or targets. When an API request is
+    made that requires Cryostat to connect to a JVM target with JMX
+    authentication enabled, the credentials stored using this endpoint will be
+    used.
+
+    ##### request
+    `POST /api/v2.2/credentials`
+
+    The request should be an HTTP form with the attributes `"matchExpression"`,
+    `"username"`, and `"password"`. All are required.
+
+    ##### response
+    `201` - The result is null. The request was processed successfully and the
+    credentials were stored.
+
+    `400` - `"matchExpression"`, `"username"`, or `"password"` were not provided.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl -F matchExpression="target.alias == \"myservice\"" -F username=myuser -F password=mypassword http://0.0.0.0:8181/api/v2.2/credentials
+    {"meta":{"type":"text/plain","status":"Created"},"data":{"result":null}}
+    ```
+
+* #### `CredentialsGetHandler`
+
+    ##### synopsis
+    List stored credentials. Only the `id` and `matchExpression` are provided
+    here.
+
+    ##### request
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is a list of stored credentials.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2.2/credentials
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"id":1,"matchExpression":"target.alias == \"myservice\""}]}}
+    ```
+
+* #### `CredentialGetHandler`
+
+    ##### synopsis
+    Get stored credentials. The `id` and `matchExpression` are included, and the
+    list of known targets matching the `matchExpression` will be resolved.
+
+    ##### request
+    `GET /api/v2.2/credentials/:id`
+
+    `id` - the numeric ID of the credential, as listed by
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is a credentials object.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2.2/credentials/1
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"matchExpression":"target.alias == \"myservice\"","targets":[]}}}
+    ```
+
+* #### `CredentialDeleteHandler`
+
+    ##### synopsis
+    Delete stored credentials.
+
+    ##### request
+    `DELETE /api/v2.2/credentials/:id`
+
+    `id` - the numeric ID of the credential, as listed by
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were deleted.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2.2/credentials/1
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
     ```
 
 ### Security
