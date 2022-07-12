@@ -60,8 +60,7 @@ class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<Lis
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
-        return actions;
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override

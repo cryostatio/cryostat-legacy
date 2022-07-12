@@ -68,15 +68,13 @@ class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecor
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.READ_RECORDING,
-                        ResourceAction.UPDATE_RECORDING,
-                        ResourceAction.CREATE_RECORDING,
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.UPDATE_TARGET,
-                        ResourceAction.READ_CREDENTIALS);
-        return actions;
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_TARGET,
+                ResourceAction.UPDATE_TARGET,
+                ResourceAction.READ_CREDENTIALS);
     }
 
     @Override

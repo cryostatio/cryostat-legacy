@@ -84,13 +84,11 @@ class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordin
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.READ_RECORDING,
-                        ResourceAction.UPDATE_RECORDING,
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.READ_CREDENTIALS);
-        return actions;
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_CREDENTIALS);
     }
 
     @Override

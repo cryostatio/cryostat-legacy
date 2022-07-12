@@ -69,13 +69,11 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.CREATE_RECORDING,
-                        ResourceAction.READ_RECORDING,
-                        ResourceAction.READ_CREDENTIALS);
-        return actions;
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.READ_CREDENTIALS);
     }
 
     @Override

@@ -97,12 +97,10 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.READ_RECORDING,
-                        ResourceAction.READ_CREDENTIALS);
-        return actions;
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.READ_CREDENTIALS);
     }
 
     @Override

@@ -68,8 +68,7 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
-        return actions;
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override

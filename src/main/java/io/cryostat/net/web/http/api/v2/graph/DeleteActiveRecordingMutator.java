@@ -69,13 +69,11 @@ class DeleteActiveRecordingMutator
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.DELETE_RECORDING,
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.UPDATE_TARGET,
-                        ResourceAction.DELETE_CREDENTIALS);
-        return actions;
+        return EnumSet.of(
+                ResourceAction.DELETE_RECORDING,
+                ResourceAction.READ_TARGET,
+                ResourceAction.UPDATE_TARGET,
+                ResourceAction.DELETE_CREDENTIALS);
     }
 
     @Override

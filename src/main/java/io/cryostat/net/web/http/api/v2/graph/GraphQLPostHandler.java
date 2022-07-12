@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -82,7 +81,7 @@ class GraphQLPostHandler implements RequestHandler {
     public Set<ResourceAction> resourceActions() {
         // no permissions directly required here. Specific permissions may be required by fetchers
         // and mutators that we invoke - see AbstractPermissionedDataFetcher
-        return EnumSet.noneOf(ResourceAction.class);
+        return ResourceAction.NONE;
     }
 
     @Override

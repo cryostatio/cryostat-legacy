@@ -71,8 +71,7 @@ class ArchivedRecordingsFetcher
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_RECORDING);
-        return actions;
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     public Archived getAuthenticated(DataFetchingEnvironment environment) throws Exception {

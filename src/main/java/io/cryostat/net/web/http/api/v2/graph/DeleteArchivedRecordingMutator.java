@@ -63,8 +63,7 @@ class DeleteArchivedRecordingMutator
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.DELETE_RECORDING);
-        return actions;
+        return EnumSet.of(ResourceAction.DELETE_RECORDING);
     }
 
     @Override

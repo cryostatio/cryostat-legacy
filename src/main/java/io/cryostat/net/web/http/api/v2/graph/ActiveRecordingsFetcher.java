@@ -63,9 +63,7 @@ class ActiveRecordingsFetcher
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(ResourceAction.READ_RECORDING, ResourceAction.READ_TARGET);
-        return actions;
+        return EnumSet.of(ResourceAction.READ_RECORDING, ResourceAction.READ_TARGET);
     }
 
     @Override
