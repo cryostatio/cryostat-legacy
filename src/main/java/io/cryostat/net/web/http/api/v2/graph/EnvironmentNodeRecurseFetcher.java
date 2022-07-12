@@ -76,7 +76,7 @@ class EnvironmentNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List
             result.add(environmentNode);
             for (AbstractNode child : environmentNode.getChildren()) {
                 DataFetchingEnvironment newEnv =
-                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
                                 .source(child)
                                 .build();
                 result.addAll(get(newEnv));
