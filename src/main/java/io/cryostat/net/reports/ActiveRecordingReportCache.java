@@ -54,12 +54,15 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.MessageConsumer;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 class ActiveRecordingReportCache {
+    private final static String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
 
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
@@ -67,19 +70,21 @@ class ActiveRecordingReportCache {
     protected final TargetConnectionManager targetConnectionManager;
     protected final long generationTimeoutSeconds;
     protected final Logger logger;
+    protected final Vertx vertx;
 
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Vertx vertx,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
-
+        this.vertx = vertx;
         this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
@@ -127,6 +132,7 @@ class ActiveRecordingReportCache {
     protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
             throws Exception {
         Path saveFile = null;
+        registerConsumer(recordingDescriptor);
         try {
             /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
@@ -176,5 +182,28 @@ class ActiveRecordingReportCache {
                 fs.deleteIfExists(saveFile);
             }
         }
+    }
+
+    private void registerConsumer(RecordingDescriptor key) {
+        MessageConsumer<String> consumer = this.vertx.eventBus().consumer(STOP_NOTIFICATION_CATEGORY);
+        consumer.handler(message -> {
+            System.out.println("TEST1");
+            boolean hasKey = cache.asMap().containsKey(key);
+            if (hasKey) {
+                logger.trace("Invalidated active report cache for {}", key.recordingName);
+                cache.invalidate(key);
+            } else {
+                logger.trace("No cache entry for {} to invalidate", key.recordingName);
+            }
+            consumer.unregister(res -> {
+                System.out.println("TEST");
+                if (res.succeeded()) {
+                    logger.trace("Handler for {} unregistered", key.recordingName);
+                }
+                else {
+                    logger.trace("Handler for {} was unable to be unregistered", key.recordingName);
+                }
+            });
+        });
     }
 }

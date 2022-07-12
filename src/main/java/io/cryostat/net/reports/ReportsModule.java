@@ -82,13 +82,14 @@ public abstract class ReportsModule {
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Vertx vertx,
             Logger logger) {
         return new ActiveRecordingReportCache(
                 reportGeneratorServiceProvider,
                 fs,
                 targetConnectionManager,
                 generationTimeoutSeconds,
-                logger);
+                vertx, logger);
     }
 
     @Provides
