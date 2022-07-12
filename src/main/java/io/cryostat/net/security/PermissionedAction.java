@@ -35,49 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http;
+package io.cryostat.net.security;
 
-import io.cryostat.net.security.PermissionedAction;
-import io.cryostat.net.web.http.api.ApiVersion;
+import java.util.Set;
 
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-
-public interface RequestHandler extends Handler<RoutingContext>, PermissionedAction {
-    /** Lower number == higher priority handler */
-    static final int DEFAULT_PRIORITY = 100;
-
-    static final String ALL_PATHS = "*";
-
-    default int getPriority() {
-        return DEFAULT_PRIORITY;
-    }
-
-    ApiVersion apiVersion();
-
-    default String basePath() {
-        switch (apiVersion()) {
-            case GENERIC:
-                return "/";
-            default:
-                return "/api/" + apiVersion().getVersionString() + "/";
-        }
-    }
-
-    String path();
-
-    HttpMethod httpMethod();
-
-    default boolean isAvailable() {
-        return true;
-    }
-
-    default boolean isAsync() {
-        return true;
-    }
-
-    default boolean isOrdered() {
-        return true;
-    }
+public interface PermissionedAction {
+    Set<ResourceAction> resourceActions();
 }
