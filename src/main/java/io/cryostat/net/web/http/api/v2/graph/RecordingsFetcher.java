@@ -50,8 +50,6 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
@@ -66,6 +64,9 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import graphql.schema.DataFetchingEnvironment;
 
 class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 

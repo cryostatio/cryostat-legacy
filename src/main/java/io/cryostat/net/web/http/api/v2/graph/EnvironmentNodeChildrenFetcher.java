@@ -44,11 +44,12 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+
+import graphql.schema.DataFetchingEnvironment;
 
 class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<List<AbstractNode>> {
 
@@ -64,7 +65,8 @@ class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<Lis
     }
 
     @Override
-    public List<AbstractNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public List<AbstractNode> getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         EnvironmentNode node = environment.getSource();
         return new ArrayList<>(node.getChildren());
     }

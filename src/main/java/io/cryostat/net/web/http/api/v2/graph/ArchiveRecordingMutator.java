@@ -42,7 +42,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -51,6 +50,8 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
+import graphql.schema.DataFetchingEnvironment;
+
 class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
@@ -58,7 +59,9 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
 
     @Inject
     ArchiveRecordingMutator(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
+            AuthManager auth,
+            RecordingArchiveHelper recordingArchiveHelper,
+            CredentialsManager credentialsManager) {
         super(auth);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.credentialsManager = credentialsManager;
@@ -76,7 +79,8 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
     }
 
     @Override
-    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();

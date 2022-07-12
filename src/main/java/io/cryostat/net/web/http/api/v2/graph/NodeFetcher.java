@@ -44,11 +44,12 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+
+import graphql.schema.DataFetchingEnvironment;
 
 class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
 

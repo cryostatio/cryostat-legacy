@@ -48,12 +48,13 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
+
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
 class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
@@ -61,7 +62,10 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
     private final TargetNodeRecurseFetcher recurseFetcher;
 
     @Inject
-    TargetNodesFetcher(AuthManager auth, RootNodeFetcher rootNodefetcher, TargetNodeRecurseFetcher recurseFetcher) {
+    TargetNodesFetcher(
+            AuthManager auth,
+            RootNodeFetcher rootNodefetcher,
+            TargetNodeRecurseFetcher recurseFetcher) {
         super(auth);
         this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;

@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
@@ -55,7 +54,6 @@ import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 @SuppressFBWarnings(
@@ -63,7 +61,8 @@ import graphql.schema.DataFetchingEnvironment;
         justification =
                 "The Archived and AggregateInfo fields are serialized and returned to the client by"
                         + " the GraphQL engine")
-class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
+class ArchivedRecordingsFetcher
+        extends AbstractPermissionedDataFetcher<Archived> {
 
     @Inject
     ArchivedRecordingsFetcher(AuthManager auth) {

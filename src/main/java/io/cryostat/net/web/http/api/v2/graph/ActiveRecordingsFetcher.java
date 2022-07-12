@@ -46,13 +46,15 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
-class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<List<GraphRecordingDescriptor>> {
+import graphql.schema.DataFetchingEnvironment;
+
+class ActiveRecordingsFetcher
+        extends AbstractPermissionedDataFetcher<List<GraphRecordingDescriptor>> {
 
     @Inject
     ActiveRecordingsFetcher(AuthManager auth) {

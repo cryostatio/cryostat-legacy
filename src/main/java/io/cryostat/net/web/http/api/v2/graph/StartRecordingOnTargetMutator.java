@@ -48,7 +48,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -61,8 +60,10 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import graphql.schema.DataFetchingEnvironment;
+
 class StartRecordingOnTargetMutator
-    extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
+        extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -99,8 +100,8 @@ class StartRecordingOnTargetMutator
     }
 
     @Override
-    public HyperlinkedSerializableRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
+    public HyperlinkedSerializableRecordingDescriptor getAuthenticated(
+            DataFetchingEnvironment environment) throws Exception {
         TargetNode node = environment.getSource();
         Map<String, Object> settings = environment.getArgument("recording");
 

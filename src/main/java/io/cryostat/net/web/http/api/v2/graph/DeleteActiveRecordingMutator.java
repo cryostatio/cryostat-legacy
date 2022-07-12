@@ -42,7 +42,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -50,15 +49,19 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import graphql.schema.DataFetchingEnvironment;
+
 class DeleteActiveRecordingMutator
-    extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
+        extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
 
     @Inject
     DeleteActiveRecordingMutator(
-            AuthManager auth, RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+            AuthManager auth,
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager) {
         super(auth);
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
@@ -76,7 +79,8 @@ class DeleteActiveRecordingMutator
     }
 
     @Override
-    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();

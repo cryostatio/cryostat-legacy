@@ -42,19 +42,21 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
+import graphql.schema.DataFetchingEnvironment;
+
 class DeleteArchivedRecordingMutator
-    extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
+        extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    DeleteArchivedRecordingMutator(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
+    DeleteArchivedRecordingMutator(
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
@@ -66,7 +68,8 @@ class DeleteArchivedRecordingMutator
     }
 
     @Override
-    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         ArchivedRecordingInfo source = environment.getSource();
         return recordingArchiveHelper.deleteRecording(source.getName()).get();
     }

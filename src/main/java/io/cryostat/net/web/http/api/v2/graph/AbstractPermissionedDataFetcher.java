@@ -37,12 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import graphql.GraphQLContext;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
+
+import graphql.GraphQLContext;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 
@@ -58,8 +59,11 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     public final T get(DataFetchingEnvironment environment) throws Exception {
         GraphQLContext graphCtx = environment.getGraphQlContext();
         RoutingContext ctx = graphCtx.get(RoutingContext.class);
-        boolean authenticated = auth.validateHttpHeader(
-                () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION), resourceActions()).get();
+        boolean authenticated =
+                auth.validateHttpHeader(
+                                () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                resourceActions())
+                        .get();
         if (!authenticated) {
             throw new AuthorizationErrorException("Unauthorized");
         }
@@ -67,5 +71,4 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     }
 
     abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
-
 }
