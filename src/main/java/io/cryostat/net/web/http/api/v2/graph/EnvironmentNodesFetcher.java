@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -47,6 +48,8 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -54,13 +57,20 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
+class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>>, PermissionedAction {
 
     private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
     EnvironmentNodesFetcher(RootNodeFetcher rootNodeFetcher) {
         this.rootNodeFetcher = rootNodeFetcher;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
+        actions.addAll(rootNodeFetcher.resourceActions());
+        return actions;
     }
 
     @Override

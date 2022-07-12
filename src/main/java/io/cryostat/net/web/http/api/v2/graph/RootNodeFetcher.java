@@ -37,21 +37,31 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class RootNodeFetcher implements DataFetcher<EnvironmentNode> {
+class RootNodeFetcher implements DataFetcher<EnvironmentNode>, PermissionedAction {
 
     private final PlatformClient client;
 
     @Inject
     RootNodeFetcher(PlatformClient client) {
         this.client = client;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override

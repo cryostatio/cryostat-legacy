@@ -37,17 +37,22 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor> {
+class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor>, PermissionedAction {
 
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
@@ -57,6 +62,19 @@ class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor> {
             RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions =
+                EnumSet.of(
+                        ResourceAction.READ_RECORDING,
+                        ResourceAction.UPDATE_RECORDING,
+                        ResourceAction.CREATE_RECORDING,
+                        ResourceAction.READ_TARGET,
+                        ResourceAction.UPDATE_TARGET,
+                        ResourceAction.READ_CREDENTIALS);
+        return actions;
     }
 
     @Override

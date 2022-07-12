@@ -39,8 +39,10 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -52,6 +54,8 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.platform.ServiceRef;
@@ -65,7 +69,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class RecordingsFetcher implements DataFetcher<Recordings> {
+class RecordingsFetcher implements DataFetcher<Recordings>, PermissionedAction {
 
     private final TargetConnectionManager tcm;
     private final RecordingArchiveHelper archiveHelper;
@@ -88,6 +92,16 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.logger = logger;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions =
+                EnumSet.of(
+                        ResourceAction.READ_TARGET,
+                        ResourceAction.READ_RECORDING,
+                        ResourceAction.READ_CREDENTIALS);
+        return actions;
     }
 
     @Override

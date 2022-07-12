@@ -38,12 +38,16 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
@@ -58,10 +62,16 @@ import graphql.schema.DataFetchingEnvironment;
         justification =
                 "The Archived and AggregateInfo fields are serialized and returned to the client by"
                         + " the GraphQL engine")
-class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
+class ArchivedRecordingsFetcher implements DataFetcher<Archived>, PermissionedAction {
 
     @Inject
     ArchivedRecordingsFetcher() {}
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_RECORDING);
+        return actions;
+    }
 
     public Archived get(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();

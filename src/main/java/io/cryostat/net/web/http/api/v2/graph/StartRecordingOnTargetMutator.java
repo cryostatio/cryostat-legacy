@@ -37,7 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -51,6 +53,8 @@ import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -60,7 +64,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
-        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor> {
+        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor>, PermissionedAction {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -80,6 +84,18 @@ class StartRecordingOnTargetMutator
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.credentialsManager = credentialsManager;
         this.webServer = webServer;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions =
+                EnumSet.of(
+                        ResourceAction.READ_RECORDING,
+                        ResourceAction.CREATE_RECORDING,
+                        ResourceAction.READ_TARGET,
+                        ResourceAction.UPDATE_TARGET,
+                        ResourceAction.READ_CREDENTIALS);
+        return actions;
     }
 
     @Override

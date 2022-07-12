@@ -37,15 +37,19 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
 
@@ -53,7 +57,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
+class TargetNodesFetcher implements DataFetcher<List<TargetNode>>, PermissionedAction {
 
     private final RootNodeFetcher rootNodeFetcher;
     private final TargetNodeRecurseFetcher recurseFetcher;
@@ -62,6 +66,14 @@ class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
     TargetNodesFetcher(RootNodeFetcher rootNodefetcher, TargetNodeRecurseFetcher recurseFetcher) {
         this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
+        actions.addAll(rootNodeFetcher.resourceActions());
+        actions.addAll(recurseFetcher.resourceActions());
+        return actions;
     }
 
     @Override

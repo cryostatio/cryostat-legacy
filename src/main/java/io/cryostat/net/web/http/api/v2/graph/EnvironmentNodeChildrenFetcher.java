@@ -38,15 +38,26 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class EnvironmentNodeChildrenFetcher implements DataFetcher<List<AbstractNode>> {
+class EnvironmentNodeChildrenFetcher
+        implements DataFetcher<List<AbstractNode>>, PermissionedAction {
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
+        return actions;
+    }
 
     @Override
     public List<AbstractNode> get(DataFetchingEnvironment environment) throws Exception {

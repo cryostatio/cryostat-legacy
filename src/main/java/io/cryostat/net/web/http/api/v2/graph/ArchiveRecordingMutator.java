@@ -37,10 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -48,7 +53,7 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
+class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo>, PermissionedAction {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final CredentialsManager credentialsManager;
@@ -58,6 +63,17 @@ class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
             RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.credentialsManager = credentialsManager;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions =
+                EnumSet.of(
+                        ResourceAction.READ_TARGET,
+                        ResourceAction.CREATE_RECORDING,
+                        ResourceAction.READ_RECORDING,
+                        ResourceAction.READ_CREDENTIALS);
+        return actions;
     }
 
     @Override

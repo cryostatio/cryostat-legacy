@@ -38,8 +38,12 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
@@ -48,7 +52,14 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class EnvironmentNodeRecurseFetcher implements DataFetcher<List<EnvironmentNode>> {
+class EnvironmentNodeRecurseFetcher
+        implements DataFetcher<List<EnvironmentNode>>, PermissionedAction {
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.READ_TARGET);
+        return actions;
+    }
 
     @Override
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {

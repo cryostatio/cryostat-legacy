@@ -37,21 +37,33 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
+import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class DeleteArchivedRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
+class DeleteArchivedRecordingMutator
+        implements DataFetcher<ArchivedRecordingInfo>, PermissionedAction {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
     DeleteArchivedRecordingMutator(RecordingArchiveHelper recordingArchiveHelper) {
         this.recordingArchiveHelper = recordingArchiveHelper;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        EnumSet<ResourceAction> actions = EnumSet.of(ResourceAction.DELETE_RECORDING);
+        return actions;
     }
 
     @Override
