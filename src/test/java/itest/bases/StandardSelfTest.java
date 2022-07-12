@@ -51,6 +51,7 @@ import org.openjdk.jmc.common.util.Pair;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
@@ -145,33 +146,41 @@ public abstract class StandardSelfTest {
     }
 
     public static CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
-        return fireDownloadRequest(webClient.get(url), name, suffix);
+        return fireDownloadRequest(
+                webClient.get(url), name, suffix, MultiMap.caseInsensitiveMultiMap());
     }
 
     public static CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
-        return fireDownloadRequest(webClient.getAbs(url), name, suffix);
+        return fireDownloadRequest(
+                webClient.getAbs(url), name, suffix, MultiMap.caseInsensitiveMultiMap());
+    }
+
+    public static CompletableFuture<Path> downloadFileAbs(
+            String url, String name, String suffix, MultiMap headers) {
+        return fireDownloadRequest(webClient.getAbs(url), name, suffix, headers);
     }
 
     private static CompletableFuture<Path> fireDownloadRequest(
-            HttpRequest<Buffer> request, String filename, String fileSuffix) {
+            HttpRequest<Buffer> request, String filename, String fileSuffix, MultiMap headers) {
         CompletableFuture<Path> future = new CompletableFuture<>();
-        request.send(
-                ar -> {
-                    if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
-                        return;
-                    }
-                    HttpResponse<Buffer> resp = ar.result();
-                    if (resp.statusCode() != 200) {
-                        future.completeExceptionally(
-                                new Exception(String.format("HTTP %d", resp.statusCode())));
-                        return;
-                    }
-                    FileSystem fs = Utils.getFileSystem();
-                    String file = fs.createTempFileBlocking(filename, fileSuffix);
-                    fs.writeFileBlocking(file, ar.result().body());
-                    future.complete(Paths.get(file));
-                });
+        request.putHeaders(headers)
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                future.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> resp = ar.result();
+                            if (resp.statusCode() != 200) {
+                                future.completeExceptionally(
+                                        new Exception(String.format("HTTP %d", resp.statusCode())));
+                                return;
+                            }
+                            FileSystem fs = Utils.getFileSystem();
+                            String file = fs.createTempFileBlocking(filename, fileSuffix);
+                            fs.writeFileBlocking(file, ar.result().body());
+                            future.complete(Paths.get(file));
+                        });
         return future;
     }
 }

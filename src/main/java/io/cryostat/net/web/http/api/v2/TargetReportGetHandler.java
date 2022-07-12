@@ -127,7 +127,8 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean returnHtml = ReportGetAcceptHeaderParser.isAcceptable(ctx, apiVersion());
+        boolean returnHtml =
+                ReportGetAcceptHeaderParser.returnHtml(ctx.parsedHeaders(), apiVersion());
         try {
             /* TODO: Default HTML until vert.x .produces() on routes is supported */
             String report =

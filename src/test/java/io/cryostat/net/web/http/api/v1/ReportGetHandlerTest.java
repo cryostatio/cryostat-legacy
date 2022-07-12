@@ -204,6 +204,7 @@ class ReportGetHandlerTest {
             when(ctx.parsedHeaders()).thenReturn(phv);
             when(phv.accept()).thenReturn(List.of(header));
             when(header.component()).thenReturn("application");
+            when(header.subComponent()).thenReturn("json");
 
             when(ctx.response()).thenReturn(resp);
             when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))

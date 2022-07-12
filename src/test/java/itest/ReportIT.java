@@ -145,6 +145,7 @@ public class ReportIT extends StandardSelfTest {
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName))
+                    .putHeader(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime())
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, getResponse)) {
@@ -181,6 +182,56 @@ public class ReportIT extends StandardSelfTest {
                     "Expected at least one <script>",
                     script.size(),
                     Matchers.greaterThanOrEqualTo(1));
+
+            // Get an unformatted filtered report for the above recording
+            CompletableFuture<JsonObject> getUnformattedResponse = new CompletableFuture<>();
+            webClient
+                    .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName))
+                    .addQueryParam("filter", "heap")
+                    .putHeader(HttpHeaders.ACCEPT.toString(), HttpMimeType.JSON.mime())
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, getUnformattedResponse)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    MatcherAssert.assertThat(
+                                            ar.result()
+                                                    .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                            Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                    getUnformattedResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+            JsonObject jsonResponse = getUnformattedResponse.get();
+            MatcherAssert.assertThat(jsonResponse, Matchers.notNullValue());
+            MatcherAssert.assertThat(jsonResponse.getMap(), Matchers.is(Matchers.aMapWithSize(7)));
+            Assertions.assertTrue(jsonResponse.containsKey("HeapContent"));
+            Assertions.assertTrue(jsonResponse.containsKey("StringDeduplication"));
+            Assertions.assertTrue(jsonResponse.containsKey("PrimitiveToObjectConversion"));
+            Assertions.assertTrue(jsonResponse.containsKey("GcFreedRatio"));
+            Assertions.assertTrue(jsonResponse.containsKey("HighGc"));
+            Assertions.assertTrue(jsonResponse.containsKey("Allocations.class"));
+            Assertions.assertTrue(jsonResponse.containsKey("LowOnPhysicalMemory"));
+            for (var obj : jsonResponse.getMap().entrySet()) {
+                var value = JsonObject.mapFrom(obj.getValue());
+                Assertions.assertTrue(value.containsKey("score"));
+                MatcherAssert.assertThat(
+                        value.getDouble("score"),
+                        Matchers.anyOf(
+                                Matchers.equalTo(-1d),
+                                Matchers.equalTo(-2d),
+                                Matchers.equalTo(-3d),
+                                Matchers.both(Matchers.lessThanOrEqualTo(100d))
+                                        .and(Matchers.greaterThanOrEqualTo(0d))));
+                Assertions.assertTrue(value.containsKey("name"));
+                MatcherAssert.assertThat(
+                        value.getString("name"), Matchers.not(Matchers.emptyOrNullString()));
+                Assertions.assertTrue(value.containsKey("topic"));
+                MatcherAssert.assertThat(
+                        value.getString("topic"), Matchers.not(Matchers.emptyOrNullString()));
+                Assertions.assertTrue(value.containsKey("description"));
+                MatcherAssert.assertThat(
+                        value.getString("description"), Matchers.not(Matchers.emptyOrNullString()));
+            }
 
         } finally {
             file.delete();
@@ -235,6 +286,7 @@ public class ReportIT extends StandardSelfTest {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
                 .get(String.format("%s/%s", REPORT_REQ_URL, TEST_RECORDING_NAME))
+                .putHeader(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime())
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);

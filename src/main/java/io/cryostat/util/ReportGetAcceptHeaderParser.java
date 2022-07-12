@@ -38,33 +38,55 @@
 
 package io.cryostat.util;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
 import io.vertx.ext.web.MIMEHeader;
-import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.handler.HttpException;
+import io.vertx.ext.web.impl.ParsableMIMEValue;
 
 public class ReportGetAcceptHeaderParser {
-    public static boolean isAcceptable(RoutingContext ctx, ApiVersion version) {
-        List<MIMEHeader> accept = ctx.parsedHeaders().accept();
-        System.out.println("ACCEPT: " + accept);
-        if (accept.isEmpty() || accept == null) {
+
+    private static final Collection<MIMEHeader> REPORT_ACCEPT =
+            Arrays.asList(
+                    new ParsableMIMEValue("*/*").forceParse(),
+                    new ParsableMIMEValue("text/*").forceParse(),
+                    new ParsableMIMEValue("text/html").forceParse(),
+                    new ParsableMIMEValue("application/*").forceParse(),
+                    new ParsableMIMEValue("application/json").forceParse());
+
+    public static boolean returnHtml(ParsedHeaderValues headerValues, ApiVersion version) {
+        final List<MIMEHeader> accepts = headerValues.accept();
+        String accept = null;
+        if (accepts != null) {
+            MIMEHeader header = getAcceptableHeader(accepts);
+            if (header != null) {
+                accept = header.component() + "/" + header.subComponent();
+            }
+        }
+        System.out.println(accept);
+        ;
+        if (accept == null || accepts.isEmpty()) {
             if (version.equals(ApiVersion.V1)) {
                 throw new HttpException(406);
             } else {
                 throw new ApiException(406);
             }
         }
-        return accept.stream()
-                .anyMatch(
-                        header ->
-                                (header.component().equals("text")
-                                                && (header.subComponent().equals("html")
-                                                        || header.subComponent().equals("*")))
-                                        || (header.component().equals("*")
-                                                && header.subComponent().equals("*")));
+        return (accept.equals("*/*") || accept.equals("text/*") || accept.equals("text/html"));
+    }
+
+    private static MIMEHeader getAcceptableHeader(List<MIMEHeader> accepts) {
+        for (var header : accepts) {
+            if (REPORT_ACCEPT.stream().anyMatch(h -> (h.component().equals(header.component()) && h.subComponent().equals(header.subComponent())))) {
+                return header;
+            }
+        }
+        return null;
     }
 }

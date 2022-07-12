@@ -307,17 +307,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
             if (Boolean.parseBoolean(formatted)) {
-                Map<String, RuleEvaluation> evalMapResult =
-                        generateEvalMapFromFile(recording, transformers, filter);
-                fs.writeString(
-                        saveFile,
-                        gson.toJson(evalMapResult),
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.TRUNCATE_EXISTING,
-                        StandardOpenOption.DSYNC,
-                        StandardOpenOption.WRITE);
-
-            } else {
                 ReportResult reportResult = generateReportFromFile(recording, transformers, filter);
                 Logger.INSTANCE.info(
                         SubprocessReportGenerator.class.getName() + " writing report to file");
@@ -333,6 +322,17 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                 fs.writeString(
                         reportStats,
                         gson.toJson(reportResult.getReportStats()),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.DSYNC,
+                        StandardOpenOption.WRITE);
+
+            } else {
+                Map<String, RuleEvaluation> evalMapResult =
+                        generateEvalMapFromFile(recording, transformers, filter);
+                fs.writeString(
+                        saveFile,
+                        gson.toJson(evalMapResult),
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING,
                         StandardOpenOption.DSYNC,

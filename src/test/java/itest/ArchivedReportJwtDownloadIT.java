@@ -76,8 +76,10 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
             String downloadUrl =
                     getTokenDownloadUrl(
                             new URL(reportUrl.toString().replace("/api/v1/", "/api/v2.1/")));
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());
             assetDownload =
-                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html")
+                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(Files.isReadable(assetDownload));
             Assertions.assertTrue(Files.isRegularFile(assetDownload));
