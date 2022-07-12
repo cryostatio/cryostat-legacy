@@ -46,19 +46,18 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.net.security.PermissionedAction;
+import graphql.schema.DataFetchingEnvironment;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
-class ActiveRecordingsFetcher
-        implements DataFetcher<List<GraphRecordingDescriptor>>, PermissionedAction {
+class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<List<GraphRecordingDescriptor>> {
 
     @Inject
-    ActiveRecordingsFetcher() {}
+    ActiveRecordingsFetcher(AuthManager auth) {
+        super(auth);
+    }
 
     @Override
     public Set<ResourceAction> resourceActions() {
@@ -67,7 +66,8 @@ class ActiveRecordingsFetcher
         return actions;
     }
 
-    public List<GraphRecordingDescriptor> get(DataFetchingEnvironment environment)
+    @Override
+    public List<GraphRecordingDescriptor> getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         Recordings source = environment.getSource();
         List<GraphRecordingDescriptor> result = new ArrayList<>(source.active);

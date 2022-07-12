@@ -42,16 +42,20 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-import io.cryostat.net.security.PermissionedAction;
+import javax.inject.Inject;
+
+import graphql.schema.DataFetchingEnvironment;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
+class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<List<AbstractNode>> {
 
-class EnvironmentNodeChildrenFetcher
-        implements DataFetcher<List<AbstractNode>>, PermissionedAction {
+    @Inject
+    EnvironmentNodeChildrenFetcher(AuthManager auth) {
+        super(auth);
+    }
 
     @Override
     public Set<ResourceAction> resourceActions() {
@@ -60,7 +64,7 @@ class EnvironmentNodeChildrenFetcher
     }
 
     @Override
-    public List<AbstractNode> get(DataFetchingEnvironment environment) throws Exception {
+    public List<AbstractNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         EnvironmentNode node = environment.getSource();
         return new ArrayList<>(node.getChildren());
     }

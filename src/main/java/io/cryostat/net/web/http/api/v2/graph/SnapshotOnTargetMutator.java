@@ -42,24 +42,23 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
-class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor>, PermissionedAction {
+class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
 
     @Inject
     SnapshotOnTargetMutator(
-            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+            AuthManager auth, RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        super(auth);
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
     }
@@ -78,7 +77,7 @@ class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor>, 
     }
 
     @Override
-    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         TargetNode node = environment.getSource();
 
         String uri = node.getTarget().getServiceUri().toString();

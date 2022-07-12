@@ -47,18 +47,23 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.cryostat.net.security.PermissionedAction;
+import javax.inject.Inject;
+
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
+class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
-class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>>, PermissionedAction {
+    @Inject
+    TargetNodeRecurseFetcher(AuthManager auth) {
+        super(auth);
+    }
 
     @Override
     public Set<ResourceAction> resourceActions() {
@@ -67,7 +72,7 @@ class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>>, Permiss
     }
 
     @Override
-    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+    public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
         List<TargetNode> result = new ArrayList<>();

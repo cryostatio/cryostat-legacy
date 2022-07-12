@@ -48,23 +48,21 @@ import javax.inject.Provider;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
 class StartRecordingOnTargetMutator
-        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor>, PermissionedAction {
+    extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -74,11 +72,13 @@ class StartRecordingOnTargetMutator
 
     @Inject
     StartRecordingOnTargetMutator(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             Provider<WebServer> webServer) {
+        super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
@@ -99,7 +99,7 @@ class StartRecordingOnTargetMutator
     }
 
     @Override
-    public HyperlinkedSerializableRecordingDescriptor get(DataFetchingEnvironment environment)
+    public HyperlinkedSerializableRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         TargetNode node = environment.getSource();
         Map<String, Object> settings = environment.getArgument("recording");

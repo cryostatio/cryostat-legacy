@@ -50,11 +50,13 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
@@ -65,11 +67,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
-class RecordingsFetcher implements DataFetcher<Recordings>, PermissionedAction {
+class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
     private final TargetConnectionManager tcm;
     private final RecordingArchiveHelper archiveHelper;
@@ -80,12 +78,14 @@ class RecordingsFetcher implements DataFetcher<Recordings>, PermissionedAction {
 
     @Inject
     RecordingsFetcher(
+            AuthManager auth,
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
+        super(auth);
         this.tcm = tcm;
         this.archiveHelper = archiveHelper;
         this.credentialsManager = credentialsManager;
@@ -110,7 +110,7 @@ class RecordingsFetcher implements DataFetcher<Recordings>, PermissionedAction {
             justification =
                     "The Recordings fields are serialized and returned to the client by the GraphQL"
                             + " engine")
-    public Recordings get(DataFetchingEnvironment environment) throws Exception {
+    public Recordings getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         TargetNode source = (TargetNode) environment.getSource();
         ServiceRef target = source.getTarget();
         String targetId = target.getServiceUri().toString();

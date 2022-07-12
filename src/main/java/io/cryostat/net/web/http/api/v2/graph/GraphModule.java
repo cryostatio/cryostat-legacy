@@ -44,17 +44,6 @@ import java.util.List;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
-import io.cryostat.recordings.RecordingTargetHelper;
-
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -67,6 +56,17 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 @Module
 public abstract class GraphModule {
@@ -190,12 +190,12 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static RootNodeFetcher provideRootNodeFetcher(PlatformClient client) {
-        return new RootNodeFetcher(client);
+    static RootNodeFetcher provideRootNodeFetcher(AuthManager auth, PlatformClient client) {
+        return new RootNodeFetcher(auth, client);
     }
 
     @Provides
-    static RecordingsFetcher provideRecordingsFetcher(
+    static RecordingsFetcher provideRecordingsFetcher(AuthManager auth,
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
@@ -203,58 +203,60 @@ public abstract class GraphModule {
             Provider<WebServer> webServer,
             Logger logger) {
         return new RecordingsFetcher(
-                tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
+                auth, tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
     }
 
     @Provides
-    static ActiveRecordingsFetcher provideActiveRecordingsFetcher() {
-        return new ActiveRecordingsFetcher();
+    static ActiveRecordingsFetcher provideActiveRecordingsFetcher(AuthManager auth) {
+        return new ActiveRecordingsFetcher(auth);
     }
 
     @Provides
-    static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher() {
-        return new ArchivedRecordingsFetcher();
+    static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher(AuthManager auth) {
+        return new ArchivedRecordingsFetcher(auth);
     }
 
     @Provides
-    static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher() {
-        return new EnvironmentNodeChildrenFetcher();
+    static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher(AuthManager auth) {
+        return new EnvironmentNodeChildrenFetcher(auth);
     }
 
     @Provides
-    static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher() {
-        return new TargetNodeRecurseFetcher();
+    static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher(AuthManager auth) {
+        return new TargetNodeRecurseFetcher(auth);
     }
 
     @Provides
-    static EnvironmentNodeRecurseFetcher provideEnvironmentNodeRecurseFetcher() {
-        return new EnvironmentNodeRecurseFetcher();
+    static EnvironmentNodeRecurseFetcher provideEnvironmentNodeRecurseFetcher(AuthManager auth) {
+        return new EnvironmentNodeRecurseFetcher(auth);
     }
 
     @Provides
-    static NodeFetcher provideNodeFetcher(RootNodeFetcher rootNodeFetcher) {
-        return new NodeFetcher(rootNodeFetcher);
+    static NodeFetcher provideNodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        return new NodeFetcher(auth, rootNodeFetcher);
     }
 
     @Provides
-    static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(RootNodeFetcher rootNodeFetcher) {
-        return new EnvironmentNodesFetcher(rootNodeFetcher);
+    static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        return new EnvironmentNodesFetcher(auth, rootNodeFetcher);
     }
 
     @Provides
     static TargetNodesFetcher provideTargetNodesFetcher(
-            RootNodeFetcher rootNodeFetcher, TargetNodeRecurseFetcher recurseFetcher) {
-        return new TargetNodesFetcher(rootNodeFetcher, recurseFetcher);
+            AuthManager auth, RootNodeFetcher rootNodeFetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        return new TargetNodesFetcher(auth, rootNodeFetcher, recurseFetcher);
     }
 
     @Provides
     static StartRecordingOnTargetMutator provideStartRecordingOnTargetMutator(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             Provider<WebServer> webServer) {
         return new StartRecordingOnTargetMutator(
+                auth,
                 targetConnectionManager,
                 recordingTargetHelper,
                 recordingOptionsBuilderFactory,
@@ -264,24 +266,26 @@ public abstract class GraphModule {
 
     @Provides
     static SnapshotOnTargetMutator provideSnapshotOnTargetMutator(
-            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
-        return new SnapshotOnTargetMutator(recordingTargetHelper, credentialsManager);
+            AuthManager auth, RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        return new SnapshotOnTargetMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
     @Provides
     static ArchiveRecordingMutator provideArchiveRecordingMutator(
-            RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
-        return new ArchiveRecordingMutator(recordingArchiveHelper, credentialsManager);
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
+        return new ArchiveRecordingMutator(auth, recordingArchiveHelper, credentialsManager);
     }
 
     @Provides
     static StopRecordingMutator provideStopRecordingsOnTargetMutator(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         return new StopRecordingMutator(
+                auth,
                 targetConnectionManager,
                 recordingTargetHelper,
                 credentialsManager,
@@ -291,13 +295,14 @@ public abstract class GraphModule {
 
     @Provides
     static DeleteActiveRecordingMutator provideDeleteActiveRecordingMutator(
+            AuthManager auth,
             RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
-        return new DeleteActiveRecordingMutator(recordingTargetHelper, credentialsManager);
+        return new DeleteActiveRecordingMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
     @Provides
     static DeleteArchivedRecordingMutator provideDeleteArchivedRecordingMutator(
-            RecordingArchiveHelper recordingArchiveHelper) {
-        return new DeleteArchivedRecordingMutator(recordingArchiveHelper);
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
+        return new DeleteArchivedRecordingMutator(auth, recordingArchiveHelper);
     }
 }

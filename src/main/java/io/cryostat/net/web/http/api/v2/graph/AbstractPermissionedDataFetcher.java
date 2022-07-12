@@ -37,53 +37,35 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.EnumSet;
-import java.util.Set;
-
-import javax.inject.Inject;
-
+import graphql.GraphQLContext;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.security.PermissionedAction;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.RoutingContext;
 
-class DeleteActiveRecordingMutator
-    extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
+abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, PermissionedAction {
 
-    private final RecordingTargetHelper recordingTargetHelper;
-    private final CredentialsManager credentialsManager;
+    protected final AuthManager auth;
 
-    @Inject
-    DeleteActiveRecordingMutator(
-            AuthManager auth, RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
-        super(auth);
-        this.recordingTargetHelper = recordingTargetHelper;
-        this.credentialsManager = credentialsManager;
+    AbstractPermissionedDataFetcher(AuthManager auth) {
+        this.auth = auth;
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        EnumSet<ResourceAction> actions =
-                EnumSet.of(
-                        ResourceAction.DELETE_RECORDING,
-                        ResourceAction.READ_TARGET,
-                        ResourceAction.UPDATE_TARGET,
-                        ResourceAction.DELETE_CREDENTIALS);
-        return actions;
+    public final T get(DataFetchingEnvironment environment) throws Exception {
+        GraphQLContext graphCtx = environment.getGraphQlContext();
+        RoutingContext ctx = graphCtx.get(RoutingContext.class);
+        boolean authenticated = auth.validateHttpHeader(
+                () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION), resourceActions()).get();
+        if (!authenticated) {
+            throw new AuthorizationErrorException("Unauthorized");
+        }
+        return getAuthenticated(environment);
     }
 
-    @Override
-    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment) throws Exception {
-        GraphRecordingDescriptor source = environment.getSource();
-        ServiceRef target = source.target;
-        String uri = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+    abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
 
-        recordingTargetHelper.deleteRecording(cd, source.getName()).get();
-        return source;
-    }
 }

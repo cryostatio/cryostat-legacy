@@ -45,10 +45,11 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
@@ -56,10 +57,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
-class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor>, PermissionedAction {
+class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -69,11 +67,13 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor>, Per
 
     @Inject
     StopRecordingMutator(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
+        super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
@@ -93,7 +93,7 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor>, Per
     }
 
     @Override
-    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();
