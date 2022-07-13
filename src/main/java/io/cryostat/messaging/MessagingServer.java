@@ -54,6 +54,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationPublisher;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
@@ -71,6 +72,7 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
     private final HttpServer server;
     private final AuthManager authManager;
     private final NotificationFactory notificationFactory;
+    private final NotificationPublisher notificationPublisher;
     private final Clock clock;
     private final int maxConnections;
     private final Logger logger;
@@ -85,6 +87,7 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
+            NotificationPublisher notificationPublisher,
             @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
             Clock clock,
             Logger logger,
@@ -94,6 +97,7 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
         this.server = server;
         this.authManager = authManager;
         this.notificationFactory = notificationFactory;
+        this.notificationPublisher = notificationPublisher;
         this.maxConnections = maxConnections;
         this.clock = clock;
         this.logger = logger;
@@ -215,12 +219,18 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                 });
     }
 
-    public void writeMessage(WsMessage message) {
+    public void writeMessage(String category, WsMessage message) {
         String json = gson.toJson(message);
+        notificationPublisher.send(category, json);
         logger.info("Outgoing WS message: {}", json);
         synchronized (connections) {
             connections.forEach(c -> c.writeMessage(json));
         }
+    }
+
+    public void publish(String category, WsMessage message) {
+        String json = gson.toJson(message);
+        this.server.getVertx().eventBus().publish(category, json);
     }
 
     @Override

@@ -57,8 +57,7 @@ public class Notification<T> extends WsMessage {
     }
 
     public void send() {
-        this.server.writeMessage(this);
-        this.server.getVertx().eventBus().publish(this.meta.category, message.toString());
+        this.server.writeMessage(this.meta.category, this);
     }
 
     public static class Builder<T> {

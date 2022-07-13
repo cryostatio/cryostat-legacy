@@ -39,31 +39,21 @@ package io.cryostat.messaging.notifications;
 
 import java.util.Set;
 
-import javax.inject.Singleton;
-
-import io.cryostat.messaging.MessagingServer;
-import io.cryostat.net.reports.ActiveRecordingReportCache;
 import io.vertx.core.Vertx;
-import dagger.Binds;
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
-@Module
-public abstract class NotificationsModule {
-
-    @Provides
-    @Singleton
-    static NotificationFactory provideNotificationFactory(Lazy<MessagingServer> server) {
-        return new NotificationFactory(server);
+public class NotificationPublisher {
+    Vertx vertx;
+    Set<NotificationListener<?>> listeners;
+    
+    NotificationPublisher(Vertx vertx, Set<NotificationListener<?>> listeners) {
+        listeners.forEach(listener -> {
+            listener.categories().forEach(category -> {
+                vertx.eventBus().consumer(category, message -> listener.onMessage(category, message));
+            });
+        });
     }
 
-    @Binds @IntoSet
-    abstract NotificationListener<String> bindActiveRecordingReportCacheListener(ActiveRecordingReportCache listener);
-
-    @Provides
-    static <T> NotificationPublisher provideNotificationPublisher(Vertx vertx, Set<NotificationListener<?>> listeners) {
-        return new NotificationPublisher(vertx, listeners);
+    public <T> void send(String category, T message) {
+        vertx.eventBus().publish(category, message);
     }
 }

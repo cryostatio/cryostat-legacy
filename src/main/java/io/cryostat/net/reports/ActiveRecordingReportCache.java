@@ -39,6 +39,7 @@ package io.cryostat.net.reports;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -52,16 +53,18 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.eventbus.Message;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
 
-class ActiveRecordingReportCache {
+public class ActiveRecordingReportCache implements NotificationListener<String> {
     private final static String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
 
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
@@ -132,7 +135,6 @@ class ActiveRecordingReportCache {
     protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
             throws Exception {
         Path saveFile = null;
-        registerConsumer(recordingDescriptor);
         try {
             /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
@@ -184,26 +186,23 @@ class ActiveRecordingReportCache {
         }
     }
 
-    private void registerConsumer(RecordingDescriptor key) {
-        MessageConsumer<String> consumer = this.vertx.eventBus().consumer(STOP_NOTIFICATION_CATEGORY);
-        consumer.handler(message -> {
-            System.out.println("TEST1");
-            boolean hasKey = cache.asMap().containsKey(key);
-            if (hasKey) {
-                logger.trace("Invalidated active report cache for {}", key.recordingName);
-                cache.invalidate(key);
-            } else {
-                logger.trace("No cache entry for {} to invalidate", key.recordingName);
-            }
-            consumer.unregister(res -> {
-                System.out.println("TEST");
-                if (res.succeeded()) {
-                    logger.trace("Handler for {} unregistered", key.recordingName);
-                }
-                else {
-                    logger.trace("Handler for {} was unable to be unregistered", key.recordingName);
-                }
-            });
-        });
+    @Override
+    public Set<String> categories() {
+        return Set.of(STOP_NOTIFICATION_CATEGORY);
+    }
+
+    @Override
+    public void onMessage(String category, Message<Object> message) {
+        String msg = message.body().toString();
+        // boolean hasKey = cache.asMap().containsKey(key);
+        // if (hasKey) {
+        //     logger.trace("Invalidated active report cache for {}", recordingName);
+        //     cache.invalidate(key);
+        // } else {
+        //     logger.trace("No cache entry for {} to invalidate", recordingName);
+        // }
+        System.out.println(message.body());
+        System.out.println(msg);
+        System.out.println("HIIII");
     }
 }

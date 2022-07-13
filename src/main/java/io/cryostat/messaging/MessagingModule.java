@@ -45,6 +45,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationPublisher;
 import io.cryostat.messaging.notifications.NotificationsModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
@@ -70,6 +71,7 @@ public abstract class MessagingModule {
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
+            NotificationPublisher notificationPublisher,
             @Named(WS_MAX_CONNECTIONS) int maxConnections,
             Clock clock,
             Logger logger,
@@ -80,6 +82,7 @@ public abstract class MessagingModule {
                 env,
                 authManager,
                 notificationFactory,
+                notificationPublisher,
                 maxConnections,
                 clock,
                 logger,
