@@ -128,7 +128,7 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
 
             return new IntermediateResponse<Void>().statusCode(200);
         } catch (FileNotFoundException e) {
-            return new IntermediateResponse<Void>().statusCode(404);
+            throw new ApiException(404, e);
         } catch (IOException e) {
             throw new ApiException(
                     500, "IOException occurred while clearing persisted credentials", e);

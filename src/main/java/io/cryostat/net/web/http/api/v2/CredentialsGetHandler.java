@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -124,5 +125,25 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     static class Cred {
         int id;
         String matchExpression;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, matchExpression);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Cred other = (Cred) obj;
+            return id == other.id && Objects.equals(matchExpression, other.matchExpression);
+        }
     }
 }

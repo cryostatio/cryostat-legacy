@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
@@ -45,7 +46,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -58,17 +58,11 @@ import io.vertx.core.http.HttpMethod;
 class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> {
 
     private final CredentialsManager credentialsManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
-    CredentialGetHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            NotificationFactory notificationFactory,
-            Gson gson) {
+    CredentialGetHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -120,6 +114,8 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
             Set<ServiceRef> targets = credentialsManager.resolveMatchingTargets(id);
             MatchedCredentials match = new MatchedCredentials(matchExpression, targets);
             return new IntermediateResponse<MatchedCredentials>().body(match);
+        } catch (FileNotFoundException fnfe) {
+            throw new ApiException(404, fnfe);
         } catch (IOException ioe) {
             throw new ApiException(500, ioe);
         }
