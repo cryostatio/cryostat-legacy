@@ -228,11 +228,6 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
         }
     }
 
-    public void publish(String category, WsMessage message) {
-        String json = gson.toJson(message);
-        this.server.getVertx().eventBus().publish(category, json);
-    }
-
     @Override
     public void stop() {
         this.close();

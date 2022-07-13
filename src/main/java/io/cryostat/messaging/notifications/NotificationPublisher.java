@@ -42,10 +42,13 @@ import java.util.Set;
 import io.vertx.core.Vertx;
 
 public class NotificationPublisher {
-    Vertx vertx;
-    Set<NotificationListener<?>> listeners;
+    private final Vertx vertx;
+    private final Set<NotificationListener> listeners;
     
-    NotificationPublisher(Vertx vertx, Set<NotificationListener<?>> listeners) {
+    NotificationPublisher(Vertx vertx, Set<NotificationListener> listeners) {
+        this.vertx = vertx;
+        this.listeners = listeners;
+
         listeners.forEach(listener -> {
             listener.categories().forEach(category -> {
                 vertx.eventBus().consumer(category, message -> listener.onMessage(category, message));

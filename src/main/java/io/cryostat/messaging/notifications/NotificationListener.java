@@ -41,7 +41,7 @@ import java.util.Set;
 
 import io.vertx.core.eventbus.Message;
 
-public interface NotificationListener<T> {
+public interface NotificationListener {
     Set<String> categories();
-    void onMessage(String category, Message<Object> message);
+    void onMessage(String category, Message<?> message);
 }

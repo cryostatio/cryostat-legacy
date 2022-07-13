@@ -38,6 +38,7 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -56,15 +57,15 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 
-public class ActiveRecordingReportCache implements NotificationListener<String> {
+public class ActiveRecordingReportCache implements NotificationListener {
     private final static String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
 
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
@@ -72,22 +73,25 @@ public class ActiveRecordingReportCache implements NotificationListener<String> 
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
     protected final long generationTimeoutSeconds;
+    protected final ObjectMapper objectMapper;
+    protected final Gson gson;
     protected final Logger logger;
-    protected final Vertx vertx;
 
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Vertx vertx,
+            ObjectMapper objectMapper,
+            Gson gson,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.objectMapper = objectMapper;
+        this.gson = gson;
         this.logger = logger;
-        this.vertx = vertx;
         this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
@@ -192,17 +196,25 @@ public class ActiveRecordingReportCache implements NotificationListener<String> 
     }
 
     @Override
-    public void onMessage(String category, Message<Object> message) {
-        String msg = message.body().toString();
-        // boolean hasKey = cache.asMap().containsKey(key);
-        // if (hasKey) {
-        //     logger.trace("Invalidated active report cache for {}", recordingName);
-        //     cache.invalidate(key);
-        // } else {
-        //     logger.trace("No cache entry for {} to invalidate", recordingName);
-        // }
-        System.out.println(message.body());
-        System.out.println(msg);
-        System.out.println("HIIII");
+    public void onMessage(String category, Message<?> message) {
+        Map<String, Object> notification = gson.fromJson(message.body().toString(), Map.class);
+        Map<String, Object> msg = objectMapper.convertValue(notification.get("message"), Map.class);
+        Map<String, Object> recording = objectMapper.convertValue(msg.get("recording"), Map.class);
+
+        String targetId = msg.get("target").toString();
+        String recordingName = recording.get("name").toString();
+
+        ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+        RecordingDescriptor rd = new RecordingDescriptor(cd, recordingName);
+
+        boolean hasKey = cache.asMap().containsKey(rd);
+        if (hasKey) {
+            System.out.println("invalidated");
+            logger.trace("Invalidated active report cache for {}", recordingName);
+            cache.invalidate(rd);
+        } else {
+            System.out.println("not invalidated");
+            logger.trace("No cache entry for {} to invalidate", recordingName);
+        }
     }
 }

@@ -68,6 +68,7 @@ import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
 import io.cryostat.util.resource.ResourceModule;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
@@ -147,6 +148,12 @@ public abstract class MainModule {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }
         return builder.create();
+    }
+
+    @Provides
+    @Singleton
+    public static ObjectMapper provideObjectMapper() {
+        return new ObjectMapper();
     }
 
     @Provides

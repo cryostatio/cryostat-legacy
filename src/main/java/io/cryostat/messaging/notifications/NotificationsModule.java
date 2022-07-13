@@ -52,18 +52,19 @@ import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class NotificationsModule {
+    @Binds 
+    @IntoSet
+    abstract NotificationListener bindActiveRecordingReportCacheListener(ActiveRecordingReportCache listener);
+
+    @Provides
+    @Singleton
+    static NotificationPublisher provideNotificationPublisher(Vertx vertx, Set<NotificationListener> listeners) {
+        return new NotificationPublisher(vertx, listeners);
+    }
 
     @Provides
     @Singleton
     static NotificationFactory provideNotificationFactory(Lazy<MessagingServer> server) {
         return new NotificationFactory(server);
-    }
-
-    @Binds @IntoSet
-    abstract NotificationListener<String> bindActiveRecordingReportCacheListener(ActiveRecordingReportCache listener);
-
-    @Provides
-    static <T> NotificationPublisher provideNotificationPublisher(Vertx vertx, Set<NotificationListener<?>> listeners) {
-        return new NotificationPublisher(vertx, listeners);
     }
 }
