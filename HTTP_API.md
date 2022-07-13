@@ -1770,13 +1770,15 @@ The handler-specific descriptions below describe how each handler populates the
     `POST /api/v2.2/credentials`
 
     The request should be an HTTP form with the attributes `"matchExpression"`,
-    `"username"`, and `"password"`. All are required.
+    `"username"`, and `"password"`. All are required. For more details on
+    `matchExpression`, see [`RulesPostHandler`](#RulesPostHandler).
 
     ##### response
     `201` - The result is null. The request was processed successfully and the
     credentials were stored.
 
-    `400` - `"matchExpression"`, `"username"`, or `"password"` were not provided.
+    `400` - `"username"` or `"password"` were not provided, or
+    `"matchExpression"` was not provided or was invalid
 
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
