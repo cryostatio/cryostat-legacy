@@ -109,6 +109,7 @@ class MatchExpressionValidatorTest {
             })
     void shouldThrowOnMalformedExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
-        Assertions.assertThrows(MatchExpressionValidationException.class, () -> validator.validate(rule));
+        Assertions.assertThrows(
+                MatchExpressionValidationException.class, () -> validator.validate(rule));
     }
 }
