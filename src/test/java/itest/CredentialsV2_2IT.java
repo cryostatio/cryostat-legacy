@@ -37,6 +37,7 @@
  */
 package itest;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,12 +58,14 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -287,6 +290,29 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     @Test
     @Order(7)
     void testWorkflow() throws Exception {
+        List<URI> targetIds = startTargets();
+
+        // we should fail to query active recordings from the targets before adding credentials
+        for (URI uri : targetIds) {
+            CompletableFuture<Integer> recordingsQueryFuture = new CompletableFuture<>();
+            webClient
+                    .get(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings",
+                                    URLEncodedUtils.formatSegments(uri.toString())))
+                    .send(
+                            ar -> {
+                                if (ar.failed()) {
+                                    recordingsQueryFuture.completeExceptionally(ar.cause());
+                                    return;
+                                }
+                                recordingsQueryFuture.complete(ar.result().statusCode());
+                            });
+            Integer queryResponseStatusCode =
+                    recordingsQueryFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            MatcherAssert.assertThat(queryResponseStatusCode, Matchers.equalTo(427));
+        }
+
         // Get target credentials list should be empty at first
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
@@ -375,9 +401,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 storedCredential.matchExpression, Matchers.equalTo(MATCH_EXPRESSION));
         MatcherAssert.assertThat(storedCredential.id, Matchers.greaterThanOrEqualTo(0));
 
-        startTargets();
-
-        // Check that resolving the credential includes our newly-started targets
+        // Check that resolving the credential includes our targets
         CompletableFuture<JsonObject> resolveResponse = new CompletableFuture<>();
         webClient
                 .get(REQUEST_URL + "/" + storedCredential.id)
@@ -444,8 +468,24 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 matchedCredential.targets, Matchers.equalTo(expectedResolvedTargets));
 
-        // TODO test that with these credentials we can ex. query active recordings on one or both
-        // of the targets
+        // we should now be able to query active recordings from the targets
+        for (URI uri : targetIds) {
+            CompletableFuture<JsonArray> recordingsQueryFuture = new CompletableFuture<>();
+            webClient
+                    .get(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings",
+                                    URLEncodedUtils.formatSegments(uri.toString())))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, resolveResponse)) {
+                                    recordingsQueryFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray queryResponse =
+                    recordingsQueryFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Assertions.assertTrue(queryResponse.isEmpty());
+        }
     }
 
     @Test
@@ -494,8 +534,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 Matchers.equalTo(expectedDeleteResponse));
     }
 
-    private void startTargets() throws Exception {
-        Set<Podman.ImageSpec> specs = new HashSet<>();
+    private List<URI> startTargets() throws Exception {
+        List<Podman.ImageSpec> specs = new ArrayList<>();
         specs.add(
                 new Podman.ImageSpec(
                         "quay.io/andrewazores/vertx-fib-demo:0.7.0",
@@ -514,6 +554,17 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                                 .toArray(new CompletableFuture[0]))
                 .join();
         waitForDiscovery(specs.size());
+
+        return specs.stream()
+                .map(
+                        spec -> {
+                            int port = Integer.valueOf(spec.envs.get("JMX_PORT"));
+                            return URI.create(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://cryostat-itests:%d/jmxrmi",
+                                            port));
+                        })
+                .collect(Collectors.toList());
     }
 
     private static class StoredCredential {

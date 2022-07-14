@@ -204,8 +204,8 @@ public abstract class Podman {
     }
 
     public static class ImageSpec {
-        final Map<String, String> envs;
-        final String imageSpec;
+        public final Map<String, String> envs;
+        public final String imageSpec;
 
         public ImageSpec(String imageSpec) {
             this(imageSpec, Collections.emptyMap());
@@ -213,7 +213,7 @@ public abstract class Podman {
 
         public ImageSpec(String imageSpec, Map<String, String> envs) {
             this.imageSpec = imageSpec;
-            this.envs = envs;
+            this.envs = Collections.unmodifiableMap(envs);
         }
     }
 }
