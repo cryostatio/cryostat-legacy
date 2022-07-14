@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
 import io.cryostat.configuration.CredentialsManager.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -440,9 +439,7 @@ class CredentialsManagerTest {
 
         Map<Integer, String> expected = Map.of(0, matchExpression);
 
-        MatcherAssert.assertThat(
-                credentialsManager.getAll(),
-                Matchers.equalTo(expected));
+        MatcherAssert.assertThat(credentialsManager.getAll(), Matchers.equalTo(expected));
     }
 
     @Test
@@ -469,17 +466,19 @@ class CredentialsManagerTest {
                             }
                         });
 
-        ServiceRef serviceRef = new ServiceRef(URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"), "mytarget");
+        ServiceRef serviceRef =
+                new ServiceRef(
+                        URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        "mytarget");
 
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
-        Mockito.when(matchExpressionEvaluator.applies(matchExpression,
-                    serviceRef)).thenReturn(true);
+        Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
+                .thenReturn(true);
 
         Set<ServiceRef> expected = Set.of(serviceRef);
 
         MatcherAssert.assertThat(
-                credentialsManager.resolveMatchingTargets(0),
-                Matchers.equalTo(expected));
+                credentialsManager.resolveMatchingTargets(0), Matchers.equalTo(expected));
     }
 
     @Nested
