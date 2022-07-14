@@ -422,7 +422,6 @@ class CredentialsManagerTest {
         Mockito.when(writePath.toString()).thenReturn("0");
         Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
         Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
-        Mockito.when(fs.isRegularFile(writePath)).thenReturn(true);
         Mockito.when(fs.readFile(writePath))
                 .thenAnswer(
                         new Answer<BufferedReader>() {

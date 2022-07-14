@@ -171,7 +171,9 @@ public class CredentialsManager {
         return nextId++;
     }
 
-    public int removeCredentials(String matchExpression) throws IOException {
+    public int removeCredentials(String matchExpression)
+            throws IOException, MatchExpressionValidationException {
+        matchExpressionValidator.validate(matchExpression);
         for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
             Path path = credentialsDir.resolve(pathString);
             try (BufferedReader br = fs.readFile(path)) {
@@ -268,7 +270,7 @@ public class CredentialsManager {
         for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
             Path path = credentialsDir.resolve(pathString);
             Path filenamePath = path.getFileName();
-            if (filenamePath == null || !fs.isRegularFile(filenamePath)) {
+            if (filenamePath == null) {
                 continue;
             }
             try (BufferedReader br = fs.readFile(path)) {

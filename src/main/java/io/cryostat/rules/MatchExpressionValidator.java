@@ -40,6 +40,7 @@ package io.cryostat.rules;
 import org.openjdk.nashorn.api.tree.CompilationUnitTree;
 import org.openjdk.nashorn.api.tree.Parser;
 import org.openjdk.nashorn.api.tree.TreeVisitor;
+import org.openjdk.nashorn.internal.runtime.ParserException;
 
 public class MatchExpressionValidator {
 
@@ -64,6 +65,8 @@ public class MatchExpressionValidator {
                 throw new IllegalMatchExpressionException();
             }
             cut.accept(treeVisitor, matchExpression);
+        } catch (ParserException pe) {
+            throw new MatchExpressionValidationException(pe);
         } catch (IllegalMatchExpressionException imee) {
             throw new MatchExpressionValidationException(imee);
         }
