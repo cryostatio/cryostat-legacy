@@ -238,22 +238,19 @@ public class CredentialsManager {
     }
 
     public Set<ServiceRef> resolveMatchingTargets(int id) throws IOException {
-        Path path = credentialsDir.resolve(String.valueOf(id));
-        try (BufferedReader br = fs.readFile(path)) {
-            StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-            Set<ServiceRef> matchedTargets = new HashSet<>();
-            for (ServiceRef target : platformClient.listDiscoverableServices()) {
-                try {
-                    if (matchExpressionEvaluator.applies(sc.getMatchExpression(), target)) {
-                        matchedTargets.add(target);
-                    }
-                } catch (ScriptException e) {
-                    logger.error(e);
-                    break;
+        String matchExpression = get(id);
+        Set<ServiceRef> matchedTargets = new HashSet<>();
+        for (ServiceRef target : platformClient.listDiscoverableServices()) {
+            try {
+                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                    matchedTargets.add(target);
                 }
+            } catch (ScriptException e) {
+                logger.error(e);
+                break;
             }
-            return matchedTargets;
         }
+        return matchedTargets;
     }
 
     public void delete(int id) throws IOException {
@@ -271,7 +268,7 @@ public class CredentialsManager {
         for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
             Path path = credentialsDir.resolve(pathString);
             Path filenamePath = path.getFileName();
-            if (filenamePath == null) {
+            if (filenamePath == null || !fs.isRegularFile(filenamePath)) {
                 continue;
             }
             try (BufferedReader br = fs.readFile(path)) {
