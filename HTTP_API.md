@@ -1831,6 +1831,8 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
+    `404` - No stored credentials found for the provided `id`.
+
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2.2/credentials/1
@@ -1855,6 +1857,8 @@ The handler-specific descriptions below describe how each handler populates the
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
+
+    `404` - No stored credentials found for the provided `id`.
 
     ##### example
     ```
