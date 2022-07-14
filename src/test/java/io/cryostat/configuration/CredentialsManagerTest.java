@@ -110,7 +110,6 @@ class CredentialsManagerTest {
     void initializesEmpty() throws Exception {
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of());
 
-        MatcherAssert.assertThat(credentialsManager.getMatchExpressions(), Matchers.empty());
         MatcherAssert.assertThat(
                 credentialsManager.getServiceRefsWithCredentials(), Matchers.empty());
         Assertions.assertThrows(
@@ -363,51 +362,6 @@ class CredentialsManagerTest {
         MatcherAssert.assertThat(
                 credentialsManager.getServiceRefsWithCredentials(),
                 Matchers.equalTo(List.of(target1, target2)));
-    }
-
-    @Test
-    void canListMatchExpressions() throws Exception {
-        String matchExpression = "some expression";
-        String username = "user";
-        String password = "pass";
-        Credentials credentials = new Credentials(username, password);
-
-        Path writePath = Mockito.mock(Path.class);
-        Mockito.when(credentialsDir.resolve(Mockito.any(String.class))).thenReturn(writePath);
-
-        credentialsManager.addCredentials(matchExpression, credentials);
-
-        Mockito.verify(fs)
-                .writeString(
-                        Mockito.eq(writePath),
-                        Mockito.anyString(),
-                        Mockito.eq(StandardOpenOption.WRITE),
-                        Mockito.eq(StandardOpenOption.CREATE),
-                        Mockito.eq(StandardOpenOption.TRUNCATE_EXISTING));
-        Mockito.verify(fs)
-                .setPosixFilePermissions(
-                        writePath,
-                        Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-
-        Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
-        Mockito.when(credentialsDir.resolve("0")).thenReturn(writePath);
-        Mockito.when(fs.readFile(writePath))
-                .thenAnswer(
-                        new Answer<BufferedReader>() {
-                            @Override
-                            public BufferedReader answer(InvocationOnMock invocation)
-                                    throws Throwable {
-                                return new BufferedReader(
-                                        new StringReader(
-                                                gson.toJson(
-                                                        new StoredCredentials(
-                                                                matchExpression, credentials))));
-                            }
-                        });
-
-        MatcherAssert.assertThat(
-                credentialsManager.getMatchExpressions(),
-                Matchers.equalTo(Set.of(matchExpression)));
     }
 
     @Test

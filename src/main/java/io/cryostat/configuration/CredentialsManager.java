@@ -282,49 +282,6 @@ public class CredentialsManager {
         return result;
     }
 
-    @Deprecated(since = "2.2")
-    /**
-     * @deprecated use {@link getAll} instead
-     */
-    Collection<String> getMatchExpressions()
-            throws JsonSyntaxException, JsonIOException, IOException {
-        Set<String> expressions = new HashSet<>();
-        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
-            Path path = credentialsDir.resolve(pathString);
-            try (BufferedReader br = fs.readFile(path)) {
-                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-                expressions.add(sc.getMatchExpression());
-            }
-        }
-        return expressions;
-    }
-
-    @Deprecated(since = "2.2")
-    /**
-     * @deprecated use {@link getAll} instead
-     */
-    public List<MatchedCredentials> getMatchExpressionsWithMatchedTargets()
-            throws JsonSyntaxException, JsonIOException, IOException {
-        List<MatchedCredentials> result = new ArrayList<>();
-        List<ServiceRef> targets = platformClient.listDiscoverableServices();
-        for (String expr : getMatchExpressions()) {
-            Set<ServiceRef> matchedTargets = new HashSet<>();
-            for (ServiceRef target : targets) {
-                try {
-                    if (matchExpressionEvaluator.applies(expr, target)) {
-                        matchedTargets.add(target);
-                    }
-                } catch (ScriptException e) {
-                    logger.error(e);
-                    continue;
-                }
-            }
-            MatchedCredentials match = new MatchedCredentials(expr, matchedTargets);
-            result.add(match);
-        }
-        return result;
-    }
-
     private Path getPersistedPath(int id) {
         return credentialsDir.resolve(String.valueOf(id));
     }
