@@ -37,36 +37,43 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
+import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
+class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
+
+    static final String PATH = "credentials";
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialsPostHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -81,22 +88,22 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+        return EnumSet.of(ResourceAction.CREATE_CREDENTIALS);
     }
 
     @Override
     public String path() {
-        return basePath() + "credentials";
+        return basePath() + PATH;
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+        return HttpMimeType.PLAINTEXT;
     }
 
     @Override
@@ -105,45 +112,52 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     }
 
     @Override
-    public IntermediateResponse<List<Cred>> handle(RequestParameters requestParams)
-            throws Exception {
-        Map<Integer, String> credentials = credentialsManager.getAll();
-        List<Cred> result = new ArrayList<>(credentials.size());
-        for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
-            Cred cred = new Cred();
-            cred.id = entry.getKey();
-            cred.matchExpression = entry.getValue();
-            result.add(cred);
-        }
-        return new IntermediateResponse<List<Cred>>().body(result);
+    public boolean isOrdered() {
+        return true;
     }
 
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification =
-                    "The fields are serialized for JSON HTTP response instead of accessed directly")
-    static class Cred {
-        int id;
-        String matchExpression;
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
+        String matchExpression = params.getFormAttributes().get("matchExpression");
+        String username = params.getFormAttributes().get("username");
+        String password = params.getFormAttributes().get("password");
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(id, matchExpression);
+        if (StringUtils.isAnyBlank(matchExpression, username, password)) {
+            StringBuilder sb = new StringBuilder();
+            if (StringUtils.isBlank(matchExpression)) {
+                sb.append("\"matchExpression\" is required.");
+            }
+            if (StringUtils.isBlank(username)) {
+                sb.append("\"username\" is required.");
+            }
+            if (StringUtils.isBlank(password)) {
+                sb.append(" \"password\" is required.");
+            }
+
+            throw new ApiException(400, sb.toString().trim());
         }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            Cred other = (Cred) obj;
-            return id == other.id && Objects.equals(matchExpression, other.matchExpression);
+        try {
+            int id =
+                    this.credentialsManager.addCredentials(
+                            matchExpression, new Credentials(username, password));
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("CredentialsStored")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .build()
+                    .send();
+
+            return new IntermediateResponse<Void>()
+                    .statusCode(201)
+                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
+                    .body(null);
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(400, e);
+        } catch (IOException e) {
+            throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }
     }
 }

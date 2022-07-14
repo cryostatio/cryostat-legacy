@@ -47,7 +47,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.nashorn.api.scripting.NashornException;
 
 @ExtendWith(MockitoExtension.class)
 class MatchExpressionValidatorTest {
@@ -110,6 +109,7 @@ class MatchExpressionValidatorTest {
             })
     void shouldThrowOnMalformedExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
-        Assertions.assertThrows(NashornException.class, () -> validator.validate(rule));
+        Assertions.assertThrows(
+                MatchExpressionValidationException.class, () -> validator.validate(rule));
     }
 }

@@ -37,36 +37,38 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
+class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
-    CredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialDeleteHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -81,22 +83,22 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.DELETE;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+        return EnumSet.of(ResourceAction.DELETE_CREDENTIALS);
     }
 
     @Override
     public String path() {
-        return basePath() + "credentials";
+        return basePath() + "credentials/:id";
     }
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+        return HttpMimeType.PLAINTEXT;
     }
 
     @Override
@@ -105,45 +107,31 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     }
 
     @Override
-    public IntermediateResponse<List<Cred>> handle(RequestParameters requestParams)
-            throws Exception {
-        Map<Integer, String> credentials = credentialsManager.getAll();
-        List<Cred> result = new ArrayList<>(credentials.size());
-        for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
-            Cred cred = new Cred();
-            cred.id = entry.getKey();
-            cred.matchExpression = entry.getValue();
-            result.add(cred);
-        }
-        return new IntermediateResponse<List<Cred>>().body(result);
+    public boolean isOrdered() {
+        return true;
     }
 
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification =
-                    "The fields are serialized for JSON HTTP response instead of accessed directly")
-    static class Cred {
-        int id;
-        String matchExpression;
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
+        int id = Integer.parseInt(params.getPathParams().get("id"));
+        try {
+            String matchExpression = credentialsManager.get(id);
+            this.credentialsManager.delete(id);
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(id, matchExpression);
-        }
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("CredentialsDeleted")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .build()
+                    .send();
 
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            Cred other = (Cred) obj;
-            return id == other.id && Objects.equals(matchExpression, other.matchExpression);
+            return new IntermediateResponse<Void>().statusCode(200);
+        } catch (FileNotFoundException e) {
+            throw new ApiException(404, e);
+        } catch (IOException e) {
+            throw new ApiException(
+                    500, "IOException occurred while clearing persisted credentials", e);
         }
     }
 }

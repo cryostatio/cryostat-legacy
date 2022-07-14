@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -66,20 +65,23 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TargetCredentialsDeleteHandlerTest {
+class CredentialDeleteHandlerTest {
 
-    AbstractV2RequestHandler<Void> handler;
+    CredentialDeleteHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock Notification notification;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.meta(Mockito.any()))
+                .thenReturn(notificationBuilder);
         Mockito.lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
@@ -93,34 +95,25 @@ class TargetCredentialsDeleteHandlerTest {
                 .when(notificationBuilder.message(Mockito.any()))
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
-
         this.handler =
-                new TargetCredentialsDeleteHandler(
-                        auth, credentialsManager, notificationFactory, gson);
+                new CredentialDeleteHandler(auth, credentialsManager, notificationFactory, gson);
     }
 
     @Nested
     class BasicHandlerDefinition {
-
         @Test
-        void shouldRequireAuthentication() {
-            Assertions.assertTrue(handler.requiresAuthentication());
-        }
-
-        @Test
-        void shouldBeV2API() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2));
-        }
-
-        @Test
-        void shouldHaveDELETEMethod() {
+        void shouldBeGETHandler() {
             MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
         }
 
         @Test
-        void shouldHaveTargetsPath() {
-            MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/credentials"));
+        void shouldBeAPIV2_2() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_2));
+        }
+
+        @Test
+        void shouldHaveExpectedPath() {
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.2/credentials/:id"));
         }
 
         @Test
@@ -131,74 +124,45 @@ class TargetCredentialsDeleteHandlerTest {
         }
 
         @Test
-        void shouldHaveJsonMimeType() {
+        void shouldReturnPlaintextMimeType() {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
         }
 
         @Test
-        void shouldNotBeAsync() {
-            Assertions.assertFalse(handler.isAsync());
-        }
-
-        @Test
-        void shouldBeOrdered() {
-            Assertions.assertTrue(handler.isOrdered());
+        void shouldRequireAuthentication() {
+            MatcherAssert.assertThat(handler.requiresAuthentication(), Matchers.is(true));
         }
     }
 
     @Nested
-    class RequestExecutions {
+    class RequestHandling {
+
         @Mock RequestParameters requestParams;
 
         @Test
-        void shouldRespond200OnSuccess() throws Exception {
-            String targetId = "fooTarget";
-            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString())).thenReturn(1);
+        void shouldDelegateToCredentialsManager() throws Exception {
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
+            String matchExpression = "target.alias == \"foo\"";
+            Mockito.when(credentialsManager.get(Mockito.eq(10))).thenReturn(matchExpression);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
 
-            Mockito.verify(notificationFactory).createBuilder();
-            Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsDeleted");
-            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-            Mockito.verify(notificationBuilder).message(Map.of("target", matchExpression));
-            Mockito.verify(notificationBuilder).build();
-            Mockito.verify(notification).send();
+            Mockito.verify(credentialsManager).delete(10);
         }
 
         @Test
-        void shouldRespond404OnFailure() throws Exception {
-            String targetId = "fooTarget";
-            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
+        void shouldRespond404IfIdUnknown() throws Exception {
+            Mockito.when(credentialsManager.get(Mockito.anyInt()))
                     .thenThrow(FileNotFoundException.class);
-
-            IntermediateResponse<Void> response = handler.handle(requestParams);
-
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(404));
-            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
-        }
-
-        @Test
-        void shouldWrapIOExceptions() throws Exception {
-            String targetId = "fooTarget";
-            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenThrow(IOException.class);
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
 
             ApiException ex =
                     Assertions.assertThrows(
                             ApiException.class, () -> handler.handle(requestParams));
 
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-            MatcherAssert.assertThat(ex.getCause(), Matchers.instanceOf(IOException.class));
-            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
     }
 }

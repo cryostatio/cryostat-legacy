@@ -217,4 +217,20 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindCredentialsGetHandler(CredentialsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialGetHandler(CredentialGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialDeleteHandler(CredentialDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostHandler(CredentialsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostBodyHandler(CredentialsPostBodyHandler handler);
 }

@@ -52,6 +52,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -148,6 +149,8 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
                     .message(Map.of("target", targetId))
                     .build()
                     .send();
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(400, e);
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }
