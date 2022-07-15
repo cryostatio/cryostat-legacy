@@ -37,8 +37,6 @@
  */
 package io.cryostat.messaging.notifications;
 
-import java.util.Map;
-
-public interface NotificationListener {
-    void notifyCallback(Notification<Map<String, Object>> notification);
+public interface NotificationListener<T> {
+    void callback(Notification<T> notification);
 }

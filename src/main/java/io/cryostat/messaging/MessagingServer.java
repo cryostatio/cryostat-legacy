@@ -220,9 +220,9 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                 });
     }
 
-    public void writeMessage(Notification<?> message) {
+    public void writeMessage(Notification message) {
+        notificationSource.notifyListeners(message);
         String json = gson.toJson(message);
-        notificationSource.notifyListeners((Notification<Map<String, Object>>) message);
         logger.info("Outgoing WS message: {}", json);
         synchronized (connections) {
             connections.forEach(c -> c.writeMessage(json));

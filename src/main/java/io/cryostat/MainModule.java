@@ -68,6 +68,7 @@ import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
 import io.cryostat.util.resource.ResourceModule;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -153,7 +154,8 @@ public abstract class MainModule {
     @Provides
     @Singleton
     public static ObjectMapper provideObjectMapper() {
-        return new ObjectMapper();
+        return new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Provides

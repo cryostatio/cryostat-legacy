@@ -37,20 +37,32 @@
  */
 package io.cryostat.messaging.notifications;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("unchecked")
 public class NotificationSource {
 
-    private final Set<NotificationListener> listeners = new HashSet<>();
-  
-    public void notifyListeners(Notification<Map<String, Object>> notification) {
-        listeners.forEach(listener -> listener.notifyCallback(notification));
-    }
-  
-    public void addListener(NotificationListener listener) {
-        listeners.add(listener);
+    private final Set<NotificationListener> listeners;
+
+    NotificationSource() {
+        this.listeners = new HashSet<>();
     }
 
+    public boolean addListener(NotificationListener<?> listener) {
+        return listeners.add(listener);
+    }
+
+    public boolean removeListener(NotificationListener<?> listener) {
+        return listeners.remove(listener);
+    }
+
+    public void notifyListeners(Notification<?> notification) {
+        listeners.forEach(listener -> listener.callback(notification));
+    }
+
+    public Set<NotificationListener> getListeners() {
+        return Collections.unmodifiableSet(listeners);
+    }
 }

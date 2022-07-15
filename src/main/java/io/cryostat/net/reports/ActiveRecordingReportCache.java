@@ -38,7 +38,6 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -60,18 +59,15 @@ import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import com.google.gson.Gson;
 
-class ActiveRecordingReportCache implements NotificationListener {
-    private final static String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
+class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
+    private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
 
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
@@ -79,7 +75,7 @@ class ActiveRecordingReportCache implements NotificationListener {
     protected final TargetConnectionManager targetConnectionManager;
     protected final NotificationSource notificationSource;
     protected final long generationTimeoutSeconds;
-    protected final Gson gson;
+    protected final ObjectMapper oMapper;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
@@ -88,14 +84,14 @@ class ActiveRecordingReportCache implements NotificationListener {
             TargetConnectionManager targetConnectionManager,
             NotificationSource notificationSource,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Gson gson,
+            ObjectMapper oMapper,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.notificationSource = notificationSource;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
-        this.gson = gson;
+        this.oMapper = oMapper;
         this.logger = logger;
         this.cache =
                 Caffeine.newBuilder()
@@ -126,14 +122,7 @@ class ActiveRecordingReportCache implements NotificationListener {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
-        boolean hasKey = cache.asMap().containsKey(key);
-        if (hasKey) {
-            logger.trace("Invalidated active report cache for {}", recordingName);
-            cache.invalidate(key);
-        } else {
-            logger.trace("No cache entry for {} to invalidate", recordingName);
-        }
+        boolean hasKey = invalidateCacheEntry(connectionDescriptor, recordingName);
         return hasKey;
     }
 
@@ -195,66 +184,53 @@ class ActiveRecordingReportCache implements NotificationListener {
         }
     }
 
-    // public void onNotify(String category, String message) {
-    //     Map<String, Object> notification = gson.fromJson(message, Map.class);
-    //     Map<String, Object> msg = objectMapper.convertValue(notification.get("message"), Map.class);
-    //     Map<String, Object> recording = objectMapper.convertValue(msg.get("recording"), Map.class);
-
-    //     String targetId = msg.get("target").toString();
-    //     String recordingName = recording.get("name").toString();
-
-    //     ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
-    //     RecordingDescriptor rd = new RecordingDescriptor(cd, recordingName);
-
-    //     boolean hasKey = cache.asMap().containsKey(rd);
-    //     if (hasKey) {
-    //         System.out.println("invalidated");
-    //         logger.trace("Invalidated active report cache for {}", recordingName);
-    //         cache.invalidate(rd);
-    //     } else {
-    //         System.out.println("not invalidated");
-    //         logger.trace("No cache entry for {} to invalidate", recordingName);
-    //     }
-    // }
-
-
+    private boolean invalidateCacheEntry(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
+        boolean hasKey = cache.asMap().containsKey(key);
+        if (hasKey) {
+            logger.trace("Invalidated active report cache for {}", recordingName);
+            cache.invalidate(key);
+        } else {
+            logger.trace("No cache entry for {} to invalidate", recordingName);
+        }
+        return hasKey;
+    }
 
     @Override
-    public void notifyCallback(Notification<Map<String, Object>> notification) {
-        if (!notification.getCategory().equals(STOP_NOTIFICATION_CATEGORY)) {
-            System.out.println("INCORRECT NOTIFICATION!");
-            return;
-        }
-        else {
-            // will just use oMapper and inject it later
-            ObjectMapper oMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    
-            System.out.println("CALLBACK!");
-    
-            ActiveRecordingStopMatcher msg = oMapper.convertValue(notification.getMessage(), ActiveRecordingStopMatcher.class);
-            String targetId = msg.getTarget();
-            System.out.println("TARGET: " + targetId);
+    public void callback(Notification<Map<String, Object>> notification) {
+        String category = notification.getCategory();
 
-            String recordingName = msg.getName();
-            System.out.println("NAME: " + recordingName);
+        switch (category) {
+            case STOP_NOTIFICATION_CATEGORY:
+                System.out.println("CALLBACK!");
 
-            RecordingDescriptor rd = new RecordingDescriptor(new ConnectionDescriptor(targetId), recordingName);
+                ActiveRecordingStopMatcher msg =
+                        oMapper.convertValue(
+                                notification.getMessage(), ActiveRecordingStopMatcher.class);
+                String targetId = msg.getTarget();
+                System.out.println("TARGET: " + targetId);
 
-            boolean hasKey = cache.asMap().containsKey(rd);
-            if (hasKey) {
-                System.out.println("invalidated");
-                logger.trace("Invalidated active report cache for {}", recordingName);
-                cache.invalidate(rd);
-            } else {
-                System.out.println("not invalidated");
-                logger.trace("No cache entry for {} to invalidate", recordingName);
-            }
+                String recordingName = msg.getName();
+                System.out.println("NAME: " + recordingName);
+
+                invalidateCacheEntry(new ConnectionDescriptor(targetId), recordingName);
+                break;
+
+            default:
+                System.out.println("INCORRECT NOTIFICATION!");
+                break;
         }
     }
 
     private static class ActiveRecordingStopMatcher {
         private String target;
         private String name;
+
+        @JsonProperty("recording")
+        private void unpackNested(Map<String, Object> recording) {
+            this.name = recording.get("name").toString();
+        }
 
         @JsonGetter("target")
         String getTarget() {
@@ -264,11 +240,6 @@ class ActiveRecordingReportCache implements NotificationListener {
         @JsonGetter("name")
         String getName() {
             return this.name;
-        }
-
-        @JsonProperty("recording")
-        private void unpackNested(Map<String, Object> recording) {
-            this.name = recording.get("name").toString();
         }
     }
 }

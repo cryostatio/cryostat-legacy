@@ -37,12 +37,10 @@
  */
 package io.cryostat.messaging.notifications;
 
-import java.util.Set;
-
 import javax.inject.Singleton;
 
 import io.cryostat.messaging.MessagingServer;
-import io.vertx.core.Vertx;
+
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
