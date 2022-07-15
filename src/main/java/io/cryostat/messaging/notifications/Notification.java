@@ -57,7 +57,15 @@ public class Notification<T> extends WsMessage {
     }
 
     public void send() {
-        this.server.writeMessage(this.meta.category, this);
+        this.server.writeMessage(this);
+    }
+
+    public T getMessage() {
+        return this.message;
+    }
+
+    public String getCategory() {
+        return this.meta.category;
     }
 
     public static class Builder<T> {

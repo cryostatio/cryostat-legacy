@@ -48,6 +48,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationListener;
+import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -55,8 +57,11 @@ import io.cryostat.util.JavaProcess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 
@@ -82,18 +87,22 @@ public abstract class ReportsModule {
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            NotificationSource notificationSource,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            ObjectMapper objectMapper,
             Gson gson,
             Logger logger) {
-        return new ActiveRecordingReportCache(
-                reportGeneratorServiceProvider,
-                fs,
-                targetConnectionManager,
-                generationTimeoutSeconds,
-                objectMapper,
-                gson,
-                logger);
+
+                ActiveRecordingReportCache c = new ActiveRecordingReportCache(
+                    reportGeneratorServiceProvider,
+                    fs,
+                    targetConnectionManager,
+                    notificationSource,
+                    generationTimeoutSeconds,
+                    gson,
+                    logger);
+
+        notificationSource.addListener(c);
+        return c;
     }
 
     @Provides

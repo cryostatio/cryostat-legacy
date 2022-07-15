@@ -37,26 +37,20 @@
  */
 package io.cryostat.messaging.notifications;
 
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-import io.vertx.core.Vertx;
+public class NotificationSource {
 
-public class NotificationPublisher {
-    private final Vertx vertx;
-    private final Set<NotificationListener> listeners;
-    
-    NotificationPublisher(Vertx vertx, Set<NotificationListener> listeners) {
-        this.vertx = vertx;
-        this.listeners = listeners;
-
-        listeners.forEach(listener -> {
-            listener.categories().forEach(category -> {
-                vertx.eventBus().consumer(category, message -> listener.onMessage(category, message));
-            });
-        });
+    private final Set<NotificationListener> listeners = new HashSet<>();
+  
+    public void notifyListeners(Notification<Map<String, Object>> notification) {
+        listeners.forEach(listener -> listener.notifyCallback(notification));
+    }
+  
+    public void addListener(NotificationListener listener) {
+        listeners.add(listener);
     }
 
-    public <T> void send(String category, T message) {
-        vertx.eventBus().publish(category, message);
-    }
 }

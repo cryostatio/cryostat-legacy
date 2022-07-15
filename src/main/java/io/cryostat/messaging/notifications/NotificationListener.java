@@ -37,11 +37,8 @@
  */
 package io.cryostat.messaging.notifications;
 
-import java.util.Set;
-
-import io.vertx.core.eventbus.Message;
+import java.util.Map;
 
 public interface NotificationListener {
-    Set<String> categories();
-    void onMessage(String category, Message<?> message);
+    void notifyCallback(Notification<Map<String, Object>> notification);
 }
