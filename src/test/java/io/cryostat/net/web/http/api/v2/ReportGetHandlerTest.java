@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
@@ -75,6 +76,7 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock ReportService reports;
@@ -82,7 +84,9 @@ class ReportGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new ReportGetHandler(auth, jwt, () -> webServer, reports, 30, logger);
+        this.handler =
+                new ReportGetHandler(
+                        auth, credentialsManager, jwt, () -> webServer, reports, 30, logger);
     }
 
     @Nested

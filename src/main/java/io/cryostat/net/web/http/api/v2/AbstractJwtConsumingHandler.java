@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URI;
@@ -51,10 +52,12 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
+import javax.script.ScriptException;
 import javax.security.sasl.SaslException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
@@ -74,13 +77,19 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected final AuthManager auth;
+    protected final CredentialsManager credentialsManager;
     protected final AssetJwtHelper jwt;
     protected final Lazy<WebServer> webServer;
     protected final Logger logger;
 
     protected AbstractJwtConsumingHandler(
-            AuthManager auth, AssetJwtHelper jwt, Lazy<WebServer> webServer, Logger logger) {
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            AssetJwtHelper jwt,
+            Lazy<WebServer> webServer,
+            Logger logger) {
         this.auth = auth;
+        this.credentialsManager = credentialsManager;
         this.jwt = jwt;
         this.webServer = webServer;
         this.logger = logger;
@@ -164,8 +173,12 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(RoutingContext ctx, JWT jwt)
             throws ParseException {
         String targetId = ctx.pathParam("targetId");
-        // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
+        try {
+            credentials = credentialsManager.getCredentialsByTargetId(targetId);
+        } catch (ScriptException | IOException e) {
+            logger.error(e);
+        }
         String jmxauth = jwt.getJWTClaimsSet().getStringClaim(AssetJwtHelper.JMXAUTH_CLAIM);
         if (jmxauth != null) {
             String c;
