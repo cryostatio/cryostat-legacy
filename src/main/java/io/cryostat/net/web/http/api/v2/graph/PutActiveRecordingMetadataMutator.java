@@ -108,7 +108,7 @@ class PutActiveRecordingMetadataMutator
         }
 
         ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(uri));
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
         return targetConnectionManager.executeConnectedTask(
                 cd,

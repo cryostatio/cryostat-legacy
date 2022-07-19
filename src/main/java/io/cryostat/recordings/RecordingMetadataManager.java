@@ -43,14 +43,19 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.script.ScriptException;
+
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
@@ -58,22 +63,28 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RecordingMetadataManager {
+public class RecordingMetadataManager extends AbstractVerticle
+        implements Consumer<TargetDiscoveryEvent> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
+    private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
 
     private final Path recordingMetadataDir;
     private final FileSystem fs;
     private final TargetConnectionManager targetConnectionManager;
+    private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
     private final Gson gson;
     private final Base32 base32;
@@ -81,24 +92,30 @@ public class RecordingMetadataManager {
 
     private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
     private final Map<String, String> jvmIdMap;
+    private final Map<String, Long> staleMetadataTimers;
 
     RecordingMetadataManager(
+            Vertx vertx,
             Path recordingMetadataDir,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
+        this.vertx = vertx;
         this.recordingMetadataDir = recordingMetadataDir;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
+        this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
         this.recordingMetadataMap = new ConcurrentHashMap<>();
         this.jvmIdMap = new ConcurrentHashMap<>();
+        this.staleMetadataTimers = new ConcurrentHashMap<>();
     }
 
     public void load() throws IOException {
@@ -122,6 +139,130 @@ public class RecordingMetadataManager {
                                     Pair.of(srm.getJvmId(), srm.getRecordingName()), srm);
                             jvmIdMap.putIfAbsent(srm.getTargetId(), srm.getJvmId());
                         });
+    }
+
+    // when targets disappear or are restarted, update the jvmIds mapped
+    // to each target's recording metadata
+    // if targets are restarted, delete any stale metadata from the previous container
+    @Override
+    public synchronized void accept(TargetDiscoveryEvent tde) {
+        String targetId = tde.getServiceRef().getServiceUri().toString();
+        String oldJvmId = jvmIdMap.get(targetId);
+
+        if (oldJvmId == null) {
+            return;
+        }
+
+        Credentials credentials;
+        ConnectionDescriptor cd;
+
+        try {
+            credentials = credentialsManager.getCredentials(tde.getServiceRef());
+            cd = new ConnectionDescriptor(tde.getServiceRef(), credentials);
+        } catch (IOException | ScriptException e) {
+            logger.error(e);
+            return;
+        }
+
+        switch (tde.getEventKind()) {
+            case FOUND:
+                try {
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                try {
+                                    String newJvmId = (String) connection.getJvmId();
+                                    if (oldJvmId.equals(newJvmId)) {
+                                        Long id = staleMetadataTimers.remove(oldJvmId);
+                                        if (id != null) {
+                                            this.vertx.cancelTimer(id);
+                                        }
+                                        return null;
+                                    }
+
+                                    recordingMetadataMap.keySet().stream()
+                                            .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
+                                            .forEach(
+                                                    keyPair -> {
+                                                        try {
+                                                            String recordingName =
+                                                                    keyPair.getValue();
+                                                            Metadata m =
+                                                                    deleteRecordingMetadataIfExists(
+                                                                            cd, recordingName);
+                                                            jvmIdMap.put(targetId, newJvmId);
+
+                                                            setRecordingMetadata(
+                                                                    cd, recordingName, m);
+
+                                                            jvmIdMap.put(targetId, oldJvmId);
+                                                        } catch (IOException e) {
+                                                            logger.error(e);
+                                                        }
+                                                    });
+                                    jvmIdMap.put(targetId, newJvmId);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+                                return null;
+                            });
+                } catch (Exception e) {
+                    logger.error(e);
+                }
+                break;
+            case LOST:
+                staleMetadataTimers.computeIfAbsent(
+                        oldJvmId,
+                        k ->
+                                this.vertx.setTimer(
+                                        Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS)
+                                                .toMillis(),
+                                        initialId -> {
+                                            recordingMetadataMap.keySet().stream()
+                                                    .filter(
+                                                            keyPair ->
+                                                                    keyPair.getKey()
+                                                                            .equals(oldJvmId))
+                                                    .forEach(
+                                                            keyPair -> {
+                                                                try {
+                                                                    String recordingName =
+                                                                            keyPair.getValue();
+
+                                                                    Path targetSubDirectory =
+                                                                            Path.of(
+                                                                                    base32
+                                                                                            .encodeAsString(
+                                                                                                    targetId
+                                                                                                            .getBytes(
+                                                                                                                    StandardCharsets
+                                                                                                                            .UTF_8)));
+
+                                                                    boolean isActiveRecording =
+                                                                            this.fs
+                                                                                    .listDirectoryChildren(
+                                                                                            targetSubDirectory)
+                                                                                    .stream()
+                                                                                    .anyMatch(
+                                                                                            filename ->
+                                                                                                    filename
+                                                                                                            .equals(
+                                                                                                                    recordingName));
+
+                                                                    if (isActiveRecording) {
+                                                                        deleteRecordingMetadataIfExists(
+                                                                                cd, recordingName);
+                                                                    }
+                                                                } catch (IOException e) {
+                                                                    logger.error(e);
+                                                                }
+                                                            });
+                                        }));
+
+                break;
+            default:
+                throw new UnsupportedOperationException(tde.getEventKind().toString());
+        }
     }
 
     public Future<Metadata> setRecordingMetadata(

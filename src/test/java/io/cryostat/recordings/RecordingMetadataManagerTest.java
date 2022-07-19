@@ -41,6 +41,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Map;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
@@ -52,6 +53,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -70,11 +72,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RecordingMetadataManagerTest {
 
     RecordingMetadataManager recordingMetadataManager;
+    Vertx vertx;
+
     @Mock Path recordingMetadataDir;
     @Mock FileSystem fs;
     @Mock Base32 base32;
     @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
@@ -103,9 +108,11 @@ public class RecordingMetadataManagerTest {
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
+                        vertx,
                         recordingMetadataDir,
                         fs,
                         targetConnectionManager,
+                        credentialsManager,
                         notificationFactory,
                         gson,
                         base32,
