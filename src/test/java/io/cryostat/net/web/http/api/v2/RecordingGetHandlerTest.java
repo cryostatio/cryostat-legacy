@@ -43,6 +43,7 @@ import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -74,6 +75,7 @@ class RecordingGetHandlerTest {
 
     RecordingGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
@@ -81,7 +83,9 @@ class RecordingGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(auth, jwt, () -> webServer, archive, logger);
+        this.handler =
+                new RecordingGetHandler(
+                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
     }
 
     @Nested

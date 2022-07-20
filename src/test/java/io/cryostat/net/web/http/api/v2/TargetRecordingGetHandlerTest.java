@@ -48,6 +48,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -93,6 +94,7 @@ class TargetRecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock HttpServer httpServer;
@@ -105,7 +107,13 @@ class TargetRecordingGetHandlerTest {
         Mockito.when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new TargetRecordingGetHandler(
-                        auth, jwt, () -> webServer, httpServer, targetConnectionManager, logger);
+                        auth,
+                        credentialsManager,
+                        jwt,
+                        () -> webServer,
+                        httpServer,
+                        targetConnectionManager,
+                        logger);
     }
 
     @Nested
