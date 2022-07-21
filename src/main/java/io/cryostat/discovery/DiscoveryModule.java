@@ -35,62 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.discovery;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
+import javax.inject.Singleton;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import io.cryostat.core.log.Logger;
+import io.cryostat.platform.PlatformClient;
 
-public class EnvironmentNode extends AbstractNode {
+import dagger.Module;
+import dagger.Provides;
 
-    private final SortedSet<AbstractNode> children;
-
-    public EnvironmentNode(String name, NodeType nodeType) {
-        this(name, nodeType, Collections.emptyMap());
+@Module
+public abstract class DiscoveryModule {
+    @Provides
+    @Singleton
+    static DiscoveryStorage provideDiscoveryStorage(Logger logger) {
+        return new DiscoveryStorage(logger);
     }
 
-    public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
-        super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>();
-    }
-
-    public SortedSet<AbstractNode> getChildren() {
-        return Collections.unmodifiableSortedSet(children);
-    }
-
-    public void addChildNode(AbstractNode child) {
-        this.children.add(child);
-    }
-
-    public void addChildren(Collection<? extends AbstractNode> children) {
-        this.children.addAll(children);
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(children).build();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof EnvironmentNode)) {
-            return false;
-        }
-        EnvironmentNode other = (EnvironmentNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(children, other.children)
-                .isEquals();
+    @Provides
+    @Singleton
+    static BuiltInDiscovery provideBuiltInDiscovery(
+            DiscoveryStorage storage, PlatformClient platform, Logger logger) {
+        return new BuiltInDiscovery(storage, platform, logger);
     }
 }

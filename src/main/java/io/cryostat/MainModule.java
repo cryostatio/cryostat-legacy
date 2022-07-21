@@ -52,6 +52,7 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -79,6 +80,7 @@ import org.apache.commons.codec.binary.Base32;
             ConfigurationModule.class,
             MessagingModule.class,
             NetworkModule.class,
+            DiscoveryModule.class,
             PlatformModule.class,
             RecordingsModule.class,
             ResourceModule.class,

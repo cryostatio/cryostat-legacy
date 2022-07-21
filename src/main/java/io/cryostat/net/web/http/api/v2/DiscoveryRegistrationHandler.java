@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -47,17 +49,18 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.discovery.EnvironmentNode;
 
 import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
+class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Integer> {
 
+    static final String PATH = "discovery";
     private final DiscoveryStorage storage;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryRegistrationHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
         super(auth, gson);
         this.storage = storage;
     }
@@ -69,22 +72,22 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.V2_2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return basePath() + "discovery";
+        return basePath() + PATH;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+        return EnumSet.of(ResourceAction.CREATE_TARGET);
     }
 
     @Override
@@ -98,7 +101,19 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(storage.getDiscoveryTree());
+    public IntermediateResponse<Integer> handle(RequestParameters params) throws Exception {
+        try {
+            String realm = getNonBlankFormAttribute(params, "realm");
+            URL callbackUrl = new URL(getNonBlankFormAttribute(params, "callback"));
+
+            int id = storage.register(realm, callbackUrl);
+            return new IntermediateResponse<Integer>()
+                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
+                    .body(id);
+        } catch (IllegalArgumentException iae) {
+            throw new ApiException(400, iae);
+        } catch (MalformedURLException mue) {
+            throw new ApiException(400, mue);
+        }
     }
 }

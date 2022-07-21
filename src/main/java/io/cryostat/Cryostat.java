@@ -46,6 +46,8 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.discovery.BuiltInDiscovery;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
@@ -78,9 +80,15 @@ class Cryostat {
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
 
+        client.discoveryStorage().init();
         client.credentialsManager().migrate();
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
+        client.vertx()
+                .deployVerticle(
+                        client.discovery(),
+                        new DeploymentOptions(),
+                        res -> logger.info("Built-In Discovery Verticle Started"));
         client.vertx()
                 .deployVerticle(
                         client.httpServer(),
@@ -110,6 +118,10 @@ class Cryostat {
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
+        DiscoveryStorage discoveryStorage();
+
+        BuiltInDiscovery discovery();
+
         CredentialsManager credentialsManager();
 
         RuleRegistry ruleRegistry();

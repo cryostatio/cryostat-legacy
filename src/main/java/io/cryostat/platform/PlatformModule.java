@@ -64,7 +64,6 @@ import dagger.Provides;
 
 @Module(includes = {PlatformStrategyModule.class, PlatformDiscoveryModule.class})
 public abstract class PlatformModule {
-
     @Provides
     @Singleton
     static PlatformClient providePlatformClient(

@@ -35,62 +35,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.Set;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import javax.inject.Inject;
 
-public class EnvironmentNode extends AbstractNode {
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    private final SortedSet<AbstractNode> children;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-    public EnvironmentNode(String name, NodeType nodeType) {
-        this(name, nodeType, Collections.emptyMap());
-    }
+class DiscoveryPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
-        super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>();
-    }
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-    public SortedSet<AbstractNode> getChildren() {
-        return Collections.unmodifiableSortedSet(children);
-    }
-
-    public void addChildNode(AbstractNode child) {
-        this.children.add(child);
-    }
-
-    public void addChildren(Collection<? extends AbstractNode> children) {
-        this.children.addAll(children);
+    @Inject
+    DiscoveryPostBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(children).build();
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_2;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof EnvironmentNode)) {
-            return false;
-        }
-        EnvironmentNode other = (EnvironmentNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(children, other.children)
-                .isEquals();
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + DiscoveryPostHandler.PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }

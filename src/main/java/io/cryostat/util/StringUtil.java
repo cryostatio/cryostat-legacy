@@ -35,62 +35,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.util;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
+import org.apache.commons.lang3.StringUtils;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+public class StringUtil {
+    private StringUtil() {}
 
-public class EnvironmentNode extends AbstractNode {
-
-    private final SortedSet<AbstractNode> children;
-
-    public EnvironmentNode(String name, NodeType nodeType) {
-        this(name, nodeType, Collections.emptyMap());
-    }
-
-    public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
-        super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>();
-    }
-
-    public SortedSet<AbstractNode> getChildren() {
-        return Collections.unmodifiableSortedSet(children);
-    }
-
-    public void addChildNode(AbstractNode child) {
-        this.children.add(child);
-    }
-
-    public void addChildren(Collection<? extends AbstractNode> children) {
-        this.children.addAll(children);
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(children).build();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
+    public static String requireNonBlank(String s, String keyName) throws IllegalArgumentException {
+        if (StringUtils.isBlank(s)) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be blank, was \"%s\"", keyName));
         }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof EnvironmentNode)) {
-            return false;
-        }
-        EnvironmentNode other = (EnvironmentNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(children, other.children)
-                .isEquals();
+        return s;
     }
 }

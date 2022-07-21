@@ -47,17 +47,19 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.AbstractNode;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
+class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
 
+    static final String PATH = "discovery/:id";
     private final DiscoveryStorage storage;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryPostHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
         super(auth, gson);
         this.storage = storage;
     }
@@ -69,22 +71,25 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.V2_2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return basePath() + "discovery";
+        return basePath() + PATH;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+        return EnumSet.of(
+                ResourceAction.CREATE_TARGET,
+                ResourceAction.UPDATE_TARGET,
+                ResourceAction.DELETE_TARGET);
     }
 
     @Override
@@ -98,7 +103,16 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(storage.getDiscoveryTree());
+    public IntermediateResponse<Set<AbstractNode>> handle(RequestParameters params)
+            throws Exception {
+        String body = params.getBody();
+        Set<AbstractNode> nodes =
+                gson.fromJson(body, new TypeToken<Set<AbstractNode>>() {}.getType());
+        // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
+        // fields should be null, etc.
+        Set<AbstractNode> previous =
+                storage.update(Integer.valueOf(params.getPathParams().get("id")), nodes);
+
+        return new IntermediateResponse<Set<AbstractNode>>().body(previous);
     }
 }

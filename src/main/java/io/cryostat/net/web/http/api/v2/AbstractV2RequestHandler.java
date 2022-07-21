@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import static io.cryostat.util.StringUtil.requireNonBlank;
+
 import java.io.File;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -212,6 +214,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                 }
                 return;
         }
+    }
+
+    protected String getNonBlankFormAttribute(RequestParameters params, String key)
+            throws IllegalArgumentException {
+        return requireNonBlank(params.getFormAttributes().get(key), key);
     }
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
