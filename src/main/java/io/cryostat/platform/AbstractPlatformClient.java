@@ -35,18 +35,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.internal;
+package io.cryostat.platform;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
 
-abstract class AbstractPlatformClient implements PlatformClient {
+public abstract class AbstractPlatformClient implements PlatformClient {
 
     protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 

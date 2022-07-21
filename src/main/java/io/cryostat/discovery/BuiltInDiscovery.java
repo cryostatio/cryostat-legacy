@@ -37,64 +37,70 @@
  */
 package io.cryostat.discovery;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Set;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 import io.vertx.core.AbstractVerticle;
 
-public class BuiltInDiscovery extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
+public class BuiltInDiscovery extends AbstractVerticle {
+
+    static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
     private final DiscoveryStorage storage;
-    private final PlatformClient platform;
-    private final Map<String, Integer> ids;
+    private final Set<PlatformClient> platformClients;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
-    BuiltInDiscovery(DiscoveryStorage storage, PlatformClient platform, Logger logger) {
+    BuiltInDiscovery(
+            DiscoveryStorage storage,
+            Set<PlatformClient> platformClients,
+            NotificationFactory notificationFactory,
+            Logger logger) {
         this.storage = storage;
-        this.platform = platform;
-        this.ids = new HashMap<>();
+        this.platformClients = platformClients;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
     @Override
-    public void start() throws MalformedURLException, RegistrationException {
-        for (AbstractNode realm : this.platform.getDiscoveryTree().getChildren()) {
+    public void start() throws MalformedURLException, RegistrationException, IOException {
+        storage.addTargetDiscoveryListener(
+                tde ->
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .message(
+                                        Map.of(
+                                                "event",
+                                                Map.of(
+                                                        "kind",
+                                                        tde.getEventKind(),
+                                                        "serviceRef",
+                                                        tde.getServiceRef())))
+                                .build()
+                                .send());
+
+        for (PlatformClient platform : this.platformClients) {
+            logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
+            AbstractNode realm = platform.getDiscoveryTree();
             if (!(realm instanceof EnvironmentNode)) {
                 logger.error("BuiltInDiscovery encountered an unexpected TargetNode");
             }
-            EnvironmentNode node = (EnvironmentNode) realm;
             String name = realm.getName();
             int id = storage.register(name, new URL("http://localhost/health"));
-            ids.put(name, id);
+            platform.addTargetDiscoveryListener(
+                    tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+            platform.start();
+            storage.update(id, platform.getDiscoveryTree().getChildren());
         }
-        this.platform.addTargetDiscoveryListener(this);
-    }
-
-    @Override
-    public void accept(TargetDiscoveryEvent tde) {
-        // TODO can we correlate which realm this event came from and only update that storage?
-        // we're going through the MergingPlatformClient here, so we're getting a merged stream of
-        // events, and the events aren't currently obvious about where they came from exactly
-        platform.getDiscoveryTree()
-                .getChildren()
-                .forEach(
-                        realm -> {
-                            int id = ids.get(realm.getName());
-                            if (!(realm instanceof EnvironmentNode)) {
-                                logger.error(
-                                        "BuiltInDiscovery encountered an unexpected TargetNode");
-                            }
-                            EnvironmentNode node = (EnvironmentNode) realm;
-                            storage.update(id, node.getChildren());
-                        });
     }
 }

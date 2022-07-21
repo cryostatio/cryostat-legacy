@@ -46,11 +46,11 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -77,15 +77,14 @@ class TargetsPostHandlerTest {
 
     TargetsPostHandler handler;
     @Mock AuthManager auth;
-    @Mock PlatformClient platformClient;
+    @Mock DiscoveryStorage storage;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetsPostHandler(auth, gson, platformClient, customTargetPlatformClient);
+        this.handler = new TargetsPostHandler(auth, gson, storage, customTargetPlatformClient);
     }
 
     @Test
@@ -135,7 +134,7 @@ class TargetsPostHandlerTest {
         RequestParameters requestParameters = Mockito.mock(RequestParameters.class);
         Mockito.when(requestParameters.getFormAttributes()).thenReturn(attrs);
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
-        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of());
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         String alias = "TestTarget";

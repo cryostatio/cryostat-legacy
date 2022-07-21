@@ -48,11 +48,11 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -67,17 +67,17 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
     static final String PATH = "targets";
 
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage storage;
     private final CustomTargetPlatformClient customTargetPlatformClient;
 
     @Inject
     TargetsPostHandler(
             AuthManager auth,
             Gson gson,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             CustomTargetPlatformClient customTargetPlatformClient) {
         super(auth, gson);
-        this.platformClient = platformClient;
+        this.storage = storage;
         this.customTargetPlatformClient = customTargetPlatformClient;
     }
 
@@ -134,7 +134,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "\"alias\" form parameter must be provided");
             }
             URI uri = URIUtil.createAbsolute(connectUrl);
-            for (ServiceRef serviceRef : platformClient.listDiscoverableServices()) {
+            for (ServiceRef serviceRef : storage.listDiscoverableServices()) {
                 if (Objects.equals(uri, serviceRef.getServiceUri())) {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }

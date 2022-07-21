@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -54,7 +55,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
@@ -71,7 +71,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
 
     private final RuleRegistry ruleRegistry;
     private final TargetConnectionManager targetConnectionManager;
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage storage;
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
@@ -81,7 +81,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
             AuthManager auth,
             RuleRegistry ruleRegistry,
             TargetConnectionManager targetConnectionManager,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson,
@@ -89,7 +89,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
         super(auth, gson);
         this.ruleRegistry = ruleRegistry;
         this.targetConnectionManager = targetConnectionManager;
-        this.platformClient = platformClient;
+        this.storage = storage;
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -147,7 +147,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                 .send();
         List<CleanupFailure> failures = new ArrayList<>();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            for (ServiceRef ref : platformClient.listDiscoverableServices()) {
+            for (ServiceRef ref : storage.listDiscoverableServices()) {
                 if (!ruleRegistry.applies(rule, ref)) {
                     continue;
                 }

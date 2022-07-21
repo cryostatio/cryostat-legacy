@@ -52,6 +52,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.BaseNodeType;

@@ -51,6 +51,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -58,7 +59,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
@@ -84,7 +84,7 @@ class RuleDeleteHandlerTest {
     @Mock AuthManager auth;
     @Mock RuleRegistry registry;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock PlatformClient platformClient;
+    @Mock DiscoveryStorage storage;
     @Mock CredentialsManager credentialsManager;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -113,7 +113,7 @@ class RuleDeleteHandlerTest {
                         auth,
                         registry,
                         targetConnectionManager,
-                        platformClient,
+                        storage,
                         credentialsManager,
                         notificationFactory,
                         gson,
@@ -225,7 +225,7 @@ class RuleDeleteHandlerTest {
                     new ServiceRef(
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             FlightRecorderException exception =
                     new FlightRecorderException(new Exception("test message"));
@@ -267,7 +267,7 @@ class RuleDeleteHandlerTest {
                     new ServiceRef(
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -308,7 +308,7 @@ class RuleDeleteHandlerTest {
                     new ServiceRef(
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -354,7 +354,7 @@ class RuleDeleteHandlerTest {
                     new ServiceRef(
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))

@@ -50,6 +50,7 @@ import java.util.TreeSet;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;

@@ -127,7 +127,7 @@ class TargetsGetHandlerTest {
 
         TargetNode node = new TargetNode(JDPNodeType.JVM, target);
         List<ServiceRef> targets = Collections.singletonList(target);
-        Mockito.when(storage.getLeafNodes()).thenReturn(List.of(node));
+        Mockito.when(storage.getLeafNodes()).thenReturn(Set.of(node));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);

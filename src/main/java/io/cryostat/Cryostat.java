@@ -51,7 +51,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
@@ -80,7 +79,7 @@ class Cryostat {
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
 
-        client.discoveryStorage().init();
+        client.discoveryStorage().start();
         client.credentialsManager().migrate();
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
@@ -109,7 +108,6 @@ class Cryostat {
                         client.ruleProcessor(),
                         new DeploymentOptions().setWorker(true),
                         res -> logger.info("RuleProcessor Verticle Started"));
-        client.platformClient().start();
         client.recordingMetadataManager().load();
 
         future.join();
@@ -135,8 +133,6 @@ class Cryostat {
         WebServer webServer();
 
         MessagingServer messagingServer();
-
-        PlatformClient platformClient();
 
         RecordingMetadataManager recordingMetadataManager();
 

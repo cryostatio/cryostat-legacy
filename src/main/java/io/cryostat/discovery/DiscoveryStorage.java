@@ -37,15 +37,19 @@
  */
 package io.cryostat.discovery;
 
+import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.platform.AbstractPlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -55,7 +59,7 @@ import io.cryostat.platform.discovery.TargetNode;
 /**
  * @deprecated TODO remove this, it's a temporary stub for a database
  */
-public class DiscoveryStorage {
+public class DiscoveryStorage extends AbstractPlatformClient {
 
     private final Map<Integer, PluginInfo> map = new HashMap<>();
     private final Logger logger;
@@ -64,7 +68,8 @@ public class DiscoveryStorage {
         this.logger = logger;
     }
 
-    public void init() {
+    @Override
+    public void start() throws IOException {
         // TODO persist plugin infos (with empty subtrees) to disk on shutdown, and reinitialize map
         // here. Then, perform POST on each callback URL to check it's still there and prompt it to
         // update us with its subtree
@@ -81,15 +86,45 @@ public class DiscoveryStorage {
     }
 
     public Set<AbstractNode> update(int id, Set<AbstractNode> children) {
-        validateId(id);
-        PluginInfo updatedInfo = new PluginInfo(map.get(id), children);
-        map.put(id, updatedInfo);
-        return updatedInfo.getSubtree().getChildren();
+        try {
+            validateId(id);
+            EnvironmentNode previousTree = map.get(id).getSubtree();
+
+            PluginInfo updatedInfo = new PluginInfo(map.get(id), children);
+            map.put(id, updatedInfo);
+
+            EnvironmentNode currentTree = updatedInfo.getSubtree();
+
+            Set<TargetNode> previousLeaves = findLeavesFrom(previousTree);
+            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+
+            Set<TargetNode> added = new HashSet<>(currentLeaves);
+            added.removeAll(previousLeaves);
+
+            Set<TargetNode> removed = new HashSet<>(previousLeaves);
+            removed.removeAll(currentLeaves);
+
+            added.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+            removed.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+
+            return currentTree.getChildren();
+        } catch (Exception e) {
+            logger.error(e);
+            throw e;
+        }
     }
 
     public PluginInfo deregister(int id) {
         validateId(id);
-        return map.remove(id);
+        PluginInfo info = map.remove(id);
+        findLeavesFrom(info.getSubtree()).stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        return info;
     }
 
     public EnvironmentNode getDiscoveryTree() {
@@ -98,20 +133,23 @@ public class DiscoveryStorage {
         return universe;
     }
 
-    public List<TargetNode> getLeafNodes() {
-        List<TargetNode> list = new ArrayList<>();
-        list.addAll(recurseNodes(getDiscoveryTree()));
-        return list;
+    public Set<TargetNode> getLeafNodes() {
+        return findLeavesFrom(getDiscoveryTree());
     }
 
-    private List<TargetNode> recurseNodes(AbstractNode node) {
+    @Override
+    public List<ServiceRef> listDiscoverableServices() {
+        return getLeafNodes().stream().map(TargetNode::getTarget).toList();
+    }
+
+    private Set<TargetNode> findLeavesFrom(AbstractNode node) {
         if (node instanceof TargetNode) {
-            return List.of((TargetNode) node);
+            return Set.of((TargetNode) node);
         }
         if (node instanceof EnvironmentNode) {
             EnvironmentNode environment = (EnvironmentNode) node;
-            List<TargetNode> targets = new ArrayList<>();
-            environment.getChildren().stream().map(this::recurseNodes).forEach(targets::addAll);
+            Set<TargetNode> targets = new HashSet<>();
+            environment.getChildren().stream().map(this::findLeavesFrom).forEach(targets::addAll);
             return targets;
         }
         throw new IllegalArgumentException(node.getClass().getCanonicalName());
