@@ -38,7 +38,7 @@
 package io.cryostat.discovery;
 
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -71,11 +71,11 @@ public class DiscoveryStorage extends AbstractPlatformClient {
     @Override
     public void start() throws IOException {
         // TODO persist plugin infos (with empty subtrees) to disk on shutdown, and reinitialize map
-        // here. Then, perform POST on each callback URL to check it's still there and prompt it to
+        // here. Then, perform POST on each callback URI to check it's still there and prompt it to
         // update us with its subtree
     }
 
-    public int register(String realm, URL callback) throws RegistrationException {
+    public int register(String realm, URI callback) throws RegistrationException {
         if (map.values().stream().map(PluginInfo::getRealm).anyMatch(realm::equals)) {
             throw new RegistrationException(realm);
         }
@@ -163,13 +163,13 @@ public class DiscoveryStorage extends AbstractPlatformClient {
 
     public static class PluginInfo {
         private final String realm;
-        private final URL callback;
+        private final URI callback;
         private final EnvironmentNode subtree;
 
-        public PluginInfo(String realm, URL callback, EnvironmentNode subtree) {
+        public PluginInfo(String realm, URI callback, EnvironmentNode subtree) {
             this.realm = Objects.requireNonNull(realm);
             this.callback = Objects.requireNonNull(callback);
-            this.subtree = Objects.requireNonNull(subtree);
+            this.subtree = new EnvironmentNode(Objects.requireNonNull(subtree));
         }
 
         public PluginInfo(PluginInfo original, Set<AbstractNode> children) {
@@ -184,12 +184,12 @@ public class DiscoveryStorage extends AbstractPlatformClient {
             return realm;
         }
 
-        public URL getCallback() {
+        public URI getCallback() {
             return callback;
         }
 
         public EnvironmentNode getSubtree() {
-            return subtree;
+            return new EnvironmentNode(subtree);
         }
 
         @Override

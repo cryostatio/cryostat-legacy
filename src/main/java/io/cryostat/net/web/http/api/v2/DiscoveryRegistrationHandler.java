@@ -37,8 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -104,16 +104,16 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Integer> {
     public IntermediateResponse<Integer> handle(RequestParameters params) throws Exception {
         try {
             String realm = getNonBlankFormAttribute(params, "realm");
-            URL callbackUrl = new URL(getNonBlankFormAttribute(params, "callback"));
+            URI callbackUri = new URI(getNonBlankFormAttribute(params, "callback"));
 
-            int id = storage.register(realm, callbackUrl);
+            int id = storage.register(realm, callbackUri);
             return new IntermediateResponse<Integer>()
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
                     .body(id);
         } catch (IllegalArgumentException iae) {
             throw new ApiException(400, iae);
-        } catch (MalformedURLException mue) {
-            throw new ApiException(400, mue);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
         }
     }
 }

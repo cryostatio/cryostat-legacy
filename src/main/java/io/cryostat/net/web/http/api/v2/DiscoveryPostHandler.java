@@ -111,7 +111,7 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
         // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
         // fields should be null, etc.
         Set<AbstractNode> previous =
-                storage.update(Integer.valueOf(params.getPathParams().get("id")), nodes);
+                storage.update(Integer.parseInt(params.getPathParams().get("id")), nodes);
 
         return new IntermediateResponse<Set<AbstractNode>>().body(previous);
     }

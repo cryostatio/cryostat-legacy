@@ -38,16 +38,14 @@
 package io.cryostat.discovery;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.EnvironmentNode;
 
 import io.vertx.core.AbstractVerticle;
 
@@ -72,7 +70,7 @@ public class BuiltInDiscovery extends AbstractVerticle {
     }
 
     @Override
-    public void start() throws MalformedURLException, RegistrationException, IOException {
+    public void start() throws URISyntaxException, RegistrationException, IOException {
         storage.addTargetDiscoveryListener(
                 tde ->
                         notificationFactory
@@ -91,15 +89,8 @@ public class BuiltInDiscovery extends AbstractVerticle {
 
         for (PlatformClient platform : this.platformClients) {
             logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
-            AbstractNode realm = platform.getDiscoveryTree();
-            if (!(realm instanceof EnvironmentNode)) {
-                logger.error(
-                        "BuiltInDiscovery encountered an unexpected node type: {}",
-                        realm.getClass().getName());
-                continue;
-            }
-            String name = realm.getName();
-            int id = storage.register(name, new URL("http://localhost/health"));
+            String realmName = platform.getDiscoveryTree().getName();
+            int id = storage.register(realmName, new URI("http://localhost/health"));
             platform.addTargetDiscoveryListener(
                     tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
             platform.start();
