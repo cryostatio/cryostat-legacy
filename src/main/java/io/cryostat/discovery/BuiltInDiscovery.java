@@ -93,7 +93,10 @@ public class BuiltInDiscovery extends AbstractVerticle {
             logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
             AbstractNode realm = platform.getDiscoveryTree();
             if (!(realm instanceof EnvironmentNode)) {
-                logger.error("BuiltInDiscovery encountered an unexpected TargetNode");
+                logger.error(
+                        "BuiltInDiscovery encountered an unexpected node type: {}",
+                        realm.getClass().getName());
+                continue;
             }
             String name = realm.getName();
             int id = storage.register(name, new URL("http://localhost/health"));

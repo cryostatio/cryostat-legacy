@@ -71,7 +71,8 @@ public class Rule {
         if (isArchiver()) {
             this.name = builder.name;
         } else {
-            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
+            this.name =
+                    sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
         }
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
