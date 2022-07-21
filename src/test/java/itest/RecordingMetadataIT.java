@@ -39,10 +39,10 @@ package itest;
 
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -61,6 +61,7 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -71,9 +72,10 @@ import org.junit.jupiter.api.Test;
 public class RecordingMetadataIT extends ExternalTargetsTest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
-    static Map<String, String> testLabels;
-    static Map<String, String> expectedLabels;
-    static final String TARGET_ID = "localhost";
+    static final Map<String, String> requestLabels =
+            Map.of("KEY", "VALUE", "key.2", "some.value", "key3", "1234");
+    static Map<String, String> responseLabels;
+    static Map<String, String> updatedLabels;
     static final String RECORDING_NAME = "Test_Recording";
 
     static final int NUM_EXT_CONTAINERS = 1;
@@ -81,19 +83,12 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        testLabels = Map.of("KEY", "VALUE", "key.2", "some.value", "key3", "1234");
-        expectedLabels =
-                Map.of(
-                        "KEY",
-                        "VALUE",
-                        "key.2",
-                        "some.value",
-                        "key3",
-                        "1234",
-                        "template.name",
-                        "ALL",
-                        "template.type",
-                        "TARGET");
+        responseLabels = new ConcurrentHashMap<>(requestLabels);
+        responseLabels.put("template.name", "ALL");
+        responseLabels.put("template.type", "TARGET");
+
+        updatedLabels = new ConcurrentHashMap<>(responseLabels);
+        updatedLabels.put("KEY", "updatedValue");
     }
 
     @AfterAll
@@ -119,9 +114,9 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         form.add("events", "template=ALL");
         form.add(
                 "metadata",
-                gson.toJson(new Metadata(expectedLabels), new TypeToken<Metadata>() {}.getType()));
+                gson.toJson(new Metadata(requestLabels), new TypeToken<Metadata>() {}.getType()));
         webClient
-                .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
                         form,
                         ar -> {
@@ -134,7 +129,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         // verify in-memory recording created with labels
         CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
         webClient
-                .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, listRespFuture)) {
@@ -150,22 +145,20 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                         new TypeToken<Metadata>() {}.getType());
 
         MatcherAssert.assertThat(recordingInfo.getString("name"), Matchers.equalTo(RECORDING_NAME));
-        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(expectedLabels));
+        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(responseLabels));
     }
 
     @Test
     @Order(1)
     void testUpdateTargetRecordingLabels() throws Exception {
         // update the recording labels
-        Map<String, String> updatedLabels = expectedLabels;
-        updatedLabels.put("KEY", "updatedValue");
         Map<String, Map<String, String>> updatedMetadata = Map.of("labels", updatedLabels);
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         webClient
                 .post(
                         String.format(
                                 "/api/beta/targets/%s/recordings/%s/metadata/labels",
-                                TARGET_ID, RECORDING_NAME))
+                                SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                 .sendBuffer(
                         Buffer.buffer(gson.toJson(updatedLabels, Map.class)),
                         ar -> {
@@ -188,7 +181,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         // verify in-memory recording contains updated labels
         CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
         webClient
-                .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, listRespFuture)) {
@@ -215,7 +208,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             webClient
                     .patch(
                             String.format(
-                                    "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
@@ -248,16 +242,15 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             recordingInfo.getValue("metadata").toString(),
                             new TypeToken<Metadata>() {}.getType());
 
-            Map<String, String> expected = new HashMap<>(expectedLabels);
-            expected.put("KEY", "updatedValue");
-            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(expectedLabels));
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
         } finally {
             // clean up what we created
             CompletableFuture<Void> deleteTargetRecordingFuture = new CompletableFuture<>();
             webClient
                     .delete(
                             String.format(
-                                    "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteTargetRecordingFuture)) {
@@ -296,11 +289,13 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
     @Test
     @Order(3)
     void testActiveRecordingMetadataDeletedWhenTargetKilled() throws Exception {
-        String targetId = Podman.POD_NAME + ":9093";
-        String archivedRecordingName = null;
+        String targetId =
+                URLEncodedUtils.formatSegments(
+                        String.format(
+                                "service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME));
+        CompletableFuture<String> archivedRecordingName = new CompletableFuture<>();
 
         try {
-
             String containerId =
                     Podman.run(
                             new Podman.ImageSpec(
@@ -315,10 +310,11 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             form.add("recordingName", RECORDING_NAME);
             form.add("duration", "5");
-            form.add("events", "template=Profiling");
+            form.add("events", "template=ALL");
             form.add(
                     "metadata",
-                    gson.toJson(new Metadata(testLabels), new TypeToken<Metadata>() {}.getType()));
+                    gson.toJson(
+                            new Metadata(updatedLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))
                     .putHeader(
@@ -330,13 +326,13 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             form,
                             ar -> {
                                 if (assertRequestStatus(ar, dumpRespFuture)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(201));
                                     dumpRespFuture.complete(null);
                                 }
                             });
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-            // FIXME no recording data generated
-            // generate data
             Thread.sleep(5000);
 
             // save the recording to archives
@@ -354,15 +350,32 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             Buffer.buffer("SAVE"),
                             ar -> {
                                 if (assertRequestStatus(ar, saveRespFuture)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
                                     saveRespFuture.complete(null);
+                                    archivedRecordingName.complete(ar.result().bodyAsString());
                                 }
                             });
 
             saveRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
+            // restart the target
+            Podman.kill(containerId);
+            CONTAINERS.remove(containerId);
+
+            containerId =
+                    Podman.run(
+                            new Podman.ImageSpec(
+                                    "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                                    Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
+            CONTAINERS.add(containerId);
+
+            waitForDiscovery(NUM_EXT_CONTAINERS);
+
+            // check archived recording labels still preserved
             CompletableFuture<JsonArray> archivedRecordingsFuture = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/recordings"))
+                    .get("/api/v1/recordings")
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, archivedRecordingsFuture)) {
@@ -380,47 +393,16 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             recordingInfo.getValue("metadata").toString(),
                             new TypeToken<Metadata>() {}.getType());
 
-            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(expectedLabels));
-
-            // restart the target
-            Podman.kill(containerId);
-            CONTAINERS.remove(containerId);
-
-            containerId =
-                    Podman.run(
-                            new Podman.ImageSpec(
-                                    "quay.io/andrewazores/vertx-fib-demo:0.6.0",
-                                    Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
-            CONTAINERS.add(containerId);
-
-            waitForDiscovery(NUM_EXT_CONTAINERS);
-
-            // check archived recording labels still preserved
-            CompletableFuture<JsonArray> archivedRecordingsFuture2 = new CompletableFuture<>();
-            webClient
-                    .get(String.format("/api/v1/recordings"))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, archivedRecordingsFuture2)) {
-                                    archivedRecordingsFuture2.complete(
-                                            ar.result().bodyAsJsonArray());
-                                }
-                            });
-            archivedRecordings =
-                    archivedRecordingsFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            recordingInfo = archivedRecordings.getJsonObject(0);
-            actualMetadata =
-                    gson.fromJson(
-                            recordingInfo.getValue("metadata").toString(),
-                            new TypeToken<Metadata>() {}.getType());
-
-            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(expectedLabels));
+            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
 
         } finally {
             CompletableFuture<Void> deleteArchiveFuture = new CompletableFuture<>();
             webClient
-                    .delete(String.format("/api/v1/recordings/%s", archivedRecordingName))
+                    .delete(
+                            String.format(
+                                    "/api/v1/recordings/%s",
+                                    archivedRecordingName.get(
+                                            REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchiveFuture)) {
@@ -432,7 +414,11 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                 deleteArchiveFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new ITestCleanupFailedException(
-                        String.format("Failed to delete recording %s", archivedRecordingName), e);
+                        String.format(
+                                "Failed to delete recording %s",
+                                archivedRecordingName.get(
+                                        REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
+                        e);
             }
         }
     }
