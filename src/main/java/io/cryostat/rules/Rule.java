@@ -71,7 +71,7 @@ public class Rule {
         if (isArchiver()) {
             this.name = builder.name;
         } else {
-            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.name()));
+            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
         }
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
@@ -145,9 +145,9 @@ public class Rule {
     }
 
     public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
-        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION.name());
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION.getSerialKey());
         validateEventSpecifier(
-                requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER.name()));
+                requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER.getSerialKey()));
         validateMatchExpression(this);
 
         if (isArchiver()) {
@@ -157,7 +157,7 @@ public class Rule {
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
         } else {
-            requireNonBlank(this.name, Attribute.NAME.name());
+            requireNonBlank(this.name, Attribute.NAME.getSerialKey());
             requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
             requireNonNegative(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);

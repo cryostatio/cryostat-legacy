@@ -45,7 +45,7 @@ public class StringUtil {
     public static String requireNonBlank(String s, String keyName) throws IllegalArgumentException {
         if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
-                    String.format("\"%s\" cannot be blank, was \"%s\"", keyName));
+                    String.format("\"%s\" cannot be blank, was \"%s\"", keyName, s));
         }
         return s;
     }
