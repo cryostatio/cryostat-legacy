@@ -42,6 +42,7 @@ import java.util.Set;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 
@@ -61,8 +62,9 @@ public abstract class DiscoveryModule {
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
+            Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
-        return new BuiltInDiscovery(storage, platformClients, notificationFactory, logger);
+        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
     }
 }

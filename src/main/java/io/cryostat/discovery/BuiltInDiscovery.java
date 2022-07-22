@@ -43,7 +43,9 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 
@@ -55,16 +57,19 @@ public class BuiltInDiscovery extends AbstractVerticle {
 
     private final DiscoveryStorage storage;
     private final Set<PlatformClient> platformClients;
+    private final Environment env;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     BuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
+            Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.storage = storage;
         this.platformClients = platformClients;
+        this.env = env;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
@@ -86,6 +91,10 @@ public class BuiltInDiscovery extends AbstractVerticle {
                                                         tde.getServiceRef())))
                                 .build()
                                 .send());
+
+        if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
+            return;
+        }
 
         for (PlatformClient platform : this.platformClients) {
             logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
