@@ -38,7 +38,9 @@
 package io.cryostat.discovery;
 
 import java.util.Set;
+import java.util.UUID;
 
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
@@ -53,8 +55,8 @@ import dagger.Provides;
 public abstract class DiscoveryModule {
     @Provides
     @Singleton
-    static DiscoveryStorage provideDiscoveryStorage(Logger logger) {
-        return new DiscoveryStorage(logger);
+    static DiscoveryStorage provideDiscoveryStorage(Provider<UUID> uuid, Logger logger) {
+        return new DiscoveryStorage(uuid, logger);
     }
 
     @Provides

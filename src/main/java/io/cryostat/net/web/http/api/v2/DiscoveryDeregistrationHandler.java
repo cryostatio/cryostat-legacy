@@ -39,9 +39,13 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.MainModule;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
@@ -52,14 +56,20 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<Integer> {
+class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
 
     private final DiscoveryStorage storage;
+    private final Function<String, UUID> uuidFromString;
 
     @Inject
-    DiscoveryDeregistrationHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryDeregistrationHandler(
+            AuthManager auth,
+            DiscoveryStorage storage,
+            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
+            Gson gson) {
         super(auth, gson);
         this.storage = storage;
+        this.uuidFromString = uuidFromString;
     }
 
     @Override
@@ -98,13 +108,13 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<Integer> {
     }
 
     @Override
-    public IntermediateResponse<Integer> handle(RequestParameters params) throws Exception {
-        int id = Integer.parseInt(params.getPathParams().get("id"));
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
         try {
+            UUID id = uuidFromString.apply(params.getPathParams().get("id"));
             storage.deregister(id);
-            return new IntermediateResponse<Integer>().body(id);
-        } catch (NumberFormatException nfe) {
-            throw new ApiException(400, nfe);
+            return new IntermediateResponse<String>().body(id.toString());
+        } catch (IllegalArgumentException iae) {
+            throw new ApiException(400, iae);
         } catch (NotFoundException nfe) {
             throw new ApiException(404, nfe);
         }

@@ -54,7 +54,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Integer> {
+class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<String> {
 
     static final String PATH = "discovery";
     private final DiscoveryStorage storage;
@@ -101,13 +101,13 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Integer> {
     }
 
     @Override
-    public IntermediateResponse<Integer> handle(RequestParameters params) throws Exception {
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
         try {
             String realm = getNonBlankFormAttribute(params, "realm");
             URI callbackUri = new URI(getNonBlankFormAttribute(params, "callback"));
 
-            int id = storage.register(realm, callbackUri);
-            return new IntermediateResponse<Integer>()
+            String id = storage.register(realm, callbackUri).toString();
+            return new IntermediateResponse<String>()
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
                     .body(id);
         } catch (IllegalArgumentException iae) {

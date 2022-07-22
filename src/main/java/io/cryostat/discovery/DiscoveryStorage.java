@@ -45,6 +45,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+
+import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -61,10 +64,12 @@ import io.cryostat.platform.discovery.TargetNode;
  */
 public class DiscoveryStorage extends AbstractPlatformClient {
 
-    private final Map<Integer, PluginInfo> map = new HashMap<>();
+    private final Provider<UUID> uuid;
+    private final Map<UUID, PluginInfo> map = new HashMap<>();
     private final Logger logger;
 
-    DiscoveryStorage(Logger logger) {
+    DiscoveryStorage(Provider<UUID> uuid, Logger logger) {
+        this.uuid = uuid;
         this.logger = logger;
     }
 
@@ -75,17 +80,17 @@ public class DiscoveryStorage extends AbstractPlatformClient {
         // update us with its subtree
     }
 
-    public int register(String realm, URI callback) throws RegistrationException {
+    public UUID register(String realm, URI callback) throws RegistrationException {
         if (map.values().stream().map(PluginInfo::getRealm).anyMatch(realm::equals)) {
             throw new RegistrationException(realm);
         }
         EnvironmentNode subtree = new EnvironmentNode(realm, BaseNodeType.REALM);
-        int nextId = map.keySet().stream().reduce(Math::max).orElse(0) + 1;
+        UUID nextId = uuid.get();
         map.put(nextId, new PluginInfo(realm, callback, subtree));
         return nextId;
     }
 
-    public Set<AbstractNode> update(int id, Set<AbstractNode> children) {
+    public Set<AbstractNode> update(UUID id, Set<AbstractNode> children) {
         try {
             validateId(id);
             EnvironmentNode previousTree = map.get(id).getSubtree();
@@ -118,7 +123,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
         }
     }
 
-    public PluginInfo deregister(int id) {
+    public PluginInfo deregister(UUID id) {
         validateId(id);
         PluginInfo info = map.remove(id);
         findLeavesFrom(info.getSubtree()).stream()
@@ -155,7 +160,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
         throw new IllegalArgumentException(node.getClass().getCanonicalName());
     }
 
-    private void validateId(int id) {
+    private void validateId(UUID id) {
         if (!map.containsKey(id)) {
             throw new NotFoundException(id);
         }
@@ -222,8 +227,8 @@ public class DiscoveryStorage extends AbstractPlatformClient {
     }
 
     public static class NotFoundException extends RuntimeException {
-        NotFoundException(int id) {
-            super(String.format("Unknown registration id: [%d]", id));
+        NotFoundException(UUID id) {
+            super(String.format("Unknown registration id: [%s]", id.toString()));
         }
     }
 }

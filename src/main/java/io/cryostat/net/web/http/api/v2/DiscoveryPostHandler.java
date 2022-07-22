@@ -39,9 +39,13 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.MainModule;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -57,11 +61,17 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
 
     static final String PATH = "discovery/:id";
     private final DiscoveryStorage storage;
+    private final Function<String, UUID> uuidFromString;
 
     @Inject
-    DiscoveryPostHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryPostHandler(
+            AuthManager auth,
+            DiscoveryStorage storage,
+            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
+            Gson gson) {
         super(auth, gson);
         this.storage = storage;
+        this.uuidFromString = uuidFromString;
     }
 
     @Override
@@ -111,7 +121,7 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
         // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
         // fields should be null, etc.
         Set<AbstractNode> previous =
-                storage.update(Integer.parseInt(params.getPathParams().get("id")), nodes);
+                storage.update(this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
 
         return new IntermediateResponse<Set<AbstractNode>>().body(previous);
     }
