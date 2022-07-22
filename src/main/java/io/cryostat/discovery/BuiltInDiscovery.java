@@ -99,6 +99,9 @@ public class BuiltInDiscovery extends AbstractVerticle {
         for (PlatformClient platform : this.platformClients) {
             logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
             String realmName = platform.getDiscoveryTree().getName();
+            // URI here is just a stand-in to have something there, it will fail the callback check
+            // when that becomes implemented - are there other usecases for that besides builtin
+            // discovery services?
             int id = storage.register(realmName, new URI("http://localhost/health"));
             platform.addTargetDiscoveryListener(
                     tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
