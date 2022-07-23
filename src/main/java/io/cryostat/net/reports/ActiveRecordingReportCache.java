@@ -100,6 +100,8 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
                         .build((k) -> getReport(k));
+                        
+        this.notificationSource.addListener(this);
     }
 
     Future<String> get(

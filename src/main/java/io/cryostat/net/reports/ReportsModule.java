@@ -87,19 +87,14 @@ public abstract class ReportsModule {
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             ObjectMapper oMapper,
             Logger logger) {
-
-        ActiveRecordingReportCache c =
-                new ActiveRecordingReportCache(
-                        reportGeneratorServiceProvider,
-                        fs,
-                        targetConnectionManager,
-                        notificationSource,
-                        generationTimeoutSeconds,
-                        oMapper,
-                        logger);
-
-        notificationSource.addListener(c);
-        return c;
+        return new ActiveRecordingReportCache(
+            reportGeneratorServiceProvider,
+            fs,
+            targetConnectionManager,  
+            notificationSource,
+            generationTimeoutSeconds,
+            oMapper,
+            logger);
     }
 
     @Provides
