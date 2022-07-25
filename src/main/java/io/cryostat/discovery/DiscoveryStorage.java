@@ -182,6 +182,9 @@ public class DiscoveryStorage extends AbstractPlatformClient {
             this.callback = original.callback;
             this.subtree =
                     new EnvironmentNode(original.subtree.getName(), original.subtree.getNodeType());
+            if (children == null) {
+                children = Set.of();
+            }
             subtree.addChildren(children);
         }
 
