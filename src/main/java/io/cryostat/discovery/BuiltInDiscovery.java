@@ -38,7 +38,6 @@
 package io.cryostat.discovery;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Set;
@@ -100,10 +99,7 @@ public class BuiltInDiscovery extends AbstractVerticle {
         for (PlatformClient platform : this.platformClients) {
             logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
             String realmName = platform.getDiscoveryTree().getName();
-            // URI here is just a stand-in to have something there, it will fail the callback check
-            // when that becomes implemented - are there other usecases for that besides builtin
-            // discovery services?
-            UUID id = storage.register(realmName, new URI("http://localhost/health"));
+            UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
             platform.addTargetDiscoveryListener(
                     tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
             platform.start();

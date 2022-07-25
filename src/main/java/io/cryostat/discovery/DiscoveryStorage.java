@@ -64,6 +64,7 @@ import io.cryostat.platform.discovery.TargetNode;
  */
 public class DiscoveryStorage extends AbstractPlatformClient {
 
+    public static final URI NO_CALLBACK = null;
     private final Provider<UUID> uuid;
     private final Map<UUID, PluginInfo> map = new HashMap<>();
     private final Logger logger;
@@ -173,7 +174,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
 
         public PluginInfo(String realm, URI callback, EnvironmentNode subtree) {
             this.realm = Objects.requireNonNull(realm);
-            this.callback = Objects.requireNonNull(callback);
+            this.callback = callback;
             this.subtree = new EnvironmentNode(Objects.requireNonNull(subtree));
         }
 
