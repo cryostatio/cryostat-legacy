@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -54,7 +55,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<String> {
+class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
     static final String PATH = "discovery";
     private final DiscoveryStorage storage;
@@ -101,15 +102,25 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
+            throws Exception {
         try {
             String realm = getNonBlankFormAttribute(params, "realm");
             URI callbackUri = new URI(getNonBlankFormAttribute(params, "callback"));
 
             String id = storage.register(realm, callbackUri).toString();
-            return new IntermediateResponse<String>()
+            // TODO generate a JWT auth token
+            // claims:
+            // iss: Cryostat server URL
+            // sub: plugin Realm
+            // aud:
+            //  - Cryostat server URL
+            //  - registation-time plugin request IP (X-Forwarded-For header/request remoteAddress)
+            // exp: ? need to determine refresh time/mechanism
+            // iat: now
+            return new IntermediateResponse<Map<String, String>>()
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
-                    .body(id);
+                    .body(Map.of("id", id, "token", "placeholder"));
         } catch (IllegalArgumentException iae) {
             throw new ApiException(400, iae);
         } catch (URISyntaxException use) {
