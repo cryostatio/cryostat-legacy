@@ -55,6 +55,7 @@ import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticatedAction;
 import io.cryostat.net.HttpServer;
@@ -87,6 +88,7 @@ class MessagingServerTest {
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
+    @Mock NotificationSource notificationSource;
     @Mock Notification.Builder notificationBuilder;
     @Mock AuthenticatedAction authAction;
 
@@ -126,6 +128,7 @@ class MessagingServerTest {
                         env,
                         authManager,
                         notificationFactory,
+                        notificationSource,
                         2,
                         clock,
                         logger,
@@ -142,7 +145,7 @@ class MessagingServerTest {
         verify(sws).accept();
 
         TestMessage message = new TestMessage("msgId", "test", "message");
-        server.writeMessage(message);
+        server.writeMessage(message, false);
         verify(sws, Mockito.never()).writeTextMessage(gson.toJson(message));
     }
 
@@ -236,7 +239,7 @@ class MessagingServerTest {
         authSuccessCaptor.getAllValues().forEach(Runnable::run);
 
         TestMessage message = new TestMessage("msgId", "test", "message");
-        server.writeMessage(message);
+        server.writeMessage(message, false);
         verify(sws).writeTextMessage(gson.toJson(message));
         verify(sws2).writeTextMessage(gson.toJson(message));
     }

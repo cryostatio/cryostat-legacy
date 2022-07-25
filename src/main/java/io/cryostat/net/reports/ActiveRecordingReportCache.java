@@ -53,15 +53,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -75,7 +73,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     protected final TargetConnectionManager targetConnectionManager;
     protected final NotificationSource notificationSource;
     protected final long generationTimeoutSeconds;
-    protected final ObjectMapper oMapper;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
@@ -84,14 +81,12 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             TargetConnectionManager targetConnectionManager,
             NotificationSource notificationSource,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            ObjectMapper oMapper,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.notificationSource = notificationSource;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
-        this.oMapper = oMapper;
         this.logger = logger;
         this.cache =
                 Caffeine.newBuilder()
@@ -100,7 +95,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
                         .build((k) -> getReport(k));
-                        
+
         this.notificationSource.addListener(this);
     }
 
@@ -202,46 +197,17 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     @Override
     public void callback(Notification<Map<String, Object>> notification) {
         String category = notification.getCategory();
-
         switch (category) {
             case STOP_NOTIFICATION_CATEGORY:
-                System.out.println("CALLBACK!");
-
-                ActiveRecordingStopMatcher msg =
-                        oMapper.convertValue(
-                                notification.getMessage(), ActiveRecordingStopMatcher.class);
-                String targetId = msg.getTarget();
-                System.out.println("TARGET: " + targetId);
-
-                String recordingName = msg.getName();
-                System.out.println("NAME: " + recordingName);
-
+                String targetId = notification.getMessage().get("target").toString();
+                String recordingName =
+                        ((HyperlinkedSerializableRecordingDescriptor)
+                                        notification.getMessage().get("recording"))
+                                .getName();
                 invalidateCacheEntry(new ConnectionDescriptor(targetId), recordingName);
                 break;
-
             default:
-                System.out.println("INCORRECT NOTIFICATION!");
                 break;
-        }
-    }
-
-    private static class ActiveRecordingStopMatcher {
-        private String target;
-        private String name;
-
-        @JsonProperty("recording")
-        private void unpackNested(Map<String, Object> recording) {
-            this.name = recording.get("name").toString();
-        }
-
-        @JsonGetter("target")
-        String getTarget() {
-            return this.target;
-        }
-
-        @JsonGetter("name")
-        String getName() {
-            return this.name;
         }
     }
 }

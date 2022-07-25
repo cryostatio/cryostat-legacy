@@ -54,7 +54,6 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
@@ -85,16 +84,14 @@ public abstract class ReportsModule {
             TargetConnectionManager targetConnectionManager,
             NotificationSource notificationSource,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            ObjectMapper oMapper,
             Logger logger) {
         return new ActiveRecordingReportCache(
-            reportGeneratorServiceProvider,
-            fs,
-            targetConnectionManager,  
-            notificationSource,
-            generationTimeoutSeconds,
-            oMapper,
-            logger);
+                reportGeneratorServiceProvider,
+                fs,
+                targetConnectionManager,
+                notificationSource,
+                generationTimeoutSeconds,
+                logger);
     }
 
     @Provides

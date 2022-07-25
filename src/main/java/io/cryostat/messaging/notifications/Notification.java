@@ -40,9 +40,10 @@ package io.cryostat.messaging.notifications;
 import java.time.Instant;
 
 import io.cryostat.messaging.MessagingServer;
+import io.cryostat.messaging.WsMessage;
 import io.cryostat.net.web.http.HttpMimeType;
 
-public class Notification<T> {
+public class Notification<T> extends WsMessage {
 
     private final transient MessagingServer server;
 
@@ -56,7 +57,7 @@ public class Notification<T> {
     }
 
     public void send() {
-        this.server.writeMessage(this);
+        this.server.writeMessage(this, true);
     }
 
     public T getMessage() {
