@@ -145,7 +145,7 @@ class MessagingServerTest {
         verify(sws).accept();
 
         TestMessage message = new TestMessage("msgId", "test", "message");
-        server.writeMessage(message, false);
+        server.writeMessage(message);
         verify(sws, Mockito.never()).writeTextMessage(gson.toJson(message));
     }
 
@@ -239,7 +239,7 @@ class MessagingServerTest {
         authSuccessCaptor.getAllValues().forEach(Runnable::run);
 
         TestMessage message = new TestMessage("msgId", "test", "message");
-        server.writeMessage(message, false);
+        server.writeMessage(message);
         verify(sws).writeTextMessage(gson.toJson(message));
         verify(sws2).writeTextMessage(gson.toJson(message));
     }

@@ -57,7 +57,7 @@ public class Notification<T> extends WsMessage {
     }
 
     public void send() {
-        this.server.writeMessage(this, true);
+        this.server.writeMessage(this);
     }
 
     public T getMessage() {
