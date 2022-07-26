@@ -59,7 +59,7 @@ public class NotificationSource {
     }
 
     public void notifyListeners(Notification<?> notification) {
-        listeners.forEach(listener -> listener.callback(notification));
+        listeners.forEach(listener -> listener.onNotification(notification));
     }
 
     public Set<NotificationListener> getListeners() {

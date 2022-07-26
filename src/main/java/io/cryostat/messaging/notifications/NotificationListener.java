@@ -38,5 +38,5 @@
 package io.cryostat.messaging.notifications;
 
 public interface NotificationListener<T> {
-    void callback(Notification<T> notification);
+    void onNotification(Notification<T> notification);
 }

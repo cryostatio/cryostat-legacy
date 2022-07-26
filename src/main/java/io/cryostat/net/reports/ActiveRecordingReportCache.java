@@ -59,14 +59,13 @@ import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
-    private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
-
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
     protected final LoadingCache<RecordingDescriptor, String> cache;
@@ -119,7 +118,14 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        boolean hasKey = invalidateCacheEntry(connectionDescriptor, recordingName);
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
+        boolean hasKey = cache.asMap().containsKey(key);
+        if (hasKey) {
+            logger.trace("Invalidated active report cache for {}", recordingName);
+            cache.invalidate(key);
+        } else {
+            logger.trace("No cache entry for {} to invalidate", recordingName);
+        }
         return hasKey;
     }
 
@@ -181,30 +187,17 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         }
     }
 
-    private boolean invalidateCacheEntry(
-            ConnectionDescriptor connectionDescriptor, String recordingName) {
-        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
-        boolean hasKey = cache.asMap().containsKey(key);
-        if (hasKey) {
-            logger.trace("Invalidated active report cache for {}", recordingName);
-            cache.invalidate(key);
-        } else {
-            logger.trace("No cache entry for {} to invalidate", recordingName);
-        }
-        return hasKey;
-    }
-
     @Override
-    public void callback(Notification<Map<String, Object>> notification) {
+    public void onNotification(Notification<Map<String, Object>> notification) {
         String category = notification.getCategory();
         switch (category) {
-            case STOP_NOTIFICATION_CATEGORY:
+            case RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY:
                 String targetId = notification.getMessage().get("target").toString();
                 String recordingName =
                         ((HyperlinkedSerializableRecordingDescriptor)
                                         notification.getMessage().get("recording"))
                                 .getName();
-                invalidateCacheEntry(new ConnectionDescriptor(targetId), recordingName);
+                delete(new ConnectionDescriptor(targetId), recordingName);
                 break;
             default:
                 break;

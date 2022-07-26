@@ -57,6 +57,7 @@ import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.JavaProcess;
 
 import org.hamcrest.MatcherAssert;
@@ -84,7 +85,6 @@ class ActiveRecordingReportCacheTest {
     @Mock JavaProcess.Builder javaProcessBuilder;
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
     final String REPORT_DOC = "<html><body><p>This is a report</p></body></html>";
-    private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
 
     @BeforeEach
     void setup() {
@@ -199,14 +199,14 @@ class ActiveRecordingReportCacheTest {
         HyperlinkedSerializableRecordingDescriptor hsrd =
                 Mockito.mock(HyperlinkedSerializableRecordingDescriptor.class);
         Mockito.when(hsrd.getName()).thenReturn(recordingName);
-        Mockito.when(notification.getCategory()).thenReturn(STOP_NOTIFICATION_CATEGORY);
+        Mockito.when(notification.getCategory()).thenReturn(RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY);
         Mockito.when(notification.getMessage())
                 .thenReturn(Map.of("target", targetId, "recording", hsrd));
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         String report1 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
-        cache.callback(notification);
+        cache.onNotification(notification);
         String report2 = cache.get(connectionDescriptor, recordingName, "").get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
