@@ -38,7 +38,6 @@
 package io.cryostat.discovery;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -50,6 +49,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 
 public class BuiltInDiscovery extends AbstractVerticle {
 
@@ -75,35 +75,41 @@ public class BuiltInDiscovery extends AbstractVerticle {
     }
 
     @Override
-    public void start() throws URISyntaxException, RegistrationException, IOException {
-        storage.addTargetDiscoveryListener(
-                tde ->
-                        notificationFactory
-                                .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
-                                .message(
-                                        Map.of(
-                                                "event",
-                                                Map.of(
-                                                        "kind",
-                                                        tde.getEventKind(),
-                                                        "serviceRef",
-                                                        tde.getServiceRef())))
-                                .build()
-                                .send());
+    public void start(Promise<Void> start) {
+        try {
+            storage.addTargetDiscoveryListener(
+                    tde ->
+                            notificationFactory
+                                    .createBuilder()
+                                    .metaCategory(NOTIFICATION_CATEGORY)
+                                    .message(
+                                            Map.of(
+                                                    "event",
+                                                    Map.of(
+                                                            "kind",
+                                                            tde.getEventKind(),
+                                                            "serviceRef",
+                                                            tde.getServiceRef())))
+                                    .build()
+                                    .send());
 
-        if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
-            return;
-        }
+            if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
+                return;
+            }
 
-        for (PlatformClient platform : this.platformClients) {
-            logger.info("Starting built-in discovery with {}", platform.getClass().getSimpleName());
-            String realmName = platform.getDiscoveryTree().getName();
-            UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
-            platform.addTargetDiscoveryListener(
-                    tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
-            platform.start();
-            storage.update(id, platform.getDiscoveryTree().getChildren());
+            for (PlatformClient platform : this.platformClients) {
+                logger.info(
+                        "Starting built-in discovery with {}", platform.getClass().getSimpleName());
+                String realmName = platform.getDiscoveryTree().getName();
+                UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
+                platform.addTargetDiscoveryListener(
+                        tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+                platform.start();
+                storage.update(id, platform.getDiscoveryTree().getChildren());
+            }
+            start.complete();
+        } catch (RegistrationException | IOException e) {
+            start.fail(e);
         }
     }
 }
