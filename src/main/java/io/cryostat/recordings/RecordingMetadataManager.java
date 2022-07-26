@@ -147,11 +147,6 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
-        String oldJvmId = jvmIdMap.get(targetId);
-
-        if (oldJvmId == null) {
-            return;
-        }
 
         Credentials credentials;
         ConnectionDescriptor cd;
@@ -164,48 +159,53 @@ public class RecordingMetadataManager extends AbstractVerticle
             return;
         }
 
+        String oldJvmId = jvmIdMap.get(targetId);
+
+        if (oldJvmId == null) {
+            return;
+        }
+
         switch (tde.getEventKind()) {
             case FOUND:
                 try {
-                    this.targetConnectionManager.executeConnectedTask(
-                            cd,
-                            connection -> {
-                                try {
-                                    String newJvmId = (String) connection.getJvmId();
-                                    if (oldJvmId.equals(newJvmId)) {
-                                        Long id = staleMetadataTimers.remove(oldJvmId);
-                                        if (id != null) {
-                                            this.vertx.cancelTimer(id);
+                    String newJvmId =
+                            this.targetConnectionManager.executeConnectedTask(
+                                    cd,
+                                    connection -> {
+                                        try {
+                                            return connection.getJvmId();
+                                        } catch (Exception e) {
+                                            logger.error(e);
+                                            return null;
                                         }
-                                        return null;
-                                    }
+                                    });
 
-                                    recordingMetadataMap.keySet().stream()
-                                            .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
-                                            .forEach(
-                                                    keyPair -> {
-                                                        try {
-                                                            String recordingName =
-                                                                    keyPair.getValue();
-                                                            Metadata m =
-                                                                    deleteRecordingMetadataIfExists(
-                                                                            cd, recordingName);
-                                                            jvmIdMap.put(targetId, newJvmId);
+                    if (oldJvmId.equals(newJvmId)) {
+                        Long id = staleMetadataTimers.remove(oldJvmId);
+                        if (id != null) {
+                            this.vertx.cancelTimer(id);
+                        }
+                        return;
+                    }
 
-                                                            setRecordingMetadata(
-                                                                    cd, recordingName, m);
-
-                                                            jvmIdMap.put(targetId, oldJvmId);
-                                                        } catch (IOException e) {
-                                                            logger.error(e);
-                                                        }
-                                                    });
-                                    jvmIdMap.put(targetId, newJvmId);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                }
-                                return null;
-                            });
+                    recordingMetadataMap.keySet().stream()
+                            .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
+                            .forEach(
+                                    keyPair -> {
+                                        try {
+                                            String recordingName = keyPair.getValue();
+                                            Metadata m =
+                                                    deleteRecordingMetadataIfExists(
+                                                            cd, recordingName);
+                                            // FIXME preserve archived recording metadata
+                                            //jvmIdMap.put(targetId, newJvmId);
+                                            // setRecordingMetadata(cd, recordingName, m);
+                                            //jvmIdMap.put(targetId, oldJvmId);
+                                        } catch (IOException e) {
+                                            logger.error(e);
+                                        }
+                                    });
+                    jvmIdMap.put(targetId, newJvmId);
                 } catch (Exception e) {
                     logger.error(e);
                 }
@@ -393,19 +393,28 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
         String targetId = connectionDescriptor.getTargetId();
+
         String jvmId =
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
                         k -> {
-                            if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
-                                return RecordingArchiveHelper.UNLABELLED;
+                            if (targetId.equals(RecordingArchiveHelper.ARCHIVES)) {
+                                return RecordingArchiveHelper.ARCHIVES;
                             }
 
                             try {
-                                Credentials credentials =
-                                        credentialsManager.getCredentialsByTargetId(targetId);
+                                ConnectionDescriptor cd = connectionDescriptor;
+
+                                if (connectionDescriptor.getCredentials().isEmpty()) {
+                                    cd =
+                                            new ConnectionDescriptor(
+                                                    targetId,
+                                                    credentialsManager.getCredentialsByTargetId(
+                                                            targetId));
+                                }
+
                                 return this.targetConnectionManager.executeConnectedTask(
-                                        connectionDescriptor,
+                                        cd,
                                         connection -> {
                                             return (String) connection.getJvmId();
                                         });
@@ -414,8 +423,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 return null;
                             }
                         });
+
         if (jvmId == null) {
-            this.jvmIdMap.remove(targetId);
             throw new IOException(String.format("Error connecting to target %s", targetId));
         }
         return jvmId;
