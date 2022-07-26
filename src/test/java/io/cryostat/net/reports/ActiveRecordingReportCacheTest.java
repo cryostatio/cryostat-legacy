@@ -199,7 +199,8 @@ class ActiveRecordingReportCacheTest {
         HyperlinkedSerializableRecordingDescriptor hsrd =
                 Mockito.mock(HyperlinkedSerializableRecordingDescriptor.class);
         Mockito.when(hsrd.getName()).thenReturn(recordingName);
-        Mockito.when(notification.getCategory()).thenReturn(RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY);
+        Mockito.when(notification.getCategory())
+                .thenReturn(RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY);
         Mockito.when(notification.getMessage())
                 .thenReturn(Map.of("target", targetId, "recording", hsrd));
 
