@@ -45,11 +45,11 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public abstract class AbstractNode implements Comparable<AbstractNode> {
 
-    protected final String name;
+    protected String name;
 
-    protected final NodeType nodeType;
+    protected NodeType nodeType;
 
-    protected final Map<String, String> labels;
+    protected Map<String, String> labels;
 
     protected AbstractNode(String name, NodeType nodeType, Map<String, String> labels) {
         this.name = name;

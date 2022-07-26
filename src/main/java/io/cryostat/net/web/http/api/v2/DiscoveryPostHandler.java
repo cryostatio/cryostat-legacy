@@ -114,8 +114,7 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters params)
-            throws Exception {
+    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
         String body = params.getBody();
         try {
             Set<AbstractNode> nodes =

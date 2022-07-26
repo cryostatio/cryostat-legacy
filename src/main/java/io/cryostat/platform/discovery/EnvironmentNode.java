@@ -48,7 +48,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class EnvironmentNode extends AbstractNode {
 
-    private final SortedSet<AbstractNode> children;
+    private SortedSet<AbstractNode> children;
 
     public EnvironmentNode(EnvironmentNode original) {
         this(original.getName(), original.getNodeType(), original.getLabels());

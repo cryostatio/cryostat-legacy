@@ -46,7 +46,8 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class TargetNode extends AbstractNode {
-    private final ServiceRef target;
+
+    private ServiceRef target;
 
     public TargetNode(NodeType nodeType, ServiceRef target) {
         super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());

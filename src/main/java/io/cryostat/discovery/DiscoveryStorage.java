@@ -91,7 +91,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
         return nextId;
     }
 
-    public Set<AbstractNode> update(UUID id, Set<AbstractNode> children) {
+    public Set<AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
         try {
             validateId(id);
             EnvironmentNode previousTree = map.get(id).getSubtree();
@@ -178,7 +178,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
             this.subtree = new EnvironmentNode(Objects.requireNonNull(subtree));
         }
 
-        public PluginInfo(PluginInfo original, Set<AbstractNode> children) {
+        public PluginInfo(PluginInfo original, Set<? extends AbstractNode> children) {
             this.realm = original.realm;
             this.callback = original.callback;
             this.subtree =

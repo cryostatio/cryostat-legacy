@@ -47,9 +47,13 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.util.PluggableTypeAdapter;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class DiscoveryModule {
@@ -68,5 +72,12 @@ public abstract class DiscoveryModule {
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
+    }
+
+    @Provides
+    @IntoSet
+    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters);
     }
 }
