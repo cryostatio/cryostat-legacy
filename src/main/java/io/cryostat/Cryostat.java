@@ -79,14 +79,18 @@ class Cryostat {
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
 
-        client.discoveryStorage().start();
         client.credentialsManager().migrate();
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.vertx()
                 .deployVerticle(
+                        client.discoveryStorage(),
+                        new DeploymentOptions().setWorker(true),
+                        res -> logger.info("Discovery Storage Verticle Started"));
+        client.vertx()
+                .deployVerticle(
                         client.discovery(),
-                        new DeploymentOptions(),
+                        new DeploymentOptions().setWorker(true),
                         res -> logger.info("Built-In Discovery Verticle Started"));
         client.vertx()
                 .deployVerticle(

@@ -37,7 +37,6 @@
  */
 package io.cryostat.discovery;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,7 +50,6 @@ import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -62,7 +60,7 @@ import io.cryostat.platform.discovery.TargetNode;
 /**
  * @deprecated TODO remove this, it's a temporary stub for a database
  */
-public class DiscoveryStorage extends AbstractPlatformClient {
+public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
     private final Provider<UUID> uuid;
@@ -75,7 +73,7 @@ public class DiscoveryStorage extends AbstractPlatformClient {
     }
 
     @Override
-    public void start() throws IOException {
+    public void start() throws Exception {
         // TODO persist plugin infos (with empty subtrees) to disk on shutdown, and reinitialize map
         // here. Then, perform POST on each callback URI to check it's still there and prompt it to
         // update us with its subtree

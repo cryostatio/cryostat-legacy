@@ -35,21 +35,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.discovery;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
-public interface PlatformClient {
-    void start() throws Exception;
+import io.vertx.core.AbstractVerticle;
 
-    List<ServiceRef> listDiscoverableServices();
+public abstract class AbstractPlatformClientVerticle extends AbstractVerticle
+        implements PlatformClient {
 
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    protected AbstractPlatformClientVerticle() {
+        this.discoveryListeners = new HashSet<>();
+    }
 
-    EnvironmentNode getDiscoveryTree();
+    @Override
+    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.add(listener);
+    }
+
+    @Override
+    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.remove(listener);
+    }
+
+    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
+        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
+    }
 }

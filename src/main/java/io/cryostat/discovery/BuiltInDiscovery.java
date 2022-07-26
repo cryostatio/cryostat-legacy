@@ -37,7 +37,6 @@
  */
 package io.cryostat.discovery;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -108,7 +107,7 @@ public class BuiltInDiscovery extends AbstractVerticle {
                 storage.update(id, platform.getDiscoveryTree().getChildren());
             }
             start.complete();
-        } catch (RegistrationException | IOException e) {
+        } catch (Exception e) {
             start.fail(e);
         }
     }
