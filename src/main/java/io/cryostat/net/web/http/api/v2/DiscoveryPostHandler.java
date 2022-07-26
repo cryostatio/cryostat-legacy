@@ -58,7 +58,7 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
+class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "discovery/:id";
     private final DiscoveryStorage storage;
@@ -114,7 +114,7 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
     }
 
     @Override
-    public IntermediateResponse<Set<AbstractNode>> handle(RequestParameters params)
+    public IntermediateResponse<Void> handle(RequestParameters params)
             throws Exception {
         String body = params.getBody();
         try {
@@ -122,11 +122,9 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
                     gson.fromJson(body, new TypeToken<Set<AbstractNode>>() {}.getType());
             // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
             // fields should be null, etc.
-            Set<AbstractNode> previous =
-                    storage.update(
-                            this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
+            storage.update(this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
 
-            return new IntermediateResponse<Set<AbstractNode>>().body(previous);
+            return new IntermediateResponse<Void>().body(null);
         } catch (JsonSyntaxException jse) {
             throw new ApiException(400, jse);
         }
