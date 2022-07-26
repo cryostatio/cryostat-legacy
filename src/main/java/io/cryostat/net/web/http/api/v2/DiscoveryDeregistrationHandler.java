@@ -89,7 +89,7 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public String path() {
-        return basePath() + "discovery/:d";
+        return basePath() + "discovery/:id";
     }
 
     @Override

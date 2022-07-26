@@ -193,7 +193,7 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindDiscoveryDeregistrationBodyHandler(
+    abstract RequestHandler bindDiscoveryDeregistrationHandler(
             DiscoveryDeregistrationHandler handler);
 
     @Binds
