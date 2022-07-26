@@ -54,6 +54,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.discovery.AbstractNode;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.http.HttpMethod;
 
@@ -116,13 +117,18 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Set<AbstractNode>> {
     public IntermediateResponse<Set<AbstractNode>> handle(RequestParameters params)
             throws Exception {
         String body = params.getBody();
-        Set<AbstractNode> nodes =
-                gson.fromJson(body, new TypeToken<Set<AbstractNode>>() {}.getType());
-        // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
-        // fields should be null, etc.
-        Set<AbstractNode> previous =
-                storage.update(this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
+        try {
+            Set<AbstractNode> nodes =
+                    gson.fromJson(body, new TypeToken<Set<AbstractNode>>() {}.getType());
+            // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
+            // fields should be null, etc.
+            Set<AbstractNode> previous =
+                    storage.update(
+                            this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
 
-        return new IntermediateResponse<Set<AbstractNode>>().body(previous);
+            return new IntermediateResponse<Set<AbstractNode>>().body(previous);
+        } catch (JsonSyntaxException jse) {
+            throw new ApiException(400, jse);
+        }
     }
 }

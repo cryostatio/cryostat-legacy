@@ -105,8 +105,8 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
             throws Exception {
         try {
-            String realm = getNonBlankFormAttribute(params, "realm");
-            URI callbackUri = new URI(getNonBlankFormAttribute(params, "callback"));
+            String realm = getNonBlankJsonAttribute(params, "realm");
+            URI callbackUri = new URI(getNonBlankJsonAttribute(params, "callback"));
 
             String id = storage.register(realm, callbackUri).toString();
             // TODO generate a JWT auth token
@@ -119,7 +119,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
             // exp: ? need to determine refresh time/mechanism
             // iat: now
             return new IntermediateResponse<Map<String, String>>()
-                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
+                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
                     .body(Map.of("id", id, "token", "placeholder"));
         } catch (IllegalArgumentException iae) {
             throw new ApiException(400, iae);

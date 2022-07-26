@@ -68,6 +68,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -219,6 +220,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     protected String getNonBlankFormAttribute(RequestParameters params, String key)
             throws IllegalArgumentException {
         return requireNonBlank(params.getFormAttributes().get(key), key);
+    }
+
+    protected String getNonBlankJsonAttribute(RequestParameters params, String key)
+            throws IllegalArgumentException {
+        return requireNonBlank(new JsonObject(params.getBody()).getString(key), key);
     }
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
