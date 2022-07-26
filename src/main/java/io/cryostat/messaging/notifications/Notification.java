@@ -46,18 +46,21 @@ import io.cryostat.net.web.http.HttpMimeType;
 public class Notification<T> extends WsMessage {
 
     private final transient MessagingServer server;
+    private final transient NotificationSource source;
 
     private final Notification.Meta meta;
     private final T message;
 
     Notification(Notification.Builder<T> builder) {
         this.server = builder.server;
+        this.source = builder.source;
         this.meta = new Meta(builder.category, builder.type);
         this.message = builder.message;
     }
 
     public void send() {
         this.server.writeMessage(this);
+        this.source.notifyListeners(this);
     }
 
     public T getMessage() {
@@ -70,12 +73,14 @@ public class Notification<T> extends WsMessage {
 
     public static class Builder<T> {
         private final MessagingServer server;
+        private final NotificationSource source;
         private String category = "generic";
         private MetaType type = new MetaType(HttpMimeType.JSON);
         private T message;
 
-        Builder(MessagingServer server) {
+        Builder(MessagingServer server, NotificationSource source) {
             this.server = server;
+            this.source = source;
         }
 
         public Builder<T> meta(Meta meta) {

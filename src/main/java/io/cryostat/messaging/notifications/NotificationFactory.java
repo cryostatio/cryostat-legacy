@@ -44,12 +44,14 @@ import dagger.Lazy;
 public class NotificationFactory {
 
     private final Lazy<MessagingServer> server;
+    private final NotificationSource source;
 
-    NotificationFactory(Lazy<MessagingServer> server) {
+    NotificationFactory(Lazy<MessagingServer> server, NotificationSource source) {
         this.server = server;
+        this.source = source;
     }
 
     public <T> Notification.Builder<T> createBuilder() {
-        return new Notification.Builder<T>(server.get());
+        return new Notification.Builder<T>(server.get(), source);
     }
 }
