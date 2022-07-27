@@ -37,21 +37,32 @@
  */
 package io.cryostat.messaging.notifications;
 
-import io.cryostat.messaging.MessagingServer;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
-import dagger.Lazy;
+@SuppressWarnings("unchecked")
+public class NotificationSource {
 
-public class NotificationFactory {
+    private final Set<NotificationListener> listeners;
 
-    private final Lazy<MessagingServer> server;
-    private final NotificationSource source;
-
-    NotificationFactory(Lazy<MessagingServer> server, NotificationSource source) {
-        this.server = server;
-        this.source = source;
+    NotificationSource() {
+        this.listeners = new HashSet<>();
     }
 
-    public <T> Notification.Builder<T> createBuilder() {
-        return new Notification.Builder<T>(server.get(), source);
+    public boolean addListener(NotificationListener<?> listener) {
+        return listeners.add(listener);
+    }
+
+    public boolean removeListener(NotificationListener<?> listener) {
+        return listeners.remove(listener);
+    }
+
+    public void notifyListeners(Notification<?> notification) {
+        listeners.forEach(listener -> listener.onNotification(notification));
+    }
+
+    public Set<NotificationListener> getListeners() {
+        return Collections.unmodifiableSet(listeners);
     }
 }

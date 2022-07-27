@@ -50,7 +50,14 @@ public abstract class NotificationsModule {
 
     @Provides
     @Singleton
-    static NotificationFactory provideNotificationFactory(Lazy<MessagingServer> server) {
-        return new NotificationFactory(server);
+    static NotificationSource provideNotificationSource() {
+        return new NotificationSource();
+    }
+
+    @Provides
+    @Singleton
+    static NotificationFactory provideNotificationFactory(
+            Lazy<MessagingServer> server, NotificationSource source) {
+        return new NotificationFactory(server, source);
     }
 }

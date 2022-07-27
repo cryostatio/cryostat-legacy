@@ -80,7 +80,7 @@ import org.apache.commons.lang3.tuple.Pair;
 public class RecordingTargetHelper {
 
     private static final String CREATION_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
-    private static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
+    public static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
     private static final String DELETION_NOTIFICATION_CATEGORY = "ActiveRecordingDeleted";
     private static final String SNAPSHOT_CREATION_NOTIFICATION_CATEGORY = "SnapshotCreated";
     private static final String SNAPSHOT_DELETION_NOTIFICATION_CATEGORY = "SnapshotDeleted";

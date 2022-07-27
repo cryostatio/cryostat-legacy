@@ -40,6 +40,7 @@ package io.cryostat.net.reports;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -50,9 +51,13 @@ import javax.inject.Provider;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.JavaProcess;
 
 import org.hamcrest.MatcherAssert;
@@ -73,6 +78,7 @@ class ActiveRecordingReportCacheTest {
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock NotificationSource notificationSource;
     @Mock Logger logger;
     @Mock CompletableFuture<Path> pathFuture;
     @Mock Path destinationFile;
@@ -84,7 +90,12 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator, fs, targetConnectionManager, 30, logger);
+                        () -> subprocessReportGenerator,
+                        fs,
+                        targetConnectionManager,
+                        notificationSource,
+                        30,
+                        logger);
     }
 
     @Test
@@ -168,6 +179,39 @@ class ActiveRecordingReportCacheTest {
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         Mockito.verify(subprocessReportGenerator, Mockito.times(1))
+                .exec(Mockito.any(RecordingDescriptor.class), anyString());
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    void shouldReturnUncachedReportWhenRecordingStopped() throws Exception {
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class), anyString()))
+                .thenReturn(pathFuture);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
+
+        String targetId = "foo";
+        String recordingName = "bar";
+
+        Notification notification = Mockito.mock(Notification.class);
+        HyperlinkedSerializableRecordingDescriptor hsrd =
+                Mockito.mock(HyperlinkedSerializableRecordingDescriptor.class);
+        Mockito.when(hsrd.getName()).thenReturn(recordingName);
+        Mockito.when(notification.getCategory())
+                .thenReturn(RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY);
+        Mockito.when(notification.getMessage())
+                .thenReturn(Map.of("target", targetId, "recording", hsrd));
+
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        String report1 = cache.get(connectionDescriptor, recordingName, "").get();
+        MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
+        cache.onNotification(notification);
+        String report2 = cache.get(connectionDescriptor, recordingName, "").get();
+        MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
+
+        Mockito.verify(subprocessReportGenerator, Mockito.times(2))
                 .exec(Mockito.any(RecordingDescriptor.class), anyString());
     }
 

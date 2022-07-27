@@ -38,6 +38,7 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -52,19 +53,24 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationListener;
+import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
-class ActiveRecordingReportCache {
-
+class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
+    protected final NotificationSource notificationSource;
     protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
@@ -72,14 +78,15 @@ class ActiveRecordingReportCache {
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            NotificationSource notificationSource,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
+        this.notificationSource = notificationSource;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
-
         this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
@@ -87,6 +94,8 @@ class ActiveRecordingReportCache {
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
                         .build((k) -> getReport(k));
+
+        this.notificationSource.addListener(this);
     }
 
     Future<String> get(
@@ -175,6 +184,23 @@ class ActiveRecordingReportCache {
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }
+        }
+    }
+
+    @Override
+    public void onNotification(Notification<Map<String, Object>> notification) {
+        String category = notification.getCategory();
+        switch (category) {
+            case RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY:
+                String targetId = notification.getMessage().get("target").toString();
+                String recordingName =
+                        ((HyperlinkedSerializableRecordingDescriptor)
+                                        notification.getMessage().get("recording"))
+                                .getName();
+                delete(new ConnectionDescriptor(targetId), recordingName);
+                break;
+            default:
+                break;
         }
     }
 }

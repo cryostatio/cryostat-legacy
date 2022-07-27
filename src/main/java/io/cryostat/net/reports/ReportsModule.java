@@ -48,6 +48,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -81,12 +82,14 @@ public abstract class ReportsModule {
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            NotificationSource notificationSource,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         return new ActiveRecordingReportCache(
                 reportGeneratorServiceProvider,
                 fs,
                 targetConnectionManager,
+                notificationSource,
                 generationTimeoutSeconds,
                 logger);
     }
