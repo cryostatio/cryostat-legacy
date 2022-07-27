@@ -381,6 +381,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             Podman.kill(containerId);
             CONTAINERS.remove(containerId);
 
+            waitForDiscovery(0);
+
             containerId =
                     Podman.run(
                             new Podman.ImageSpec(
