@@ -56,7 +56,6 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationListener;
-import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -70,7 +69,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     protected final FileSystem fs;
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
-    protected final NotificationSource notificationSource;
     protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
@@ -78,13 +76,11 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
-            NotificationSource notificationSource,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
-        this.notificationSource = notificationSource;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
         this.cache =
@@ -94,8 +90,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
                         .build((k) -> getReport(k));
-
-        this.notificationSource.addListener(this);
     }
 
     Future<String> get(

@@ -37,21 +37,15 @@
  */
 package io.cryostat.messaging.notifications;
 
-import io.cryostat.messaging.MessagingServer;
-
-import dagger.Lazy;
-
 public class NotificationFactory {
 
-    private final Lazy<MessagingServer> server;
     private final NotificationSource source;
 
-    NotificationFactory(Lazy<MessagingServer> server, NotificationSource source) {
-        this.server = server;
+    NotificationFactory(NotificationSource source) {
         this.source = source;
     }
 
     public <T> Notification.Builder<T> createBuilder() {
-        return new Notification.Builder<T>(server.get(), source);
+        return new Notification.Builder<T>(source);
     }
 }

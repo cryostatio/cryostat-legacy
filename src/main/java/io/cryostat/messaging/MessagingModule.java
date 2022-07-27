@@ -45,13 +45,16 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.messaging.notifications.NotificationsModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 
 import com.google.gson.Gson;
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
 
 @Module(
@@ -85,6 +88,10 @@ public abstract class MessagingModule {
                 logger,
                 gson);
     }
+
+    @Binds
+    @IntoSet
+    abstract NotificationListener bindMessagingServer(MessagingServer server);
 
     @Provides
     @Named(WS_MAX_CONNECTIONS)
