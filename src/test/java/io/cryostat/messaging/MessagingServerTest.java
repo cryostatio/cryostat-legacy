@@ -353,7 +353,7 @@ class MessagingServerTest {
         verify(sws).close();
     }
 
-    static class TestMessage extends WsMessage {
+    static class TestMessage {
         List<String> msgs;
 
         TestMessage(String... msgs) {
