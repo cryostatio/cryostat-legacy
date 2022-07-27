@@ -141,12 +141,14 @@ public class RecordingMetadataManager extends AbstractVerticle
                         });
     }
 
-    // when targets disappear or are restarted, update the jvmIds mapped
-    // to each target's recording metadata
-    // if targets are restarted, delete any stale metadata from the previous container
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
+        String oldJvmId = jvmIdMap.get(targetId);
+
+        if (oldJvmId == null) {
+            return;
+        }
 
         Credentials credentials;
         ConnectionDescriptor cd;
@@ -159,106 +161,12 @@ public class RecordingMetadataManager extends AbstractVerticle
             return;
         }
 
-        String oldJvmId = jvmIdMap.get(targetId);
-
-        if (oldJvmId == null) {
-            return;
-        }
-
         switch (tde.getEventKind()) {
             case FOUND:
-                try {
-                    String newJvmId =
-                            this.targetConnectionManager.executeConnectedTask(
-                                    cd,
-                                    connection -> {
-                                        try {
-                                            return connection.getJvmId();
-                                        } catch (Exception e) {
-                                            logger.error(e);
-                                            return null;
-                                        }
-                                    });
-
-                    if (oldJvmId.equals(newJvmId)) {
-                        Long id = staleMetadataTimers.remove(oldJvmId);
-                        if (id != null) {
-                            this.vertx.cancelTimer(id);
-                        }
-                        return;
-                    }
-
-                    recordingMetadataMap.keySet().stream()
-                            .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
-                            .forEach(
-                                    keyPair -> {
-                                        try {
-                                            String recordingName = keyPair.getValue();
-                                            Metadata m =
-                                                    deleteRecordingMetadataIfExists(
-                                                            cd, recordingName);
-                                            // FIXME preserve archived recording metadata
-                                            //jvmIdMap.put(targetId, newJvmId);
-                                            // setRecordingMetadata(cd, recordingName, m);
-                                            //jvmIdMap.put(targetId, oldJvmId);
-                                        } catch (IOException e) {
-                                            logger.error(e);
-                                        }
-                                    });
-                    jvmIdMap.put(targetId, newJvmId);
-                } catch (Exception e) {
-                    logger.error(e);
-                }
+                this.transferMetadataIfRestarted(cd, oldJvmId, targetId);
                 break;
             case LOST:
-                staleMetadataTimers.computeIfAbsent(
-                        oldJvmId,
-                        k ->
-                                this.vertx.setTimer(
-                                        Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS)
-                                                .toMillis(),
-                                        initialId -> {
-                                            recordingMetadataMap.keySet().stream()
-                                                    .filter(
-                                                            keyPair ->
-                                                                    keyPair.getKey()
-                                                                            .equals(oldJvmId))
-                                                    .forEach(
-                                                            keyPair -> {
-                                                                try {
-                                                                    String recordingName =
-                                                                            keyPair.getValue();
-
-                                                                    Path targetSubDirectory =
-                                                                            Path.of(
-                                                                                    base32
-                                                                                            .encodeAsString(
-                                                                                                    targetId
-                                                                                                            .getBytes(
-                                                                                                                    StandardCharsets
-                                                                                                                            .UTF_8)));
-
-                                                                    boolean isActiveRecording =
-                                                                            this.fs
-                                                                                    .listDirectoryChildren(
-                                                                                            targetSubDirectory)
-                                                                                    .stream()
-                                                                                    .anyMatch(
-                                                                                            filename ->
-                                                                                                    filename
-                                                                                                            .equals(
-                                                                                                                    recordingName));
-
-                                                                    if (isActiveRecording) {
-                                                                        deleteRecordingMetadataIfExists(
-                                                                                cd, recordingName);
-                                                                    }
-                                                                } catch (IOException e) {
-                                                                    logger.error(e);
-                                                                }
-                                                            });
-                                        }));
-
+                this.removeLostTargetMetadata(cd, oldJvmId);
                 break;
             default:
                 throw new UnsupportedOperationException(tde.getEventKind().toString());
@@ -383,6 +291,102 @@ public class RecordingMetadataManager extends AbstractVerticle
         } catch (JsonSyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    private void transferMetadataIfRestarted(
+            ConnectionDescriptor cd, String oldJvmId, String targetId) {
+        try {
+            String newJvmId =
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                try {
+                                    return connection.getJvmId();
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    return null;
+                                }
+                            });
+
+            if (newJvmId == null) {
+                return;
+            }
+
+            if (oldJvmId.equals(newJvmId)) {
+                Long id = staleMetadataTimers.remove(oldJvmId);
+                if (id != null) {
+                    this.vertx.cancelTimer(id);
+                }
+                return;
+            }
+
+            recordingMetadataMap.keySet().stream()
+                    .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
+                    .forEach(
+                            keyPair -> {
+                                try {
+                                    String recordingName = keyPair.getValue();
+
+                                    Metadata m = this.getMetadata(cd, recordingName);
+
+                                    // FIXME this won't work for aliased targetIds
+                                    Path targetSubDirectory =
+                                            Path.of(
+                                                    base32.encodeAsString(
+                                                            targetId.getBytes(
+                                                                    StandardCharsets.UTF_8)));
+                                    boolean isArchived =
+                                            this.fs
+                                                    .listDirectoryChildren(targetSubDirectory)
+                                                    .stream()
+                                                    .anyMatch(
+                                                            filename ->
+                                                                    filename.equals(recordingName));
+
+                                    if (isArchived) {
+                                        jvmIdMap.put(targetId, newJvmId);
+                                        setRecordingMetadata(cd, recordingName, m);
+                                        jvmIdMap.put(targetId, oldJvmId);
+                                    } else {
+                                        deleteRecordingMetadataIfExists(cd, recordingName);
+                                    }
+                                } catch (IOException e) {
+                                    logger.error(e);
+                                }
+                            });
+            jvmIdMap.put(targetId, newJvmId);
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
+
+    private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
+        jvmIdMap.remove(cd.getTargetId());
+        staleMetadataTimers.computeIfAbsent(
+                unreachableJvmId,
+                k ->
+                        this.vertx.setTimer(
+                                Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
+                                initialId -> {
+                                    recordingMetadataMap.keySet().stream()
+                                            .forEach(
+                                                    keyPair -> {
+                                                        if (!keyPair.getKey()
+                                                                .equals(unreachableJvmId)) {
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            String recordingName =
+                                                                    keyPair.getValue();
+
+                                                            deleteRecordingMetadataIfExists(
+                                                                    cd, recordingName);
+                                                        } catch (IOException e) {
+                                                            logger.error(e);
+                                                        }
+                                                    });
+                                }));
     }
 
     private Path getMetadataPath(String jvmId, String recordingName) {

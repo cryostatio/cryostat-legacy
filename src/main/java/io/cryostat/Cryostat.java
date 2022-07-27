@@ -81,7 +81,6 @@ class Cryostat extends AbstractVerticle {
             client.credentialsManager().migrate();
             client.credentialsManager().load();
             client.ruleRegistry().loadRules();
-            client.recordingMetadataManager().load();
         } catch (Exception e) {
             logger.error(e);
             future.fail(e);
@@ -100,6 +99,7 @@ class Cryostat extends AbstractVerticle {
                         client.deployer().deploy(client.webServer(), false),
                         client.deployer().deploy(client.messagingServer(), false),
                         client.deployer().deploy(client.ruleProcessor(), true));
+                        client.deployer().deploy(client.recordingMetadataManager(), true);
         CompositeFuture.join(futures)
                 .onSuccess(cf -> future.complete())
                 .onFailure(
@@ -134,6 +134,7 @@ class Cryostat extends AbstractVerticle {
         CryostatCore.initialize();
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
+
 
         client.vertx().deployVerticle(new Cryostat(client));
     }
