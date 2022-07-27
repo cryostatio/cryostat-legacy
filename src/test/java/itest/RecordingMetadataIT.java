@@ -288,7 +288,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
     @Test
     @Order(3)
-    void testActiveRecordingMetadataDeletedWhenTargetKilled() throws Exception {
+    void testActiveRecordingMetadataDeletedWhenTargetRestarted() throws Exception {
         String targetId =
                 URLEncodedUtils.formatSegments(
                         String.format(
@@ -304,6 +304,26 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             // add a new target
             CONTAINERS.add(containerId);
             waitForDiscovery(NUM_EXT_CONTAINERS); // wait for JDP to discover new container(s)
+
+            // store credentials for the new target
+            CompletableFuture<Void> credentialsFuture = new CompletableFuture<>();
+            MultiMap credentialsForm = MultiMap.caseInsensitiveMultiMap();
+            credentialsForm.add("matchExpression", "target.annotations.cryostat.PORT == 9093");
+            credentialsForm.add("username", "admin");
+            credentialsForm.add("password", "adminpass123");
+
+            webClient
+                    .post("/api/v2.2/credentials")
+                    .sendForm(
+                            credentialsForm,
+                            ar -> {
+                                if (assertRequestStatus(ar, credentialsFuture)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(201));
+                                    credentialsFuture.complete(null);
+                                }
+                            });
+            credentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // create an in-memory recording
             CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
@@ -332,8 +352,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                 }
                             });
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            Thread.sleep(5000);
 
             // save the recording to archives
             CompletableFuture<Void> saveRespFuture = new CompletableFuture<>();
@@ -372,6 +390,61 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             waitForDiscovery(NUM_EXT_CONTAINERS);
 
+            // check that a new active recording with the same name has a new set of labels
+            CompletableFuture<Void> dumpActiveResp = new CompletableFuture<>();
+            form.remove("metadata");
+
+            webClient
+                    .post(String.format("/api/v1/targets/%s/recordings", targetId))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, dumpActiveResp)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(201));
+                                    dumpActiveResp.complete(null);
+                                }
+                            });
+            dumpActiveResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            CompletableFuture<JsonArray> activeRecordingsFuture = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", targetId))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, activeRecordingsFuture)) {
+                                    activeRecordingsFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+
+            JsonObject activeRecordingInfo =
+                    activeRecordingsFuture
+                            .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                            .getJsonObject(0);
+
+            Metadata activeMetadata =
+                    gson.fromJson(
+                            activeRecordingInfo.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
+
+            Map<String, String> expectedLabels =
+                    Map.of("template.name", "ALL", "template.type", "TARGET");
+
+            MatcherAssert.assertThat(
+                    activeRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size(),
+                    Matchers.equalTo(1));
+            MatcherAssert.assertThat(activeMetadata.getLabels(), Matchers.equalTo(expectedLabels));
+
             // check archived recording labels still preserved
             CompletableFuture<JsonArray> archivedRecordingsFuture = new CompletableFuture<>();
             webClient
@@ -396,6 +469,17 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
 
         } finally {
+            CompletableFuture<Void> deleteTargetRecordingFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s", targetId, RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteTargetRecordingFuture)) {
+                                    deleteTargetRecordingFuture.complete(null);
+                                }
+                            });
             CompletableFuture<Void> deleteArchiveFuture = new CompletableFuture<>();
             webClient
                     .delete(
@@ -411,11 +495,22 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             });
 
             try {
-                deleteArchiveFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                deleteTargetRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new ITestCleanupFailedException(
                         String.format(
                                 "Failed to delete recording %s",
+                                archivedRecordingName.get(
+                                        REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
+                        e);
+            }
+
+            try {
+                deleteArchiveFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException(
+                        String.format(
+                                "Failed to delete archived recording %s",
                                 archivedRecordingName.get(
                                         REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
                         e);
