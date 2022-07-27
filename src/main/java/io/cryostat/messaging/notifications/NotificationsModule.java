@@ -37,6 +37,8 @@
  */
 package io.cryostat.messaging.notifications;
 
+import java.util.Set;
+
 import javax.inject.Singleton;
 
 import io.cryostat.messaging.MessagingServer;
@@ -50,8 +52,8 @@ public abstract class NotificationsModule {
 
     @Provides
     @Singleton
-    static NotificationSource provideNotificationSource() {
-        return new NotificationSource();
+    static NotificationSource provideNotificationSource(Lazy<Set<NotificationListener>> listeners) {
+        return new NotificationSource(listeners);
     }
 
     @Provides

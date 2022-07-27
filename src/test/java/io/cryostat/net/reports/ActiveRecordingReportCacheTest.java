@@ -53,7 +53,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationSource;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -78,7 +77,6 @@ class ActiveRecordingReportCacheTest {
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock NotificationSource notificationSource;
     @Mock Logger logger;
     @Mock CompletableFuture<Path> pathFuture;
     @Mock Path destinationFile;
@@ -90,12 +88,7 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator,
-                        fs,
-                        targetConnectionManager,
-                        notificationSource,
-                        30,
-                        logger);
+                        () -> subprocessReportGenerator, fs, targetConnectionManager, 30, logger);
     }
 
     @Test
