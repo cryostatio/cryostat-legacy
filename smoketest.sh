@@ -14,6 +14,7 @@ function runCryostat() {
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
         CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
+        CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager \
         exec "$DIR/run.sh"
 }
 
@@ -60,6 +61,7 @@ function runDemoApps() {
     podman run \
         --name quarkus-test-plugin \
         --pod cryostat-pod \
+        --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
         --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
         --rm -d quarkus-test:0.0.3
 
