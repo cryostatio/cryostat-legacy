@@ -53,7 +53,9 @@ import javax.inject.Named;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
@@ -65,7 +67,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public class MessagingServer extends AbstractVerticle implements AutoCloseable {
+public class MessagingServer extends AbstractVerticle
+        implements AutoCloseable, NotificationListener {
 
     private final Set<WsClient> connections;
     private final HttpServer server;
@@ -215,7 +218,12 @@ public class MessagingServer extends AbstractVerticle implements AutoCloseable {
                 });
     }
 
-    public void writeMessage(Object message) {
+    @Override
+    public void onNotification(Notification notification) {
+        writeMessage(notification);
+    }
+
+    void writeMessage(Object message) {
         String json = gson.toJson(message);
         logger.info("Outgoing WS message: {}", json);
         synchronized (connections) {

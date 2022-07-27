@@ -39,26 +39,22 @@ package io.cryostat.messaging.notifications;
 
 import java.time.Instant;
 
-import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.web.http.HttpMimeType;
 
 public class Notification<T> {
 
-    private final transient MessagingServer server;
     private final transient NotificationSource source;
 
     private final Notification.Meta meta;
     private final T message;
 
     Notification(Notification.Builder<T> builder) {
-        this.server = builder.server;
         this.source = builder.source;
         this.meta = new Meta(builder.category, builder.type);
         this.message = builder.message;
     }
 
     public void send() {
-        this.server.writeMessage(this);
         this.source.notifyListeners(this);
     }
 
@@ -71,14 +67,12 @@ public class Notification<T> {
     }
 
     public static class Builder<T> {
-        private final MessagingServer server;
         private final NotificationSource source;
         private String category = "generic";
         private MetaType type = new MetaType(HttpMimeType.JSON);
         private T message;
 
-        Builder(MessagingServer server, NotificationSource source) {
-            this.server = server;
+        Builder(NotificationSource source) {
             this.source = source;
         }
 

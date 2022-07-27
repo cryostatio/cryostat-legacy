@@ -41,8 +41,6 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 
-import io.cryostat.messaging.MessagingServer;
-
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -58,8 +56,7 @@ public abstract class NotificationsModule {
 
     @Provides
     @Singleton
-    static NotificationFactory provideNotificationFactory(
-            Lazy<MessagingServer> server, NotificationSource source) {
-        return new NotificationFactory(server, source);
+    static NotificationFactory provideNotificationFactory(NotificationSource source) {
+        return new NotificationFactory(source);
     }
 }
