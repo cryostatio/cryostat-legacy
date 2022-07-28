@@ -38,9 +38,8 @@
 package io.cryostat;
 
 import java.security.Security;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Singleton;
 
@@ -59,85 +58,80 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
-import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
 class Cryostat {
 
-    private static final Set<String> verticleIds = new HashSet<>();
-
-    public static void main(String[] args) throws Exception {
-        CryostatCore.initialize();
-
-        Security.addProvider(BouncyCastleProviderSingleton.getInstance());
-
+    public static void main(String[] args) {
         final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
+        final Client client = DaggerCryostat_Client.builder().build();
+        try {
+            CryostatCore.initialize();
 
-        logger.trace("env: {}", environment.getEnv().toString());
+            Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
+            final Environment environment = new Environment();
 
-        Client client = DaggerCryostat_Client.builder().build();
+            logger.trace("env: {}", environment.getEnv().toString());
 
-        Runtime.getRuntime()
-                .addShutdownHook(new Thread(() -> verticleIds.forEach(client.vertx()::undeploy)));
+            logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        client.httpServer().addShutdownListener(() -> future.complete(null));
+            List<Future> futures = new ArrayList<>();
 
-        client.credentialsManager().migrate();
-        client.credentialsManager().load();
-        client.ruleRegistry().loadRules();
-        client.vertx()
-                .deployVerticle(
-                        client.discoveryStorage(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> handleDeployment(logger, "Discovery Storage", res));
-        client.vertx()
-                .deployVerticle(
-                        client.discovery(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> handleDeployment(logger, "Built-In Discovery", res));
-        client.vertx()
-                .deployVerticle(
-                        client.httpServer(),
-                        new DeploymentOptions(),
-                        res -> handleDeployment(logger, "HTTP Server", res));
-        client.vertx()
-                .deployVerticle(
-                        client.webServer(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> handleDeployment(logger, "WebServer", res));
-        client.vertx()
-                .deployVerticle(
-                        client.messagingServer(),
-                        new DeploymentOptions(),
-                        res -> handleDeployment(logger, "MessagingServer", res));
-        client.vertx()
-                .deployVerticle(
-                        client.ruleProcessor(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> handleDeployment(logger, "RuleProcessor", res));
-        client.recordingMetadataManager().load();
+            client.credentialsManager().migrate();
+            client.credentialsManager().load();
+            client.ruleRegistry().loadRules();
+            client.recordingMetadataManager().load();
+            futures.add(
+                    client.vertx()
+                            .deployVerticle(
+                                    client.discoveryStorage(),
+                                    new DeploymentOptions().setWorker(true)));
+            futures.add(
+                    client.vertx()
+                            .deployVerticle(
+                                    client.discovery(), new DeploymentOptions().setWorker(true)));
+            futures.add(
+                    client.vertx().deployVerticle(client.httpServer(), new DeploymentOptions()));
+            futures.add(
+                    client.vertx()
+                            .deployVerticle(
+                                    client.webServer(), new DeploymentOptions().setWorker(true)));
+            futures.add(
+                    client.vertx()
+                            .deployVerticle(client.messagingServer(), new DeploymentOptions()));
+            futures.add(
+                    client.vertx()
+                            .deployVerticle(
+                                    client.ruleProcessor(),
+                                    new DeploymentOptions().setWorker(true)));
 
-        future.join();
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null, client, logger)));
+            CompositeFuture.join(futures).onFailure(t -> shutdown(t, client, logger));
+        } catch (Exception e) {
+            shutdown(e, client, logger);
+        }
     }
 
-    private static void handleDeployment(Logger logger, String name, AsyncResult<String> res) {
-        if (res.failed()) {
-            logger.error("{} Verticle FAILED", name);
-            logger.error(new RuntimeException(res.cause()));
-            return;
+    private static void shutdown(Throwable cause, Client client, Logger logger) {
+        if (cause != null) {
+            if (!(cause instanceof Exception)) {
+                cause = new RuntimeException(cause);
+            }
+            logger.error((RuntimeException) cause);
         }
-        logger.info("{} Verticle Started", name);
-        verticleIds.add(res.result());
+        logger.info("Cryostat shutting down...");
+        client.vertx().close().onComplete(n -> logger.info("Shutdown complete"));
     }
 
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
+        Vertx vertx();
+
         DiscoveryStorage discoveryStorage();
 
         BuiltInDiscovery discovery();
@@ -147,8 +141,6 @@ class Cryostat {
         RuleRegistry ruleRegistry();
 
         RuleProcessor ruleProcessor();
-
-        Vertx vertx();
 
         HttpServer httpServer();
 

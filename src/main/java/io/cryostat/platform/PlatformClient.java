@@ -45,6 +45,8 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 public interface PlatformClient {
     void start() throws Exception;
 
+    void stop() throws Exception;
+
     List<ServiceRef> listDiscoverableServices();
 
     void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);

@@ -40,17 +40,19 @@ package io.cryostat.discovery;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
-public class BuiltInDiscovery extends AbstractVerticle {
+public class BuiltInDiscovery extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 
     static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
@@ -76,21 +78,7 @@ public class BuiltInDiscovery extends AbstractVerticle {
     @Override
     public void start(Promise<Void> start) {
         try {
-            storage.addTargetDiscoveryListener(
-                    tde ->
-                            notificationFactory
-                                    .createBuilder()
-                                    .metaCategory(NOTIFICATION_CATEGORY)
-                                    .message(
-                                            Map.of(
-                                                    "event",
-                                                    Map.of(
-                                                            "kind",
-                                                            tde.getEventKind(),
-                                                            "serviceRef",
-                                                            tde.getServiceRef())))
-                                    .build()
-                                    .send());
+            storage.addTargetDiscoveryListener(this);
 
             if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
                 return;
@@ -110,5 +98,35 @@ public class BuiltInDiscovery extends AbstractVerticle {
         } catch (Exception e) {
             start.fail(e);
         }
+    }
+
+    @Override
+    public void stop() {
+        storage.removeTargetDiscoveryListener(this);
+        this.platformClients.forEach(
+                platform -> {
+                    try {
+                        platform.stop();
+                    } catch (Exception e) {
+                        logger.error(e);
+                    }
+                });
+    }
+
+    @Override
+    public void accept(TargetDiscoveryEvent tde) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(NOTIFICATION_CATEGORY)
+                .message(
+                        Map.of(
+                                "event",
+                                Map.of(
+                                        "kind",
+                                        tde.getEventKind(),
+                                        "serviceRef",
+                                        tde.getServiceRef())))
+                .build()
+                .send();
     }
 }

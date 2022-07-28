@@ -63,6 +63,7 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
 
 @Deprecated
@@ -96,7 +97,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start(Promise<Void> future) throws Exception {
         for (String s : fs.listDirectoryChildren(persistencePath)) {
             Path p = persistencePath.resolve(s);
             try (BufferedReader br = fs.readFile(p)) {
@@ -123,10 +124,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             res -> {
                                                 if (!HttpStatusCodeIdentifier.isSuccessCode(
                                                         res.statusCode())) {
-                                                    map.remove(key);
-                                                    logger.info(
-                                                            "Stale discovery service {} removed",
-                                                            uri);
+                                                    removePlugin(key, uri);
                                                     return;
                                                 }
                                                 logger.info("Found discovery service {}", uri);
@@ -134,11 +132,20 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     .onFailure(
                                             t -> {
                                                 t.printStackTrace();
-                                                map.remove(key);
-                                                logger.info(
-                                                        "Stale discovery service {} removed", uri);
+                                                removePlugin(key, uri);
                                             });
                         });
+        future.complete();
+    }
+
+    private void removePlugin(UUID uuid, URI uri) {
+        map.remove(uuid);
+        try {
+            fs.deleteIfExists(persistencePath.resolve(uuid.toString()));
+        } catch (IOException ioe) {
+            logger.error(ioe);
+        }
+        logger.info("Stale discovery service {} removed", uri);
     }
 
     @Override
