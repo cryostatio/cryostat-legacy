@@ -92,6 +92,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Path p = persistencePath.resolve(s);
             try (BufferedReader br = fs.readFile(p)) {
                 PluginInfo pluginInfo = gson.fromJson(br, PluginInfo.class);
+                if (Objects.equals(pluginInfo.getCallback(), NO_CALLBACK)) {
+                    continue;
+                }
                 map.put(UUID.fromString(s), pluginInfo);
             } catch (IOException ioe) {
                 logger.error(ioe);
@@ -104,6 +107,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         map.entrySet()
                 .forEach(
                         entry -> {
+                            if (Objects.equals(entry.getValue().getCallback(), NO_CALLBACK)) {
+                                return;
+                            }
                             String key = entry.getKey().toString();
                             Path path = persistencePath.resolve(key);
                             try {
