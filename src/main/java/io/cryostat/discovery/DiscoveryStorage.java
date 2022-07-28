@@ -60,8 +60,10 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import io.vertx.ext.web.client.WebClient;
 
 @Deprecated
 /**
@@ -75,14 +77,21 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final FileSystem fs;
     private final Path persistencePath;
     private final Gson gson;
+    private final WebClient http;
     private final Logger logger;
 
     DiscoveryStorage(
-            Provider<UUID> uuid, FileSystem fs, Path persistencePath, Gson gson, Logger logger) {
+            Provider<UUID> uuid,
+            FileSystem fs,
+            Path persistencePath,
+            Gson gson,
+            WebClient http,
+            Logger logger) {
         this.uuid = uuid;
         this.fs = fs;
         this.persistencePath = persistencePath;
         this.gson = gson;
+        this.http = http;
         this.logger = logger;
     }
 
@@ -100,6 +109,36 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 logger.error(ioe);
             }
         }
+
+        map.entrySet()
+                .forEach(
+                        plugin -> {
+                            UUID key = plugin.getKey();
+                            URI uri = plugin.getValue().getCallback();
+                            http.postAbs(uri.toString())
+                                    .timeout(1_000)
+                                    .followRedirects(true)
+                                    .send()
+                                    .onSuccess(
+                                            res -> {
+                                                if (!HttpStatusCodeIdentifier.isSuccessCode(
+                                                        res.statusCode())) {
+                                                    map.remove(key);
+                                                    logger.info(
+                                                            "Stale discovery service {} removed",
+                                                            uri);
+                                                    return;
+                                                }
+                                                logger.info("Found discovery service {}", uri);
+                                            })
+                                    .onFailure(
+                                            t -> {
+                                                t.printStackTrace();
+                                                map.remove(key);
+                                                logger.info(
+                                                        "Stale discovery service {} removed", uri);
+                                            });
+                        });
     }
 
     @Override

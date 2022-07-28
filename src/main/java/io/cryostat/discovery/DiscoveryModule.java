@@ -60,6 +60,7 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import io.vertx.ext.web.client.WebClient;
 
 @Module
 public abstract class DiscoveryModule {
@@ -73,8 +74,9 @@ public abstract class DiscoveryModule {
             FileSystem fs,
             @Named(PERSISTENCE_PATH) Path persistencePath,
             Gson gson,
+            WebClient http,
             Logger logger) {
-        return new DiscoveryStorage(uuid, fs, persistencePath, gson, logger);
+        return new DiscoveryStorage(uuid, fs, persistencePath, gson, http, logger);
     }
 
     @Provides
