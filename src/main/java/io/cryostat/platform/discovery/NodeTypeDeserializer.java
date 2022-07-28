@@ -35,79 +35,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
+package io.cryostat.platform.discovery;
 
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.StringReader;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Set;
-import java.util.UUID;
 
-import javax.inject.Named;
-import javax.inject.Provider;
-import javax.inject.Singleton;
-
-import io.cryostat.configuration.ConfigurationModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.stream.JsonReader;
 import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
-@Module
-public abstract class DiscoveryModule {
+public class NodeTypeDeserializer extends PluggableJsonDeserializer<NodeType> {
 
-    static final String PERSISTENCE_PATH = "PERSISTENCE_PATH";
+    private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
 
-    @Provides
-    @Singleton
-    static DiscoveryStorage provideDiscoveryStorage(
-            Provider<UUID> uuid,
-            FileSystem fs,
-            @Named(PERSISTENCE_PATH) Path persistencePath,
-            Gson gson,
-            Logger logger) {
-        return new DiscoveryStorage(uuid, fs, persistencePath, gson, logger);
+    public NodeTypeDeserializer(Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+        super(NodeType.class);
+        this.adapters = adapters;
     }
 
-    @Provides
-    @Singleton
-    @Named(PERSISTENCE_PATH)
-    static Path providePersistencePath(
-            @Named(ConfigurationModule.CONFIGURATION_PATH) Path conf, FileSystem fs) {
-        Path p = conf.resolve("discovery");
-        if (!fs.isDirectory(p)) {
+    @Override
+    public NodeType deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+        String raw = json.getAsString();
+        for (PluggableTypeAdapter<?> adapter : adapters.get()) {
+            if (!adapter.getAdaptedType().isAssignableFrom(NodeType.class)
+                    && !Arrays.asList(adapter.getAdaptedType().getInterfaces())
+                            .contains(NodeType.class)) {
+                continue;
+            }
             try {
-                fs.createDirectory(p);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                NodeType nt =
+                        (NodeType)
+                                adapter.read(
+                                        new JsonReader(
+                                                new StringReader(String.format("\"%s\"", raw))));
+                if (nt != null) {
+                    return nt;
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
         }
-        return p;
-    }
-
-    @Provides
-    @Singleton
-    static BuiltInDiscovery provideBuiltInDiscovery(
-            DiscoveryStorage storage,
-            Set<PlatformClient> platformClients,
-            Environment env,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
+        throw new JsonParseException(raw);
     }
 }

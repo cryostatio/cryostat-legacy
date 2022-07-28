@@ -37,7 +37,11 @@
  */
 package io.cryostat.discovery;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,11 +54,14 @@ import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+
+import com.google.gson.Gson;
 
 @Deprecated
 /**
@@ -65,18 +72,51 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public static final URI NO_CALLBACK = null;
     private final Provider<UUID> uuid;
     private final Map<UUID, PluginInfo> map = new HashMap<>();
+    private final FileSystem fs;
+    private final Path persistencePath;
+    private final Gson gson;
     private final Logger logger;
 
-    DiscoveryStorage(Provider<UUID> uuid, Logger logger) {
+    DiscoveryStorage(
+            Provider<UUID> uuid, FileSystem fs, Path persistencePath, Gson gson, Logger logger) {
         this.uuid = uuid;
+        this.fs = fs;
+        this.persistencePath = persistencePath;
+        this.gson = gson;
         this.logger = logger;
     }
 
     @Override
     public void start() throws Exception {
-        // TODO persist plugin infos (with empty subtrees) to disk on shutdown, and reinitialize map
-        // here. Then, perform POST on each callback URI to check it's still there and prompt it to
-        // update us with its subtree
+        for (String s : fs.listDirectoryChildren(persistencePath)) {
+            Path p = persistencePath.resolve(s);
+            try (BufferedReader br = fs.readFile(p)) {
+                PluginInfo pluginInfo = gson.fromJson(br, PluginInfo.class);
+                map.put(UUID.fromString(s), pluginInfo);
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+        }
+    }
+
+    @Override
+    public void stop() {
+        map.entrySet()
+                .forEach(
+                        entry -> {
+                            String key = entry.getKey().toString();
+                            Path path = persistencePath.resolve(key);
+                            try {
+                                fs.writeString(
+                                        path,
+                                        gson.toJson(entry.getValue()),
+                                        StandardOpenOption.WRITE,
+                                        StandardOpenOption.CREATE,
+                                        StandardOpenOption.TRUNCATE_EXISTING);
+                            } catch (IOException ioe) {
+                                logger.error(ioe);
+                            }
+                        });
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {

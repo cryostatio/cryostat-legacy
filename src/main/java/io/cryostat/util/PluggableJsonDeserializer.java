@@ -35,49 +35,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.util;
 
-import java.util.Set;
+import com.google.gson.JsonDeserializer;
 
-import io.cryostat.util.PluggableJsonDeserializer;
-import io.cryostat.util.PluggableTypeAdapter;
+public abstract class PluggableJsonDeserializer<T> implements JsonDeserializer<T> {
 
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
+    protected final Class<T> klazz;
 
-@Module
-public abstract class PlatformDiscoveryModule {
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter() {
-        return new BaseNodeTypeAdapter();
+    public PluggableJsonDeserializer(Class<T> klazz) {
+        this.klazz = klazz;
     }
 
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideCustomTargetNodeTypeAdapter() {
-        return new CustomTargetNodeTypeAdapter();
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideJDPNodeTypeAdapter() {
-        return new JDPNodeTypeAdapter();
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideKubernetesNodeTypeAdapter() {
-        return new KubernetesNodeTypeAdapter();
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableJsonDeserializer<?> provideNodeTypeDeserializer(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
-        return new NodeTypeDeserializer(adapters);
+    public Class<T> getAdaptedType() {
+        return klazz;
     }
 }

@@ -150,7 +150,7 @@ function createPod() {
 }
 
 function destroyPod() {
-    podman pod kill cryostat-pod
+    podman pod stop cryostat-pod
     podman pod rm cryostat-pod
 }
 trap destroyPod EXIT

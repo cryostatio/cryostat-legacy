@@ -38,6 +38,8 @@
 package io.cryostat;
 
 import java.security.Security;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
@@ -57,10 +59,13 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 
 class Cryostat {
+
+    private static final Set<String> verticleIds = new HashSet<>();
 
     public static void main(String[] args) throws Exception {
         CryostatCore.initialize();
@@ -76,6 +81,9 @@ class Cryostat {
 
         Client client = DaggerCryostat_Client.builder().build();
 
+        Runtime.getRuntime()
+                .addShutdownHook(new Thread(() -> verticleIds.forEach(client.vertx()::undeploy)));
+
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
 
@@ -86,35 +94,45 @@ class Cryostat {
                 .deployVerticle(
                         client.discoveryStorage(),
                         new DeploymentOptions().setWorker(true),
-                        res -> logger.info("Discovery Storage Verticle Started"));
+                        res -> handleDeployment(logger, "Discovery Storage", res));
         client.vertx()
                 .deployVerticle(
                         client.discovery(),
                         new DeploymentOptions().setWorker(true),
-                        res -> logger.info("Built-In Discovery Verticle Started"));
+                        res -> handleDeployment(logger, "Built-In Discovery", res));
         client.vertx()
                 .deployVerticle(
                         client.httpServer(),
                         new DeploymentOptions(),
-                        res -> logger.info("HTTP Server Verticle Started"));
+                        res -> handleDeployment(logger, "HTTP Server", res));
         client.vertx()
                 .deployVerticle(
                         client.webServer(),
                         new DeploymentOptions().setWorker(true),
-                        res -> logger.info("WebServer Verticle Started"));
+                        res -> handleDeployment(logger, "WebServer", res));
         client.vertx()
                 .deployVerticle(
                         client.messagingServer(),
                         new DeploymentOptions(),
-                        res -> logger.info("MessagingServer Verticle Started"));
+                        res -> handleDeployment(logger, "MessagingServer", res));
         client.vertx()
                 .deployVerticle(
                         client.ruleProcessor(),
                         new DeploymentOptions().setWorker(true),
-                        res -> logger.info("RuleProcessor Verticle Started"));
+                        res -> handleDeployment(logger, "RuleProcessor", res));
         client.recordingMetadataManager().load();
 
         future.join();
+    }
+
+    private static void handleDeployment(Logger logger, String name, AsyncResult<String> res) {
+        if (res.failed()) {
+            logger.error("{} Verticle FAILED", name);
+            logger.error(new RuntimeException(res.cause()));
+            return;
+        }
+        logger.info("{} Verticle Started", name);
+        verticleIds.add(res.result());
     }
 
     @Singleton
