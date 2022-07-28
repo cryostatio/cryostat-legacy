@@ -37,14 +37,13 @@
  */
 package io.cryostat.platform;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 public interface PlatformClient {
-    void start() throws IOException;
+    void start() throws Exception;
 
     List<ServiceRef> listDiscoverableServices();
 

@@ -50,33 +50,20 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
-import io.cryostat.platform.internal.MergingPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
 import com.google.gson.Gson;
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
 @Module(includes = {PlatformStrategyModule.class, PlatformDiscoveryModule.class})
 public abstract class PlatformModule {
-
-    @Provides
-    @Singleton
-    static PlatformClient providePlatformClient(
-            NotificationFactory notificationFactory,
-            PlatformDetectionStrategy<?> platformStrategy,
-            CustomTargetPlatformClient customTargetPlatformClient,
-            Logger logger) {
-        return new MergingPlatformClient(
-                notificationFactory,
-                customTargetPlatformClient,
-                platformStrategy.getPlatformClient());
-    }
 
     @Provides
     @Singleton
@@ -84,6 +71,10 @@ public abstract class PlatformModule {
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson) {
         return new CustomTargetPlatformClient(confDir, fs, gson);
     }
+
+    @Binds
+    @IntoSet
+    abstract PlatformClient bindCustomTargetPlatformClient(CustomTargetPlatformClient client);
 
     @Provides
     @Singleton
@@ -142,6 +133,12 @@ public abstract class PlatformModule {
                             .orElseThrow();
         }
         return strat;
+    }
+
+    @Provides
+    @IntoSet
+    static PlatformClient provideDetectedPlatformClient(PlatformDetectionStrategy<?> strat) {
+        return strat.getPlatformClient();
     }
 
     @Provides

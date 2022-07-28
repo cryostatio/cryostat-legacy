@@ -52,11 +52,11 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -113,7 +113,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleProcessor provideRuleProcessor(
             Vertx vertx,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
@@ -126,7 +126,7 @@ public abstract class RulesModule {
             Base32 base32) {
         return new RuleProcessor(
                 vertx,
-                platformClient,
+                storage,
                 registry,
                 credentialsManager,
                 recordingOptionsBuilderFactory,

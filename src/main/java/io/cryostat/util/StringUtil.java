@@ -35,58 +35,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.util;
 
-import java.util.Collections;
-import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
-import io.cryostat.platform.ServiceRef;
+public class StringUtil {
+    private StringUtil() {}
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-public class TargetNode extends AbstractNode {
-
-    private ServiceRef target;
-
-    public TargetNode(TargetNode other) {
-        this(other.nodeType, other.target, other.labels);
-    }
-
-    public TargetNode(NodeType nodeType, ServiceRef target) {
-        super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = new ServiceRef(target);
-    }
-
-    public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
-        super(target.getServiceUri().toString(), nodeType, labels);
-        this.target = new ServiceRef(target);
-    }
-
-    public ServiceRef getTarget() {
-        return new ServiceRef(target);
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(target).build();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
+    public static String requireNonBlank(String s, String keyName) throws IllegalArgumentException {
+        if (StringUtils.isBlank(s)) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be blank, was \"%s\"", keyName, s));
         }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof TargetNode)) {
-            return false;
-        }
-        TargetNode other = (TargetNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(target, other.target)
-                .isEquals();
+        return s;
     }
 }

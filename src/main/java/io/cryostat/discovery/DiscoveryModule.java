@@ -35,58 +35,49 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.discovery;
 
-import java.util.Collections;
-import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-import io.cryostat.platform.ServiceRef;
+import javax.inject.Provider;
+import javax.inject.Singleton;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.util.PluggableTypeAdapter;
 
-public class TargetNode extends AbstractNode {
+import dagger.Lazy;
+import dagger.Module;
+import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
-    private ServiceRef target;
-
-    public TargetNode(TargetNode other) {
-        this(other.nodeType, other.target, other.labels);
+@Module
+public abstract class DiscoveryModule {
+    @Provides
+    @Singleton
+    static DiscoveryStorage provideDiscoveryStorage(Provider<UUID> uuid, Logger logger) {
+        return new DiscoveryStorage(uuid, logger);
     }
 
-    public TargetNode(NodeType nodeType, ServiceRef target) {
-        super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = new ServiceRef(target);
+    @Provides
+    @Singleton
+    static BuiltInDiscovery provideBuiltInDiscovery(
+            DiscoveryStorage storage,
+            Set<PlatformClient> platformClients,
+            Environment env,
+            NotificationFactory notificationFactory,
+            Logger logger) {
+        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
     }
 
-    public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
-        super(target.getServiceUri().toString(), nodeType, labels);
-        this.target = new ServiceRef(target);
-    }
-
-    public ServiceRef getTarget() {
-        return new ServiceRef(target);
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(target).build();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof TargetNode)) {
-            return false;
-        }
-        TargetNode other = (TargetNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(target, other.target)
-                .isEquals();
+    @Provides
+    @IntoSet
+    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
+        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
     }
 }

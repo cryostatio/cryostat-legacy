@@ -37,13 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -53,32 +50,20 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
-import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 
-class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
+class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
-    static final String PATH = "targets";
-
+    static final String PATH = "discovery";
     private final DiscoveryStorage storage;
-    private final CustomTargetPlatformClient customTargetPlatformClient;
 
     @Inject
-    TargetsPostHandler(
-            AuthManager auth,
-            Gson gson,
-            DiscoveryStorage storage,
-            CustomTargetPlatformClient customTargetPlatformClient) {
+    DiscoveryRegistrationHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
         super(auth, gson);
         this.storage = storage;
-        this.customTargetPlatformClient = customTargetPlatformClient;
     }
 
     @Override
@@ -88,7 +73,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2;
+        return ApiVersion.V2_2;
     }
 
     @Override
@@ -97,13 +82,13 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_TARGET);
+    public String path() {
+        return basePath() + PATH;
     }
 
     @Override
-    public String path() {
-        return basePath() + PATH;
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_TARGET);
     }
 
     @Override
@@ -117,49 +102,29 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
-    public boolean isOrdered() {
-        return true;
-    }
-
-    @Override
-    public IntermediateResponse<ServiceRef> handle(RequestParameters params) throws ApiException {
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
+            throws Exception {
         try {
-            MultiMap attrs = params.getFormAttributes();
-            String connectUrl = attrs.get("connectUrl");
-            if (StringUtils.isBlank(connectUrl)) {
-                throw new ApiException(400, "\"connectUrl\" form parameter must be provided");
-            }
-            String alias = attrs.get("alias");
-            if (StringUtils.isBlank(alias)) {
-                throw new ApiException(400, "\"alias\" form parameter must be provided");
-            }
-            URI uri = URIUtil.createAbsolute(connectUrl);
-            for (ServiceRef serviceRef : storage.listDiscoverableServices()) {
-                if (Objects.equals(uri, serviceRef.getServiceUri())) {
-                    throw new ApiException(400, "Duplicate connectUrl");
-                }
-            }
-            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            ServiceRef serviceRef = new ServiceRef(uri, alias);
-            for (AnnotationKey ak : AnnotationKey.values()) {
-                // TODO is there a good way to determine this prefix from the structure of the
-                // ServiceRef's serialized form?
-                String formKey = "annotations.cryostat." + ak.name();
-                if (attrs.contains(formKey)) {
-                    cryostatAnnotations.put(ak, attrs.get(formKey));
-                }
-            }
-            serviceRef.setCryostatAnnotations(cryostatAnnotations);
+            String realm = getNonBlankJsonAttribute(params, "realm");
+            URI callbackUri = new URI(getNonBlankJsonAttribute(params, "callback"));
 
-            boolean v = customTargetPlatformClient.addTarget(serviceRef);
-            if (!v) {
-                throw new ApiException(400, "Duplicate connectUrl");
-            }
-            return new IntermediateResponse<ServiceRef>().body(serviceRef);
+            String id = storage.register(realm, callbackUri).toString();
+            // TODO generate a JWT auth token
+            // claims:
+            // iss: Cryostat server URL
+            // sub: plugin Realm
+            // aud:
+            //  - Cryostat server URL
+            //  - registation-time plugin request IP (X-Forwarded-For header/request remoteAddress)
+            // exp: ? need to determine refresh time/mechanism
+            // iat: now
+            return new IntermediateResponse<Map<String, String>>()
+                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
+                    .body(Map.of("id", id, "token", "placeholder"));
+        } catch (IllegalArgumentException iae) {
+            throw new ApiException(400, iae);
         } catch (URISyntaxException use) {
-            throw new ApiException(400, "Invalid connectUrl", use);
-        } catch (IOException ioe) {
-            throw new ApiException(500, "Internal Error", ioe);
+            throw new ApiException(400, use);
         }
     }
 }

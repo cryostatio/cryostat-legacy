@@ -14,6 +14,7 @@ function runCryostat() {
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
         CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
+        CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager \
         exec "$DIR/run.sh"
 }
 
@@ -46,6 +47,23 @@ function runDemoApps() {
         --name quarkus-test \
         --pod cryostat-pod \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
+
+    if [ -z "$CRYOSTAT_WEB_PORT" ]; then
+        local webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
+    else
+        local webPort="${CRYOSTAT_WEB_PORT}"
+    fi
+    if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
+        local protocol="https"
+    else
+        local protocol="http"
+    fi
+    podman run \
+        --name quarkus-test-plugin \
+        --pod cryostat-pod \
+        --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
+        --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
+        --rm -d quay.io/andrewazores/quarkus-test:0.0.3
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
