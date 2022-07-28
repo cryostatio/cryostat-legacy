@@ -47,6 +47,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -63,11 +64,13 @@ import dagger.Lazy;
 public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> {
 
     private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
+    private final Logger logger;
 
     public AbstractNodeTypeAdapter(
-            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
         super(klazz);
         this.adapters = adapters;
+        this.logger = logger;
     }
 
     @Override
@@ -173,6 +176,12 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                                             }
                                             reader.endObject();
                                             break;
+                                        default:
+                                            logger.warn(
+                                                    "Unexpected token {} at {}",
+                                                    tokenName,
+                                                    reader.getPath());
+                                            break;
                                     }
                                 }
 
@@ -185,6 +194,9 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);
+                    break;
+                default:
+                    logger.warn("Unexpected token {} at {}", tokenName, reader.getPath());
                     break;
             }
         }
