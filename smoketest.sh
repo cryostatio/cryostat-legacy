@@ -51,7 +51,7 @@ function runDemoApps() {
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
         local webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
     else
-        local webPort="8181"
+        local webPort="${CRYOSTAT_WEB_PORT}"
     fi
     if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
         local protocol="https"
