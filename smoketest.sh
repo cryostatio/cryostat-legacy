@@ -61,9 +61,11 @@ function runDemoApps() {
     podman run \
         --name quarkus-test-plugin \
         --pod cryostat-pod \
+        --restart unless-stopped \
         --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
         --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
-        --rm -d quay.io/andrewazores/quarkus-test:0.0.3
+        --env org.acme.CryostatService.callback-host="localhost" \
+        -d quay.io/andrewazores/quarkus-test:0.0.3
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
