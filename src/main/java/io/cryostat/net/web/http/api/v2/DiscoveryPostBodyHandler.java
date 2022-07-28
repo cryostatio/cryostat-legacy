@@ -35,54 +35,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.Collections;
-import java.util.Map;
+import java.util.Set;
 
-import io.cryostat.platform.ServiceRef;
+import javax.inject.Inject;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-public class TargetNode extends AbstractNode {
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-    private ServiceRef target;
+class DiscoveryPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    public TargetNode(NodeType nodeType, ServiceRef target) {
-        super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = new ServiceRef(target);
-    }
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-    public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
-        super(target.getServiceUri().toString(), nodeType, labels);
-        this.target = new ServiceRef(target);
-    }
-
-    public ServiceRef getTarget() {
-        return new ServiceRef(target);
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(target).build();
+    @Inject
+    DiscoveryPostBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof TargetNode)) {
-            return false;
-        }
-        TargetNode other = (TargetNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(target, other.target)
-                .isEquals();
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_2;
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + DiscoveryPostHandler.PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }

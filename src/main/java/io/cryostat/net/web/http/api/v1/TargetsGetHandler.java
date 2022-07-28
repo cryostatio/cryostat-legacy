@@ -44,12 +44,13 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.discovery.TargetNode;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -58,18 +59,18 @@ import io.vertx.ext.web.RoutingContext;
 
 class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage storage;
     private final Gson gson;
 
     @Inject
     TargetsGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, logger);
-        this.platformClient = platformClient;
+        this.storage = storage;
         this.gson = gson;
     }
 
@@ -101,6 +102,11 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response().end(gson.toJson(this.platformClient.listDiscoverableServices()));
+        ctx.response()
+                .end(
+                        gson.toJson(
+                                this.storage.getLeafNodes().stream()
+                                        .map(TargetNode::getTarget)
+                                        .toList()));
     }
 }

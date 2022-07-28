@@ -40,6 +40,8 @@ package io.cryostat;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -52,6 +54,7 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -79,6 +82,7 @@ import org.apache.commons.codec.binary.Base32;
             ConfigurationModule.class,
             MessagingModule.class,
             NetworkModule.class,
+            DiscoveryModule.class,
             PlatformModule.class,
             RecordingsModule.class,
             ResourceModule.class,
@@ -89,6 +93,7 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
+    public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
 
     @Provides
     @Singleton
@@ -162,5 +167,17 @@ public abstract class MainModule {
     @Singleton
     public static ScriptEngine provideScriptEngine() {
         return new ScriptEngineManager().getEngineByName("nashorn");
+    }
+
+    @Provides
+    public static UUID provideUuid() {
+        return UUID.randomUUID();
+    }
+
+    @Provides
+    @Singleton
+    @Named(UUID_FROM_STRING)
+    public static Function<String, UUID> provideUuidToString() {
+        return UUID::fromString;
     }
 }

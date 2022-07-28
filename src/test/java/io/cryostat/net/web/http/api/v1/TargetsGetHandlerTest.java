@@ -47,10 +47,12 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.internal.DefaultPlatformClient.JDPNodeType;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -77,15 +79,14 @@ class TargetsGetHandlerTest {
     TargetsGetHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
-    @Mock PlatformClient platformClient;
+    @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit connectionToolkit;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetsGetHandler(auth, credentialsManager, platformClient, gson, logger);
+        this.handler = new TargetsGetHandler(auth, credentialsManager, storage, gson, logger);
     }
 
     @Test
@@ -124,8 +125,9 @@ class TargetsGetHandlerTest {
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)), "foo");
 
+        TargetNode node = new TargetNode(JDPNodeType.JVM, target);
         List<ServiceRef> targets = Collections.singletonList(target);
-        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);
+        Mockito.when(storage.getLeafNodes()).thenReturn(Set.of(node));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);

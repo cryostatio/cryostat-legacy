@@ -35,54 +35,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.discovery;
+package io.cryostat.platform;
 
-import java.util.Collections;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
 
-import io.cryostat.platform.ServiceRef;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+public abstract class AbstractPlatformClient implements PlatformClient {
 
-public class TargetNode extends AbstractNode {
+    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 
-    private ServiceRef target;
-
-    public TargetNode(NodeType nodeType, ServiceRef target) {
-        super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = new ServiceRef(target);
-    }
-
-    public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
-        super(target.getServiceUri().toString(), nodeType, labels);
-        this.target = new ServiceRef(target);
-    }
-
-    public ServiceRef getTarget() {
-        return new ServiceRef(target);
+    protected AbstractPlatformClient() {
+        this.discoveryListeners = new HashSet<>();
     }
 
     @Override
-    public int hashCode() {
-        return new HashCodeBuilder().appendSuper(super.hashCode()).append(target).build();
+    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.add(listener);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof TargetNode)) {
-            return false;
-        }
-        TargetNode other = (TargetNode) o;
-        return new EqualsBuilder()
-                .appendSuper(super.equals(o))
-                .append(target, other.target)
-                .isEquals();
+    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.remove(listener);
+    }
+
+    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
+        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
     }
 }

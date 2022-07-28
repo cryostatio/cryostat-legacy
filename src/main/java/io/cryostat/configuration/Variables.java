@@ -60,6 +60,7 @@ public final class Variables {
     // platform configuration
     public static final String PLATFORM_STRATEGY_ENV_VAR = "CRYOSTAT_PLATFORM";
     public static final String AUTH_MANAGER_ENV_VAR = "CRYOSTAT_AUTH_MANAGER";
+    public static final String DISABLE_BUILTIN_DISCOVERY = "CRYOSTAT_DISABLE_BUILTIN_DISCOVERY";
 
     // webserver configuration
     public static final String WEBSERVER_HOST = "CRYOSTAT_WEB_HOST";

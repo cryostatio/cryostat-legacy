@@ -37,6 +37,7 @@
  */
 package io.cryostat.platform.discovery;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedSet;
@@ -47,7 +48,12 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class EnvironmentNode extends AbstractNode {
 
-    private final SortedSet<AbstractNode> children;
+    private SortedSet<AbstractNode> children;
+
+    public EnvironmentNode(EnvironmentNode original) {
+        this(original.getName(), original.getNodeType(), original.getLabels());
+        addChildren(original.getChildren());
+    }
 
     public EnvironmentNode(String name, NodeType nodeType) {
         this(name, nodeType, Collections.emptyMap());
@@ -64,6 +70,10 @@ public class EnvironmentNode extends AbstractNode {
 
     public void addChildNode(AbstractNode child) {
         this.children.add(child);
+    }
+
+    public void addChildren(Collection<? extends AbstractNode> children) {
+        this.children.addAll(children);
     }
 
     @Override

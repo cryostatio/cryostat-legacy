@@ -46,10 +46,10 @@ import javax.inject.Singleton;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -190,8 +190,8 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static RootNodeFetcher provideRootNodeFetcher(PlatformClient client) {
-        return new RootNodeFetcher(client);
+    static RootNodeFetcher provideRootNodeFetcher(DiscoveryStorage storage) {
+        return new RootNodeFetcher(storage);
     }
 
     @Provides

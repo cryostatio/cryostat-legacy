@@ -53,11 +53,11 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.openshift.OpenShiftNetworkModule;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
-import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
@@ -114,13 +114,13 @@ public abstract class NetworkModule {
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_CACHE_SIZE) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
-                platformClient,
+                storage,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
