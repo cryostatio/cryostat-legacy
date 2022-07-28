@@ -35,36 +35,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.internal;
+package io.cryostat.discovery;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
-
-import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
-
-abstract class AbstractPlatformClient implements PlatformClient {
-
-    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
-
-    protected AbstractPlatformClient() {
-        this.discoveryListeners = new HashSet<>();
-    }
-
-    @Override
-    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.add(listener);
-    }
-
-    @Override
-    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.remove(listener);
-    }
-
-    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
-        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
+public class RegistrationException extends Exception {
+    public RegistrationException(String realm) {
+        super(
+                String.format(
+                        "Failed to register new provider for \"%s\": provider already present",
+                        realm));
     }
 }

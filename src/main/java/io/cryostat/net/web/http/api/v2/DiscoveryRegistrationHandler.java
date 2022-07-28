@@ -37,7 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -47,17 +50,18 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.discovery.EnvironmentNode;
 
 import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
+class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
+    static final String PATH = "discovery";
     private final DiscoveryStorage storage;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryRegistrationHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
         super(auth, gson);
         this.storage = storage;
     }
@@ -69,22 +73,22 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.V2_2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return basePath() + "discovery";
+        return basePath() + PATH;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+        return EnumSet.of(ResourceAction.CREATE_TARGET);
     }
 
     @Override
@@ -98,7 +102,29 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(storage.getDiscoveryTree());
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
+            throws Exception {
+        try {
+            String realm = getNonBlankJsonAttribute(params, "realm");
+            URI callbackUri = new URI(getNonBlankJsonAttribute(params, "callback"));
+
+            String id = storage.register(realm, callbackUri).toString();
+            // TODO generate a JWT auth token
+            // claims:
+            // iss: Cryostat server URL
+            // sub: plugin Realm
+            // aud:
+            //  - Cryostat server URL
+            //  - registation-time plugin request IP (X-Forwarded-For header/request remoteAddress)
+            // exp: ? need to determine refresh time/mechanism
+            // iat: now
+            return new IntermediateResponse<Map<String, String>>()
+                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
+                    .body(Map.of("id", id, "token", "placeholder"));
+        } catch (IllegalArgumentException iae) {
+            throw new ApiException(400, iae);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
     }
 }

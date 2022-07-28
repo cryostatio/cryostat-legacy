@@ -39,27 +39,37 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.MainModule;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.discovery.EnvironmentNode;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
+class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
 
     private final DiscoveryStorage storage;
+    private final Function<String, UUID> uuidFromString;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryDeregistrationHandler(
+            AuthManager auth,
+            DiscoveryStorage storage,
+            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
+            Gson gson) {
         super(auth, gson);
         this.storage = storage;
+        this.uuidFromString = uuidFromString;
     }
 
     @Override
@@ -69,22 +79,22 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.V2_2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.DELETE;
     }
 
     @Override
     public String path() {
-        return basePath() + "discovery";
+        return basePath() + "discovery/:id";
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+        return EnumSet.of(ResourceAction.DELETE_TARGET);
     }
 
     @Override
@@ -98,7 +108,15 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(storage.getDiscoveryTree());
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+        try {
+            UUID id = uuidFromString.apply(params.getPathParams().get("id"));
+            storage.deregister(id);
+            return new IntermediateResponse<String>().body(id.toString());
+        } catch (IllegalArgumentException iae) {
+            throw new ApiException(400, iae);
+        } catch (NotFoundException nfe) {
+            throw new ApiException(404, nfe);
+        }
     }
 }

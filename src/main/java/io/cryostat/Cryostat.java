@@ -46,10 +46,11 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.discovery.BuiltInDiscovery;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
@@ -86,6 +87,16 @@ class Cryostat {
         client.ruleRegistry().loadRules();
         client.vertx()
                 .deployVerticle(
+                        client.discoveryStorage(),
+                        new DeploymentOptions().setWorker(true),
+                        res -> logger.info("Discovery Storage Verticle Started"));
+        client.vertx()
+                .deployVerticle(
+                        client.discovery(),
+                        new DeploymentOptions().setWorker(true),
+                        res -> logger.info("Built-In Discovery Verticle Started"));
+        client.vertx()
+                .deployVerticle(
                         client.httpServer(),
                         new DeploymentOptions(),
                         res -> logger.info("HTTP Server Verticle Started"));
@@ -104,7 +115,6 @@ class Cryostat {
                         client.ruleProcessor(),
                         new DeploymentOptions().setWorker(true),
                         res -> logger.info("RuleProcessor Verticle Started"));
-        client.platformClient().start();
         client.recordingMetadataManager().load();
 
         future.join();
@@ -114,6 +124,10 @@ class Cryostat {
     @Component(modules = {MainModule.class})
     interface Client {
         ApplicationVersion version();
+
+        DiscoveryStorage discoveryStorage();
+
+        BuiltInDiscovery discovery();
 
         CredentialsManager credentialsManager();
 
@@ -128,8 +142,6 @@ class Cryostat {
         WebServer webServer();
 
         MessagingServer messagingServer();
-
-        PlatformClient platformClient();
 
         RecordingMetadataManager recordingMetadataManager();
 
