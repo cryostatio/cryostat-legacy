@@ -24,7 +24,7 @@ function runDemoApps() {
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -32,7 +32,7 @@ function runDemoApps() {
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -41,7 +41,7 @@ function runDemoApps() {
         --env USE_SSL=true \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name quarkus-test \
