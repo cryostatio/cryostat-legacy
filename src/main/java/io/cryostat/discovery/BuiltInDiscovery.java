@@ -78,11 +78,11 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         try {
-            storage.addTargetDiscoveryListener(this);
-
             if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
                 return;
             }
+
+            storage.addTargetDiscoveryListener(this);
 
             for (PlatformClient platform : this.platformClients) {
                 logger.info(
