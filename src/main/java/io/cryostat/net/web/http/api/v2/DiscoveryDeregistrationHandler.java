@@ -52,6 +52,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -110,7 +111,10 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
         try {
-            UUID id = uuidFromString.apply(params.getPathParams().get("id"));
+            String key = "id";
+            UUID id =
+                    uuidFromString.apply(
+                            StringUtil.requireNonBlank(params.getPathParams().get(key), key));
             storage.deregister(id);
             return new IntermediateResponse<String>().body(id.toString());
         } catch (IllegalArgumentException iae) {

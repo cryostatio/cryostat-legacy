@@ -52,6 +52,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -115,13 +116,18 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
-        String body = params.getBody();
         try {
+            String key = "id";
+            UUID id =
+                    this.uuidFromString.apply(
+                            StringUtil.requireNonBlank(params.getPathParams().get(key), key));
             Set<AbstractNode> nodes =
-                    gson.fromJson(body, new TypeToken<Set<AbstractNode>>() {}.getType());
+                    gson.fromJson(
+                            StringUtil.requireNonBlank(params.getBody(), "body"),
+                            new TypeToken<Set<AbstractNode>>() {}.getType());
             // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
             // fields should be null, etc.
-            storage.update(this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
+            storage.update(id, nodes);
 
             return new IntermediateResponse<Void>().body(null);
         } catch (JsonSyntaxException | IllegalArgumentException e) {
