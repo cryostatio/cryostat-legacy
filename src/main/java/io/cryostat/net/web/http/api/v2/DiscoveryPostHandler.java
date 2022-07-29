@@ -124,8 +124,8 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
             storage.update(this.uuidFromString.apply(params.getPathParams().get("id")), nodes);
 
             return new IntermediateResponse<Void>().body(null);
-        } catch (JsonSyntaxException jse) {
-            throw new ApiException(400, jse);
+        } catch (JsonSyntaxException | IllegalArgumentException e) {
+            throw new ApiException(400, e);
         }
     }
 }
