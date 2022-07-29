@@ -61,8 +61,7 @@ import graphql.schema.DataFetchingEnvironment;
         justification =
                 "The Archived and AggregateInfo fields are serialized and returned to the client by"
                         + " the GraphQL engine")
-class ArchivedRecordingsFetcher
-        extends AbstractPermissionedDataFetcher<Archived> {
+class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     @Inject
     ArchivedRecordingsFetcher(AuthManager auth) {
