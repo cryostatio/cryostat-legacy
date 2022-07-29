@@ -68,6 +68,7 @@ class FilterInput {
         NAME("name"),
         LABELS("labels"),
         ANNOTATIONS("annotations"),
+        SOURCE_TARGET("sourceTarget"),
         NODE_TYPE("nodeType"),
         STATE("state"),
         CONTINUOUS("continuous"),

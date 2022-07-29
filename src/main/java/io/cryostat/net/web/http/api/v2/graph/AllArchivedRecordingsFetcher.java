@@ -44,41 +44,43 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
-import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-@SuppressFBWarnings(
-        value = "URF_UNREAD_FIELD",
-        justification =
-                "The Archived and AggregateInfo fields are serialized and returned to the client by"
-                        + " the GraphQL engine")
-class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
+class AllArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+
+    private final RecordingArchiveHelper archiveHelper;
 
     @Inject
-    ArchivedRecordingsFetcher() {}
+    AllArchivedRecordingsFetcher(RecordingArchiveHelper archiveHelper) {
+        this.archiveHelper = archiveHelper;
+    }
 
-    public Archived get(DataFetchingEnvironment environment) throws Exception {
-        Recordings source = environment.getSource();
+    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
-        List<ArchivedRecordingInfo> recordings = new ArrayList<>(source.archived);
+        List<ArchivedRecordingInfo> result = new ArrayList<>();
+        if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
+            String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
+            result = archiveHelper.getRecordings(targetId).get();
+        } else {
+            result = archiveHelper.getRecordings().get();
+        }
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
-            recordings =
-                    recordings.stream()
+            result =
+                    result.stream()
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
-                recordings =
-                        recordings.stream()
+                result =
+                        result.stream()
                                 .filter(
                                         r ->
                                                 LabelSelectorMatcher.parse(label)
@@ -86,22 +88,6 @@ class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
                                 .collect(Collectors.toList());
             }
         }
-
-        Archived archived = new Archived();
-        AggregateInfo aggregate = new AggregateInfo();
-        archived.data = recordings;
-        aggregate.count = Long.valueOf(archived.data.size());
-        archived.aggregate = aggregate;
-
-        return archived;
-    }
-
-    static class Archived {
-        List<ArchivedRecordingInfo> data;
-        AggregateInfo aggregate;
-    }
-
-    static class AggregateInfo {
-        Long count;
+        return result;
     }
 }

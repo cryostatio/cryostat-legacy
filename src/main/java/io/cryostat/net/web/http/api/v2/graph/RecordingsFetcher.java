@@ -102,49 +102,59 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
         String targetId = target.getServiceUri().toString();
         Recordings recordings = new Recordings();
 
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
-        // FIXME populating these two struct members are each async tasks. we should do them in
-        // parallel
-        recordings.archived = archiveHelper.getRecordings(targetId).get();
-        recordings.active =
-                tcm.executeConnectedTask(
-                        cd,
-                        conn -> {
-                            return conn.getService().getAvailableRecordings().stream()
-                                    .map(
-                                            r -> {
-                                                try {
-                                                    String downloadUrl =
-                                                            webServer
-                                                                    .get()
-                                                                    .getDownloadURL(
-                                                                            conn, r.getName());
-                                                    String reportUrl =
-                                                            webServer
-                                                                    .get()
-                                                                    .getReportURL(
-                                                                            conn, r.getName());
-                                                    Metadata metadata =
-                                                            metadataManager.getMetadata(
-                                                                    targetId, r.getName());
-                                                    return new GraphRecordingDescriptor(
-                                                            target,
-                                                            r,
-                                                            downloadUrl,
-                                                            reportUrl,
-                                                            metadata);
-                                                } catch (QuantityConversionException
-                                                        | URISyntaxException
-                                                        | IOException e) {
-                                                    logger.error(e);
-                                                    return null;
-                                                }
-                                            })
-                                    .filter(Objects::nonNull)
-                                    .collect(Collectors.toList());
-                        },
-                        false);
+        List<String> requestedFields =
+                environment.getSelectionSet().getFields().stream()
+                        .map(field -> field.getName())
+                        .collect(Collectors.toList());
+
+        if (requestedFields.contains("active")) {
+            ConnectionDescriptor cd =
+                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+            // FIXME populating these two struct members are each async tasks. we should do them in
+            // parallel
+            recordings.active =
+                    tcm.executeConnectedTask(
+                            cd,
+                            conn -> {
+                                return conn.getService().getAvailableRecordings().stream()
+                                        .map(
+                                                r -> {
+                                                    try {
+                                                        String downloadUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getDownloadURL(
+                                                                                conn, r.getName());
+                                                        String reportUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getReportURL(
+                                                                                conn, r.getName());
+                                                        Metadata metadata =
+                                                                metadataManager.getMetadata(
+                                                                        targetId, r.getName());
+                                                        return new GraphRecordingDescriptor(
+                                                                target,
+                                                                r,
+                                                                downloadUrl,
+                                                                reportUrl,
+                                                                metadata);
+                                                    } catch (QuantityConversionException
+                                                            | URISyntaxException
+                                                            | IOException e) {
+                                                        logger.error(e);
+                                                        return null;
+                                                    }
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList());
+                            },
+                            false);
+        }
+
+        if (requestedFields.contains("archived")) {
+            recordings.archived = archiveHelper.getRecordings(targetId).get();
+        }
 
         return recordings;
     }

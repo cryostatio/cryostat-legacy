@@ -101,8 +101,8 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
-    public static final String UNLABELLED = "unlabelled";
     public static final String ARCHIVES = "archives";
+    public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
 
     RecordingArchiveHelper(
             FileSystem fs,
@@ -220,7 +220,7 @@ public class RecordingArchiveHelper {
                                     ARCHIVES, recordingName));
             String subdirectoryName = parentPath.getFileName().toString();
             String targetId =
-                    (subdirectoryName.equals(UNLABELLED))
+                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
                             ? ""
                             : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             notificationFactory
@@ -273,8 +273,11 @@ public class RecordingArchiveHelper {
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
-        String encodedServiceUri = base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8));
-        Path specificRecordingsPath = archivedRecordingsPath.resolve(encodedServiceUri);
+        String subdirectory =
+                targetId.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
+                        ? targetId
+                        : base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8));
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectory);
 
         try {
             if (!fs.exists(archivedRecordingsPath)) {
@@ -308,7 +311,7 @@ public class RecordingArchiveHelper {
                             file -> {
                                 try {
                                     return new ArchivedRecordingInfo(
-                                            encodedServiceUri,
+                                            subdirectory,
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),

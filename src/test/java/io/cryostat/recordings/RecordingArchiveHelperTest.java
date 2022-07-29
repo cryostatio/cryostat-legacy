@@ -939,4 +939,72 @@ class RecordingArchiveHelperTest {
                     }
                 });
     }
+
+    @Test
+    void getRecordingsShouldDifferentiateBetweenUploadsAndTarget() throws Exception {
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
+        Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
+
+        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
+
+        String targetIdUploads = "uploads";
+        String targetIdTarget = "someServiceUri";
+        Path specificRecordingsPath = Path.of("/some/path/");
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
+                .thenReturn(specificRecordingsPath);
+        Mockito.when(fs.listDirectoryChildren(specificRecordingsPath))
+                .thenReturn(List.of("foo_recording"));
+
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/archive/" + name;
+                            }
+                        });
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/download/" + name;
+                            }
+                        });
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
+        // Test get recordings from uploads
+        List<ArchivedRecordingInfo> result =
+                recordingArchiveHelper.getRecordings(targetIdUploads).get();
+
+        Mockito.verify(archivedRecordingsPath).resolve(targetIdUploads);
+
+        List<ArchivedRecordingInfo> expected =
+                List.of(
+                        new ArchivedRecordingInfo(
+                                targetIdUploads,
+                                "foo_recording",
+                                "/some/path/download/foo_recording",
+                                "/some/path/archive/foo_recording"));
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
+
+        // Test get recordings from target
+        result = recordingArchiveHelper.getRecordings(targetIdTarget).get();
+
+        Mockito.verify(base32).encodeAsString(targetIdTarget.getBytes(StandardCharsets.UTF_8));
+        Mockito.verify(archivedRecordingsPath).resolve("encodedServiceUri");
+
+        expected =
+                List.of(
+                        new ArchivedRecordingInfo(
+                                "encodedServiceUri",
+                                "foo_recording",
+                                "/some/path/download/foo_recording",
+                                "/some/path/archive/foo_recording"));
+    }
 }

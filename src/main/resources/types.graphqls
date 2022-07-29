@@ -38,6 +38,7 @@ input ActiveRecordingFilterInput {
 input ArchivedRecordingFilterInput {
     name: String
     labels: [String]
+    sourceTarget: String
 }
 
 type ServiceRef {
@@ -82,7 +83,7 @@ interface Node {
 
 type Recordings {
     active(filter: ActiveRecordingFilterInput): [ActiveRecording!]!
-    archived(filter: ArchivedRecordingFilterInput): [ArchivedRecording!]!
+    archived(filter: ArchivedRecordingFilterInput): Archived!
 }
 
 type ActiveRecording implements Recording {
@@ -112,6 +113,15 @@ type ArchivedRecording implements Recording {
     metadata: RecordingMetadata!
 
     doDelete: ArchivedRecording!
+}
+
+type Archived {
+    data: [ArchivedRecording!]!
+    aggregate: AggregateInfo!
+}
+
+type AggregateInfo {
+    count: Long!
 }
 
 interface Recording {
