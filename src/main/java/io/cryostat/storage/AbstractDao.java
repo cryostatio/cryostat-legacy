@@ -37,25 +37,68 @@
  */
 package io.cryostat.storage;
 
-import javax.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
+
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import javax.persistence.EntityTransaction;
 
-import dagger.Module;
-import dagger.Provides;
+import io.cryostat.core.log.Logger;
 
-@Module
-public abstract class StorageModule {
+public abstract class AbstractDao<I, T> {
 
-    @Provides
-    @Singleton
-    static EntityManagerFactory provideEntityManagerFactory() {
-        return Persistence.createEntityManagerFactory("io.cryostat");
+    protected final Class<T> klazz;
+    protected final EntityManager entityManager;
+    protected final Logger logger;
+
+    protected AbstractDao(Class<T> klazz, EntityManager entityManager, Logger logger) {
+        this.klazz = klazz;
+        this.entityManager = entityManager;
+        this.logger = logger;
     }
 
-    @Provides
-    static EntityManager provideEntityManager(EntityManagerFactory emf) {
-        return emf.createEntityManager();
+    public final T save(T t) {
+        EntityTransaction transaction = entityManager.getTransaction();
+        try {
+            transaction.begin();
+            entityManager.persist(t);
+            transaction.commit();
+            return t;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            logger.error(e);
+            throw e;
+        }
+    }
+
+    public final void delete(I id) {
+        EntityTransaction transaction = entityManager.getTransaction();
+        try {
+            transaction.begin();
+            T t = entityManager.find(klazz, id);
+            entityManager.remove(t);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            logger.error(e);
+        }
+    }
+
+    public final Optional<T> get(I id) {
+        T t = entityManager.find(klazz, id);
+        if (t != null) {
+            entityManager.detach(t);
+        }
+        return Optional.ofNullable(t);
+    }
+
+    public final List<T> getAll() {
+        return entityManager
+                .createQuery(String.format("from %s", klazz.getSimpleName()), klazz)
+                .getResultList();
     }
 }

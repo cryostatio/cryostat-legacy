@@ -38,9 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
@@ -48,71 +46,29 @@ import javax.persistence.EntityTransaction;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.storage.AbstractDao;
 
 import com.google.gson.Gson;
 
-class PluginInfoDao {
+class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
 
-    private final EntityManager em;
     private final Gson gson;
-    private final Logger logger;
 
     PluginInfoDao(EntityManager em, Gson gson, Logger logger) {
-        this.em = em;
+        super(PluginInfo.class, em, logger);
         this.gson = gson;
-        this.logger = logger;
     }
 
     public PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
-        EntityTransaction transaction = em.getTransaction();
-        try {
-            transaction.begin();
-            PluginInfo plugin = new PluginInfo(realm, callback, gson.toJson(subtree));
-            em.persist(plugin);
-            transaction.commit();
-            return plugin;
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            logger.error(e);
-            throw e;
-        }
+        return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
     public void update(UUID id, EnvironmentNode subtree) {
         PluginInfo plugin = get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
-        plugin.setSubtree(gson.toJson(subtree));
-        EntityTransaction transaction = em.getTransaction();
+        EntityTransaction transaction = entityManager.getTransaction();
         transaction.begin();
-        em.merge(plugin);
+        plugin.setSubtree(gson.toJson(subtree));
+        entityManager.merge(plugin);
         transaction.commit();
-    }
-
-    public void delete(UUID id) {
-        EntityTransaction transaction = em.getTransaction();
-        try {
-            transaction.begin();
-            PluginInfo plugin = em.find(PluginInfo.class, id);
-            em.remove(plugin);
-            transaction.commit();
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            logger.error(e);
-        }
-    }
-
-    public Optional<PluginInfo> get(UUID id) {
-        PluginInfo plugin = em.find(PluginInfo.class, id);
-        if (plugin != null) {
-            em.detach(plugin);
-        }
-        return Optional.ofNullable(plugin);
-    }
-
-    public List<PluginInfo> getAll() {
-        return em.createQuery("from PluginInfo", PluginInfo.class).getResultList();
     }
 }
