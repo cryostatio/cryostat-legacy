@@ -62,6 +62,7 @@ import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
+import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
@@ -80,6 +81,7 @@ import org.apache.commons.codec.binary.Base32;
 
 @Module(
         includes = {
+            StorageModule.class,
             ConfigurationModule.class,
             MessagingModule.class,
             NetworkModule.class,
