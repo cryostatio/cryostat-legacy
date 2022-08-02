@@ -177,11 +177,6 @@ public abstract class MainModule {
     }
 
     @Provides
-    public static UUID provideUuid() {
-        return UUID.randomUUID();
-    }
-
-    @Provides
     @Singleton
     @Named(UUID_FROM_STRING)
     public static Function<String, UUID> provideUuidToString() {

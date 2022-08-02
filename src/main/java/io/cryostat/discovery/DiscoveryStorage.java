@@ -37,24 +37,15 @@
  */
 package io.cryostat.discovery;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.inject.Provider;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -66,31 +57,16 @@ import com.google.gson.Gson;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
 
-@Deprecated
-/**
- * @deprecated TODO remove this, it's a temporary stub for a database
- */
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
-    private final Provider<UUID> uuid;
-    private final Map<UUID, PluginInfo> map = new HashMap<>();
-    private final FileSystem fs;
-    private final Path persistencePath;
+    private final PluginInfoDao dao;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
 
-    DiscoveryStorage(
-            Provider<UUID> uuid,
-            FileSystem fs,
-            Path persistencePath,
-            Gson gson,
-            WebClient http,
-            Logger logger) {
-        this.uuid = uuid;
-        this.fs = fs;
-        this.persistencePath = persistencePath;
+    DiscoveryStorage(PluginInfoDao dao, Gson gson, WebClient http, Logger logger) {
+        this.dao = dao;
         this.gson = gson;
         this.http = http;
         this.logger = logger;
@@ -98,24 +74,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void start(Promise<Void> future) throws Exception {
-        for (String s : fs.listDirectoryChildren(persistencePath)) {
-            Path p = persistencePath.resolve(s);
-            try (BufferedReader br = fs.readFile(p)) {
-                PluginInfo pluginInfo = gson.fromJson(br, PluginInfo.class);
-                if (Objects.equals(pluginInfo.getCallback(), NO_CALLBACK)) {
-                    continue;
-                }
-                map.put(UUID.fromString(s), pluginInfo);
-            } catch (IOException ioe) {
-                logger.error(ioe);
-            }
-        }
-
-        map.entrySet()
+        dao.getAll()
                 .forEach(
                         plugin -> {
-                            UUID key = plugin.getKey();
-                            URI uri = plugin.getValue().getCallback();
+                            UUID key = plugin.getId();
+                            URI uri = plugin.getCallback();
                             http.postAbs(uri.toString())
                                     .timeout(1_000)
                                     .followRedirects(true)
@@ -139,93 +102,63 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     private void removePlugin(UUID uuid, URI uri) {
-        map.remove(uuid);
-        try {
-            fs.deleteIfExists(persistencePath.resolve(uuid.toString()));
-        } catch (IOException ioe) {
-            logger.error(ioe);
-        }
+        dao.delete(uuid);
         logger.info("Stale discovery service {} removed", uri);
     }
 
-    @Override
-    public void stop() {
-        map.entrySet()
-                .forEach(
-                        entry -> {
-                            if (Objects.equals(entry.getValue().getCallback(), NO_CALLBACK)) {
-                                return;
-                            }
-                            String key = entry.getKey().toString();
-                            Path path = persistencePath.resolve(key);
-                            try {
-                                fs.writeString(
-                                        path,
-                                        gson.toJson(entry.getValue()),
-                                        StandardOpenOption.WRITE,
-                                        StandardOpenOption.CREATE,
-                                        StandardOpenOption.TRUNCATE_EXISTING);
-                            } catch (IOException ioe) {
-                                logger.error(ioe);
-                            }
-                        });
-    }
-
     public UUID register(String realm, URI callback) throws RegistrationException {
-        if (map.values().stream().map(PluginInfo::getRealm).anyMatch(realm::equals)) {
-            throw new RegistrationException(realm);
+        try {
+            EnvironmentNode subtree = new EnvironmentNode(realm, BaseNodeType.REALM);
+            return dao.save(realm, callback, subtree).getId();
+        } catch (Exception e) {
+            throw new RegistrationException(e);
         }
-        EnvironmentNode subtree = new EnvironmentNode(realm, BaseNodeType.REALM);
-        UUID nextId = uuid.get();
-        map.put(nextId, new PluginInfo(realm, callback, subtree));
-        return nextId;
     }
 
     public Set<AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
-        try {
-            validateId(id);
-            EnvironmentNode previousTree = map.get(id).getSubtree();
+        PluginInfo plugin =
+                dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+        EnvironmentNode currentTree =
+                new EnvironmentNode(original.getName(), original.getNodeType());
+        currentTree.addChildren(children == null ? Set.of() : children);
+        dao.update(id, currentTree);
 
-            PluginInfo updatedInfo = new PluginInfo(map.get(id), children);
-            map.put(id, updatedInfo);
+        Set<TargetNode> previousLeaves = findLeavesFrom(original);
+        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
-            EnvironmentNode currentTree = updatedInfo.getSubtree();
+        Set<TargetNode> added = new HashSet<>(currentLeaves);
+        added.removeAll(previousLeaves);
 
-            Set<TargetNode> previousLeaves = findLeavesFrom(previousTree);
-            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        Set<TargetNode> removed = new HashSet<>(previousLeaves);
+        removed.removeAll(currentLeaves);
 
-            Set<TargetNode> added = new HashSet<>(currentLeaves);
-            added.removeAll(previousLeaves);
+        added.stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+        removed.stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
-            Set<TargetNode> removed = new HashSet<>(previousLeaves);
-            removed.removeAll(currentLeaves);
-
-            added.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-            removed.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-
-            return currentTree.getChildren();
-        } catch (Exception e) {
-            logger.error(e);
-            throw e;
-        }
+        return currentTree.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {
-        validateId(id);
-        PluginInfo info = map.remove(id);
-        findLeavesFrom(info.getSubtree()).stream()
+        PluginInfo plugin =
+                dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        dao.delete(id);
+        findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-        return info;
+        return plugin;
     }
 
     public EnvironmentNode getDiscoveryTree() {
         EnvironmentNode universe = new EnvironmentNode("Universe", BaseNodeType.UNIVERSE);
-        map.values().stream().map(PluginInfo::getSubtree).forEach(universe::addChildNode);
+        dao.getAll().stream()
+                .map(PluginInfo::getSubtree)
+                .map(s -> gson.fromJson(s, EnvironmentNode.class))
+                .forEach(universe::addChildNode);
         return universe;
     }
 
@@ -249,75 +182,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             return targets;
         }
         throw new IllegalArgumentException(node.getClass().getCanonicalName());
-    }
-
-    private void validateId(UUID id) {
-        if (!map.containsKey(id)) {
-            throw new NotFoundException(id);
-        }
-    }
-
-    public static class PluginInfo {
-        private final String realm;
-        private final URI callback;
-        private final EnvironmentNode subtree;
-
-        public PluginInfo(String realm, URI callback, EnvironmentNode subtree) {
-            this.realm = Objects.requireNonNull(realm);
-            this.callback = callback;
-            this.subtree = new EnvironmentNode(Objects.requireNonNull(subtree));
-        }
-
-        public PluginInfo(PluginInfo original, Set<? extends AbstractNode> children) {
-            this.realm = original.realm;
-            this.callback = original.callback;
-            this.subtree =
-                    new EnvironmentNode(original.subtree.getName(), original.subtree.getNodeType());
-            if (children == null) {
-                children = Set.of();
-            }
-            subtree.addChildren(children);
-        }
-
-        public String getRealm() {
-            return realm;
-        }
-
-        public URI getCallback() {
-            return callback;
-        }
-
-        public EnvironmentNode getSubtree() {
-            return new EnvironmentNode(subtree);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((callback == null) ? 0 : callback.hashCode());
-            result = prime * result + ((realm == null) ? 0 : realm.hashCode());
-            result = prime * result + ((subtree == null) ? 0 : subtree.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
-            PluginInfo other = (PluginInfo) obj;
-            if (callback == null) {
-                if (other.callback != null) return false;
-            } else if (!callback.equals(other.callback)) return false;
-            if (realm == null) {
-                if (other.realm != null) return false;
-            } else if (!realm.equals(other.realm)) return false;
-            if (subtree == null) {
-                if (other.subtree != null) return false;
-            } else if (!subtree.equals(other.subtree)) return false;
-            return true;
-        }
     }
 
     public static class NotFoundException extends RuntimeException {
