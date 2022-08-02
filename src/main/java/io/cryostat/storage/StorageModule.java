@@ -1,3 +1,4 @@
+
 /*
  * Copyright The Cryostat Authors
  *
@@ -35,58 +36,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
-
-import java.util.Set;
+package io.cryostat.storage;
 
 import javax.inject.Singleton;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.util.PluggableTypeAdapter;
-
-import com.google.gson.Gson;
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
-import io.vertx.ext.web.client.WebClient;
 
 @Module
-public abstract class DiscoveryModule {
+public abstract class StorageModule {
 
     @Provides
     @Singleton
-    static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson, Logger logger) {
-        return new PluginInfoDao(em, gson, logger);
+    static EntityManagerFactory provideEntityManagerFactory() {
+        return Persistence.createEntityManagerFactory("io.cryostat");
     }
 
     @Provides
-    @Singleton
-    static DiscoveryStorage provideDiscoveryStorage(
-            PluginInfoDao dao, Gson gson, WebClient http, Logger logger) {
-        return new DiscoveryStorage(dao, gson, http, logger);
-    }
-
-    @Provides
-    @Singleton
-    static BuiltInDiscovery provideBuiltInDiscovery(
-            DiscoveryStorage storage,
-            Set<PlatformClient> platformClients,
-            Environment env,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
+    static EntityManager provideEntityManager(EntityManagerFactory emf) {
+        return emf.createEntityManager();
     }
 }
