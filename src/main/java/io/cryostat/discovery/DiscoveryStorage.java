@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -55,6 +56,8 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
 
@@ -82,6 +85,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void start(Promise<Void> future) throws Exception {
+        List<Future> futures = new ArrayList<>();
         dao.getAll()
                 .forEach(
                         plugin -> {
@@ -91,26 +95,26 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 removePlugin(key, key);
                                 return;
                             }
-                            http.postAbs(uri.toString())
-                                    .timeout(1_000)
-                                    .followRedirects(true)
-                                    .send()
-                                    .onSuccess(
-                                            res -> {
-                                                if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                        res.statusCode())) {
-                                                    removePlugin(key, uri);
-                                                    return;
-                                                }
-                                                logger.info("Found discovery service {}", uri);
-                                            })
-                                    .onFailure(
-                                            t -> {
-                                                t.printStackTrace();
-                                                removePlugin(key, uri);
-                                            });
+                            futures.add(
+                                    http.postAbs(uri.toString())
+                                            .timeout(1_000)
+                                            .followRedirects(true)
+                                            .send()
+                                            .onSuccess(
+                                                    res -> {
+                                                        if (!HttpStatusCodeIdentifier.isSuccessCode(
+                                                                res.statusCode())) {
+                                                            removePlugin(key, uri);
+                                                            return;
+                                                        }
+                                                        logger.info(
+                                                                "Found discovery service {}", uri);
+                                                    })
+                                            .onFailure(t -> removePlugin(key, uri)));
                         });
-        builtin.get().start(future);
+        CompositeFuture.join(futures)
+                .onSuccess(cf -> builtin.get().start(future))
+                .onFailure(future::fail);
     }
 
     private void removePlugin(UUID uuid, Object label) {

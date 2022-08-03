@@ -81,7 +81,6 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         try {
-            Thread.sleep(2_000);
             if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
                 return;
             }
