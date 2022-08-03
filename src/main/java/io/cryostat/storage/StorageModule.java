@@ -37,6 +37,7 @@
  */
 package io.cryostat.storage;
 
+import java.nio.file.Path;
 import java.util.Properties;
 
 import javax.inject.Singleton;
@@ -46,6 +47,7 @@ import javax.persistence.Persistence;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
 
 import dagger.Module;
 import dagger.Provides;
@@ -55,7 +57,9 @@ public abstract class StorageModule {
 
     @Provides
     @Singleton
-    static EntityManagerFactory provideEntityManagerFactory(Environment env) {
+    static EntityManagerFactory provideEntityManagerFactory(Environment env, FileSystem fs) {
+        Path confDir = fs.pathOf(env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d"));
+        Path fileDb = confDir.resolve("h2");
         Properties properties = new Properties();
         properties.put(
                 "jakarta.persistence.jdbc.driver",
@@ -64,8 +68,11 @@ public abstract class StorageModule {
                 "jakarta.persistence.jdbc.url",
                 env.getEnv(
                         Variables.JDBC_URL,
-                        "jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists"
-                                + " jsonb as text"));
+                        String.format(
+                                "jdbc:h2:file:%s;"
+                                        // + "MODE=PostgreSQL\\;"
+                                        + "INIT=create domain if not exists jsonb as text",
+                                fileDb.toString())));
         properties.put("jakarta.persistence.jdbc.user", env.getEnv(Variables.JDBC_USERNAME, "sa"));
         properties.put(
                 "jakarta.persistence.jdbc.password", env.getEnv(Variables.JDBC_PASSWORD, ""));
@@ -75,6 +82,7 @@ public abstract class StorageModule {
         properties.put("hibernate.hbm2ddl.auto", env.getEnv(Variables.HBM2DDL, "create"));
         properties.put("hibernate.show_sql", "true");
         properties.put("hibernate.format_sql", "true");
+        properties.put("hibernate.use_sql_comments", "true");
         return Persistence.createEntityManagerFactory("io.cryostat", properties);
     }
 
