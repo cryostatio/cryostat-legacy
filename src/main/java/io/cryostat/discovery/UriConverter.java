@@ -43,7 +43,7 @@ import javax.persistence.AttributeConverter;
 
 import org.apache.commons.lang3.StringUtils;
 
-class UriConverter implements AttributeConverter<URI, String> {
+public class UriConverter implements AttributeConverter<URI, String> {
 
     @Override
     public String convertToDatabaseColumn(URI attribute) {
