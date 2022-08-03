@@ -35,23 +35,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.platform.discovery;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.Set;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.util.PluggableJsonDeserializer;
+import io.cryostat.util.PluggableTypeAdapter;
 
-public interface PlatformClient {
-    void start() throws Exception;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.stream.JsonReader;
+import dagger.Lazy;
 
-    void stop() throws Exception;
+public class NodeTypeDeserializer extends PluggableJsonDeserializer<NodeType> {
 
-    List<ServiceRef> listDiscoverableServices();
+    private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
 
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    public NodeTypeDeserializer(Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+        super(NodeType.class);
+        this.adapters = adapters;
+    }
 
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
-
-    EnvironmentNode getDiscoveryTree();
+    @Override
+    public NodeType deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
+        String raw = json.getAsString();
+        for (PluggableTypeAdapter<?> adapter : adapters.get()) {
+            if (!adapter.getAdaptedType().isAssignableFrom(NodeType.class)
+                    && !Arrays.asList(adapter.getAdaptedType().getInterfaces())
+                            .contains(NodeType.class)) {
+                continue;
+            }
+            try {
+                NodeType nt =
+                        (NodeType)
+                                adapter.read(
+                                        new JsonReader(
+                                                new StringReader(String.format("\"%s\"", raw))));
+                if (nt != null) {
+                    return nt;
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+        throw new JsonParseException(raw);
+    }
 }

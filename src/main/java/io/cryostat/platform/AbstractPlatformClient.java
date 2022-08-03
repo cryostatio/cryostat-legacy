@@ -64,4 +64,9 @@ public abstract class AbstractPlatformClient implements PlatformClient {
     protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
         discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
     }
+
+    @Override
+    public void stop() throws Exception {
+        this.discoveryListeners.clear();
+    }
 }

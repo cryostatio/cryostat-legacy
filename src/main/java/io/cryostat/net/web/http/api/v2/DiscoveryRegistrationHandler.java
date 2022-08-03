@@ -119,6 +119,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
             // exp: ? need to determine refresh time/mechanism
             // iat: now
             return new IntermediateResponse<Map<String, String>>()
+                    .statusCode(201)
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
                     .body(Map.of("id", id, "token", "placeholder"));
         } catch (IllegalArgumentException iae) {
