@@ -63,7 +63,7 @@ public class PluginInfo {
     @Convert(converter = UriConverter.class)
     private URI callback;
 
-    @Column(nullable = false, columnDefinition = "json")
+    @Column(nullable = false, columnDefinition = "jsonb")
     private String subtree;
 
     PluginInfo() {}
