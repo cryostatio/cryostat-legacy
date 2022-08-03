@@ -42,6 +42,10 @@ import java.util.Optional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 
 import io.cryostat.core.log.Logger;
 
@@ -97,8 +101,11 @@ public abstract class AbstractDao<I, T> {
     }
 
     public final List<T> getAll() {
-        return entityManager
-                .createQuery(String.format("from %s", klazz.getSimpleName()), klazz)
-                .getResultList();
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> cq = cb.createQuery(klazz);
+        Root<T> rootEntry = cq.from(klazz);
+        CriteriaQuery<T> all = cq.select(rootEntry);
+        TypedQuery<T> allQuery = entityManager.createQuery(all);
+        return allQuery.getResultList();
     }
 }

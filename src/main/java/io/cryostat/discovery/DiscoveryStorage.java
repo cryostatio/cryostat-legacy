@@ -109,7 +109,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public UUID register(String realm, URI callback) throws RegistrationException {
         try {
             EnvironmentNode subtree = new EnvironmentNode(realm, BaseNodeType.REALM);
-            return dao.save(realm, callback, subtree).getId();
+            UUID id = dao.save(realm, callback, subtree).getId();
+            logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
+            return id;
         } catch (Exception e) {
             throw new RegistrationException(e);
         }
@@ -118,11 +120,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public Set<AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
         PluginInfo plugin =
                 dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-        EnvironmentNode currentTree =
-                new EnvironmentNode(original.getName(), original.getNodeType());
-        currentTree.addChildren(children == null ? Set.of() : children);
-        dao.update(id, currentTree);
+        plugin = dao.update(id, children);
+        EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
         Set<TargetNode> previousLeaves = findLeavesFrom(original);
         Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
