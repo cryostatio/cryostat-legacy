@@ -8,6 +8,8 @@ function runCryostat() {
     local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
     local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+    # credentials `user:pass`
+    echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
     GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
         GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
