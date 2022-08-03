@@ -37,7 +37,6 @@
  */
 package io.cryostat.storage;
 
-import java.nio.file.Path;
 import java.util.Properties;
 
 import javax.inject.Singleton;
@@ -47,7 +46,6 @@ import javax.persistence.Persistence;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 
 import dagger.Module;
 import dagger.Provides;
@@ -57,9 +55,7 @@ public abstract class StorageModule {
 
     @Provides
     @Singleton
-    static EntityManagerFactory provideEntityManagerFactory(Environment env, FileSystem fs) {
-        Path confDir = fs.pathOf(env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d"));
-        Path fileDb = confDir.resolve("h2");
+    static EntityManagerFactory provideEntityManagerFactory(Environment env) {
         Properties properties = new Properties();
         properties.put(
                 "jakarta.persistence.jdbc.driver",
@@ -68,11 +64,7 @@ public abstract class StorageModule {
                 "jakarta.persistence.jdbc.url",
                 env.getEnv(
                         Variables.JDBC_URL,
-                        String.format(
-                                "jdbc:h2:file:%s;"
-                                        // + "MODE=PostgreSQL\\;"
-                                        + "INIT=create domain if not exists jsonb as text",
-                                fileDb.toString())));
+                        "jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as other"));
         properties.put("jakarta.persistence.jdbc.user", env.getEnv(Variables.JDBC_USERNAME, "sa"));
         properties.put(
                 "jakarta.persistence.jdbc.password", env.getEnv(Variables.JDBC_PASSWORD, ""));

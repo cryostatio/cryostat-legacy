@@ -46,9 +46,13 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
 
 @Entity
+@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 public class PluginInfo {
 
     @Id
@@ -63,6 +67,7 @@ public class PluginInfo {
     @Convert(converter = UriConverter.class)
     private URI callback;
 
+    @Type(type = "jsonb")
     @Column(nullable = false, columnDefinition = "jsonb")
     private String subtree;
 
