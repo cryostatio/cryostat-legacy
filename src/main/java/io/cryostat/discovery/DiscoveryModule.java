@@ -68,8 +68,12 @@ public abstract class DiscoveryModule {
     @Provides
     @Singleton
     static DiscoveryStorage provideDiscoveryStorage(
-            PluginInfoDao dao, Gson gson, WebClient http, Logger logger) {
-        return new DiscoveryStorage(dao, gson, http, logger);
+            Lazy<BuiltInDiscovery> builtin,
+            PluginInfoDao dao,
+            Gson gson,
+            WebClient http,
+            Logger logger) {
+        return new DiscoveryStorage(builtin, dao, gson, http, logger);
     }
 
     @Provides

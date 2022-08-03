@@ -48,7 +48,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.discovery.BuiltInDiscovery;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
@@ -98,7 +97,6 @@ class Cryostat extends AbstractVerticle {
                 "{} started, version: {}.", instanceName(), client.version().getVersionString());
 
         deploy(client.discoveryStorage(), true);
-        deploy(client.discovery(), true);
         deploy(client.httpServer(), false);
         deploy(client.webServer(), false);
         deploy(client.messagingServer(), false);
@@ -166,8 +164,6 @@ class Cryostat extends AbstractVerticle {
         Vertx vertx();
 
         DiscoveryStorage discoveryStorage();
-
-        BuiltInDiscovery discovery();
 
         CredentialsManager credentialsManager();
 

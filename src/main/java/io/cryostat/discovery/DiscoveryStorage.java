@@ -54,18 +54,26 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
+    private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
 
-    DiscoveryStorage(PluginInfoDao dao, Gson gson, WebClient http, Logger logger) {
+    DiscoveryStorage(
+            Lazy<BuiltInDiscovery> builtin,
+            PluginInfoDao dao,
+            Gson gson,
+            WebClient http,
+            Logger logger) {
+        this.builtin = builtin;
         this.dao = dao;
         this.gson = gson;
         this.http = http;
@@ -79,6 +87,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         plugin -> {
                             UUID key = plugin.getId();
                             URI uri = plugin.getCallback();
+                            if (uri == NO_CALLBACK) {
+                                removePlugin(key, key);
+                                return;
+                            }
                             http.postAbs(uri.toString())
                                     .timeout(1_000)
                                     .followRedirects(true)
@@ -98,12 +110,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                 removePlugin(key, uri);
                                             });
                         });
-        future.complete();
+        builtin.get().start(future);
     }
 
-    private void removePlugin(UUID uuid, URI uri) {
+    private void removePlugin(UUID uuid, Object label) {
         dao.delete(uuid);
-        logger.info("Stale discovery service {} removed", uri);
+        logger.info("Stale discovery service {} removed", label);
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {

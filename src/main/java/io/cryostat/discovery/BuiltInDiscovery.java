@@ -37,6 +37,7 @@
  */
 package io.cryostat.discovery;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -58,6 +59,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     private final DiscoveryStorage storage;
     private final Set<PlatformClient> platformClients;
+    private final Set<UUID> ids;
     private final Environment env;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
@@ -70,6 +72,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
             Logger logger) {
         this.storage = storage;
         this.platformClients = platformClients;
+        this.ids = new HashSet<>();
         this.env = env;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -78,10 +81,10 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         try {
+            Thread.sleep(2_000);
             if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
                 return;
             }
-
             storage.addTargetDiscoveryListener(this);
 
             for (PlatformClient platform : this.platformClients) {
@@ -89,6 +92,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                         "Starting built-in discovery with {}", platform.getClass().getSimpleName());
                 String realmName = platform.getDiscoveryTree().getName();
                 UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
+                ids.add(id);
                 platform.addTargetDiscoveryListener(
                         tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
                 platform.start();
@@ -111,6 +115,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                         logger.error(e);
                     }
                 });
+        this.ids.forEach(storage::deregister);
     }
 
     @Override
