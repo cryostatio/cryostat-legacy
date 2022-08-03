@@ -17,6 +17,7 @@ function runCryostat() {
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
         CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
         CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager \
+        CRYOSTAT_JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists json as text" \
         exec "$DIR/run.sh"
 }
 

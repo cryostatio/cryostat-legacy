@@ -37,10 +37,15 @@
  */
 package io.cryostat.storage;
 
+import java.util.Properties;
+
 import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
 
 import dagger.Module;
 import dagger.Provides;
@@ -50,8 +55,25 @@ public abstract class StorageModule {
 
     @Provides
     @Singleton
-    static EntityManagerFactory provideEntityManagerFactory() {
-        return Persistence.createEntityManagerFactory("io.cryostat");
+    static EntityManagerFactory provideEntityManagerFactory(Environment env) {
+        Properties properties = new Properties();
+        properties.put(
+                "jakarta.persistence.jdbc.driver",
+                env.getEnv(Variables.JDBC_DRIVER, "org.h2.Driver"));
+        properties.put(
+                "jakarta.persistence.jdbc.url",
+                env.getEnv(
+                        Variables.JDBC_URL,
+                        "jdbc:h2:mem:cryostat;INIT=create domain if not exists json as text"));
+        properties.put("jakarta.persistence.jdbc.user", env.getEnv(Variables.JDBC_USERNAME, "sa"));
+        properties.put(
+                "jakarta.persistence.jdbc.password", env.getEnv(Variables.JDBC_PASSWORD, ""));
+        properties.put(
+                "hibernate.dialect",
+                env.getEnv(Variables.HIBERNATE_DIALECT, "org.hibernate.dialect.H2Dialect"));
+        properties.put("hibernate.hbm2ddl.auto", env.getEnv(Variables.HBM2DDL, "create"));
+        properties.put("hibernate.show_sql", "true");
+        return Persistence.createEntityManagerFactory("io.cryostat", properties);
     }
 
     @Provides

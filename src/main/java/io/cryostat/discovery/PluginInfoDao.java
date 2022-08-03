@@ -39,12 +39,14 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.storage.AbstractDao;
 
@@ -63,12 +65,22 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
-    public void update(UUID id, EnvironmentNode subtree) {
+    public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
         PluginInfo plugin = get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+
+        EnvironmentNode subtree =
+                new EnvironmentNode(
+                        original.getName(), original.getNodeType(), original.getLabels());
+        subtree.addChildren(children == null ? Set.of() : children);
+
         EntityTransaction transaction = entityManager.getTransaction();
         transaction.begin();
         plugin.setSubtree(gson.toJson(subtree));
         entityManager.merge(plugin);
         transaction.commit();
+        entityManager.detach(plugin);
+
+        return plugin;
     }
 }
