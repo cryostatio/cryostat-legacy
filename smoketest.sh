@@ -17,7 +17,7 @@ function runCryostat() {
         HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQL95Dialect"
         JDBC_USERNAME="postgres"
         JDBC_PASSWORD="abcd1234"
-        HBM2DDL="none"
+        HBM2DDL="update"
     elif [ "$1" = "h2file" ]; then
         JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other"
     fi
@@ -53,6 +53,8 @@ function runPostgres() {
         --mount type=bind,source="$(dirname $0)/src/test/resources/postgres",destination=/docker-entrypoint.initdb.d,relabel=shared \
         --env PGDATA=/var/lib/postgresql/data/pgdata \
         --rm -d "${image}:${version}"
+    sleep 5
+    PGPASSWORD=abcd1234 psql -h localhost -p 5432 -U postgres -f src/test/resources/postgres/postgre.sql
 }
 
 function runDemoApps() {
@@ -191,6 +193,7 @@ function createPod() {
 }
 
 function destroyPod() {
+    podman stop quarkus-test-plugin
     podman pod stop cryostat-pod
     podman pod rm cryostat-pod
 }
@@ -199,6 +202,10 @@ trap destroyPod EXIT
 createPod
 if [ "$1" = "postgres" ]; then
     runPostgres
+elif [ "$1" = "postgres-pgcli" ]; then
+    runPostgres
+    PGPASSWORD=abcd1234 pgcli -h localhost -p 5432 -U postgres
+    exit
 fi
 runDemoApps
 runJfrDatasource
