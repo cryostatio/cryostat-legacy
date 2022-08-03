@@ -75,12 +75,20 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         subtree.addChildren(children == null ? Set.of() : children);
 
         EntityTransaction transaction = entityManager.getTransaction();
-        transaction.begin();
-        plugin.setSubtree(gson.toJson(subtree));
-        entityManager.merge(plugin);
-        transaction.commit();
-        entityManager.detach(plugin);
+        try {
+            transaction.begin();
+            plugin.setSubtree(gson.toJson(subtree));
+            entityManager.merge(plugin);
+            transaction.commit();
+            entityManager.detach(plugin);
 
-        return plugin;
+            return plugin;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            logger.error(e);
+            throw e;
+        }
     }
 }
