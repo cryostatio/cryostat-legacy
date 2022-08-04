@@ -82,6 +82,7 @@ exec:exec@wait-for-container failsafe:integration-test
 exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
 exec:exec@destroy-pod`
 * or `bash repeated-integration-tests.sh 1`.
+* To run a single integration test without rebuilding, add the flag `-Dit.test=NameOfClassIT` in `STARTFLAGS=(...)` to `repeated-integration-tests.sh`, then run `bash repeated-integration-tests.sh 1`. You can also specify a comma-separated list of itests, e.g. `-Dit.test=AutoRulesIT,RecordingWorkflowIT`. Note that modifying an itest file does not require a rebuild.
 
 ## RUN
 
