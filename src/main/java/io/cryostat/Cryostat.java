@@ -71,9 +71,12 @@ class Cryostat {
 
         logger.trace("env: {}", environment.getEnv().toString());
 
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
-
         Client client = DaggerCryostat_Client.builder().build();
+
+        logger.info(
+                "{} started, version: {}.",
+                System.getProperty("java.rmi.server.hostname", "cryostat"),
+                client.version().getVersionString());
 
         CompletableFuture<Void> future = new CompletableFuture<>();
         client.httpServer().addShutdownListener(() -> future.complete(null));
@@ -110,6 +113,8 @@ class Cryostat {
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
+        ApplicationVersion version();
+
         CredentialsManager credentialsManager();
 
         RuleRegistry ruleRegistry();
