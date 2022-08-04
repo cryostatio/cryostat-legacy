@@ -64,7 +64,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;

@@ -40,9 +40,11 @@ package io.cryostat.platform.internal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -67,13 +69,14 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.WatcherException;
+import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     private final KubernetesClient k8sClient;
+    private SharedIndexInformer<Endpoints> endpointsInformer;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final String namespace;
@@ -94,62 +97,69 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public void start() throws IOException {
-        k8sClient
-                .endpoints()
-                .inNamespace(namespace)
-                .watch(
-                        new Watcher<Endpoints>() {
-                            @Override
-                            public void eventReceived(Action action, Endpoints endpoints) {
-                                switch (action) {
-                                    case MODIFIED:
-                                        // FIXME is this correct in all circumstances?
-                                        // watch detects undeployed and redeployed as a "DELETED"
-                                        // and then a "MODIFIED", so here we will treat "MODIFIED"
-                                        // as a "DELETED" and then an "ADDED".
-                                        // If the service is actually just modified and not
-                                        // redeployed then this remove/add logic should still result
-                                        // in the correct end state seen by subscribed notification
-                                        // clients.
-                                        List<ServiceRef> refs = getServiceRefs(endpoints);
-                                        refs.forEach(
-                                                serviceRef ->
-                                                        notifyAsyncTargetDiscovery(
-                                                                EventKind.LOST, serviceRef));
-                                        refs.forEach(
-                                                serviceRef ->
-                                                        notifyAsyncTargetDiscovery(
-                                                                EventKind.FOUND, serviceRef));
-                                        break;
-                                    case ADDED:
+        endpointsInformer =
+                k8sClient
+                        .endpoints()
+                        .inNamespace(namespace)
+                        .inform(
+                                new ResourceEventHandler<Endpoints>() {
+                                    @Override
+                                    public void onAdd(Endpoints endpoints) {
                                         getServiceRefs(endpoints)
                                                 .forEach(
                                                         serviceRef ->
                                                                 notifyAsyncTargetDiscovery(
                                                                         EventKind.FOUND,
                                                                         serviceRef));
-                                        break;
-                                    case DELETED:
+                                    }
+
+                                    @Override
+                                    public void onUpdate(
+                                            Endpoints oldEndpoints, Endpoints newEndpoints) {
+                                        List<ServiceRef> previousRefs =
+                                                getServiceRefs(oldEndpoints);
+                                        List<ServiceRef> currentRefs = getServiceRefs(newEndpoints);
+
+                                        if (previousRefs.equals(currentRefs)) {
+                                            return;
+                                        }
+
+                                        Set<ServiceRef> added = new HashSet<>(currentRefs);
+                                        added.removeAll(previousRefs);
+
+                                        Set<ServiceRef> removed = new HashSet<>(previousRefs);
+                                        removed.removeAll(currentRefs);
+
+                                        removed.stream()
+                                                .forEach(
+                                                        sr ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.LOST, sr));
+                                        added.stream()
+                                                .forEach(
+                                                        sr ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.FOUND, sr));
+                                    }
+
+                                    @Override
+                                    public void onDelete(
+                                            Endpoints endpoints, boolean deletedFinalStateUnknown) {
+                                        if (deletedFinalStateUnknown) {
+                                            logger.warn(
+                                                    "Deleted final state unknown: {}", endpoints);
+                                            return;
+                                        }
                                         getServiceRefs(endpoints)
                                                 .forEach(
                                                         serviceRef ->
                                                                 notifyAsyncTargetDiscovery(
                                                                         EventKind.LOST,
                                                                         serviceRef));
-                                        break;
-                                    case ERROR:
-                                    default:
-                                        logger.warn(
-                                                new IllegalArgumentException(action.toString()));
-                                        return;
-                                }
-                            }
-
-                            @Override
-                            public void onClose(WatcherException watcherException) {
-                                logger.warn(watcherException);
-                            }
-                        });
+                                    }
+                                },
+                                30 * 1_000L);
+        logger.info("Started Endpoints SharedInformer");
     }
 
     @Override
@@ -168,7 +178,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         EnvironmentNode realmNode = new EnvironmentNode("KubernetesApi", BaseNodeType.REALM);
         realmNode.addChildNode(nsNode);
         try {
-            k8sClient.endpoints().inNamespace(namespace).list().getItems().stream()
+            endpointsInformer.getStore().list().stream()
                     .flatMap(endpoints -> getTargetTuples(endpoints).stream())
                     .forEach(tuple -> buildOwnerChain(nsNode, tuple));
         } catch (Exception e) {
@@ -281,7 +291,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private List<ServiceRef> getAllServiceRefs() {
-        return k8sClient.endpoints().inNamespace(namespace).list().getItems().stream()
+        return endpointsInformer.getStore().list().stream()
                 .flatMap(endpoints -> getServiceRefs(endpoints).stream())
                 .collect(Collectors.toList());
     }
