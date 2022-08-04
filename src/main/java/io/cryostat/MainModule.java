@@ -67,6 +67,7 @@ import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
+import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
 import io.cryostat.util.resource.ResourceModule;
@@ -132,13 +133,16 @@ public abstract class MainModule {
 
     // testing-only when extra adapters aren't needed
     public static Gson provideGson(Logger logger) {
-        return provideGson(Set.of(), logger);
+        return provideGson(Set.of(), Set.of(), logger);
     }
 
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson(Set<PluggableTypeAdapter<?>> extraAdapters, Logger logger) {
+    public static Gson provideGson(
+            Set<PluggableTypeAdapter<?>> extraAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
         GsonBuilder builder =
                 new GsonBuilder()
                         .serializeNulls()
@@ -150,6 +154,9 @@ public abstract class MainModule {
                         .registerTypeAdapter(Rule.class, new RuleDeserializer());
         for (PluggableTypeAdapter<?> pta : extraAdapters) {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
+        }
+        for (PluggableJsonDeserializer<?> pjd : deserializers) {
+            builder = builder.registerTypeAdapter(pjd.getAdaptedType(), pjd);
         }
         return builder.create();
     }

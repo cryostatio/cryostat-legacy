@@ -41,7 +41,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.log.Logger;
 
@@ -135,20 +134,6 @@ public class HttpServer extends AbstractVerticle {
         if (!isAlive()) {
             return;
         }
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        this.server.close(
-                res -> {
-                    if (res.failed()) {
-                        future.completeExceptionally(res.cause());
-                        return;
-                    }
-
-                    future.complete(null);
-                });
-        future.join(); // wait for vertx to be closed
-        this.isAlive = false;
-
         this.shutdownListeners.forEach(Runnable::run);
     }
 

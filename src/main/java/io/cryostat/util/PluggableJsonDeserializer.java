@@ -35,23 +35,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.util;
 
-import java.util.List;
-import java.util.function.Consumer;
+import com.google.gson.JsonDeserializer;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
+public abstract class PluggableJsonDeserializer<T> implements JsonDeserializer<T> {
 
-public interface PlatformClient {
-    void start() throws Exception;
+    protected final Class<T> klazz;
 
-    void stop() throws Exception;
+    public PluggableJsonDeserializer(Class<T> klazz) {
+        this.klazz = klazz;
+    }
 
-    List<ServiceRef> listDiscoverableServices();
-
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
-
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
-
-    EnvironmentNode getDiscoveryTree();
+    public Class<T> getAdaptedType() {
+        return klazz;
+    }
 }

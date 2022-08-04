@@ -8,6 +8,8 @@ function runCryostat() {
     local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
     local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+    # credentials `user:pass`
+    echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
     GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
         GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
@@ -24,7 +26,7 @@ function runDemoApps() {
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -32,7 +34,7 @@ function runDemoApps() {
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -41,7 +43,7 @@ function runDemoApps() {
         --env USE_SSL=true \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
 
     podman run \
         --name quarkus-test \
@@ -61,9 +63,11 @@ function runDemoApps() {
     podman run \
         --name quarkus-test-plugin \
         --pod cryostat-pod \
+        --restart unless-stopped \
         --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
         --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
-        --rm -d quay.io/andrewazores/quarkus-test:0.0.3
+        --env org.acme.CryostatService.callback-host="localhost" \
+        -d quay.io/andrewazores/quarkus-test:0.0.3
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
@@ -150,7 +154,7 @@ function createPod() {
 }
 
 function destroyPod() {
-    podman pod kill cryostat-pod
+    podman pod stop cryostat-pod
     podman pod rm cryostat-pod
 }
 trap destroyPod EXIT
