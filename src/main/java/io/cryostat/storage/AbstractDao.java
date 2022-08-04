@@ -67,6 +67,7 @@ public abstract class AbstractDao<I, T> {
             transaction.begin();
             entityManager.persist(t);
             transaction.commit();
+            entityManager.detach(t);
             return t;
         } catch (Exception e) {
             if (transaction != null) {
