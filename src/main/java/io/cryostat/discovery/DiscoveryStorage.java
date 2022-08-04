@@ -110,7 +110,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                         logger.info(
                                                                 "Found discovery service {}", uri);
                                                     })
-                                            .onFailure(t -> removePlugin(key, uri)));
+                                            .onFailure(t -> removePlugin(key, uri))
+                                            .recover(t -> Future.succeededFuture()));
                         });
         CompositeFuture.join(futures)
                 .onSuccess(cf -> builtin.get().start(future))
