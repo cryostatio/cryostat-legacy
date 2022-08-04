@@ -60,6 +60,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
@@ -149,21 +150,29 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         plugin = dao.update(id, children);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        Set<TargetNode> previousLeaves = findLeavesFrom(original);
-        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        getVertx()
+                .<Pair<Set<TargetNode>, Set<TargetNode>>>executeBlocking(
+                        future -> {
+                            future.complete(
+                                    Pair.of(findLeavesFrom(original), findLeavesFrom(currentTree)));
+                        },
+                        true,
+                        promise -> {
+                            Pair<Set<TargetNode>, Set<TargetNode>> pair = promise.result();
 
-        Set<TargetNode> added = new HashSet<>(currentLeaves);
-        added.removeAll(previousLeaves);
+                            Set<TargetNode> added = new HashSet<>(pair.getLeft());
+                            added.removeAll(pair.getRight());
 
-        Set<TargetNode> removed = new HashSet<>(previousLeaves);
-        removed.removeAll(currentLeaves);
+                            Set<TargetNode> removed = new HashSet<>(pair.getRight());
+                            removed.removeAll(pair.getLeft());
 
-        added.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-        removed.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+                            added.stream()
+                                    .map(TargetNode::getTarget)
+                                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+                            removed.stream()
+                                    .map(TargetNode::getTarget)
+                                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+                        });
 
         return currentTree.getChildren();
     }
@@ -172,9 +181,22 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         PluginInfo plugin =
                 dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
         dao.delete(id);
-        findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+
+        getVertx()
+                .<Set<TargetNode>>executeBlocking(
+                        future -> {
+                            future.complete(
+                                    findLeavesFrom(
+                                            gson.fromJson(
+                                                    plugin.getSubtree(), EnvironmentNode.class)));
+                        },
+                        true,
+                        promise -> {
+                            promise.result().stream()
+                                    .map(TargetNode::getTarget)
+                                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+                        });
+
         return plugin;
     }
 
