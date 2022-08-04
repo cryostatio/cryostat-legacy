@@ -93,9 +93,18 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                 UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
                 ids.add(id);
                 platform.addTargetDiscoveryListener(
-                        tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+                        tde ->
+                                getVertx()
+                                        .executeBlocking(
+                                                p ->
+                                                        storage.update(
+                                                                id,
+                                                                platform.getDiscoveryTree()
+                                                                        .getChildren())));
                 platform.start();
-                storage.update(id, platform.getDiscoveryTree().getChildren());
+                getVertx()
+                        .runOnContext(
+                                p -> storage.update(id, platform.getDiscoveryTree().getChildren()));
             }
             start.complete();
         } catch (Exception e) {
