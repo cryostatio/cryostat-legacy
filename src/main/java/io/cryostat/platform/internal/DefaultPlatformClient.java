@@ -82,6 +82,13 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     }
 
     @Override
+    public void stop() throws Exception {
+        super.stop();
+        discoveryClient.removeListener(this);
+        discoveryClient.stop();
+    }
+
+    @Override
     public void accept(JvmDiscoveryEvent evt) {
         try {
             notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));

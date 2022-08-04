@@ -4,7 +4,7 @@ set -x
 set -e
 
 function cleanup() {
-    podman pod kill cryostat-pod
+    podman pod stop cryostat-pod
     podman pod rm cryostat-pod
 }
 trap cleanup EXIT

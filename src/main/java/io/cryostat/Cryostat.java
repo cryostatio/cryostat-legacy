@@ -37,8 +37,10 @@
  */
 package io.cryostat;
 
+import java.io.IOException;
 import java.security.Security;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Singleton;
 
@@ -57,73 +59,111 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 
-class Cryostat {
+class Cryostat extends AbstractVerticle {
 
-    public static void main(String[] args) throws Exception {
+    private final Environment environment = new Environment();
+    private final Client client;
+    private final Logger logger = Logger.INSTANCE;
+
+    private final List<Future> futures = new ArrayList<>();
+
+    private Cryostat(Client client) {
+        this.client = client;
+    }
+
+    @Override
+    public void start(Promise<Void> future) {
+        logger.trace("env: {}", environment.getEnv().toString());
+
+        try {
+            client.credentialsManager().migrate();
+            client.credentialsManager().load();
+            client.ruleRegistry().loadRules();
+            client.recordingMetadataManager().load();
+        } catch (Exception e) {
+            logger.error(e);
+            future.fail(e);
+            return;
+        }
+
+        logger.info(
+                "{} started, version: {}.", instanceName(), client.version().getVersionString());
+
+        deploy(client.discoveryStorage(), true);
+        deploy(client.discovery(), true);
+        deploy(client.httpServer(), false);
+        deploy(client.webServer(), false);
+        deploy(client.messagingServer(), false);
+        deploy(client.ruleProcessor(), true);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null)));
+        CompositeFuture.join(futures)
+                .onSuccess(cf -> future.complete())
+                .onFailure(
+                        t -> {
+                            future.fail(t);
+                            shutdown(t);
+                        });
+    }
+
+    @Override
+    public void stop() {
+        shutdown(null);
+    }
+
+    private String instanceName() {
+        return System.getProperty("java.rmi.server.hostname", "cryostat");
+    }
+
+    private void deploy(Verticle verticle, boolean worker) {
+        String name = verticle.getClass().getName();
+        logger.info("Deploying {} Verticle", name);
+        Future f =
+                client.vertx()
+                        .deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
+                        .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
+                        .onFailure(
+                                t -> {
+                                    logger.error("FAILED to deploy {} Verticle", name);
+                                    t.printStackTrace();
+                                });
+        futures.add(f);
+    }
+
+    private void shutdown(Throwable cause) {
+        if (cause != null) {
+            if (!(cause instanceof Exception)) {
+                cause = new RuntimeException(cause);
+            }
+            logger.error((RuntimeException) cause);
+        }
+        logger.info("{} shutting down...", instanceName());
+        client.vertx().close().onComplete(n -> logger.info("Shutdown complete"));
+    }
+
+    public static void main(String[] args) throws IOException {
+        final Client client = DaggerCryostat_Client.builder().build();
         CryostatCore.initialize();
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        Client client = DaggerCryostat_Client.builder().build();
-
-        logger.info(
-                "{} started, version: {}.",
-                System.getProperty("java.rmi.server.hostname", "cryostat"),
-                client.version().getVersionString());
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        client.httpServer().addShutdownListener(() -> future.complete(null));
-
-        client.credentialsManager().migrate();
-        client.credentialsManager().load();
-        client.ruleRegistry().loadRules();
-        client.vertx()
-                .deployVerticle(
-                        client.discoveryStorage(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("Discovery Storage Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.discovery(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("Built-In Discovery Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.httpServer(),
-                        new DeploymentOptions(),
-                        res -> logger.info("HTTP Server Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.webServer(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("WebServer Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.messagingServer(),
-                        new DeploymentOptions(),
-                        res -> logger.info("MessagingServer Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.ruleProcessor(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("RuleProcessor Verticle Started"));
-        client.recordingMetadataManager().load();
-
-        future.join();
+        client.vertx().deployVerticle(new Cryostat(client));
     }
 
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
         ApplicationVersion version();
+
+        Vertx vertx();
 
         DiscoveryStorage discoveryStorage();
 
@@ -134,8 +174,6 @@ class Cryostat {
         RuleRegistry ruleRegistry();
 
         RuleProcessor ruleProcessor();
-
-        Vertx vertx();
 
         HttpServer httpServer();
 

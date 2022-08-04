@@ -37,7 +37,11 @@
  */
 package io.cryostat.discovery;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,11 +54,17 @@ import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.util.HttpStatusCodeIdentifier;
+
+import com.google.gson.Gson;
+import io.vertx.core.Promise;
+import io.vertx.ext.web.client.WebClient;
 
 @Deprecated
 /**
@@ -65,18 +75,100 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public static final URI NO_CALLBACK = null;
     private final Provider<UUID> uuid;
     private final Map<UUID, PluginInfo> map = new HashMap<>();
+    private final FileSystem fs;
+    private final Path persistencePath;
+    private final Gson gson;
+    private final WebClient http;
     private final Logger logger;
 
-    DiscoveryStorage(Provider<UUID> uuid, Logger logger) {
+    DiscoveryStorage(
+            Provider<UUID> uuid,
+            FileSystem fs,
+            Path persistencePath,
+            Gson gson,
+            WebClient http,
+            Logger logger) {
         this.uuid = uuid;
+        this.fs = fs;
+        this.persistencePath = persistencePath;
+        this.gson = gson;
+        this.http = http;
         this.logger = logger;
     }
 
     @Override
-    public void start() throws Exception {
-        // TODO persist plugin infos (with empty subtrees) to disk on shutdown, and reinitialize map
-        // here. Then, perform POST on each callback URI to check it's still there and prompt it to
-        // update us with its subtree
+    public void start(Promise<Void> future) throws Exception {
+        for (String s : fs.listDirectoryChildren(persistencePath)) {
+            Path p = persistencePath.resolve(s);
+            try (BufferedReader br = fs.readFile(p)) {
+                PluginInfo pluginInfo = gson.fromJson(br, PluginInfo.class);
+                if (Objects.equals(pluginInfo.getCallback(), NO_CALLBACK)) {
+                    continue;
+                }
+                map.put(UUID.fromString(s), pluginInfo);
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+        }
+
+        map.entrySet()
+                .forEach(
+                        plugin -> {
+                            UUID key = plugin.getKey();
+                            URI uri = plugin.getValue().getCallback();
+                            http.postAbs(uri.toString())
+                                    .timeout(1_000)
+                                    .followRedirects(true)
+                                    .send()
+                                    .onSuccess(
+                                            res -> {
+                                                if (!HttpStatusCodeIdentifier.isSuccessCode(
+                                                        res.statusCode())) {
+                                                    removePlugin(key, uri);
+                                                    return;
+                                                }
+                                                logger.info("Found discovery service {}", uri);
+                                            })
+                                    .onFailure(
+                                            t -> {
+                                                t.printStackTrace();
+                                                removePlugin(key, uri);
+                                            });
+                        });
+        future.complete();
+    }
+
+    private void removePlugin(UUID uuid, URI uri) {
+        map.remove(uuid);
+        try {
+            fs.deleteIfExists(persistencePath.resolve(uuid.toString()));
+        } catch (IOException ioe) {
+            logger.error(ioe);
+        }
+        logger.info("Stale discovery service {} removed", uri);
+    }
+
+    @Override
+    public void stop() {
+        map.entrySet()
+                .forEach(
+                        entry -> {
+                            if (Objects.equals(entry.getValue().getCallback(), NO_CALLBACK)) {
+                                return;
+                            }
+                            String key = entry.getKey().toString();
+                            Path path = persistencePath.resolve(key);
+                            try {
+                                fs.writeString(
+                                        path,
+                                        gson.toJson(entry.getValue()),
+                                        StandardOpenOption.WRITE,
+                                        StandardOpenOption.CREATE,
+                                        StandardOpenOption.TRUNCATE_EXISTING);
+                            } catch (IOException ioe) {
+                                logger.error(ioe);
+                            }
+                        });
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {
