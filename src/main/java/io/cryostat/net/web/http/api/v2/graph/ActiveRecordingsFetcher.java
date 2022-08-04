@@ -38,24 +38,36 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class ActiveRecordingsFetcher implements DataFetcher<List<GraphRecordingDescriptor>> {
+class ActiveRecordingsFetcher
+        extends AbstractPermissionedDataFetcher<List<GraphRecordingDescriptor>> {
 
     @Inject
-    ActiveRecordingsFetcher() {}
+    ActiveRecordingsFetcher(AuthManager auth) {
+        super(auth);
+    }
 
-    public List<GraphRecordingDescriptor> get(DataFetchingEnvironment environment)
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING, ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public List<GraphRecordingDescriptor> getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         Recordings source = environment.getSource();
         List<GraphRecordingDescriptor> result = new ArrayList<>(source.active);

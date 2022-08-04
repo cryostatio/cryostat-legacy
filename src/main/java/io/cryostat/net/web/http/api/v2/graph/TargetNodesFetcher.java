@@ -37,35 +37,47 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
+class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
     private final RootNodeFetcher rootNodeFetcher;
     private final TargetNodeRecurseFetcher recurseFetcher;
 
     @Inject
-    TargetNodesFetcher(RootNodeFetcher rootNodefetcher, TargetNodeRecurseFetcher recurseFetcher) {
+    TargetNodesFetcher(
+            AuthManager auth,
+            RootNodeFetcher rootNodefetcher,
+            TargetNodeRecurseFetcher recurseFetcher) {
+        super(auth);
         this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;
     }
 
     @Override
-    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
         List<TargetNode> result =
                 recurseFetcher.get(

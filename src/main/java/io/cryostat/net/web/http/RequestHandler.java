@@ -37,16 +37,14 @@
  */
 package io.cryostat.net.web.http;
 
-import java.util.Set;
-
-import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-public interface RequestHandler extends Handler<RoutingContext> {
+public interface RequestHandler extends Handler<RoutingContext>, PermissionedAction {
     /** Lower number == higher priority handler */
     static final int DEFAULT_PRIORITY = 100;
 
@@ -70,8 +68,6 @@ public interface RequestHandler extends Handler<RoutingContext> {
     String path();
 
     HttpMethod httpMethod();
-
-    Set<ResourceAction> resourceActions();
 
     default boolean isAvailable() {
         return true;

@@ -38,26 +38,41 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
+class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
+
+    @Inject
+    TargetNodeRecurseFetcher(AuthManager auth) {
+        super(auth);
+    }
 
     @Override
-    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
         List<TargetNode> result = new ArrayList<>();
@@ -66,7 +81,7 @@ class TargetNodeRecurseFetcher implements DataFetcher<List<TargetNode>> {
         } else if (node instanceof EnvironmentNode) {
             for (AbstractNode child : ((EnvironmentNode) node).getChildren()) {
                 DataFetchingEnvironment newEnv =
-                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
                                 .source(child)
                                 .build();
                 result.addAll(get(newEnv));

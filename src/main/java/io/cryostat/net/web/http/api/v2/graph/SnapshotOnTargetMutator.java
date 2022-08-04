@@ -37,30 +37,49 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor> {
+class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
 
     @Inject
     SnapshotOnTargetMutator(
-            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+            AuthManager auth,
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager) {
+        super(auth);
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
     }
 
     @Override
-    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_TARGET,
+                ResourceAction.UPDATE_TARGET,
+                ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
+    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         TargetNode node = environment.getSource();
 
         String uri = node.getTarget().getServiceUri().toString();

@@ -35,56 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2.graph;
+package io.cryostat.net.security;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 
-import javax.inject.Inject;
-
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
-
-class EnvironmentNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<EnvironmentNode>> {
-
-    @Inject
-    EnvironmentNodeRecurseFetcher(AuthManager auth) {
-        super(auth);
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
-    }
-
-    @Override
-    public List<EnvironmentNode> getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        AbstractNode node = environment.getSource();
-        if (node instanceof TargetNode) {
-            return List.of();
-        } else if (node instanceof EnvironmentNode) {
-            EnvironmentNode environmentNode = (EnvironmentNode) node;
-            List<EnvironmentNode> result = new ArrayList<>();
-            result.add(environmentNode);
-            for (AbstractNode child : environmentNode.getChildren()) {
-                DataFetchingEnvironment newEnv =
-                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                                .source(child)
-                                .build();
-                result.addAll(get(newEnv));
-            }
-            return result;
-        } else {
-            throw new IllegalStateException(node.getClass().toString());
-        }
-    }
+public interface PermissionedAction {
+    Set<ResourceAction> resourceActions();
 }

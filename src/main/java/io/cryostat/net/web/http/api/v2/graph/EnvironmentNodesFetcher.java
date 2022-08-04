@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -47,24 +48,32 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
+class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<EnvironmentNode>> {
 
     private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
-    EnvironmentNodesFetcher(RootNodeFetcher rootNodeFetcher) {
+    EnvironmentNodesFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        super(auth);
         this.rootNodeFetcher = rootNodeFetcher;
     }
 
     @Override
-    public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public List<EnvironmentNode> getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         FilterInput filter = FilterInput.from(environment);
         EnvironmentNode root = rootNodeFetcher.get(environment);
         Set<EnvironmentNode> nodes = flattenEnvNodes(root);

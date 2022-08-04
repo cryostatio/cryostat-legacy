@@ -37,24 +37,28 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
+class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -64,11 +68,13 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
 
     @Inject
     StopRecordingMutator(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
+        super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
@@ -77,7 +83,17 @@ class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
     }
 
     @Override
-    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
+    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();

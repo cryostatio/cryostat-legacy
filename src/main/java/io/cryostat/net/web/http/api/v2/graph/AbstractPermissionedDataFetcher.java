@@ -37,54 +37,38 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.inject.Inject;
-
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.security.PermissionedAction;
 
+import graphql.GraphQLContext;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.RoutingContext;
 
-class EnvironmentNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<EnvironmentNode>> {
+abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, PermissionedAction {
 
-    @Inject
-    EnvironmentNodeRecurseFetcher(AuthManager auth) {
-        super(auth);
+    protected final AuthManager auth;
+
+    AbstractPermissionedDataFetcher(AuthManager auth) {
+        this.auth = auth;
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
-    }
-
-    @Override
-    public List<EnvironmentNode> getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        AbstractNode node = environment.getSource();
-        if (node instanceof TargetNode) {
-            return List.of();
-        } else if (node instanceof EnvironmentNode) {
-            EnvironmentNode environmentNode = (EnvironmentNode) node;
-            List<EnvironmentNode> result = new ArrayList<>();
-            result.add(environmentNode);
-            for (AbstractNode child : environmentNode.getChildren()) {
-                DataFetchingEnvironment newEnv =
-                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                                .source(child)
-                                .build();
-                result.addAll(get(newEnv));
-            }
-            return result;
-        } else {
-            throw new IllegalStateException(node.getClass().toString());
+    public final T get(DataFetchingEnvironment environment) throws Exception {
+        GraphQLContext graphCtx = environment.getGraphQlContext();
+        RoutingContext ctx = graphCtx.get(RoutingContext.class);
+        boolean authenticated =
+                auth.validateHttpHeader(
+                                () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                resourceActions())
+                        .get();
+        if (!authenticated) {
+            throw new AuthorizationErrorException("Unauthorized");
         }
+        return getAuthenticated(environment);
     }
+
+    abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
 }

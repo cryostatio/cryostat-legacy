@@ -39,8 +39,10 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -50,8 +52,10 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.platform.ServiceRef;
@@ -62,10 +66,9 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class RecordingsFetcher implements DataFetcher<Recordings> {
+class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
     private final TargetConnectionManager tcm;
     private final RecordingArchiveHelper archiveHelper;
@@ -76,12 +79,14 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
 
     @Inject
     RecordingsFetcher(
+            AuthManager auth,
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
+        super(auth);
         this.tcm = tcm;
         this.archiveHelper = archiveHelper;
         this.credentialsManager = credentialsManager;
@@ -91,12 +96,20 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
             justification =
                     "The Recordings fields are serialized and returned to the client by the GraphQL"
                             + " engine")
-    public Recordings get(DataFetchingEnvironment environment) throws Exception {
+    public Recordings getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         TargetNode source = (TargetNode) environment.getSource();
         ServiceRef target = source.getTarget();
         String targetId = target.getServiceUri().toString();

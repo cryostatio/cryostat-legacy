@@ -37,25 +37,35 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class RootNodeFetcher implements DataFetcher<EnvironmentNode> {
+class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
 
     private final PlatformClient client;
 
     @Inject
-    RootNodeFetcher(PlatformClient client) {
+    RootNodeFetcher(AuthManager auth, PlatformClient client) {
+        super(auth);
         this.client = client;
     }
 
     @Override
-    public EnvironmentNode get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public EnvironmentNode getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         return client.getDiscoveryTree();
     }
 }

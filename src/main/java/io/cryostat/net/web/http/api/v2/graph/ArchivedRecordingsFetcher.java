@@ -38,19 +38,22 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 @SuppressFBWarnings(
@@ -58,12 +61,19 @@ import graphql.schema.DataFetchingEnvironment;
         justification =
                 "The Archived and AggregateInfo fields are serialized and returned to the client by"
                         + " the GraphQL engine")
-class ArchivedRecordingsFetcher implements DataFetcher<Archived> {
+class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     @Inject
-    ArchivedRecordingsFetcher() {}
+    ArchivedRecordingsFetcher(AuthManager auth) {
+        super(auth);
+    }
 
-    public Archived get(DataFetchingEnvironment environment) throws Exception {
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
+    }
+
+    public Archived getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
         List<ArchivedRecordingInfo> recordings = new ArrayList<>(source.archived);

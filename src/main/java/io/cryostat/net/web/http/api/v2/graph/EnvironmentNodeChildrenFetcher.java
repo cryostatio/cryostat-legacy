@@ -38,18 +38,34 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class EnvironmentNodeChildrenFetcher implements DataFetcher<List<AbstractNode>> {
+class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<List<AbstractNode>> {
+
+    @Inject
+    EnvironmentNodeChildrenFetcher(AuthManager auth) {
+        super(auth);
+    }
 
     @Override
-    public List<AbstractNode> get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public List<AbstractNode> getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         EnvironmentNode node = environment.getSource();
         return new ArrayList<>(node.getChildren());
     }

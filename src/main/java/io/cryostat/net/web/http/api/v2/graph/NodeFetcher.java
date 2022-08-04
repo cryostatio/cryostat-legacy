@@ -37,28 +37,37 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.EnumSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class NodeFetcher implements DataFetcher<AbstractNode> {
+class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
 
     private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
-    NodeFetcher(RootNodeFetcher rootNodeFetcher) {
+    NodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        super(auth);
         this.rootNodeFetcher = rootNodeFetcher;
     }
 
     @Override
-    public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public AbstractNode getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         EnvironmentNode root = rootNodeFetcher.get(environment);
         String name = environment.getArgument("name");
         String nodeType = environment.getArgument("nodeType");
