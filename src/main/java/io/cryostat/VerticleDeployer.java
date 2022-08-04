@@ -35,64 +35,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
+package io.cryostat;
 
-import java.util.Set;
-
-import javax.inject.Singleton;
-import javax.persistence.EntityManager;
-
-import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.util.PluggableTypeAdapter;
 
-import com.google.gson.Gson;
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
-import io.vertx.ext.web.client.WebClient;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Verticle;
+import io.vertx.core.Vertx;
 
-@Module
-public abstract class DiscoveryModule {
+public class VerticleDeployer {
 
-    @Provides
-    @Singleton
-    static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson, Logger logger) {
-        return new PluginInfoDao(em, gson, logger);
+    private final Vertx vertx;
+    private final Logger logger;
+
+    public VerticleDeployer(Vertx vertx, Logger logger) {
+        this.vertx = vertx;
+        this.logger = logger;
     }
 
-    @Provides
-    @Singleton
-    static DiscoveryStorage provideDiscoveryStorage(
-            VerticleDeployer deployer,
-            Lazy<BuiltInDiscovery> builtin,
-            PluginInfoDao dao,
-            Gson gson,
-            WebClient http,
-            Logger logger) {
-        return new DiscoveryStorage(deployer, builtin, dao, gson, http, logger);
-    }
-
-    @Provides
-    @Singleton
-    static BuiltInDiscovery provideBuiltInDiscovery(
-            DiscoveryStorage storage,
-            Set<PlatformClient> platformClients,
-            Environment env,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
-    }
-
-    @Provides
-    @IntoSet
-    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
+    public Future deploy(Verticle verticle, boolean worker) {
+        String name = verticle.getClass().getName();
+        logger.info("Deploying {} Verticle", name);
+        return vertx.deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
+                .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
+                .onFailure(
+                        t -> {
+                            logger.error("FAILED to deploy {} Verticle", name);
+                            t.printStackTrace();
+                        });
     }
 }

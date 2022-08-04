@@ -45,6 +45,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
+import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.ServiceRef;
@@ -64,6 +65,7 @@ import io.vertx.ext.web.client.WebClient;
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
+    private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
     private final Gson gson;
@@ -71,11 +73,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Logger logger;
 
     DiscoveryStorage(
+            VerticleDeployer deployer,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
             Gson gson,
             WebClient http,
             Logger logger) {
+        this.deployer = deployer;
         this.builtin = builtin;
         this.dao = dao;
         this.gson = gson;
@@ -114,7 +118,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             .recover(t -> Future.succeededFuture()));
                         });
         CompositeFuture.join(futures)
-                .onSuccess(cf -> builtin.get().start(future))
+                .onSuccess(cf -> deployer.deploy(builtin.get(), true))
                 .onFailure(future::fail);
     }
 

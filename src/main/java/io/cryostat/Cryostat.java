@@ -39,7 +39,6 @@ package io.cryostat;
 
 import java.io.IOException;
 import java.security.Security;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Singleton;
@@ -60,10 +59,8 @@ import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 
 class Cryostat extends AbstractVerticle {
@@ -71,8 +68,6 @@ class Cryostat extends AbstractVerticle {
     private final Environment environment = new Environment();
     private final Client client;
     private final Logger logger = Logger.INSTANCE;
-
-    private final List<Future> futures = new ArrayList<>();
 
     private Cryostat(Client client) {
         this.client = client;
@@ -96,13 +91,15 @@ class Cryostat extends AbstractVerticle {
         logger.info(
                 "{} started, version: {}.", instanceName(), client.version().getVersionString());
 
-        deploy(client.discoveryStorage(), true);
-        deploy(client.httpServer(), false);
-        deploy(client.webServer(), false);
-        deploy(client.messagingServer(), false);
-        deploy(client.ruleProcessor(), true);
-
         Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null)));
+
+        List<Future> futures =
+                List.of(
+                        client.deployer().deploy(client.discoveryStorage(), true),
+                        client.deployer().deploy(client.httpServer(), false),
+                        client.deployer().deploy(client.webServer(), false),
+                        client.deployer().deploy(client.messagingServer(), false),
+                        client.deployer().deploy(client.ruleProcessor(), true));
         CompositeFuture.join(futures)
                 .onSuccess(cf -> future.complete())
                 .onFailure(
@@ -119,21 +116,6 @@ class Cryostat extends AbstractVerticle {
 
     private String instanceName() {
         return System.getProperty("java.rmi.server.hostname", "cryostat");
-    }
-
-    private void deploy(Verticle verticle, boolean worker) {
-        String name = verticle.getClass().getName();
-        logger.info("Deploying {} Verticle", name);
-        Future f =
-                client.vertx()
-                        .deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
-                        .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
-                        .onFailure(
-                                t -> {
-                                    logger.error("FAILED to deploy {} Verticle", name);
-                                    t.printStackTrace();
-                                });
-        futures.add(f);
     }
 
     private void shutdown(Throwable cause) {
@@ -162,6 +144,8 @@ class Cryostat extends AbstractVerticle {
         ApplicationVersion version();
 
         Vertx vertx();
+
+        VerticleDeployer deployer();
 
         DiscoveryStorage discoveryStorage();
 

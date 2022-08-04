@@ -77,6 +77,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
 @Module(
@@ -183,5 +184,11 @@ public abstract class MainModule {
     @Named(UUID_FROM_STRING)
     public static Function<String, UUID> provideUuidToString() {
         return UUID::fromString;
+    }
+
+    @Provides
+    @Singleton
+    public static VerticleDeployer provideVerticleDeployer(Vertx vertx, Logger logger) {
+        return new VerticleDeployer(vertx, logger);
     }
 }
