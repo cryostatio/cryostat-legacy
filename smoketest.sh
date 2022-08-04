@@ -20,6 +20,7 @@ function runCryostat() {
         HBM2DDL="update"
     elif [ "$1" = "h2file" ]; then
         JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other"
+        HBM2DDL="update"
     fi
 
     GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
