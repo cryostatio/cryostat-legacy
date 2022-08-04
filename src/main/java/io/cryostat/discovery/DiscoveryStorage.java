@@ -38,7 +38,6 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -89,34 +88,38 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void start(Promise<Void> future) throws Exception {
-        List<Future> futures = new ArrayList<>();
-        dao.getAll()
-                .forEach(
-                        plugin -> {
-                            UUID key = plugin.getId();
-                            URI uri = plugin.getCallback();
-                            if (uri == NO_CALLBACK) {
-                                removePlugin(key, key);
-                                return;
-                            }
-                            futures.add(
-                                    http.postAbs(uri.toString())
-                                            .timeout(1_000)
-                                            .followRedirects(true)
-                                            .send()
-                                            .onSuccess(
-                                                    res -> {
-                                                        if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                                res.statusCode())) {
-                                                            removePlugin(key, uri);
-                                                            return;
-                                                        }
-                                                        logger.info(
-                                                                "Found discovery service {}", uri);
-                                                    })
-                                            .onFailure(t -> removePlugin(key, uri))
-                                            .recover(t -> Future.succeededFuture()));
-                        });
+        List<Future> futures =
+                dao.getAll().stream()
+                        .map(
+                                plugin -> {
+                                    UUID key = plugin.getId();
+                                    URI uri = plugin.getCallback();
+                                    if (uri == NO_CALLBACK) {
+                                        removePlugin(key, key);
+                                        return (Future) Future.succeededFuture();
+                                    }
+                                    return (Future)
+                                            http.postAbs(uri.toString())
+                                                    .timeout(1_000)
+                                                    .followRedirects(true)
+                                                    .send()
+                                                    .onSuccess(
+                                                            res -> {
+                                                                if (!HttpStatusCodeIdentifier
+                                                                        .isSuccessCode(
+                                                                                res.statusCode())) {
+                                                                    removePlugin(key, uri);
+                                                                    return;
+                                                                }
+                                                                logger.info(
+                                                                        "Found discovery service"
+                                                                                + " {}",
+                                                                        uri);
+                                                            })
+                                                    .onFailure(t -> removePlugin(key, uri))
+                                                    .recover(t -> Future.succeededFuture());
+                                })
+                        .toList();
         CompositeFuture.join(futures)
                 .onSuccess(cf -> deployer.deploy(builtin.get(), true))
                 .onFailure(future::fail);
