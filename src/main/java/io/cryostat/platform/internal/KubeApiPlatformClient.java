@@ -77,6 +77,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     private final KubernetesClient k8sClient;
     private SharedIndexInformer<Endpoints> endpointsInformer;
+    private Integer memoHash;
+    private EnvironmentNode memoTree;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final String namespace;
@@ -174,11 +176,17 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
+        List<Endpoints> store = endpointsInformer().getStore().list();
+        if (Integer.valueOf(store.hashCode()) == memoHash) {
+            logger.trace("Using memoized discovery tree");
+            return memoTree;
+        }
+        memoHash = store.hashCode();
         EnvironmentNode nsNode = new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
         EnvironmentNode realmNode = new EnvironmentNode("KubernetesApi", BaseNodeType.REALM);
         realmNode.addChildNode(nsNode);
         try {
-            endpointsInformer.getStore().list().stream()
+            store.stream()
                     .flatMap(endpoints -> getTargetTuples(endpoints).stream())
                     .forEach(tuple -> buildOwnerChain(nsNode, tuple));
         } catch (Exception e) {
@@ -187,6 +195,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             discoveryNodeCache.clear();
             queryLocks.clear();
         }
+        memoTree = realmNode;
         return realmNode;
     }
 
