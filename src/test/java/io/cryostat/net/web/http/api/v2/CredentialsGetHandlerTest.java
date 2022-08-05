@@ -155,7 +155,8 @@ class CredentialsGetHandlerTest {
             MatcherAssert.assertThat(actual, Matchers.hasSize(2));
 
             Mockito.verify(credentialsManager).getAll();
-            Mockito.verify(credentialsManager, Mockito.times(2)).resolveMatchingTargets(Mockito.anyInt());
+            Mockito.verify(credentialsManager, Mockito.times(2))
+                    .resolveMatchingTargets(Mockito.anyInt());
         }
     }
 }

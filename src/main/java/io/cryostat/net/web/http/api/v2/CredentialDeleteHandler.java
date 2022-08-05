@@ -123,7 +123,14 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .createBuilder()
                     .metaCategory("CredentialsDeleted")
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("id", id, "matchExpression", matchExpression, "numMatchingTargets", numMatchingTargets))
+                    .message(
+                            Map.of(
+                                    "id",
+                                    id,
+                                    "matchExpression",
+                                    matchExpression,
+                                    "numMatchingTargets",
+                                    numMatchingTargets))
                     .build()
                     .send();
 

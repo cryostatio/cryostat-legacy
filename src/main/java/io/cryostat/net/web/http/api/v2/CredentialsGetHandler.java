@@ -146,7 +146,9 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
                 return false;
             }
             Cred other = (Cred) obj;
-            return id == other.id && Objects.equals(matchExpression, other.matchExpression) && numMatchingTargets == other.numMatchingTargets;
+            return id == other.id
+                    && Objects.equals(matchExpression, other.matchExpression)
+                    && numMatchingTargets == other.numMatchingTargets;
         }
     }
 }
