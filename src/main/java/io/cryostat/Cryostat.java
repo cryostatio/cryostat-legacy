@@ -135,7 +135,6 @@ class Cryostat extends AbstractVerticle {
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
-
         client.vertx().deployVerticle(new Cryostat(client));
     }
 

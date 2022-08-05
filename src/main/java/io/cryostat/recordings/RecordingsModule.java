@@ -153,9 +153,11 @@ public abstract class RecordingsModule {
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            PlatformClient platformClient,
             NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
@@ -174,9 +176,11 @@ public abstract class RecordingsModule {
             return new RecordingMetadataManager(
                     vertx,
                     metadataDir,
+                    archivedRecordingsPath,
                     fs,
                     targetConnectionManager,
                     credentialsManager,
+                    platformClient,
                     notificationFactory,
                     gson,
                     base32,

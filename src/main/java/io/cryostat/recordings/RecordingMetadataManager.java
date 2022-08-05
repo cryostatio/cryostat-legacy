@@ -41,6 +41,7 @@ package io.cryostat.recordings;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
@@ -53,8 +54,10 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.inject.Named;
 import javax.script.ScriptException;
 
+import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -63,12 +66,14 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -82,9 +87,11 @@ public class RecordingMetadataManager extends AbstractVerticle
     private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
 
     private final Path recordingMetadataDir;
+    private final Path archivedRecordingsPath;
     private final FileSystem fs;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
+    private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
     private final Gson gson;
     private final Base32 base32;
@@ -97,18 +104,22 @@ public class RecordingMetadataManager extends AbstractVerticle
     RecordingMetadataManager(
             Vertx vertx,
             Path recordingMetadataDir,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            PlatformClient platformClient,
             NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
         this.vertx = vertx;
         this.recordingMetadataDir = recordingMetadataDir;
+        this.archivedRecordingsPath = archivedRecordingsPath;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
+        this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
         this.gson = gson;
         this.base32 = base32;
@@ -118,7 +129,9 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.staleMetadataTimers = new ConcurrentHashMap<>();
     }
 
-    public void load() throws IOException {
+    public void start(Promise<Void> future) throws IOException {
+        this.platformClient.addTargetDiscoveryListener(this);
+
         this.fs.listDirectoryChildren(recordingMetadataDir).stream()
                 .peek(n -> logger.trace("Recording Metadata file: {}", n))
                 .map(recordingMetadataDir::resolve)
@@ -127,7 +140,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                             try {
                                 return fs.readFile(path);
                             } catch (IOException e) {
-                                logger.warn(e);
+                                logger.error(e);
+                                future.fail(e);
                                 return null;
                             }
                         })
@@ -139,6 +153,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     Pair.of(srm.getJvmId(), srm.getRecordingName()), srm);
                             jvmIdMap.putIfAbsent(srm.getTargetId(), srm.getJvmId());
                         });
+        future.complete();
     }
 
     @Override
@@ -232,9 +247,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
         return this.setRecordingMetadata(
-                new ConnectionDescriptor(RecordingArchiveHelper.ARCHIVES),
-                recordingName,
-                metadata);
+                new ConnectionDescriptor(RecordingArchiveHelper.ARCHIVES), recordingName, metadata);
     }
 
     public Metadata getMetadata(ConnectionDescriptor connectionDescriptor, String recordingName)
@@ -327,28 +340,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 try {
                                     String recordingName = keyPair.getValue();
 
-                                    Metadata m = this.getMetadata(cd, recordingName);
-
-                                    // FIXME this won't work for aliased targetIds
-                                    Path targetSubDirectory =
-                                            Path.of(
-                                                    base32.encodeAsString(
-                                                            targetId.getBytes(
-                                                                    StandardCharsets.UTF_8)));
-                                    boolean isArchived =
-                                            this.fs
-                                                    .listDirectoryChildren(targetSubDirectory)
-                                                    .stream()
-                                                    .anyMatch(
-                                                            filename ->
-                                                                    filename.equals(recordingName));
-
-                                    if (isArchived) {
+                                    if (isArchivedRecording(recordingName)) {
+                                        Metadata m = this.getMetadata(cd, recordingName);
                                         jvmIdMap.put(targetId, newJvmId);
                                         setRecordingMetadata(cd, recordingName, m);
                                         jvmIdMap.put(targetId, oldJvmId);
-                                    } else {
-                                        deleteRecordingMetadataIfExists(cd, recordingName);
                                     }
                                 } catch (IOException e) {
                                     logger.error(e);
@@ -361,13 +357,16 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
-        jvmIdMap.remove(cd.getTargetId());
         staleMetadataTimers.computeIfAbsent(
                 unreachableJvmId,
                 k ->
                         this.vertx.setTimer(
                                 Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
                                 initialId -> {
+                                    if (this.isTargetReachable(cd)) {
+                                        return;
+                                    }
+
                                     recordingMetadataMap.keySet().stream()
                                             .forEach(
                                                     keyPair -> {
@@ -380,13 +379,44 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                             String recordingName =
                                                                     keyPair.getValue();
 
-                                                            deleteRecordingMetadataIfExists(
-                                                                    cd, recordingName);
+                                                            if (!isArchivedRecording(
+                                                                    recordingName)) {
+                                                                deleteRecordingMetadataIfExists(
+                                                                        cd, recordingName);
+                                                            }
                                                         } catch (IOException e) {
                                                             logger.error(e);
                                                         }
                                                     });
                                 }));
+    }
+
+    private boolean isArchivedRecording(String recordingName) throws IOException {
+        try {
+            return this.fs.listDirectoryChildren(archivedRecordingsPath).stream()
+                    .map(
+                            subdirectory -> {
+                                try {
+                                    for (String file :
+                                            this.fs.listDirectoryChildren(Path.of(subdirectory))) {
+                                        if (recordingName.equals(file)) {
+                                            return true;
+                                        }
+                                    }
+                                } catch (NoSuchFileException e) {
+                                    return false;
+                                } catch (IOException ioe) {
+                                    logger.error(ioe);
+                                }
+                                return null;
+                            })
+                    .filter(v -> v)
+                    .findFirst()
+                    .orElse(false);
+        } catch (IOException ioe) {
+            logger.error(ioe);
+            throw ioe;
+        }
     }
 
     private Path getMetadataPath(String jvmId, String recordingName) {
@@ -432,6 +462,18 @@ public class RecordingMetadataManager extends AbstractVerticle
             throw new IOException(String.format("Error connecting to target %s", targetId));
         }
         return jvmId;
+    }
+
+    private boolean isTargetReachable(ConnectionDescriptor cd) {
+        try {
+            return this.targetConnectionManager.executeConnectedTask(
+                    cd,
+                    connection -> {
+                        return true;
+                    });
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static class StoredRecordingMetadata extends Metadata {

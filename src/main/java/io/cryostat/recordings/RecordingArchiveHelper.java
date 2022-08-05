@@ -220,7 +220,7 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                new ConnectionDescriptor(metadataSourceTarget), recordingName));
+                                    new ConnectionDescriptor(metadataSourceTarget), recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
