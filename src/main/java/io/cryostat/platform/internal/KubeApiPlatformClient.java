@@ -98,70 +98,90 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     @Override
-    public void start() throws IOException {
-        endpointsInformer =
+    public void start() {
+        startInformer();
+    }
+
+    private SharedIndexInformer<Endpoints> getInformer() {
+        startInformer();
+        return endpointsInformer;
+    }
+
+    private void startInformer() {
+        if (endpointsInformer != null && endpointsInformer.isRunning()) {
+            return;
+        }
+        if (endpointsInformer != null) {
+            endpointsInformer.stop();
+            endpointsInformer.close();
+        }
+        try {
+            endpointsInformer =
                 k8sClient
-                        .endpoints()
-                        .inNamespace(namespace)
-                        .inform(
-                                new ResourceEventHandler<Endpoints>() {
-                                    @Override
-                                    public void onAdd(Endpoints endpoints) {
-                                        getServiceRefs(endpoints)
-                                                .forEach(
-                                                        serviceRef ->
-                                                                notifyAsyncTargetDiscovery(
-                                                                        EventKind.FOUND,
-                                                                        serviceRef));
+                .endpoints()
+                .inNamespace(namespace)
+                .inform(
+                        new ResourceEventHandler<Endpoints>() {
+                            @Override
+                            public void onAdd(Endpoints endpoints) {
+                                getServiceRefs(endpoints)
+                                    .forEach(
+                                            serviceRef ->
+                                            notifyAsyncTargetDiscovery(
+                                                EventKind.FOUND,
+                                                serviceRef));
+                            }
+
+                            @Override
+                            public void onUpdate(
+                                    Endpoints oldEndpoints, Endpoints newEndpoints) {
+                                List<ServiceRef> previousRefs =
+                                    getServiceRefs(oldEndpoints);
+                                List<ServiceRef> currentRefs = getServiceRefs(newEndpoints);
+
+                                if (previousRefs.equals(currentRefs)) {
+                                    return;
+                                }
+
+                                Set<ServiceRef> added = new HashSet<>(currentRefs);
+                                added.removeAll(previousRefs);
+
+                                Set<ServiceRef> removed = new HashSet<>(previousRefs);
+                                removed.removeAll(currentRefs);
+
+                                removed.stream()
+                                    .forEach(
+                                            sr ->
+                                            notifyAsyncTargetDiscovery(
+                                                EventKind.LOST, sr));
+                                added.stream()
+                                    .forEach(
+                                            sr ->
+                                            notifyAsyncTargetDiscovery(
+                                                EventKind.FOUND, sr));
                                     }
 
-                                    @Override
-                                    public void onUpdate(
-                                            Endpoints oldEndpoints, Endpoints newEndpoints) {
-                                        List<ServiceRef> previousRefs =
-                                                getServiceRefs(oldEndpoints);
-                                        List<ServiceRef> currentRefs = getServiceRefs(newEndpoints);
-
-                                        if (previousRefs.equals(currentRefs)) {
-                                            return;
-                                        }
-
-                                        Set<ServiceRef> added = new HashSet<>(currentRefs);
-                                        added.removeAll(previousRefs);
-
-                                        Set<ServiceRef> removed = new HashSet<>(previousRefs);
-                                        removed.removeAll(currentRefs);
-
-                                        removed.stream()
-                                                .forEach(
-                                                        sr ->
-                                                                notifyAsyncTargetDiscovery(
-                                                                        EventKind.LOST, sr));
-                                        added.stream()
-                                                .forEach(
-                                                        sr ->
-                                                                notifyAsyncTargetDiscovery(
-                                                                        EventKind.FOUND, sr));
+                            @Override
+                            public void onDelete(
+                                    Endpoints endpoints, boolean deletedFinalStateUnknown) {
+                                if (deletedFinalStateUnknown) {
+                                    logger.warn(
+                                            "Deleted final state unknown: {}", endpoints);
+                                    return;
+                                }
+                                getServiceRefs(endpoints)
+                                    .forEach(
+                                            serviceRef ->
+                                            notifyAsyncTargetDiscovery(
+                                                EventKind.LOST,
+                                                serviceRef));
                                     }
-
-                                    @Override
-                                    public void onDelete(
-                                            Endpoints endpoints, boolean deletedFinalStateUnknown) {
-                                        if (deletedFinalStateUnknown) {
-                                            logger.warn(
-                                                    "Deleted final state unknown: {}", endpoints);
-                                            return;
-                                        }
-                                        getServiceRefs(endpoints)
-                                                .forEach(
-                                                        serviceRef ->
-                                                                notifyAsyncTargetDiscovery(
-                                                                        EventKind.LOST,
-                                                                        serviceRef));
-                                    }
-                                },
-                                30 * 1_000L);
-        logger.info("Started Endpoints SharedInformer");
+                        },
+            30 * 1_000L);
+            logger.info("Started Endpoints SharedInformer");
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
     @Override
@@ -176,7 +196,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        List<Endpoints> store = endpointsInformer().getStore().list();
+        List<Endpoints> store = getInformer().getStore().list();
         if (Integer.valueOf(store.hashCode()) == memoHash) {
             logger.trace("Using memoized discovery tree");
             return memoTree;
@@ -300,7 +320,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private List<ServiceRef> getAllServiceRefs() {
-        return endpointsInformer.getStore().list().stream()
+        return getInformer().getStore().list().stream()
                 .flatMap(endpoints -> getServiceRefs(endpoints).stream())
                 .collect(Collectors.toList());
     }
