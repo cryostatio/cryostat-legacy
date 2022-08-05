@@ -50,6 +50,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
@@ -75,11 +76,13 @@ public class RecordingMetadataManagerTest {
     Vertx vertx;
 
     @Mock Path recordingMetadataDir;
+    @Mock Path archivedRecordingsPath;
     @Mock FileSystem fs;
     @Mock Base32 base32;
     @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
@@ -110,9 +113,11 @@ public class RecordingMetadataManagerTest {
                 new RecordingMetadataManager(
                         vertx,
                         recordingMetadataDir,
+                        archivedRecordingsPath,
                         fs,
                         targetConnectionManager,
                         credentialsManager,
+                        platformClient,
                         notificationFactory,
                         gson,
                         base32,

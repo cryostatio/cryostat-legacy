@@ -435,9 +435,9 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.archived, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
 
-        ArchivedRecording archivedRecording = node.recordings.archived.get(0);
+        ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
 
         MatcherAssert.assertThat(
                 archivedRecording.metadata,

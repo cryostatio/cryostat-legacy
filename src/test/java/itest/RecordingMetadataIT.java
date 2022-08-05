@@ -288,7 +288,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
     @Test
     @Order(3)
-    void testActiveRecordingMetadataDeletedWhenTargetRestarted() throws Exception {
+    void testStaleMetadataDeletedAndArchivedMetadataPreservedWhenTargetRestarted()
+            throws Exception {
         String targetId =
                 URLEncodedUtils.formatSegments(
                         String.format(
@@ -380,7 +381,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             // restart the target
             Podman.kill(containerId);
             CONTAINERS.remove(containerId);
-
             waitForDiscovery(0);
 
             containerId =
@@ -393,7 +393,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             waitForDiscovery(NUM_EXT_CONTAINERS);
 
             // check that a new active recording with the same name has a new set of labels
-            CompletableFuture<Void> dumpActiveResp = new CompletableFuture<>();
+            CompletableFuture<JsonObject> activeRecordingFuture = new CompletableFuture<>();
             form.remove("metadata");
 
             webClient
@@ -406,46 +406,24 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                     .sendForm(
                             form,
                             ar -> {
-                                if (assertRequestStatus(ar, dumpActiveResp)) {
+                                if (assertRequestStatus(ar, activeRecordingFuture)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
-                                    dumpActiveResp.complete(null);
-                                }
-                            });
-            dumpActiveResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            CompletableFuture<JsonArray> activeRecordingsFuture = new CompletableFuture<>();
-            webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", targetId))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, activeRecordingsFuture)) {
-                                    activeRecordingsFuture.complete(ar.result().bodyAsJsonArray());
+                                    activeRecordingFuture.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
 
-            JsonObject activeRecordingInfo =
-                    activeRecordingsFuture
+            JsonObject activeMetadata =
+                    activeRecordingFuture
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                            .getJsonObject(0);
+                            .getJsonObject("metadata");
+            JsonObject expectedMetadata =
+                    new JsonObject(
+                            Map.of(
+                                    "labels",
+                                    Map.of("template.name", "ALL", "template.type", "TARGET")));
 
-            Metadata activeMetadata =
-                    gson.fromJson(
-                            activeRecordingInfo.getValue("metadata").toString(),
-                            new TypeToken<Metadata>() {}.getType());
-
-            Map<String, String> expectedLabels =
-                    Map.of("template.name", "ALL", "template.type", "TARGET");
-
-            MatcherAssert.assertThat(
-                    activeRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size(),
-                    Matchers.equalTo(1));
-            MatcherAssert.assertThat(activeMetadata.getLabels(), Matchers.equalTo(expectedLabels));
+            MatcherAssert.assertThat(activeMetadata, Matchers.equalTo(expectedMetadata));
 
             // check archived recording labels still preserved
             CompletableFuture<JsonArray> archivedRecordingsFuture = new CompletableFuture<>();
@@ -463,13 +441,10 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             JsonObject recordingInfo = archivedRecordings.getJsonObject(0);
 
-            Metadata actualMetadata =
-                    gson.fromJson(
-                            recordingInfo.getValue("metadata").toString(),
-                            new TypeToken<Metadata>() {}.getType());
+            JsonObject archivedMetadata = recordingInfo.getJsonObject("metadata");
+            JsonObject expectedArchivedMetadata = new JsonObject(Map.of("labels", responseLabels));
 
-            MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
-
+            MatcherAssert.assertThat(archivedMetadata, Matchers.equalTo(expectedArchivedMetadata));
         } finally {
             CompletableFuture<Void> deleteTargetRecordingFuture = new CompletableFuture<>();
             webClient
@@ -500,11 +475,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                 deleteTargetRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new ITestCleanupFailedException(
-                        String.format(
-                                "Failed to delete recording %s",
-                                archivedRecordingName.get(
-                                        REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
-                        e);
+                        String.format("Failed to delete recording %s", RECORDING_NAME), e);
             }
 
             try {

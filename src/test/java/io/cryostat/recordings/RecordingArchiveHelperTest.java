@@ -978,7 +978,7 @@ class RecordingArchiveHelperTest {
                             }
                         });
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         // Test get recordings from uploads
