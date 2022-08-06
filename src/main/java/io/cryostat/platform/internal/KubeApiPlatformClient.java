@@ -201,7 +201,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         List<Endpoints> store = getInformer().getStore().list();
         if (Objects.equals(memoHash, store.hashCode())) {
             logger.trace("Using memoized discovery tree");
-            return memoTree;
+            return new EnvironmentNode(memoTree);
         }
         memoHash = store.hashCode();
         EnvironmentNode nsNode = new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
