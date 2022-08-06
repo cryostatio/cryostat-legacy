@@ -199,7 +199,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     @Override
     public EnvironmentNode getDiscoveryTree() {
         List<Endpoints> store = getInformer().getStore().list();
-        if (Integer.valueOf(store.hashCode()) == memoHash) {
+        if (Objects.equals(memoHash, store.hashCode())) {
             logger.trace("Using memoized discovery tree");
             return memoTree;
         }
