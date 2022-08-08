@@ -205,8 +205,12 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         }
         memoHash = store.hashCode();
         EnvironmentNode nsNode = new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
-        EnvironmentNode realmNode = new EnvironmentNode("KubernetesApi", BaseNodeType.REALM,
-                Collections.emptyMap(), Set.of(nsNode));
+        EnvironmentNode realmNode =
+                new EnvironmentNode(
+                        "KubernetesApi",
+                        BaseNodeType.REALM,
+                        Collections.emptyMap(),
+                        Set.of(nsNode));
         try {
             store.stream()
                     .flatMap(endpoints -> getTargetTuples(endpoints).stream())
