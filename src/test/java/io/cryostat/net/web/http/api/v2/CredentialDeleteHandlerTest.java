@@ -50,6 +50,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -142,6 +143,8 @@ class CredentialDeleteHandlerTest {
         @Test
         void shouldDelegateToCredentialsManager() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
+            ServiceRef target = Mockito.mock(ServiceRef.class);
+            Mockito.when(credentialsManager.resolveMatchingTargets(10)).thenReturn(Set.of(target));
             String matchExpression = "target.alias == \"foo\"";
             Mockito.when(credentialsManager.get(Mockito.eq(10))).thenReturn(matchExpression);
 

@@ -50,6 +50,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
@@ -159,6 +160,8 @@ class CredentialsPostHandlerTest {
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
             Mockito.when(credentialsManager.addCredentials(Mockito.anyString(), Mockito.any()))
                     .thenReturn(id);
+            ServiceRef target = Mockito.mock(ServiceRef.class);
+            Mockito.when(credentialsManager.resolveMatchingTargets(10)).thenReturn(Set.of(target));
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
