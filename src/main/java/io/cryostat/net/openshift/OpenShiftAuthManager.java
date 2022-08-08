@@ -92,18 +92,13 @@ import io.fabric8.kubernetes.api.model.authorization.v1.ResourceAttributes;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.http.HttpClient;
+import io.fabric8.kubernetes.client.http.HttpRequest;
 import io.fabric8.openshift.client.OpenShiftClient;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -495,43 +490,33 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private CompletableFuture<OAuthMetadata> queryOAuthServer() {
-        CompletableFuture<OAuthMetadata> oauthMetadata = new CompletableFuture<>();
         try {
             OpenShiftClient client = serviceAccountClient.get();
-            OkHttpClient httpClient = client.adapt(OkHttpClient.class);
-            HttpUrl url =
-                    HttpUrl.get(client.getMasterUrl())
-                            .newBuilder()
-                            .addPathSegment(WELL_KNOWN_PATH)
-                            .addPathSegment(OAUTH_SERVER_PATH)
+            HttpClient httpClient = client.getHttpClient();
+            HttpRequest httpRequest =
+                    httpClient
+                            .newHttpRequestBuilder()
+                            .uri(
+                                    new URIBuilder(client.getMasterUrl().toURI())
+                                            .setPathSegments(WELL_KNOWN_PATH, OAUTH_SERVER_PATH)
+                                            .build())
+                            .header("Accept", "application/json")
                             .build();
-            Request req =
-                    new Request.Builder().url(url).addHeader("Accept", "application/json").build();
-            httpClient
-                    .newCall(req)
-                    .enqueue(
-                            new Callback() {
-
-                                @Override
-                                public void onFailure(Call call, IOException e) {
-                                    oauthMetadata.completeExceptionally(e);
-                                }
-
-                                @Override
-                                public void onResponse(Call call, Response response)
-                                        throws IOException {
-                                    try (ResponseBody body = response.body()) {
-                                        ObjectMapper objectMapper = new ObjectMapper();
-                                        OAuthMetadata entity =
-                                                objectMapper.readValue(
-                                                        response.body().string(),
-                                                        OAuthMetadata.class);
-                                        oauthMetadata.complete(entity);
-                                    }
+            return httpClient
+                    .sendAsync(httpRequest, String.class)
+                    .thenCompose(
+                            res -> {
+                                try {
+                                    // TODO replace with gson?
+                                    ObjectMapper objectMapper = new ObjectMapper();
+                                    return CompletableFuture.completedStage(
+                                            objectMapper.readValue(
+                                                    res.body(), OAuthMetadata.class));
+                                } catch (Exception e) {
+                                    return CompletableFuture.failedStage(e);
                                 }
                             });
-            return CompletableFuture.completedFuture(oauthMetadata.get());
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (URISyntaxException e) {
             return CompletableFuture.failedFuture(e);
         }
     }

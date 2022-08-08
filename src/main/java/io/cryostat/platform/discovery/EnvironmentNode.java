@@ -37,6 +37,7 @@
  */
 package io.cryostat.platform.discovery;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedSet;
@@ -49,13 +50,25 @@ public class EnvironmentNode extends AbstractNode {
 
     private final SortedSet<AbstractNode> children;
 
+    public EnvironmentNode(EnvironmentNode other) {
+        this(other.name, other.nodeType, other.labels, other.children);
+    }
+
     public EnvironmentNode(String name, NodeType nodeType) {
         this(name, nodeType, Collections.emptyMap());
     }
 
     public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
+        this(name, nodeType, labels, Collections.emptySortedSet());
+    }
+
+    public EnvironmentNode(
+            String name,
+            NodeType nodeType,
+            Map<String, String> labels,
+            Collection<? extends AbstractNode> children) {
         super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>();
+        this.children = new ConcurrentSkipListSet<>(children);
     }
 
     public SortedSet<AbstractNode> getChildren() {

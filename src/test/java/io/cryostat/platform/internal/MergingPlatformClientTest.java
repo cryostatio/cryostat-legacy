@@ -40,6 +40,7 @@ package io.cryostat.platform.internal;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -121,8 +122,9 @@ class MergingPlatformClientTest {
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9098/jmxrmi")),
                         "ServiceA");
         TargetNode nodeA = new TargetNode(DefaultPlatformClient.NODE_TYPE, serviceA);
-        EnvironmentNode envA = new EnvironmentNode("EnvA", BaseNodeType.REALM);
-        envA.addChildNode(nodeA);
+        EnvironmentNode envA =
+                new EnvironmentNode(
+                        "EnvA", BaseNodeType.REALM, Collections.emptyMap(), Set.of(nodeA));
         ServiceRef serviceB =
                 new ServiceRef(
                         URIUtil.convert(
@@ -130,8 +132,9 @@ class MergingPlatformClientTest {
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi")),
                         "ServiceB");
         TargetNode nodeB = new TargetNode(DefaultPlatformClient.NODE_TYPE, serviceB);
-        EnvironmentNode envB = new EnvironmentNode("EnvB", BaseNodeType.REALM);
-        envB.addChildNode(nodeB);
+        EnvironmentNode envB =
+                new EnvironmentNode(
+                        "EnvB", BaseNodeType.REALM, Collections.emptyMap(), Set.of(nodeB));
 
         Mockito.when(clientA.getDiscoveryTree()).thenReturn(envA);
         Mockito.when(clientB.getDiscoveryTree()).thenReturn(envB);

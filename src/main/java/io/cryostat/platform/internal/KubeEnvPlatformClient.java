@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,13 +86,12 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode root = new EnvironmentNode("KubernetesEnv", BaseNodeType.REALM);
-        List<ServiceRef> targets = listDiscoverableServices();
-        for (ServiceRef target : targets) {
-            TargetNode targetNode = new TargetNode(KubernetesNodeType.SERVICE, target);
-            root.addChildNode(targetNode);
-        }
-        return root;
+        List<TargetNode> targets =
+                listDiscoverableServices().stream()
+                        .map(sr -> new TargetNode(KubernetesNodeType.SERVICE, sr))
+                        .toList();
+        return new EnvironmentNode(
+                "KubernetesEnv", BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 
     private ServiceRef envToServiceRef(Map.Entry<String, String> entry) {

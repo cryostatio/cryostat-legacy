@@ -40,6 +40,7 @@ package io.cryostat.platform.internal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -120,8 +121,9 @@ public class MergingPlatformClient implements PlatformClient, Consumer<TargetDis
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode universe = new EnvironmentNode("Universe", BaseNodeType.UNIVERSE);
-        this.clients.forEach(client -> universe.addChildNode(client.getDiscoveryTree()));
-        return universe;
+        List<EnvironmentNode> realms =
+                clients.stream().map(PlatformClient::getDiscoveryTree).toList();
+        return new EnvironmentNode(
+                "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 }
