@@ -43,6 +43,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -136,10 +137,10 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode customTargetsNode =
-                new EnvironmentNode("Custom Targets", BaseNodeType.REALM);
-        targets.forEach(sr -> customTargetsNode.addChildNode(new TargetNode(NODE_TYPE, sr)));
-        return customTargetsNode;
+        List<TargetNode> children =
+                targets.stream().map(sr -> new TargetNode(NODE_TYPE, sr)).toList();
+        return new EnvironmentNode(
+                "Custom Targets", BaseNodeType.REALM, Collections.emptyMap(), children);
     }
 
     public enum CustomTargetNodeType implements NodeType {

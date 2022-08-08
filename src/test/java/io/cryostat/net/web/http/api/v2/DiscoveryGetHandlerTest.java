@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -131,19 +132,27 @@ class DiscoveryGetHandlerTest {
 
         @BeforeEach
         void setup() throws Exception {
-            EnvironmentNode project =
-                    new EnvironmentNode("myProject", KubernetesNodeType.NAMESPACE);
-            EnvironmentNode deployment =
-                    new EnvironmentNode("appDeployment", KubernetesNodeType.DEPLOYMENT);
-            project.addChildNode(deployment);
             EnvironmentNode pod = new EnvironmentNode("appPod-1", KubernetesNodeType.POD);
-            deployment.addChildNode(pod);
+
             ServiceRef serviceRef =
                     new ServiceRef(
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "appReplica-1-1");
             TargetNode endpoint = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);
-            deployment.addChildNode(endpoint);
+
+            EnvironmentNode deployment =
+                    new EnvironmentNode(
+                            "appDeployment",
+                            KubernetesNodeType.DEPLOYMENT,
+                            Collections.emptyMap(),
+                            Set.of(pod, endpoint));
+
+            EnvironmentNode project =
+                    new EnvironmentNode(
+                            "myProject",
+                            KubernetesNodeType.NAMESPACE,
+                            Collections.emptyMap(),
+                            Set.of(deployment));
 
             expected = project;
         }

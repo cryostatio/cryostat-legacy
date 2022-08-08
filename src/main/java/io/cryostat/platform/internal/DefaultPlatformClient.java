@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -119,13 +120,11 @@ public class DefaultPlatformClient extends AbstractPlatformClient
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode root = new EnvironmentNode("JDP", BaseNodeType.REALM);
-        List<ServiceRef> targets = listDiscoverableServices();
-        for (ServiceRef target : targets) {
-            TargetNode targetNode = new TargetNode(NODE_TYPE, target);
-            root.addChildNode(targetNode);
-        }
-        return root;
+        List<TargetNode> targets =
+                listDiscoverableServices().stream()
+                        .map(sr -> new TargetNode(NODE_TYPE, sr))
+                        .toList();
+        return new EnvironmentNode("JDP", BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 
     public enum JDPNodeType implements NodeType {

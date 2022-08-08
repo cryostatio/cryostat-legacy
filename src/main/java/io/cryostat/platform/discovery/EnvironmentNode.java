@@ -66,7 +66,7 @@ public class EnvironmentNode extends AbstractNode {
             String name,
             NodeType nodeType,
             Map<String, String> labels,
-            Collection<AbstractNode> children) {
+            Collection<? extends AbstractNode> children) {
         super(name, nodeType, labels);
         this.children = new TreeSet<>(children);
     }
