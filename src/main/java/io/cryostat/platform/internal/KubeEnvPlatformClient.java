@@ -86,7 +86,6 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode root = new EnvironmentNode("KubernetesEnv", BaseNodeType.REALM);
         List<TargetNode> targets =
                 listDiscoverableServices().stream()
                         .map(sr -> new TargetNode(KubernetesNodeType.SERVICE, sr))
