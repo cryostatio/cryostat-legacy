@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -176,12 +177,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode universe = new EnvironmentNode("Universe", BaseNodeType.UNIVERSE);
-        dao.getAll().stream()
-                .map(PluginInfo::getSubtree)
-                .map(s -> gson.fromJson(s, EnvironmentNode.class))
-                .forEach(universe::addChildNode);
-        return universe;
+        List<EnvironmentNode> realms =
+                dao.getAll().stream()
+                        .map(PluginInfo::getSubtree)
+                        .map(s -> gson.fromJson(s, EnvironmentNode.class))
+                        .toList();
+        return new EnvironmentNode(
+                "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 
     public Set<TargetNode> getLeafNodes() {
