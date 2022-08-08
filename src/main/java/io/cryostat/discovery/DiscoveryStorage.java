@@ -40,7 +40,6 @@ package io.cryostat.discovery;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -143,8 +142,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public Set<AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
-        PluginInfo plugin =
-                dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, children);
@@ -178,8 +176,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public PluginInfo deregister(UUID id) {
-        PluginInfo plugin =
-                dao.get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+        PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         dao.delete(id);
 
         getVertx()
