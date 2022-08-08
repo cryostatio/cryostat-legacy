@@ -102,9 +102,9 @@ function runDemoApps() {
         --name quarkus-test-plugin \
         --pod cryostat-pod \
         --restart unless-stopped \
-        --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
-        --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
-        --env org.acme.CryostatService.callback-host="localhost" \
+        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://localhost:${webPort}" \
+        --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="localhost" \
         -d quay.io/andrewazores/quarkus-test:0.0.3
 
     # copy a jboss-client.jar into /clientlib first
