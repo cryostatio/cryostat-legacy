@@ -50,11 +50,6 @@ public class EnvironmentNode extends AbstractNode {
 
     private SortedSet<AbstractNode> children;
 
-    public EnvironmentNode(EnvironmentNode original) {
-        this(original.getName(), original.getNodeType(), original.getLabels());
-        addChildren(original.getChildren());
-    }
-
     public EnvironmentNode(EnvironmentNode other) {
         this(other.name, other.nodeType, other.labels, other.children);
     }
