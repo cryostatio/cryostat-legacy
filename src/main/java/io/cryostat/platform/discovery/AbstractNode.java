@@ -38,6 +38,7 @@
 package io.cryostat.platform.discovery;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -51,10 +52,14 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
 
     protected final Map<String, String> labels;
 
+    protected AbstractNode(AbstractNode other) {
+        this(other.name, other.nodeType, other.labels);
+    }
+
     protected AbstractNode(String name, NodeType nodeType, Map<String, String> labels) {
         this.name = name;
         this.nodeType = nodeType;
-        this.labels = labels;
+        this.labels = new HashMap<>(labels);
     }
 
     public String getName() {
@@ -62,7 +67,7 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
     }
 
     public NodeType getNodeType() {
-        return this.nodeType;
+        return nodeType;
     }
 
     public Map<String, String> getLabels() {

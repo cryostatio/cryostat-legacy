@@ -37,10 +37,11 @@
  */
 package io.cryostat.platform.discovery;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -50,8 +51,7 @@ public class EnvironmentNode extends AbstractNode {
     private final SortedSet<AbstractNode> children;
 
     public EnvironmentNode(EnvironmentNode other) {
-        this(other.getName(), other.getNodeType(), other.getLabels());
-        other.getChildren().forEach(this::addChildNode);
+        this(other.name, other.nodeType, other.labels, other.children);
     }
 
     public EnvironmentNode(String name, NodeType nodeType) {
@@ -59,8 +59,16 @@ public class EnvironmentNode extends AbstractNode {
     }
 
     public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
+        this(name, nodeType, labels, Collections.emptySortedSet());
+    }
+
+    public EnvironmentNode(
+            String name,
+            NodeType nodeType,
+            Map<String, String> labels,
+            Collection<AbstractNode> children) {
         super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>();
+        this.children = new TreeSet<>(children);
     }
 
     public SortedSet<AbstractNode> getChildren() {
