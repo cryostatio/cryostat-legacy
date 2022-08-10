@@ -76,8 +76,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
 
         EnvironmentNode subtree =
                 new EnvironmentNode(
-                        original.getName(), original.getNodeType(), original.getLabels());
-        subtree.addChildren(children == null ? Set.of() : children);
+                        original.getName(), original.getNodeType(), original.getLabels(), children);
 
         EntityTransaction transaction = entityManager.getTransaction();
         try {
