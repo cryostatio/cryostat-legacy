@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,10 +63,15 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
     }
 
     public PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
+        Objects.requireNonNull(realm);
+        Objects.requireNonNull(callback);
+        Objects.requireNonNull(subtree);
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
     public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(children);
         PluginInfo plugin = get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 

@@ -38,6 +38,7 @@
 package io.cryostat.storage;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.persistence.EntityManager;
@@ -62,6 +63,7 @@ public abstract class AbstractDao<I, T> {
     }
 
     public final T save(T t) {
+        Objects.requireNonNull(t);
         EntityTransaction transaction = entityManager.getTransaction();
         try {
             transaction.begin();
@@ -79,6 +81,7 @@ public abstract class AbstractDao<I, T> {
     }
 
     public final void delete(I id) {
+        Objects.requireNonNull(id);
         EntityTransaction transaction = entityManager.getTransaction();
         try {
             transaction.begin();
@@ -94,6 +97,7 @@ public abstract class AbstractDao<I, T> {
     }
 
     public final Optional<T> get(I id) {
+        Objects.requireNonNull(id);
         T t = entityManager.find(klazz, id);
         if (t != null) {
             entityManager.detach(t);

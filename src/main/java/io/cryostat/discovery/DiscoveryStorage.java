@@ -41,6 +41,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -121,7 +122,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 })
                         .toList();
         CompositeFuture.join(futures)
-                .onSuccess(cf -> deployer.deploy(builtin.get(), true))
+                .onSuccess(
+                        cf ->
+                                deployer.deploy(builtin.get(), true)
+                                        .onSuccess(ar -> future.complete())
+                                        .onFailure(t -> future.fail((Throwable) t)))
                 .onFailure(future::fail);
     }
 
@@ -141,11 +146,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         }
     }
 
-    public Set<AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
+    public Set<? extends AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-        plugin = dao.update(id, children);
+        plugin = dao.update(id, Objects.requireNonNull(children));
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
         Set<TargetNode> previousLeaves = findLeavesFrom(original);
@@ -164,7 +169,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
-        return currentTree.getChildren();
+        return original.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {
@@ -186,7 +191,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 
-    public Set<TargetNode> getLeafNodes() {
+    private Set<TargetNode> getLeafNodes() {
         return findLeavesFrom(getDiscoveryTree());
     }
 

@@ -51,8 +51,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.DefaultPlatformClient.JDPNodeType;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -125,9 +123,8 @@ class TargetsGetHandlerTest {
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)), "foo");
 
-        TargetNode node = new TargetNode(JDPNodeType.JVM, target);
         List<ServiceRef> targets = Collections.singletonList(target);
-        Mockito.when(storage.getLeafNodes()).thenReturn(Set.of(node));
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(target));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
