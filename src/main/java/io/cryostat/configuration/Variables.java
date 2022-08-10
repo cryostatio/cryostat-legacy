@@ -88,4 +88,5 @@ public final class Variables {
     public static final String JDBC_PASSWORD = "CRYOSTAT_JDBC_PASSWORD";
     public static final String HIBERNATE_DIALECT = "CRYOSTAT_HIBERNATE_DIALECT";
     public static final String HBM2DDL = "CRYOSTAT_HBM2DDL";
+    public static final String LOG_QUERIES = "CRYOSTAT_LOG_DB_QUERIES";
 }

@@ -72,9 +72,11 @@ public abstract class StorageModule {
                 "hibernate.dialect",
                 env.getEnv(Variables.HIBERNATE_DIALECT, "org.hibernate.dialect.H2Dialect"));
         properties.put("hibernate.hbm2ddl.auto", env.getEnv(Variables.HBM2DDL, "create"));
-        properties.put("hibernate.show_sql", "true");
-        properties.put("hibernate.format_sql", "true");
-        properties.put("hibernate.use_sql_comments", "true");
+        if (env.hasEnv(Variables.LOG_QUERIES)) {
+            properties.put("hibernate.show_sql", "true");
+            properties.put("hibernate.format_sql", "true");
+            properties.put("hibernate.use_sql_comments", "true");
+        }
         return Persistence.createEntityManagerFactory("io.cryostat", properties);
     }
 
