@@ -64,7 +64,6 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
 
     public PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
         Objects.requireNonNull(realm);
-        Objects.requireNonNull(callback);
         Objects.requireNonNull(subtree);
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
