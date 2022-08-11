@@ -37,14 +37,11 @@
  */
 package io.cryostat.platform;
 
-import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
@@ -56,7 +53,6 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
-import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -67,9 +63,8 @@ public abstract class PlatformModule {
 
     @Provides
     @Singleton
-    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson) {
-        return new CustomTargetPlatformClient(confDir, fs, gson);
+    static CustomTargetPlatformClient provideCustomTargetPlatformClient() {
+        return new CustomTargetPlatformClient();
     }
 
     @Binds
