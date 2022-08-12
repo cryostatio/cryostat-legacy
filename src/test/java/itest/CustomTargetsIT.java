@@ -39,8 +39,10 @@ package itest;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -58,6 +60,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 @TestMethodOrder(OrderAnnotation.class)
 public class CustomTargetsIT extends StandardSelfTest {
 
+    private final ExecutorService worker = ForkJoinPool.commonPool();
+
     @Test
     @Order(1)
     void shouldBeAbleToDefineTarget()
@@ -66,24 +70,36 @@ public class CustomTargetsIT extends StandardSelfTest {
         form.add("connectUrl", "localhost:0");
         form.add("alias", "self");
 
-        Future<Void> notificationFuture =
-                expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
-                        .thenAcceptAsync(
-                                notification -> {
-                                    JsonObject event =
-                                            notification
-                                                    .getJsonObject("message")
-                                                    .getJsonObject("event");
-                                    MatcherAssert.assertThat(
-                                            event.getString("kind"), Matchers.equalTo("FOUND"));
-                                    MatcherAssert.assertThat(
-                                            event.getJsonObject("serviceRef")
-                                                    .getString("connectUrl"),
-                                            Matchers.equalTo("localhost:0"));
-                                    MatcherAssert.assertThat(
-                                            event.getJsonObject("serviceRef").getString("alias"),
-                                            Matchers.equalTo("self"));
-                                });
+        CountDownLatch latch = new CountDownLatch(2);
+
+        worker.submit(
+                () -> {
+                    try {
+                        expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
+                                .thenAcceptAsync(
+                                        notification -> {
+                                            latch.countDown();
+                                            JsonObject event =
+                                                    notification
+                                                            .getJsonObject("message")
+                                                            .getJsonObject("event");
+                                            MatcherAssert.assertThat(
+                                                    event.getString("kind"),
+                                                    Matchers.equalTo("FOUND"));
+                                            MatcherAssert.assertThat(
+                                                    event.getJsonObject("serviceRef")
+                                                            .getString("connectUrl"),
+                                                    Matchers.equalTo("localhost:0"));
+                                            MatcherAssert.assertThat(
+                                                    event.getJsonObject("serviceRef")
+                                                            .getString("alias"),
+                                                    Matchers.equalTo("self"));
+                                        })
+                                .get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -91,6 +107,7 @@ public class CustomTargetsIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
+                            latch.countDown();
                             assertRequestStatus(ar, response);
                             response.complete(ar.result().bodyAsJsonObject());
                         });
@@ -98,7 +115,7 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(body.getString("connectUrl"), Matchers.equalTo("localhost:0"));
         MatcherAssert.assertThat(body.getString("alias"), Matchers.equalTo("self"));
 
-        notificationFuture.get();
+        latch.await(5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -154,35 +171,48 @@ public class CustomTargetsIT extends StandardSelfTest {
     @Order(3)
     void shouldBeAbleToDeleteTarget()
             throws TimeoutException, ExecutionException, InterruptedException {
-        Future<Void> notificationFuture =
-                expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
-                        .thenAcceptAsync(
-                                notification -> {
-                                    JsonObject event =
-                                            notification
-                                                    .getJsonObject("message")
-                                                    .getJsonObject("event");
-                                    MatcherAssert.assertThat(
-                                            event.getString("kind"), Matchers.equalTo("LOST"));
-                                    MatcherAssert.assertThat(
-                                            event.getJsonObject("serviceRef")
-                                                    .getString("connectUrl"),
-                                            Matchers.equalTo("localhost:0"));
-                                    MatcherAssert.assertThat(
-                                            event.getJsonObject("serviceRef").getString("alias"),
-                                            Matchers.equalTo("self"));
-                                });
+        CountDownLatch latch = new CountDownLatch(2);
+
+        worker.submit(
+                () -> {
+                    try {
+                        expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
+                                .thenAcceptAsync(
+                                        notification -> {
+                                            latch.countDown();
+                                            JsonObject event =
+                                                    notification
+                                                            .getJsonObject("message")
+                                                            .getJsonObject("event");
+                                            MatcherAssert.assertThat(
+                                                    event.getString("kind"),
+                                                    Matchers.equalTo("LOST"));
+                                            MatcherAssert.assertThat(
+                                                    event.getJsonObject("serviceRef")
+                                                            .getString("connectUrl"),
+                                                    Matchers.equalTo("localhost:0"));
+                                            MatcherAssert.assertThat(
+                                                    event.getJsonObject("serviceRef")
+                                                            .getString("alias"),
+                                                    Matchers.equalTo("self"));
+                                        })
+                                .get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
                 .delete("/api/v2/targets/localhost:0")
                 .send(
                         ar -> {
+                            latch.countDown();
                             assertRequestStatus(ar, response);
                             response.complete(null);
                         });
 
-        notificationFuture.get();
+        latch.await(5, TimeUnit.SECONDS);
     }
 
     @Test
