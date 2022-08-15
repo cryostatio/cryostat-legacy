@@ -37,6 +37,7 @@
  */
 package io.cryostat.net;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -54,6 +55,9 @@ public interface AuthManager {
     Optional<String> getLoginRedirectUrl(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
             throws ExecutionException, InterruptedException;
+
+    Optional<String> logout(Supplier<String> httpHeaderProvider)
+            throws ExecutionException, InterruptedException, IOException, TokenNotFoundException;
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);

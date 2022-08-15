@@ -41,6 +41,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -52,7 +54,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -68,11 +70,15 @@ class TargetSnapshotPostHandlerTest {
 
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetSnapshotPostHandler(auth, recordingTargetHelper);
+        this.handler =
+                new TargetSnapshotPostHandler(
+                        auth, credentialsManager, recordingTargetHelper, logger);
     }
 
     @Test
@@ -108,7 +114,8 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
@@ -140,8 +147,7 @@ class TargetSnapshotPostHandlerTest {
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }
@@ -171,15 +177,15 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get())
                 .thenThrow(
                         new ExecutionException(
                                 new SnapshotCreationException("some error message")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("some error message"));
     }
@@ -209,7 +215,8 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(false);
 
@@ -218,6 +225,8 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .end(
-                        "Snapshot snapshot-1 failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.");
+                        "Snapshot snapshot-1 failed to create: The resultant recording was"
+                                + " unreadable for some reason, likely due to a lack of Active,"
+                                + " non-Snapshot source recordings to take event data from.");
     }
 }

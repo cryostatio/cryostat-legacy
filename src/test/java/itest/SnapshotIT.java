@@ -50,7 +50,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
@@ -217,7 +217,7 @@ public class SnapshotIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> snapshotResponse.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 
@@ -333,7 +333,12 @@ public class SnapshotIT extends StandardSelfTest {
                                                                     Map.entry("continuous", true),
                                                                     Map.entry("toDisk", true),
                                                                     Map.entry("maxSize", 0),
-                                                                    Map.entry("maxAge", 0))))));
+                                                                    Map.entry("maxAge", 0),
+                                                                    Map.entry(
+                                                                            "metadata",
+                                                                            Map.of(
+                                                                                    "labels",
+                                                                                    Map.of())))))));
 
             MatcherAssert.assertThat(
                     createResponse.get(), Matchers.equalToObject(expectedCreateResponse));
@@ -426,7 +431,7 @@ public class SnapshotIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> snapshotName.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 }

@@ -43,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -54,7 +56,7 @@ import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
@@ -62,8 +64,12 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
-    TargetSnapshotPostHandler(AuthManager auth, RecordingTargetHelper recordingTargetHelper) {
-        super(auth);
+    TargetSnapshotPostHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingTargetHelper recordingTargetHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -107,7 +113,9 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
-                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+                    recordingTargetHelper
+                            .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                            .get();
         } catch (ExecutionException e) {
             handleExecutionException(e);
         }
@@ -117,7 +125,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response()
                     .end(
                             String.format(
-                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    "Snapshot %s failed to create: The resultant recording was"
+                                        + " unreadable for some reason, likely due to a lack of"
+                                        + " Active, non-Snapshot source recordings to take event"
+                                        + " data from.",
                                     snapshotName));
         } else {
             ctx.response().setStatusCode(200);
@@ -128,7 +139,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     private void handleExecutionException(ExecutionException e) throws ExecutionException {
         Throwable cause = ExceptionUtils.getRootCause(e);
         if (cause instanceof SnapshotCreationException) {
-            throw new HttpStatusException(500, cause.getMessage());
+            throw new HttpException(500, cause.getMessage());
         }
         throw e;
     }

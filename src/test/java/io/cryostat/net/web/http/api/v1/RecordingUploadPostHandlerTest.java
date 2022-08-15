@@ -42,6 +42,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -57,7 +59,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -79,9 +81,11 @@ class RecordingUploadPostHandlerTest {
 
     RecordingUploadPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock WebClient webClient;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
 
@@ -89,7 +93,15 @@ class RecordingUploadPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingUploadPostHandler(auth, env, webClient, recordingArchiveHelper);
+        this.handler =
+                new RecordingUploadPostHandler(
+                        auth,
+                        credentialsManager,
+                        env,
+                        30,
+                        webClient,
+                        recordingArchiveHelper,
+                        logger);
     }
 
     @Test
@@ -133,8 +145,7 @@ class RecordingUploadPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(501));
     }
 
@@ -160,8 +171,7 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(e.getCause())
                 .thenReturn(new RecordingNotFoundException("archives", recordingName));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -265,14 +275,14 @@ class RecordingUploadPostHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpStatusException e =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 418 I'm a teapot"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 418 I'm a teapot"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());
@@ -323,14 +333,14 @@ class RecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
-        HttpStatusException e =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 200 null"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 200 null"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());
@@ -381,14 +391,14 @@ class RecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
-        HttpStatusException e =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException e = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
 
         MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
-                        "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: 200 OK"));
+                        "Invalid response from datasource server; datasource URL may be incorrect,"
+                                + " or server may not be functioning properly: 200 OK"));
 
         ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(webClient).postAbs(urlCaptor.capture());

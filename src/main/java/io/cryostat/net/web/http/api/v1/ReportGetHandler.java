@@ -39,15 +39,21 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -57,17 +63,25 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final ReportService reportService;
+    private final long reportGenerationTimeoutSeconds;
 
     @Inject
-    ReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
-        super(auth);
+    ReportGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.reportService = reportService;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
     @Override
@@ -100,21 +114,32 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public boolean isOrdered() {
-        return true;
+        return false;
     }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
-            Path report = reportService.get(recordingName).get();
+
+            Path report =
+                    reportService
+                            .get(recordingName, rawFilter)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
+                ReportGenerationException rge =
+                        (ReportGenerationException) ExceptionUtils.getRootCause(ee);
+                throw new HttpException(rge.getStatusCode(), ee.getMessage());
+            }
             if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, ee);
+                throw new HttpException(404, ee);
             }
             throw ee;
         }

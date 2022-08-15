@@ -47,7 +47,7 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingPatchSave {
@@ -64,11 +64,14 @@ class TargetRecordingPatchSave {
 
         try {
             String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+                    recordingArchiveHelper
+                            .saveRecording(connectionDescriptor, recordingName)
+                            .get()
+                            .getName();
             ctx.response().end(saveName);
         } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             } else if (e.getCause() instanceof EmptyRecordingException) {
                 ctx.response().setStatusCode(204);
                 ctx.response().end();

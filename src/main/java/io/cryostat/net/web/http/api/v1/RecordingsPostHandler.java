@@ -40,6 +40,9 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -50,21 +53,26 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
 import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
@@ -74,7 +82,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -87,27 +95,31 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final FileSystem fs;
     private final Path savedRecordingsPath;
     private final Gson gson;
-    private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final Provider<WebServer> webServer;
+    private final Logger logger;
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
+    private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
     @Inject
     RecordingsPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             HttpServer httpServer,
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
-            Logger logger,
-            NotificationFactory notificationFactory) {
-        super(auth);
+            NotificationFactory notificationFactory,
+            Provider<WebServer> webServer,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
-        this.logger = logger;
         this.notificationFactory = notificationFactory;
+        this.webServer = webServer;
+        this.logger = logger;
     }
 
     @Override
@@ -137,7 +149,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
@@ -148,7 +160,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(503, "Recording saving not available");
+            throw new HttpException(503, "Recording saving not available");
         }
 
         FileUpload upload = null;
@@ -157,18 +169,18 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             if ("recording".equals(fu.name())) {
                 upload = fu;
             } else {
-                Path p = savedRecordingsPath.resolve("file-uploads").resolve(fu.uploadedFileName());
-                vertx.fileSystem().deleteBlocking(p.toString());
+                deleteTempFileUpload(fu);
             }
         }
 
         if (upload == null) {
-            throw new HttpStatusException(400, "No recording submission");
+            throw new HttpException(400, "No recording submission");
         }
 
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
-            throw new HttpStatusException(400, "Recording name must not be empty");
+            deleteTempFileUpload(upload);
+            throw new HttpException(400, "Recording name must not be empty");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -177,7 +189,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
-            throw new HttpStatusException(400, "Incorrect recording file name pattern");
+            deleteTempFileUpload(upload);
+            throw new HttpException(400, "Incorrect recording file name pattern");
         }
 
         String targetName = m.group(1);
@@ -188,7 +201,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         ? 0
                         : Integer.parseInt(m.group(4).substring(1));
 
-        final String subdirectoryName = "unlabelled";
+        final String subdirectoryName = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         validateRecording(
@@ -205,19 +218,41 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         return;
                                     }
 
+                                    String fsName = res2.result();
                                     ctx.response()
                                             .putHeader(
                                                     HttpHeaders.CONTENT_TYPE,
                                                     HttpMimeType.JSON.mime())
-                                            .end(gson.toJson(Map.of("name", res2.result())));
+                                            .end(gson.toJson(Map.of("name", fsName)));
 
-                                    notificationFactory
-                                            .createBuilder()
-                                            .metaCategory(NOTIFICATION_CATEGORY)
-                                            .metaType(HttpMimeType.JSON)
-                                            .message(Map.of("recording", res2.result()))
-                                            .build()
-                                            .send();
+                                    try {
+                                        notificationFactory
+                                                .createBuilder()
+                                                .metaCategory(NOTIFICATION_CATEGORY)
+                                                .metaType(HttpMimeType.JSON)
+                                                .message(
+                                                        Map.of(
+                                                                "recording",
+                                                                new ArchivedRecordingInfo(
+                                                                        "archive",
+                                                                        fsName,
+                                                                        webServer
+                                                                                .get()
+                                                                                .getArchivedDownloadURL(
+                                                                                        fsName),
+                                                                        webServer
+                                                                                .get()
+                                                                                .getArchivedReportURL(
+                                                                                        fsName)),
+                                                                "target",
+                                                                ""))
+                                                .build()
+                                                .send();
+                                    } catch (UnknownHostException
+                                            | SocketException
+                                            | URISyntaxException e) {
+                                        logger.error(e);
+                                    }
                                 }));
     }
 
@@ -243,7 +278,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         Throwable t;
                         if (res.cause() instanceof CouldNotLoadRecordingException) {
                             t =
-                                    new HttpStatusException(
+                                    new HttpException(
                                             400, "Not a valid JFR recording file", res.cause());
                         } else {
                             t = res.cause();
@@ -258,6 +293,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                 });
     }
 
+    // FIXME refactor into RecordingArchiveHelper
     private void saveRecording(
             String subdirectoryName,
             String basename,
@@ -270,7 +306,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             handler.handle(
                     makeFailedAsyncResult(
                             new IOException(
-                                    "Recording could not be saved. File already exists and rename attempts were exhausted.")));
+                                    "Recording could not be saved. File already exists and rename"
+                                            + " attempts were exhausted.")));
             return;
         }
 
@@ -316,6 +353,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                 handler.handle(makeAsyncResult(filename));
                                             });
                         });
+    }
+
+    private void deleteTempFileUpload(FileUpload upload) {
+        Path p = savedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        vertx.fileSystem().deleteBlocking(p.toString());
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {

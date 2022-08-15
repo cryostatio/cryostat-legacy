@@ -1,0 +1,66 @@
+fragment TargetFields on Node {
+    name
+    nodeType
+    ... on TargetNode {
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                cryostat
+                platform
+            }
+        }
+    }
+}
+
+# Arbitrarily query up to 8 levels deep. GraphQL doesn't support arbitrary recursive
+# querying for nested/recurisve structures - the query has to have an explicit depth
+fragment ChildrenRecursive on EnvironmentNode {
+    children {
+        ... TargetFields
+        ... on EnvironmentNode {
+            children {
+                ... TargetFields
+                ... on EnvironmentNode {
+                    children {
+                        ... TargetFields
+                        ... on EnvironmentNode {
+                            children {
+                                ... TargetFields
+                                ... on EnvironmentNode {
+                                    children {
+                                        ... TargetFields
+                                        ... on EnvironmentNode {
+                                            children {
+                                                ... TargetFields
+                                                ... on EnvironmentNode {
+                                                    children {
+                                                        ... TargetFields
+                                                        ... on EnvironmentNode {
+                                                            children {
+                                                                ... TargetFields
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+{
+    rootNode {
+        ... TargetFields
+        ... ChildrenRecursive
+    }
+}
+

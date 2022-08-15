@@ -43,6 +43,8 @@ import static org.mockito.Mockito.when;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.web.WebServer;
@@ -51,7 +53,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -68,10 +70,12 @@ class AuthPostHandlerTest {
 
     AuthPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthPostHandler(auth);
+        this.handler = new AuthPostHandler(auth, credentialsManager, logger);
     }
 
     @Test
@@ -119,8 +123,7 @@ class AuthPostHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -133,8 +136,7 @@ class AuthPostHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 }

@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -52,11 +53,9 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class GrafanaDatasourceUrlGetHandler implements RequestHandler {
-
-    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
 
     private final Environment env;
     private final Gson gson;
@@ -96,8 +95,8 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        if (!this.env.hasEnv(Variables.GRAFANA_DATASOURCE_ENV)) {
+            throw new HttpException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
@@ -105,6 +104,6 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
                         gson.toJson(
                                 Map.of(
                                         "grafanaDatasourceUrl",
-                                        env.getEnv(GRAFANA_DATASOURCE_ENV))));
+                                        env.getEnv(Variables.GRAFANA_DATASOURCE_ENV))));
     }
 }

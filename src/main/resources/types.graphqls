@@ -1,0 +1,147 @@
+scalar Object
+scalar ServiceURI
+scalar NodeType
+scalar Url
+scalar Boolean
+scalar Long
+
+input EnvironmentNodeFilterInput {
+    name: String
+    nodeType: String
+    labels: [String]
+}
+
+input TargetNodesFilterInput {
+    name: String
+    labels: [String]
+    annotations: [String]
+}
+
+input DescendantTargetsFilterInput {
+    name: String
+    labels: [String]
+    annotations: [String]
+}
+
+input ActiveRecordingFilterInput {
+    name: String
+    state: String
+    continuous: Boolean
+    toDisk: Boolean
+    durationMsGreaterThanEqual: Long
+    durationMsLessThanEqual: Long
+    startTimeMsBeforeEqual: Long # TODO support/convert other DateTime formats, not just epoch timestamps
+    startTimeMsAfterEqual: Long
+    labels: [String]
+}
+
+input ArchivedRecordingFilterInput {
+    name: String
+    labels: [String]
+    sourceTarget: String
+}
+
+type ServiceRef {
+    serviceUri: ServiceURI!
+    alias: String
+    labels: Object!
+    annotations: Annotations!
+}
+
+type Annotations {
+    platform: Object!
+    cryostat: Object!
+}
+
+type TargetNode implements Node {
+    target: ServiceRef!
+    recordings: Recordings!
+
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+
+    doStartRecording(recording: RecordingSettings!): ActiveRecording!
+    doSnapshot: ActiveRecording!
+}
+
+type EnvironmentNode implements Node {
+    children: [Node!]!
+
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+
+    descendantTargets(filter: DescendantTargetsFilterInput): [TargetNode!]!
+}
+
+interface Node {
+    name: String!
+    nodeType: NodeType!
+    labels: Object!
+}
+
+type Recordings {
+    active(filter: ActiveRecordingFilterInput): [ActiveRecording!]!
+    archived(filter: ArchivedRecordingFilterInput): Archived!
+}
+
+type ActiveRecording implements Recording {
+    state: String!
+    startTime: Long!
+
+    duration: Long!
+    continuous: Boolean!
+    toDisk: Boolean!
+    maxSize: Long!
+    maxAge: Long!
+
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+    metadata: RecordingMetadata!
+
+    doArchive: ArchivedRecording!
+    doStop: ActiveRecording!
+    doDelete: ActiveRecording!
+}
+
+type ArchivedRecording implements Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+    metadata: RecordingMetadata!
+
+    doDelete: ArchivedRecording!
+}
+
+type Archived {
+    data: [ArchivedRecording!]!
+    aggregate: AggregateInfo!
+}
+
+type AggregateInfo {
+    count: Long!
+}
+
+interface Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+    metadata: RecordingMetadata!
+}
+
+type RecordingMetadata {
+    labels: Object!
+}
+
+input RecordingSettings {
+    name: String!
+    template: String!
+    templateType: String!
+    duration: Long
+    continuous: Boolean
+    toDisk: Boolean
+    maxSize: Long
+    maxAge: Long
+}

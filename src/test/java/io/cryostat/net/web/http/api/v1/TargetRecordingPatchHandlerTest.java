@@ -40,6 +40,8 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -49,7 +51,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -68,16 +70,20 @@ class TargetRecordingPatchHandlerTest {
 
     TargetRecordingPatchHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
     @Mock ConnectionDescriptor connectionDescriptor;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingPatchHandler(authManager, patchSave, patchStop);
+        this.handler =
+                new TargetRecordingPatchHandler(
+                        authManager, credentialsManager, patchSave, patchStop, logger);
     }
 
     @Test
@@ -114,8 +120,7 @@ class TargetRecordingPatchHandlerTest {
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -132,8 +137,7 @@ class TargetRecordingPatchHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 

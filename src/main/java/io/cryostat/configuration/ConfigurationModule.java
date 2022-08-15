@@ -51,23 +51,25 @@ import javax.inject.Singleton;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.MatchExpressionEvaluator;
+import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Module
 public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
     public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Singleton
     @Named(CONFIGURATION_PATH)
     static Path provideConfigurationPath(Logger logger, Environment env) {
-        String path = env.getEnv("CRYOSTAT_CONFIG_PATH", "/opt/cryostat.d/conf.d");
+        String path = env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d");
         logger.info(String.format("Local config path set as %s", path));
         return Paths.get(path);
     }
@@ -75,7 +77,14 @@ public abstract class ConfigurationModule {
     @Provides
     @Singleton
     static CredentialsManager provideCredentialsManager(
-            @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
+            @Named(CONFIGURATION_PATH) Path confDir,
+            MatchExpressionValidator matchExpressionValidator,
+            MatchExpressionEvaluator matchExpressionEvaluator,
+            FileSystem fs,
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Logger logger) {
         try {
             Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
             if (!fs.isDirectory(credentialsDir)) {
@@ -87,7 +96,15 @@ public abstract class ConfigurationModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new CredentialsManager(credentialsDir, fs, gson, logger);
+            return new CredentialsManager(
+                    credentialsDir,
+                    matchExpressionValidator,
+                    matchExpressionEvaluator,
+                    fs,
+                    platformClient,
+                    notificationFactory,
+                    gson,
+                    logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

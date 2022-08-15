@@ -124,7 +124,8 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
@@ -150,6 +151,7 @@ class TargetSnapshotPostHandlerTest {
         data.put("result", result);
         result.put("downloadUrl", "http://example.com/download");
         result.put("reportUrl", "http://example.com/report");
+        result.put("metadata", Map.of("labels", Map.of()));
         result.put("id", 1.0);
         result.put("name", "snapshot-1");
         result.put("state", "STOPPED");
@@ -213,7 +215,8 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get())
                 .thenThrow(
@@ -253,7 +256,8 @@ class TargetSnapshotPostHandlerTest {
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
                         recordingTargetHelper.verifySnapshot(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(HyperlinkedSerializableRecordingDescriptor.class)))
                 .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(false);
 
@@ -262,7 +266,9 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .setStatusMessage(
-                        "Snapshot snapshot-1 failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.");
+                        "Snapshot snapshot-1 failed to create: The resultant recording was"
+                                + " unreadable for some reason, likely due to a lack of Active,"
+                                + " non-Snapshot source recordings to take event data from.");
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

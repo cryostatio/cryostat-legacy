@@ -39,38 +39,41 @@ package io.cryostat.messaging.notifications;
 
 import java.time.Instant;
 
-import io.cryostat.messaging.MessagingServer;
-import io.cryostat.messaging.WsMessage;
 import io.cryostat.net.web.http.HttpMimeType;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+public class Notification<T> {
 
-@SuppressFBWarnings("URF_UNREAD_FIELD")
-public class Notification<T> extends WsMessage {
-
-    private final transient MessagingServer server;
+    private final transient NotificationSource source;
 
     private final Notification.Meta meta;
     private final T message;
 
     Notification(Notification.Builder<T> builder) {
-        this.server = builder.server;
+        this.source = builder.source;
         this.meta = new Meta(builder.category, builder.type);
         this.message = builder.message;
     }
 
     public void send() {
-        this.server.writeMessage(this);
+        this.source.notifyListeners(this);
+    }
+
+    public T getMessage() {
+        return this.message;
+    }
+
+    public String getCategory() {
+        return this.meta.category;
     }
 
     public static class Builder<T> {
-        private final MessagingServer server;
+        private final NotificationSource source;
         private String category = "generic";
         private MetaType type = new MetaType(HttpMimeType.JSON);
         private T message;
 
-        Builder(MessagingServer server) {
-            this.server = server;
+        Builder(NotificationSource source) {
+            this.source = source;
         }
 
         public Builder<T> meta(Meta meta) {

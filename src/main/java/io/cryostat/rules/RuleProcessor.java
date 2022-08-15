@@ -37,14 +37,18 @@
  */
 package io.cryostat.rules;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 import java.util.function.Consumer;
+
+import javax.script.ScriptException;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -59,52 +63,58 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RuleProcessor
+public class RuleProcessor extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
-    private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingTargetHelper recordingTargetHelper;
+    private final RecordingMetadataManager metadataManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
     private final Base32 base32;
 
-    private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
+    private final Map<Pair<ServiceRef, Rule>, Set<Long>> tasks;
 
     RuleProcessor(
+            Vertx vertx,
             PlatformClient platformClient,
             RuleRegistry registry,
-            ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger,
             Base32 base32) {
+        this.vertx = vertx;
         this.platformClient = platformClient;
         this.registry = registry;
-        this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingTargetHelper = recordingTargetHelper;
+        this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
         this.base32 = base32;
@@ -113,13 +123,15 @@ public class RuleProcessor
         this.registry.addListener(this);
     }
 
-    public void enable() {
+    @Override
+    public void start() {
         this.platformClient.addTargetDiscoveryListener(this);
     }
 
-    public synchronized void disable() {
+    @Override
+    public void stop() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((ruleExecution, future) -> future.cancel(true));
+        this.tasks.forEach((ruleExecution, ids) -> ids.forEach(vertx::cancelTimer));
         this.tasks.clear();
     }
 
@@ -127,9 +139,18 @@ public class RuleProcessor
     public synchronized void onEvent(Event<RuleEvent, Rule> event) {
         switch (event.getEventType()) {
             case ADDED:
-                platformClient.listDiscoverableServices().stream()
-                        .filter(serviceRef -> registry.applies(event.getPayload(), serviceRef))
-                        .forEach(serviceRef -> activate(event.getPayload(), serviceRef));
+                vertx.<List<ServiceRef>>executeBlocking(
+                        promise -> promise.complete(platformClient.listDiscoverableServices()),
+                        false,
+                        result ->
+                                result.result().stream()
+                                        .filter(
+                                                serviceRef ->
+                                                        registry.applies(
+                                                                event.getPayload(), serviceRef))
+                                        .forEach(
+                                                serviceRef ->
+                                                        activate(event.getPayload(), serviceRef)));
                 break;
             case REMOVED:
                 deactivate(event.getPayload(), null);
@@ -158,40 +179,70 @@ public class RuleProcessor
         this.logger.trace(
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
-        Credentials credentials =
-                credentialsManager.getCredentials(serviceRef.getServiceUri().toString());
-        logger.trace("Rule activation successful");
+        vertx.<Credentials>executeBlocking(
+                        promise -> {
+                            try {
+                                Credentials creds = credentialsManager.getCredentials(serviceRef);
+                                promise.complete(creds);
+                            } catch (IOException | ScriptException e) {
+                                promise.fail(e);
+                            }
+                        })
+                .onSuccess(c -> logger.trace("Rule activation successful"))
+                .onSuccess(
+                        credentials -> {
+                            if (rule.isArchiver()) {
+                                try {
+                                    archiveRuleRecording(
+                                            new ConnectionDescriptor(serviceRef, credentials),
+                                            rule);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+                            } else {
+                                try {
+                                    startRuleRecording(
+                                            new ConnectionDescriptor(serviceRef, credentials),
+                                            rule);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
 
-        if (rule.isArchiver()) {
-            try {
-                archiveRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
-            } catch (Exception e) {
-                logger.error(e);
-            }
-        } else {
-            try {
-                startRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
-            } catch (Exception e) {
-                logger.error(e);
-            }
-
-            if (rule.getPreservedArchives() <= 0 || rule.getArchivalPeriodSeconds() <= 0) {
-                return;
-            }
-            tasks.put(
-                    Pair.of(serviceRef, rule),
-                    scheduler.scheduleAtFixedRate(
-                            periodicArchiverFactory.create(
-                                    serviceRef,
-                                    credentialsManager,
-                                    rule,
-                                    recordingArchiveHelper,
-                                    this::archivalFailureHandler,
-                                    base32),
-                            rule.getArchivalPeriodSeconds(),
-                            rule.getArchivalPeriodSeconds(),
-                            TimeUnit.SECONDS));
-        }
+                                PeriodicArchiver periodicArchiver =
+                                        periodicArchiverFactory.create(
+                                                serviceRef,
+                                                credentialsManager,
+                                                rule,
+                                                recordingArchiveHelper,
+                                                this::archivalFailureHandler,
+                                                base32);
+                                Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
+                                Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
+                                long initialTask =
+                                        vertx.setTimer(
+                                                Duration.ofSeconds(rule.getInitialDelaySeconds())
+                                                        .toMillis(),
+                                                initialId -> {
+                                                    tasks.get(key).remove(initialId);
+                                                    periodicArchiver.run();
+                                                    if (rule.getPreservedArchives() <= 0
+                                                            || rule.getArchivalPeriodSeconds()
+                                                                    <= 0) {
+                                                        return;
+                                                    }
+                                                    long periodicTask =
+                                                            vertx.setPeriodic(
+                                                                    Duration.ofSeconds(
+                                                                                    rule
+                                                                                            .getArchivalPeriodSeconds())
+                                                                            .toMillis(),
+                                                                    periodicId ->
+                                                                            periodicArchiver.run());
+                                                    ids.add(periodicTask);
+                                                });
+                                ids.add(initialTask);
+                            }
+                        });
     }
 
     private void deactivate(Rule rule, ServiceRef serviceRef) {
@@ -204,76 +255,121 @@ public class RuleProcessor
         if (serviceRef != null) {
             logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
         }
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Set<Long>>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
+            Map.Entry<Pair<ServiceRef, Rule>, Set<Long>> entry = it.next();
             boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
-                Future<?> task = entry.getValue();
-                if (task != null) {
-                    task.cancel(true);
-                }
+                Set<Long> ids = entry.getValue();
+                ids.forEach(vertx::cancelTimer);
                 it.remove();
             }
         }
     }
 
-    private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
-        Future<?> task = tasks.get(id);
-        if (task != null) {
-            task.cancel(true);
-        }
+    private Void archivalFailureHandler(Pair<ServiceRef, Rule> key) {
+        tasks.get(key).forEach(vertx::cancelTimer);
+        tasks.remove(key);
         return null;
     }
 
-    private void archiveRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
-            throws Exception {
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    IRecordingDescriptor descriptor =
-                            connection.getService().getSnapshotRecording();
+    private void archiveRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
+        vertx.executeBlocking(
+                promise -> {
                     try {
-                        recordingArchiveHelper
-                                .saveRecording(connectionDescriptor, descriptor.getName())
-                                .get();
-                    } finally {
-                        connection.getService().close(descriptor);
-                    }
+                        targetConnectionManager.executeConnectedTask(
+                                connectionDescriptor,
+                                connection -> {
+                                    IRecordingDescriptor descriptor =
+                                            connection.getService().getSnapshotRecording();
+                                    try {
+                                        recordingArchiveHelper
+                                                .saveRecording(
+                                                        connectionDescriptor, descriptor.getName())
+                                                .get();
+                                    } finally {
+                                        connection.getService().close(descriptor);
+                                    }
 
-                    return null;
+                                    return null;
+                                },
+                                false);
+                        promise.complete();
+                    } catch (Exception e) {
+                        promise.fail(e);
+                    }
                 },
-                false);
+                false,
+                result -> {
+                    if (result.failed()) {
+                        logger.error(new RuleException(result.cause()));
+                    }
+                });
     }
 
-    private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
-            throws Exception {
-
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    RecordingOptionsBuilder builder =
-                            recordingOptionsBuilderFactory
-                                    .create(connection.getService())
-                                    .name(rule.getRecordingName());
-                    if (rule.getMaxAgeSeconds() > 0) {
-                        builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
+    private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
+        vertx.<IRecordingDescriptor>executeBlocking(
+                promise -> {
+                    try {
+                        IRecordingDescriptor recording =
+                                targetConnectionManager.executeConnectedTask(
+                                        connectionDescriptor,
+                                        connection -> {
+                                            RecordingOptionsBuilder builder =
+                                                    recordingOptionsBuilderFactory
+                                                            .create(connection.getService())
+                                                            .name(rule.getRecordingName());
+                                            if (rule.getMaxAgeSeconds() > 0) {
+                                                builder =
+                                                        builder.maxAge(rule.getMaxAgeSeconds())
+                                                                .toDisk(true);
+                                            }
+                                            if (rule.getMaxSizeBytes() > 0) {
+                                                builder =
+                                                        builder.maxSize(rule.getMaxSizeBytes())
+                                                                .toDisk(true);
+                                            }
+                                            Pair<String, TemplateType> template =
+                                                    RecordingTargetHelper
+                                                            .parseEventSpecifierToTemplate(
+                                                                    rule.getEventSpecifier());
+                                            return recordingTargetHelper.startRecording(
+                                                    true,
+                                                    connectionDescriptor,
+                                                    builder.build(),
+                                                    template.getLeft(),
+                                                    template.getRight());
+                                        },
+                                        false);
+                        promise.complete(recording);
+                    } catch (Exception e) {
+                        promise.fail(e);
                     }
-                    if (rule.getMaxSizeBytes() > 0) {
-                        builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
-                    }
-                    Pair<String, TemplateType> template =
-                            RecordingTargetHelper.parseEventSpecifierToTemplate(
-                                    rule.getEventSpecifier());
-                    recordingTargetHelper.startRecording(
-                            true,
-                            connectionDescriptor,
-                            builder.build(),
-                            template.getLeft(),
-                            template.getRight());
-                    return null;
                 },
-                false);
+                false,
+                result -> {
+                    if (result.failed()) {
+                        logger.error(new RuleException(result.cause()));
+                        return;
+                    }
+                    IRecordingDescriptor recording = result.result();
+                    Map<String, String> labels =
+                            new HashMap<>(
+                                    metadataManager
+                                            .getMetadata(
+                                                    connectionDescriptor.getTargetId(),
+                                                    recording.getName())
+                                            .getLabels());
+                    labels.put("rule", rule.getName());
+                    try {
+                        metadataManager.setRecordingMetadata(
+                                connectionDescriptor.getTargetId(),
+                                recording.getName(),
+                                new Metadata(labels));
+                    } catch (IOException ioe) {
+                        logger.error(ioe);
+                    }
+                });
     }
 }

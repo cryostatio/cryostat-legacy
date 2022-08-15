@@ -40,6 +40,8 @@ package io.cryostat.jmc.serialization;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -48,6 +50,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     protected String downloadUrl;
     protected String reportUrl;
+    protected Metadata metadata;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -55,6 +58,25 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original, String downloadUrl, String reportUrl, Metadata metadata)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = metadata;
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
     }
 
     public String getDownloadUrl() {
@@ -65,18 +87,42 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return reportUrl;
     }
 
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
     }
 
     @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof HyperlinkedSerializableRecordingDescriptor)) {
+            return false;
+        }
+
+        HyperlinkedSerializableRecordingDescriptor descriptor =
+                (HyperlinkedSerializableRecordingDescriptor) o;
+        return new EqualsBuilder()
+                .append(downloadUrl, descriptor.downloadUrl)
+                .append(reportUrl, descriptor.reportUrl)
+                .append(metadata, descriptor.metadata)
+                .build();
     }
 
     @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(downloadUrl)
+                .append(reportUrl)
+                .append(metadata)
+                .toHashCode();
     }
 }

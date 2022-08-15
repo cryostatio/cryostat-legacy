@@ -43,10 +43,13 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
@@ -76,6 +79,9 @@ class RulesPostHandlerTest {
     RulesPostHandler handler;
     @Mock AuthManager authManager;
     @Mock RuleRegistry ruleRegistry;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -90,7 +96,22 @@ class RulesPostHandlerTest {
                                 return (Rule) invocation.getArgument(0);
                             }
                         });
-        this.handler = new RulesPostHandler(authManager, ruleRegistry, gson, logger);
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+        this.handler =
+                new RulesPostHandler(authManager, ruleRegistry, notificationFactory, gson, logger);
     }
 
     @Nested
@@ -252,7 +273,8 @@ class RulesPostHandlerTest {
                                     "description", "AutoRulesIT automated rule",
                                     "eventSpecifier", "template=Continuous,type=TARGET",
                                     "matchExpression",
-                                            "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
+                                            "target.annotations.cryostat.JAVA_MAIN =="
+                                                    + " 'es.andrewazor.demo.Main'",
                                     "archivalPeriodSeconds", val));
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
@@ -276,7 +298,7 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void addsRuleWithFormAndReturnsResponse() {
+        void addsRuleWithFormAndReturnsResponse() throws MatchExpressionValidationException {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
@@ -299,10 +321,29 @@ class RulesPostHandlerTest {
                     response.getHeaders().get(HttpHeaders.LOCATION),
                     Matchers.equalTo("/api/v2/rules/fooRule"));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("fooRule"));
+
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("RuleCreated");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder)
+                    .message(
+                            new Rule.Builder()
+                                    .name("fooRule")
+                                    .description("rule description")
+                                    .matchExpression(
+                                            "target.annotations.cryostat.JAVA_MAIN == 'someTarget'")
+                                    .eventSpecifier("template=Something")
+                                    .archivalPeriodSeconds(60)
+                                    .preservedArchives(5)
+                                    .maxAgeSeconds(60)
+                                    .maxSizeBytes(8192)
+                                    .build());
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
         }
 
         @Test
-        void addsRuleWithJsonAndReturnsResponse() {
+        void addsRuleWithJsonAndReturnsResponse() throws MatchExpressionValidationException {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
@@ -316,7 +357,8 @@ class RulesPostHandlerTest {
                                     "eventSpecifier",
                                     "template=Continuous,type=TARGET",
                                     "matchExpression",
-                                    "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
+                                    "target.annotations.cryostat.JAVA_MAIN =="
+                                            + " 'io.cryostat.Cryostat'",
                                     "archivalPeriodSeconds",
                                     60,
                                     "preservedArchives",
@@ -333,6 +375,26 @@ class RulesPostHandlerTest {
                     response.getHeaders().get(HttpHeaders.LOCATION),
                     Matchers.equalTo("/api/v2/rules/Auto_Rule"));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("Auto_Rule"));
+
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("RuleCreated");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder)
+                    .message(
+                            new Rule.Builder()
+                                    .name("Auto Rule")
+                                    .description("AutoRulesIT automated rule")
+                                    .matchExpression(
+                                            "target.annotations.cryostat.JAVA_MAIN =="
+                                                    + " 'io.cryostat.Cryostat'")
+                                    .eventSpecifier("template=Continuous,type=TARGET")
+                                    .archivalPeriodSeconds(60)
+                                    .preservedArchives(5)
+                                    .maxAgeSeconds(60)
+                                    .maxSizeBytes(8192)
+                                    .build());
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
         }
     }
 }

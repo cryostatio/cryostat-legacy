@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -52,11 +53,9 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class GrafanaDashboardUrlGetHandler implements RequestHandler {
-
-    static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
     private final Environment env;
     private final Gson gson;
@@ -96,11 +95,17 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        String dashboardURL;
+        if (env.hasEnv(Variables.GRAFANA_DASHBOARD_EXT_ENV)) {
+            dashboardURL = env.getEnv(Variables.GRAFANA_DASHBOARD_EXT_ENV);
+        } else if (this.env.hasEnv(Variables.GRAFANA_DASHBOARD_ENV)) {
+            // Fall back to GRAFANA_DASHBOARD_URL if no external URL is provided
+            dashboardURL = env.getEnv(Variables.GRAFANA_DASHBOARD_ENV);
+        } else {
+            throw new HttpException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(gson.toJson(Map.of("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV))));
+                .end(gson.toJson(Map.of("grafanaDashboardUrl", dashboardURL)));
     }
 }

@@ -38,42 +38,38 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-    private static final String RECORDING_DELETION_NOTIFICATION_CATEGORY = "RecordingDeleted";
-
     private final RecordingTargetHelper recordingTargetHelper;
-    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetRecordingDeleteHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             RecordingTargetHelper recordingTargetHelper,
-            NotificationFactory notificationFactory) {
-        super(auth);
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.recordingTargetHelper = recordingTargetHelper;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -107,23 +103,11 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         try {
             recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(RECORDING_DELETION_NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recording",
-                                    recordingName,
-                                    "target",
-                                    connectionDescriptor.getTargetId()))
-                    .build()
-                    .send();
             ctx.response().setStatusCode(200);
             ctx.response().end();
         } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             }
             throw e;
         }

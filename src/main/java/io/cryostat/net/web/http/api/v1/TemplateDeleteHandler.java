@@ -39,12 +39,17 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
+import io.cryostat.core.templates.Template;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -54,7 +59,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -65,9 +70,11 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     TemplateDeleteHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             LocalStorageTemplateService templateService,
-            NotificationFactory notificationFactory) {
-        super(auth);
+            NotificationFactory notificationFactory,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.templateService = templateService;
         this.notificationFactory = notificationFactory;
     }
@@ -101,17 +108,22 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String templateName = ctx.pathParam("templateName");
         try {
-            this.templateService.deleteTemplate(templateName);
+            Optional<Template> opt =
+                    templateService.getTemplates().stream()
+                            .filter(t -> Objects.equals(templateName, t.getName()))
+                            .findFirst();
+            Template t = opt.orElseThrow(() -> new HttpException(404, templateName));
+            templateService.deleteTemplate(t);
             ctx.response().end();
             notificationFactory
                     .createBuilder()
                     .metaCategory(NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("template", templateName))
+                    .message(Map.of("template", t))
                     .build()
                     .send();
         } catch (InvalidEventTemplateException iete) {
-            throw new HttpStatusException(400, iete.getMessage(), iete);
+            throw new HttpException(400, iete.getMessage(), iete);
         }
     }
 }

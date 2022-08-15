@@ -40,7 +40,9 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Optional;
 import java.util.Set;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
@@ -56,7 +58,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.nodes.Document;
@@ -75,13 +77,17 @@ class TargetTemplateGetHandlerTest {
 
     TargetTemplateGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection conn;
     @Mock TemplateService templateService;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetTemplateGetHandler(auth, targetConnectionManager);
+        this.handler =
+                new TargetTemplateGetHandler(
+                        auth, credentialsManager, targetConnectionManager, logger);
     }
 
     @Test
@@ -152,9 +158,9 @@ class TargetTemplateGetHandlerTest {
                             }
                         });
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

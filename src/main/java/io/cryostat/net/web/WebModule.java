@@ -38,7 +38,6 @@
 package io.cryostat.net.web;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -62,7 +61,6 @@ public abstract class WebModule {
     public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
 
     @Provides
-    @Singleton
     static WebServer provideWebServer(
             HttpServer httpServer,
             NetworkConfiguration netConf,
@@ -78,7 +76,7 @@ public abstract class WebModule {
     @Named(WEBSERVER_TEMP_DIR_PATH)
     static Path provideWebServerTempDirPath(FileSystem fs) {
         try {
-            return Files.createTempDirectory("cryostat").toAbsolutePath();
+            return fs.createTempDirectory("cryostat").toAbsolutePath();
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }

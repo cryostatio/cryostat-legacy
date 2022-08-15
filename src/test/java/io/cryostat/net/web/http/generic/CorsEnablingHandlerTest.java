@@ -47,7 +47,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.RoutingContextInternal;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +55,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -71,10 +70,7 @@ class CorsEnablingHandlerTest {
 
     @BeforeEach
     void setup() {
-        Mockito.when(
-                        env.getEnv(
-                                CorsEnablingHandler.ENABLE_CORS_ENV,
-                                CorsEnablingHandler.DEV_ORIGIN))
+        Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
                 .thenReturn(CUSTOM_ORIGIN);
         this.handler = new CorsEnablingHandler(env);
     }
@@ -85,30 +81,42 @@ class CorsEnablingHandlerTest {
     }
 
     @Test
-    void shouldApplyToOtherMethod() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.OTHER));
+    void shouldApplyToNoSpecificMethod() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.nullValue());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void availabilityShouldDependOnEnvVar(boolean available) {
-        Mockito.when(env.hasEnv(CorsEnablingHandler.ENABLE_CORS_ENV)).thenReturn(available);
+        Mockito.when(env.hasEnv("CRYOSTAT_CORS_ORIGIN")).thenReturn(available);
         MatcherAssert.assertThat(handler.isAvailable(), Matchers.equalTo(available));
     }
 
     @Nested
     class HandlingTest {
 
-        @Mock RoutingContext ctx;
+        @Mock RoutingContextInternal ctx;
         @Mock HttpServerRequest req;
         @Mock HttpServerResponse res;
-        @Mock MultiMap headers;
+        MultiMap headers;
 
         @BeforeEach
         void setRequestAndResponse() {
-            Mockito.when(ctx.request()).thenReturn(req);
-            Mockito.when(ctx.response()).thenReturn(res);
-            Mockito.when(req.headers()).thenReturn(headers);
+            headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.lenient().when(ctx.request()).thenReturn(req);
+            Mockito.lenient().when(ctx.response()).thenReturn(res);
+            Mockito.lenient().when(req.headers()).thenReturn(headers);
+            Mockito.lenient().when(res.headers()).thenReturn(headers);
+            Mockito.lenient().when(res.setStatusCode(Mockito.anyInt())).thenReturn(res);
+            Mockito.lenient()
+                    .when(
+                            res.putHeader(
+                                    Mockito.any(CharSequence.class),
+                                    Mockito.any(CharSequence.class)))
+                    .thenReturn(res);
+            Mockito.lenient()
+                    .when(res.putHeader(Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(res);
         }
 
         @Test
@@ -126,10 +134,11 @@ class CorsEnablingHandlerTest {
 
         @Test
         void shouldAddHeadersToCORS() {
-            Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
+            headers.set(HttpHeaders.ORIGIN, CUSTOM_ORIGIN);
 
             handler.handle(ctx);
 
+            Mockito.verify(res).headers();
             Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
             Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, CUSTOM_ORIGIN);
             Mockito.verify(res)
@@ -143,15 +152,12 @@ class CorsEnablingHandlerTest {
         }
 
         @ParameterizedTest
-        @EnumSource(
-                value = HttpMethod.class,
-                names = {"GET", "POST", "PATCH", "OPTIONS", "HEAD", "DELETE"})
-        void shouldRespondOKToOPTIONSWithAcceptedMethod(HttpMethod method) {
+        @ValueSource(strings = {"GET", "POST", "PATCH", "OPTIONS", "HEAD", "DELETE"})
+        void shouldRespondOKToOPTIONSWithAcceptedMethod(String methodName) {
+            HttpMethod method = HttpMethod.valueOf(methodName);
             Mockito.when(req.method()).thenReturn(HttpMethod.OPTIONS);
-            Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
-            Mockito.when(headers.get(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD))
-                    .thenReturn(method.name());
-            Mockito.when(res.setStatusCode(Mockito.anyInt())).thenReturn(res);
+            headers.set(HttpHeaders.ORIGIN, CUSTOM_ORIGIN);
+            headers.set(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, method.name());
 
             handler.handle(ctx);
 
@@ -164,17 +170,18 @@ class CorsEnablingHandlerTest {
             Mockito.verify(res)
                     .putHeader(
                             HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                            "Authorization,X-JMX-Authorization");
-            Mockito.verify(res).setStatusCode(200);
+                            "Authorization,X-JMX-Authorization,Content-Type");
+            Mockito.verify(res).setStatusCode(204);
+            Mockito.verify(res).putHeader(HttpHeaders.CONTENT_LENGTH, "0");
             Mockito.verify(res).end();
             Mockito.verifyNoMoreInteractions(res);
         }
 
         @Test
         void shouldRespond403ForCORSRequestWithInvalidOrigin() {
-            Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn("http://example.com:1234/");
+            headers.set(HttpHeaders.ORIGIN, "http://example.com:1234/");
             handler.handle(ctx);
-            Mockito.verify(ctx).fail(403);
+            Mockito.verify(ctx).fail(Mockito.eq(403), Mockito.any(IllegalStateException.class));
         }
     }
 }

@@ -54,12 +54,21 @@ public class ServiceRef {
 
     private final @SerializedName("connectUrl") URI serviceUri;
     private final String alias;
-    private final Map<String, String> labels = new HashMap<>();
-    private final Annotations annotations = new Annotations();
+    private final Map<String, String> labels;
+    private final Annotations annotations;
 
     public ServiceRef(URI uri, String alias) {
         this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
+        this.labels = new HashMap<>();
+        this.annotations = new Annotations();
+    }
+
+    public ServiceRef(ServiceRef sr) {
+        this.serviceUri = sr.serviceUri;
+        this.alias = sr.alias;
+        this.labels = new HashMap<String, String>(sr.labels);
+        this.annotations = new Annotations(sr.annotations);
     }
 
     public URI getServiceUri() {
@@ -142,8 +151,21 @@ public class ServiceRef {
     }
 
     private static class Annotations {
-        private final Map<String, String> platform = new HashMap<>();
-        private final Map<AnnotationKey, String> cryostat = new EnumMap<>(AnnotationKey.class);
+        private final Map<String, String> platform;
+        private final Map<AnnotationKey, String> cryostat;
+
+        public Annotations() {
+            this.platform = new HashMap<>();
+            this.cryostat = new EnumMap<>(AnnotationKey.class);
+        }
+
+        public Annotations(Annotations a) {
+            this.platform = new HashMap<String, String>(a.platform);
+            this.cryostat =
+                    a.cryostat.isEmpty()
+                            ? (new EnumMap<>(AnnotationKey.class))
+                            : (new EnumMap<AnnotationKey, String>(a.cryostat));
+        }
 
         @Override
         public boolean equals(Object other) {

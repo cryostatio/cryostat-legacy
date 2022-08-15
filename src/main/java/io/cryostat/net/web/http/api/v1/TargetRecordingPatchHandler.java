@@ -42,6 +42,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -49,7 +51,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -61,9 +63,11 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     @Inject
     TargetRecordingPatchHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetRecordingPatchSave patchSave,
-            TargetRecordingPatchStop patchStop) {
-        super(auth);
+            TargetRecordingPatchStop patchStop,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.patchSave = patchSave;
         this.patchStop = patchStop;
     }
@@ -101,7 +105,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
         String mtd = ctx.getBodyAsString();
 
         if (mtd == null) {
-            throw new HttpStatusException(400, "Unsupported null operation");
+            throw new HttpException(400, "Unsupported null operation");
         }
         switch (mtd.toLowerCase()) {
             case "save":
@@ -111,7 +115,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
                 patchStop.handle(ctx, getConnectionDescriptorFromContext(ctx));
                 break;
             default:
-                throw new HttpStatusException(400, "Unsupported operation " + mtd);
+                throw new HttpException(400, "Unsupported operation " + mtd);
         }
     }
 }

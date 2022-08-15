@@ -41,7 +41,9 @@ import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
@@ -50,7 +52,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TemplatePostDeleteIT extends StandardSelfTest {
-    static final String FILE_NAME = "invalidTemplate.xml";
+    static final String INVALID_TEMPLATE_FILE_NAME = "invalidTemplate.xml";
+    static final String SANITIZE_TEMPLATE_FILE_NAME = "TemplateToSanitize.jfc";
     static final String TEMPLATE_NAME = "invalidTemplate";
     static final String MEDIA_TYPE = "application/xml";
     static final String REQ_URL = "/api/v1/templates";
@@ -60,13 +63,15 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File invalidTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        File invalidTemplate =
+                new File(classLoader.getResource(INVALID_TEMPLATE_FILE_NAME).getFile());
         String path = invalidTemplate.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
-                        .attribute("invalidTemplateAttribute", FILE_NAME)
-                        .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
+                        .attribute("invalidTemplateAttribute", INVALID_TEMPLATE_FILE_NAME)
+                        .binaryFileUpload(
+                                TEMPLATE_NAME, INVALID_TEMPLATE_FILE_NAME, path, MEDIA_TYPE);
 
         webClient
                 .post(REQ_URL)
@@ -78,7 +83,7 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
@@ -87,13 +92,15 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File invalidTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        File invalidTemplate =
+                new File(classLoader.getResource(INVALID_TEMPLATE_FILE_NAME).getFile());
         String path = invalidTemplate.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
-                        .attribute("template", FILE_NAME)
-                        .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
+                        .attribute("template", INVALID_TEMPLATE_FILE_NAME)
+                        .binaryFileUpload(
+                                TEMPLATE_NAME, INVALID_TEMPLATE_FILE_NAME, path, MEDIA_TYPE);
 
         webClient
                 .post(REQ_URL)
@@ -105,17 +112,17 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
     @Test
-    public void testDeleteRecordingThrowsOnNonExistentRecording() throws Exception {
+    public void testDeleteRecordingThrowsOnNonExistentTemplate() throws Exception {
 
         CompletableFuture<Void> response = new CompletableFuture<>();
 
         webClient
-                .delete(String.format("%s/%s", REQ_URL, FILE_NAME))
+                .delete(String.format("%s/%s", REQ_URL, INVALID_TEMPLATE_FILE_NAME))
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
@@ -123,7 +130,60 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
+    @Test
+    public void testPostedTemplateIsSanitizedAndCanBeDeleted() throws Exception {
+        try {
+            CompletableFuture<Integer> postResponse = new CompletableFuture<>();
+            ClassLoader classLoader = getClass().getClassLoader();
+            File templateToSanitize =
+                    new File(classLoader.getResource(SANITIZE_TEMPLATE_FILE_NAME).getFile());
+            String path = templateToSanitize.getAbsolutePath();
+            MultipartForm form =
+                    MultipartForm.create()
+                            .attribute("template", SANITIZE_TEMPLATE_FILE_NAME)
+                            .binaryFileUpload(
+                                    "template", SANITIZE_TEMPLATE_FILE_NAME, path, MEDIA_TYPE);
+            webClient
+                    .post(REQ_URL)
+                    .sendMultipartForm(
+                            form,
+                            ar -> {
+                                assertRequestStatus(ar, postResponse);
+                                postResponse.complete(ar.result().statusCode());
+                            });
+            MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(200));
+
+            CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/targets/localhost:0/templates")
+                    .send(
+                            ar -> {
+                                assertRequestStatus(ar, getResponse);
+                                JsonArray response = ar.result().bodyAsJsonArray();
+                                getResponse.complete(response);
+                            });
+            boolean foundSanitizedTemplate = false;
+            for (Object o : getResponse.get()) {
+                JsonObject json = (JsonObject) o;
+                foundSanitizedTemplate =
+                        foundSanitizedTemplate
+                                || json.getString("name").equals("Template_To_Sanitize");
+            }
+            Assertions.assertTrue(foundSanitizedTemplate);
+        } finally {
+            CompletableFuture<Integer> deleteResponse = new CompletableFuture<>();
+            webClient
+                    .delete(REQ_URL + "/Template_To_Sanitize")
+                    .send(
+                            ar -> {
+                                assertRequestStatus(ar, deleteResponse);
+                                deleteResponse.complete(ar.result().statusCode());
+                            });
+            MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(200));
+        }
     }
 }

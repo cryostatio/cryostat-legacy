@@ -37,18 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -57,7 +54,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -74,30 +71,19 @@ class TargetRecordingDeleteHandlerTest {
 
     TargetRecordingDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
+    @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TargetRecordingDeleteHandler(auth, recordingTargetHelper, notificationFactory);
+                new TargetRecordingDeleteHandler(
+                        auth, credentialsManager, recordingTargetHelper, logger);
     }
 
     @Test
@@ -136,14 +122,6 @@ class TargetRecordingDeleteHandlerTest {
 
         handler.handleAuthenticated(ctx);
 
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "someRecording", "target", "someTarget"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
-
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end();
@@ -165,9 +143,9 @@ class TargetRecordingDeleteHandlerTest {
                         new ExecutionException(
                                 new RecordingNotFoundException("someTarget", "someRecording")));
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
 
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }

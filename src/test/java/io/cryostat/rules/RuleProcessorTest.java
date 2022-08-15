@@ -40,9 +40,6 @@ package io.cryostat.rules;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -50,6 +47,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -62,9 +60,12 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
@@ -83,14 +84,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RuleProcessorTest {
 
     RuleProcessor processor;
+    Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
-    @Mock ScheduledExecutorService scheduler;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingTargetHelper recordingTargetHelper;
+    @Mock RecordingMetadataManager metadataManager;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
     @Mock Base32 base32;
@@ -100,35 +102,37 @@ class RuleProcessorTest {
 
     @BeforeEach
     void setup() {
+        this.vertx = MockVertx.vertx();
         this.processor =
                 new RuleProcessor(
+                        vertx,
                         platformClient,
                         registry,
-                        scheduler,
                         credentialsManager,
                         recordingOptionsBuilderFactory,
                         targetConnectionManager,
                         recordingArchiveHelper,
                         recordingTargetHelper,
+                        metadataManager,
                         periodicArchiverFactory,
                         logger,
                         base32);
     }
 
     @Test
-    void testEnableAddsProcessorAsDiscoveryListener() {
+    void testStartAddsProcessorAsDiscoveryListener() {
         Mockito.verifyNoInteractions(platformClient);
 
-        processor.enable();
+        processor.start();
 
         Mockito.verify(platformClient).addTargetDiscoveryListener(processor);
     }
 
     @Test
-    void testDisableRemovesProcessorAsDiscoveryListener() {
+    void testStopRemovesProcessorAsDiscoveryListener() {
         Mockito.verifyNoInteractions(platformClient);
 
-        processor.disable();
+        processor.stop();
 
         Mockito.verify(platformClient).removeTargetDiscoveryListener(processor);
     }
@@ -164,7 +168,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 
@@ -236,7 +240,17 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
-        Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+        ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());
+
+        Mockito.verify(periodicArchiver, Mockito.times(0)).run();
+        handlerCaptor.getValue().handle(1234L);
+        Mockito.verify(periodicArchiver, Mockito.times(1)).run();
+
+        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), handlerCaptor.capture());
+
+        handlerCaptor.getValue().handle(1234L);
+        Mockito.verify(periodicArchiver, Mockito.times(2)).run();
     }
 
     @Test
@@ -259,7 +273,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 
@@ -274,7 +288,9 @@ class RuleProcessorTest {
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
 
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture("unusedPath"));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                Mockito.mock(ArchivedRecordingInfo.class)));
 
         processor.accept(tde);
 
@@ -305,7 +321,7 @@ class RuleProcessorTest {
         ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
-        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+        Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 
@@ -334,18 +350,9 @@ class RuleProcessorTest {
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
-        ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
-        Mockito.when(
-                        scheduler.scheduleAtFixedRate(
-                                Mockito.any(Runnable.class),
-                                Mockito.anyLong(),
-                                Mockito.anyLong(),
-                                Mockito.any(TimeUnit.class)))
-                .thenReturn(task);
-
         processor.accept(tde);
 
-        Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), Mockito.any());
 
         ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
                 ArgumentCaptor.forClass(Function.class);
@@ -358,10 +365,10 @@ class RuleProcessorTest {
                         functionCaptor.capture(),
                         Mockito.any());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
+        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.TIMER_ID);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
-        Mockito.verify(task).cancel(true);
+        Mockito.verify(vertx).cancelTimer(MockVertx.TIMER_ID);
     }
 }

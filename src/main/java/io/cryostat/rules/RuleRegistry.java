@@ -60,15 +60,20 @@ import com.google.gson.Gson;
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
-    private final RuleMatcher ruleMatcher;
+    private final MatchExpressionEvaluator matchExpressionEvaluator;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
     private final Logger logger;
 
-    RuleRegistry(Path rulesDir, RuleMatcher ruleMatcher, FileSystem fs, Gson gson, Logger logger) {
+    RuleRegistry(
+            Path rulesDir,
+            MatchExpressionEvaluator matchExpressionEvaluator,
+            FileSystem fs,
+            Gson gson,
+            Logger logger) {
         this.rulesDir = rulesDir;
-        this.ruleMatcher = ruleMatcher;
+        this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -124,7 +129,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
         try {
-            return ruleMatcher.applies(rule, serviceRef);
+            return matchExpressionEvaluator.applies(rule.getMatchExpression(), serviceRef);
         } catch (ScriptException se) {
             logger.error(se);
             try {

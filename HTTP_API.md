@@ -11,7 +11,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                 |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -80,8 +80,6 @@
     Getting this response means that the header has an invalid format
     or the user has not been successfully authenticated.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl -X POST --header "Authorization: Basic dXNlcjpwYXNzCg==" localhost:8181/api/v1/auth
@@ -99,9 +97,6 @@
 
     ###### response
     `200` - The body is `{"notificationsUrl":"$URL"}`.
-
-    `500` - The URL could not be constructed due to an error with the socket
-    or the host. Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -123,8 +118,6 @@
     ###### response
     `200` - The body is `{"grafanaDashboardUrl":"$URL"}`.
 
-    `500` - Cryostat is not configured with a Grafana dashboard.
-    Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -146,9 +139,6 @@
     ###### response
     `200` - The body is `{"grafanaDatasourceUrl":"$URL"}`
 
-    `500` - Cryostat is not configured with a Grafana datasource.
-    Or there was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/grafana_datasource_url
@@ -159,9 +149,9 @@
 * #### `HealthGetHandler`
 
     ###### synopsis
-    Returns whether or not the Grafana datasource and Grafana dashboard
-    that Cryostat is configured with are running properly.
-    Can also be used to see if Cryostat itself is running properly,
+    Returns whether or not the Grafana datasource, Grafana dashboard, and
+    reports generator components are configured and reachable by Cryostat.
+    Can also be used to see if Cryostat itself is running properly
     by checking for a valid response.
 
     ###### request
@@ -169,22 +159,45 @@
 
     ###### response
     `200` - The body is
-    `{"datasourceAvailable":$DATASOURCE_AVAILABLE,"dashboardAvailable":$DASHBOARD_AVAILABLE}`.
+    ```
+        {
+          "datasourceConfigured": $DATASOURCE_CONFIGURED,
+          "datasourceAvailable": $DATASOURCE_AVAILABLE,
+          "dashboardConfigured": $DASHBOARD_CONFIGURED,
+          "dashboardAvailable": $DASHBOARD_AVAILABLE,
+          "reportsConfigured": $REPORTS_CONFIGURED,
+          "reportsAvailable": $REPORTS_AVAILABLE
+        }
+    ```
+
+    `$DATASOURCE_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
 
     `$DATASOURCE_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana datasource and that datasource responds to a `GET` request
     with a `200`, and it is `false` otherwise.
 
+    `$DASHBOARD_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
+
     `$DASHBOARD_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana dashboard and that dashboard responds to a `GET` request
     with a `200`, and it is `false` otherwise.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `$REPORTS_CONFIGURED` is `true` if the relevant environment variable has
+    been set to a non-empty value.
+
+    `$REPORTS_AVAILABLE` is `true` if Cryostat is configured with a sidecar
+    reports generator and that generator responds to a `GET` request with a
+    `200`. It is also `true` if no reports sidecard is configured, since in this
+    case Cryostat will fall back to forking a subprocess to generate reports. It
+    is only `false` if a sidecar report generator is configured but is not
+    reachable.
 
     ###### example
     ```
     $ curl localhost:8181/health
-    {"dashboardAvailable":false,"datasourceAvailable":false}
+    {"dashboardConfigured":false,"dashboardAvailable":false,"datasourceConfigured":false,"datasourceAvailable":false,"reportsConfigured":false,"reportsAvailable":true}
     ```
 
 
@@ -206,8 +219,6 @@
     does not exist or the path is invalid, the request will not be handled here
     and instead  will be routed to
     [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler).
-
-    `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -236,8 +247,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets
@@ -256,8 +265,6 @@
 
     ###### response
     `200` - The body is the Cryostat web client's `index.html` HTML document.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
@@ -289,9 +296,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `500` - The recording was found but it could not be deleted.
-    Or there was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl -X DELETE localhost:8181/api/v1/recordings/localhost_foo_20200910T213341Z.jfr
@@ -319,9 +323,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `500` - The recording was found but it could not be written to the response.
-    Or there was an unexpected error. The body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/recordings/localhost_foo_20200910T214559Z.jfr --output foo.jfr
@@ -348,8 +349,6 @@
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The archive path where recordings are saved could not be accessed.
     The body is an error message.
@@ -416,8 +415,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `503` - `CRYOSTAT_ARCHIVE_PATH` is an invalid directory.
     The body is an error message.
 
@@ -450,8 +447,6 @@
     the authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
@@ -492,11 +487,6 @@
 
     `404` - The report could not be found. The body is an error message.
 
-    `500` - There was an error generating the report, such as: the report
-    generation consumed too much memory and was aborted; an I/O failure occurred
-    while transferring the report result; or an unexpected error occurred. The
-    body is an error message.
-
     ###### example
     ```
     $ curl localhost:8181/api/v1/reports/localhost_foo_20200911T144545Z.jfr --output report.html
@@ -533,8 +523,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -580,8 +568,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -621,9 +607,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - The recording was found but it could not be written to the
-    response. Or there was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -660,8 +643,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -715,8 +696,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -772,8 +751,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -781,8 +758,6 @@
     **STOP**
 
     `200` - No body.
-
-    `500` - The recording could not be stopped. The body is an error message.
 
     **SAVE**
 
@@ -828,8 +803,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -882,6 +855,8 @@
     If this field is not set, or if it is set to zero,
     the recording will not have a maximum size.
 
+    `metadata` - A JSON object containing metadata about the recording. `metadata` should contain a `labels` object with `"key": "value"` string pairs, e.g. `metadata={"labels":{"reason":"service-outage"}}`.
+
     ###### response
     `201` - The body is a descriptor of the newly started recording, in the form
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`.
@@ -897,8 +872,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -942,8 +915,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
@@ -993,12 +964,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an error generating the report, such as: the report
-    generation consumed too much memory and was aborted; the report generation
-    process was unable to connect to the target; an I/O failure occurred while
-    transferring the report result; or an unexpected error occurred. The body is
-    an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1030,7 +995,7 @@
     `200` - The body is the name of the recording.
 
     `202` - The request was accepted but the recording failed to create
-    because the resultant snapshot was unreadable. This could be due  
+    because the resultant snapshot was unreadable. This could be due
     to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The body is an error message.
@@ -1042,8 +1007,6 @@
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1086,8 +1049,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1129,8 +1090,6 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1164,10 +1123,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
-    or it is set to an invalid path, or there was an unexpected error.
-    The body is an error message.
-
     ###### example
     ```
     $ curl -X DELETE localhost:8181/api/v1/templates/Foo
@@ -1195,10 +1150,6 @@
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
-    or it is set to an invalid path, or there was an unexpected error.
-    The body is an error message.
 
     ###### example
     ```
@@ -1248,6 +1199,12 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
+| Perform batched start/stop/delete operations across target JVMs           | [`GraphQLHandler`](#GraphQLHandler)                                             |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                         |
+| **Target JVMs**                                                           |                                                                                 |
+| Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
+| Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1260,6 +1217,11 @@ The handler-specific descriptions below describe how each handler populates the
 | **Stored Target Credentials**                                             |                                                                                 |
 | Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
 | Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
+| Get a list of targets with stored credentials                             | [`TargetCredentialsGetHandler`](#TargetCredentialsGetHandler)                   |
+| Add stored credentials                                                    | [`CredentialsPostHandler`](#CredentialsPostHandler)                             |
+| Get a list of stored credentials                                          | [`CredentialsGetHandler`](#CredentialsGetHandler)                               |
+| Get a stored credential and its matching targets                          | [`CredentialGetHandler`](#CredentialGetHandler)                                 |
+| Delete stored credentials                                                 | [`CredentialDeleteHandler`](#CredentialDeleteHandler)                         |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
@@ -1292,15 +1254,134 @@ The handler-specific descriptions below describe how each handler populates the
     will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
     authentication scheme that is used.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     ##### example
     ```
     $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
     ```
 
+* #### `GraphQLHandler`
 
+    ##### synopsis
+    Performs various queries using the GraphQL request syntax and response
+    format. See also [GRAPHQL.md](GRAPHQL.md). Requests can query for target
+    JVMs, active and archived recordings, by name, labels, and other properties.
+    A single request can, for example, start identical recordings with one
+    configuration against all target JVMs that have a given label.
+
+    ##### request
+    `POST /api/v2.2/graphql`, the body containing the GraphQL query
+    `GET /api/v2.2/graphql?query=myquery`, where `myquery` is the GraphQL query
+
+    ##### response
+    `200` - The result is the GraphQL query response in JSON format.
+
+    `401` - The user does not have sufficient permissions. The GraphQL endpoint
+    requires a set of permissions representing all possible actions that can be
+    performed by the GraphQL internal interface. Requests may be rejected if the
+    requesting client lacks sufficient permissions, even if the particular
+    request sent does not require such permissions.
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/v2.1/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.
+
+* #### `HealthLivenessGetHandler`
+
+    ###### synopsis
+    Returns whether or not Cryostat itself is running properly
+    by checking for a valid No Content response (since: 2.2.0).
+
+    ###### request
+    `GET /health/liveness`
+
+    ###### response
+    `204` - There is no content to display.
+
+    ###### example
+    ```
+    $ curl localhost:8181/health/liveness
+    ```
+
+### Target JVMs
+
+* #### `TargetsPostHandler`
+
+    ##### synopsis
+    Add a custom target definition to connect to Cryostat.
+
+    ##### request
+    `POST /api/v2/targets`
+
+    The request should be an HTTP form. The
+    attribute `connectUrl` must be specified.
+
+    `connectUrl` - The target connection URL formatted as a JMX service URL or `host:port` pair.
+
+    `alias` - An optional name for the target.
+
+    `annotations.cryostat` - Optional annotations used by [Automated Rules](#RulesPostHandler) for selecting targets. The following annotations can be specified:
+    * annotations.cryostat.HOST
+    * annotations.cryostat.PORT
+    * annotations.cryostat.JAVA_MAIN
+    * annotations.cryostat.PID
+    * annotations.cryostat.START_TIME
+    * annotations.cryostat.NAMESPACE
+    * annotations.cryostat.SERVICE_NAME
+    * annotations.cryostat.CONTAINER_NAME
+    * annotations.cryostat.POD_NAME
+
+    ##### response
+    `200` - The result is a JSON object containing information about the target. The format
+    of the target data is `{"connectUrl":"$CONNECTURL","alias":"$ALIAS","annotations":{"platform": {$PLATFORM_ANNOTATIONS},"cryostat":{$CRYOSTAT_ANNOTATIONS}}`. `$PLATFORM_ANNOTATIONS` are automatically generated.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl -F connectUrl=service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi -F alias=fooTarget -F annotations.cryostat.PORT=9099 -X POST https://0.0.0.0:8181/api/v2/targets
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi","alias":"fooTarget","annotations":{"platform":{},"cryostat":{"PORT":"9099"}}}}}
+    ```
+
+* #### `TargetDeleteHandler`
+
+    ##### synopsis
+    Remove a custom target definition.
+
+    ##### request
+    `DELETE /api/v2/targets/:connectUrl`
+
+    `connectUrl` - The target connection URL formatted as a URL-encoded JMX service URL or `host:port` pair.
+
+    ##### response
+    `200` - The result is empty. The custom target definition was successfully deleted.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The target could not be found. The body is an error message.
+
+    ##### example
+    ```
+    $ curl -X DELETE https://0.0.0.0:8181/api/v2/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9099%2Fjmxrmi
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":null}}
+    ```
 ### Recordings in Target JVMs
 
 * #### `TargetEventsGetHandler`
@@ -1335,8 +1416,6 @@ The handler-specific descriptions below describe how each handler populates the
     `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1377,8 +1456,6 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The reason is an error message.
-
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
@@ -1409,7 +1486,7 @@ The handler-specific descriptions below describe how each handler populates the
     to the same URL as in the `downloadUrl` field.
 
     `202` - The request was accepted but the recording failed to create
-    because the resultant snapshot was unreadable. This could be due  
+    because the resultant snapshot was unreadable. This could be due
     to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The reason is an error message.
@@ -1421,8 +1498,6 @@ The handler-specific descriptions below describe how each handler populates the
     `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but Cryostat does not trust the
@@ -1525,8 +1600,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `415` - The request's `Content-Type` was invalid or unrecognized.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F matchExpression="target.alias == 'io.cryostat.Cryostat'" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
@@ -1560,9 +1633,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `404` - No rule with the given name exists.
 
-    `500`- An unexpected IOException occurred while deleting the rule
-    definition.
-
     ##### example
     ```
     $ curl -X DELETE http://0.0.0.0:8181/api/v2/rules/Test_Rule
@@ -1586,8 +1656,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `404` - No rule with the given name exists.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
@@ -1609,8 +1677,6 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules
@@ -1621,11 +1687,9 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `TargetCredentialsPostHandler`
 
     ##### synopsis
-    Creates stored credentials for a given target. These are used for automated
-    rules processing - if a Target JVM requires JMX authentication, Cryostat
-    will use stored credentials when attempting to open JMX connections to the
-    target. These are retained in Cryostat's memory only and not persisted to
-    disk.
+    Creates stored credentials for a given target. When an API request is made
+    that requires Cryostat to connect to a JVM target with JMX authentication
+    enabled, the credentials stored using this endpoint will be used.
 
     ##### request
     `POST /api/v2/targets/:targetId/credentials`
@@ -1643,8 +1707,6 @@ The handler-specific descriptions below describe how each handler populates the
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
-
-    `500` - There was an unexpected error.
 
     ##### example
     ```
@@ -1670,11 +1732,137 @@ The handler-specific descriptions below describe how each handler populates the
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error.
-
     ##### example
     ```
     $ curl -X DELETE http://0.0.0.0:8181/api/v2/targets/localhost/credentials
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+* #### `TargetCredentialsGetHandler`
+
+    ##### synopsis
+    Lists targets with stored credentials.
+
+    ##### request
+    `GET /api/v2.1/credentials`
+
+    ##### response
+    `200` - The result is a list of target objects.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl -X GET http://0.0.0.0:8181/api/v2.1/credentials
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9091","JAVA_MAIN":"io.cryostat.Cryostat"}}},{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9094","JAVA_MAIN":"es.andrewazor.demo.Main"}}}]}}
+    ```
+
+* #### `CredentialsPostHandler`
+
+    ##### synopsis
+    Creates stored credentials for a target or targets. When an API request is
+    made that requires Cryostat to connect to a JVM target with JMX
+    authentication enabled, the credentials stored using this endpoint will be
+    used.
+
+    ##### request
+    `POST /api/v2.2/credentials`
+
+    The request should be an HTTP form with the attributes `"matchExpression"`,
+    `"username"`, and `"password"`. All are required. For more details on
+    `matchExpression`, see [`RulesPostHandler`](#RulesPostHandler).
+
+    ##### response
+    `201` - The result is null. The request was processed successfully and the
+    credentials were stored.
+
+    `400` - `"username"` or `"password"` were not provided, or
+    `"matchExpression"` was not provided or was invalid
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl -F matchExpression="target.alias == \"myservice\"" -F username=myuser -F password=mypassword http://0.0.0.0:8181/api/v2.2/credentials
+    {"meta":{"type":"text/plain","status":"Created"},"data":{"result":null}}
+    ```
+
+* #### `CredentialsGetHandler`
+
+    ##### synopsis
+    List stored credentials. Only the `id` and `matchExpression` are provided
+    here.
+
+    ##### request
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is a list of stored credentials.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2.2/credentials
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"id":1,"matchExpression":"target.alias == \"myservice\""}]}}
+    ```
+
+* #### `CredentialGetHandler`
+
+    ##### synopsis
+    Get stored credentials. The `id` and `matchExpression` are included, and the
+    list of known targets matching the `matchExpression` will be resolved.
+
+    ##### request
+    `GET /api/v2.2/credentials/:id`
+
+    `id` - the numeric ID of the credential, as listed by
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is a credentials object.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No stored credentials found for the provided `id`.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2.2/credentials/1
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"matchExpression":"target.alias == \"myservice\"","targets":[]}}}
+    ```
+
+* #### `CredentialDeleteHandler`
+
+    ##### synopsis
+    Delete stored credentials.
+
+    ##### request
+    `DELETE /api/v2.2/credentials/:id`
+
+    `id` - the numeric ID of the credential, as listed by
+    `GET /api/v2.2/credentials`
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were deleted.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No stored credentials found for the provided `id`.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2.2/credentials/1
     {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
     ```
 
@@ -1698,8 +1886,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     `409` - A certificate with the same filename already exists in the truststore directory. The reason includes the path where the file already exists.
 
-    `500` - The `SSL_TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The reason is an error message.
-
     ###### example
     ```
     $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
@@ -1712,22 +1898,71 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Miscellaneous**                                                         |                                                                                 |
-| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| **Recordings in Target JVMs**                                             |                                                                                 |
+| Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
+| **Recordings in archive**                                                 |                                                                                 |
+| Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
-### Miscellaneous
+### Recordings in Target JVMs
+* #### `TargetRecordingMetadataLabelsPostHandler`
 
-* #### `DiscoveryGetHandler`
+    ##### synopsis
+    Add metadata labels for a recording in a target JVM. Overwrites any existing labels for that recording.
 
-    ###### synopsis
-    Queries the platform client(s) for the discoverable targets and constructs a
-    hierarchical tree view of the full deployment environment with targets
-    belonging to ex. Pods, belonging to Deployments, etc.
+    ##### request
+    `POST /api/v2/targets/:targetId/recordings/:recordingName/metadata/labels`
 
-    ###### request
-    `GET /api/beta/discovery`
+    The request should be a JSON document with the `labels` specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
 
-    ###### response
-    `200` - The result is the path of the saved file in the server's storage.
+    `recordingName` - The name of the recording to attach labels to.
 
-    `401` - The user does not have sufficient permissions.
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    ##### response
+    `200` - The result contains the updated labels associated with the target recording.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The recording could not be found. The body is an error message.
+
+    ##### example
+    ```
+    $ curl --data "{\"myKey\":\"myValue\",\"another-key\":\"another-value\"}" http://localhost:8181/api/beta/targets/localhost:0/recordings/myRecording/metadata/labels
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"myValue","another-key":"another-value"}}}
+    ```
+
+### Recordings in Archives
+* #### `RecordingMetadataLabelsPostHandler`
+
+    ##### synopsis
+    Create metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording.
+
+    ##### request
+    `POST /api/v2/recordings/:recordingName/metadata/labels`
+
+    The request should be a JSON document with the labels specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
+
+    `recordingName` - The name of the recording to attach labels to.
+
+    ##### response
+    `200` - The result contains the updated labels associated with the archived recording.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `404` - The recording could not be found. The body is an error message.
+
+    ##### example
+    ```
+    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"updatedValue","another-key":"another-updated-value","new-key":"new-value"}}}
+    ```

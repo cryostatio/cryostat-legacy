@@ -121,7 +121,9 @@ class TargetSnapshotPostHandler
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
-                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+                    recordingTargetHelper
+                            .verifySnapshot(connectionDescriptor, snapshotDescriptor)
+                            .get();
         } catch (ExecutionException e) {
             handleExecutionException(e);
         }
@@ -131,7 +133,10 @@ class TargetSnapshotPostHandler
                     .statusCode(202)
                     .statusMessage(
                             String.format(
-                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    "Snapshot %s failed to create: The resultant recording was"
+                                        + " unreadable for some reason, likely due to a lack of"
+                                        + " Active, non-Snapshot source recordings to take event"
+                                        + " data from.",
                                     snapshotName))
                     .body(null);
         } else {

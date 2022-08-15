@@ -18,7 +18,7 @@ cluster as well as exposing the Cryostat API as Kubernetes Custom Resources.
 
 * [cryostat-web](https://github.com/cryostatio/cryostat-web) : the React
 frontend included as a submodule in Cryostat and built into
-Cryostat's (non-minimal mode) OCI images.
+Cryostat's (non-headless mode) OCI images.
 
 * [JDK Mission Control](https://github.com/openjdk/jmc) for the original JDK
 Mission Control, which is the desktop application complement to JFR. Some parts
@@ -29,7 +29,7 @@ Cryostat currently implements.
 ## REQUIREMENTS
 Build Requirements:
 - Git
-- JDK11+
+- JDK17+
 - Maven 3+
 - Podman 2.0+
 
@@ -56,7 +56,7 @@ the `web-client` frontend for hot-reload development, see
 
 ### Build and push to local podman image registry
 * `mvn package`
-* Run `mvn -Dcryostat.minimal=true clean package` to exclude web-client assets.
+* Run `mvn -Dheadless=true clean package` to exclude web-client assets.
 The `clean` phase should always be specified here, or else previously-generated
 client assets will still be included into the built image.
 * For other OCI builders, use the `imageBuilder` Maven property. For example, to
@@ -82,32 +82,43 @@ exec:exec@wait-for-container failsafe:integration-test
 exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
 exec:exec@destroy-pod`
 * or `bash repeated-integration-tests.sh 1`.
+* To run selected integration tests without rebuilding, append the name(s) of your itest class(es) as an argument to `repeated-integration-tests.sh`, e.g. `bash repeated-integration-tests.bash 1 AutoRulesIT,RecordingWorkflowIT`. Note that modifying a test file does not require a rebuild.
 
 ## RUN
 
 ### Run on Kubernetes/Openshift
 * See the [cryostat-operator](https://github.com/cryostatio/cryostat-operator)
 
-### Run on local podman
+### Run on local podman*
 * `run.sh`
 
-### Run on local podman with Grafana, jfr-datasource and demo application
+### Run on local podman with Grafana, jfr-datasource and demo application*
 * `smoketest.sh`
+
+*To run on local podman, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) should be enabled.
+This allows resource configuration for any rootless containers running on podman. To ensure podman works with cgroups v2, follow these [instructions](https://podman.io/blogs/2019/10/29/podman-crun-f31.html).
+
+*Requires `xpath` to be available on your `$PATH` - ex. `dnf install perl-XML-XPath`.
+
+Note: If your podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it to crun as recommended in the instructions, since this version of runc supports cgroups v2. The article refers to an older version of runc.
 
 ## CONFIGURATION
 
-Cryostat can be configured via the following environment variables
+Cryostat can be configured via the following environment variables:
 
 #### Configuration for cryostat
 
-* `CRYOSTAT_WEB_HOST`: the hostname used by the cryostat web server
-* `CRYOSTAT_WEB_PORT`: the internal port used by the cryostat web server
-* `CRYOSTAT_EXT_WEB_PORT`: the external port used by the cryostat web server
-* `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance
-* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of webscoket client connections allowed (minimum 1, maximum 64, default 2)
-* `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`.
+* `CRYOSTAT_WEB_HOST`: the hostname used by the cryostat web server. Defaults to reverse-DNS resolving the host machine's hostname.
+* `CRYOSTAT_WEB_PORT`: the internal port used by the cryostat web server. Defaults to 8181.
+* `CRYOSTAT_EXT_WEB_PORT`: the external port used by the cryostat web server. Defaults to be equal to `CRYOSTAT_WEB_PORT`.
+* `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance. Defaults to the empty string, which disables CORS.
+* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of websocket client connections allowed (minimum 1, maximum `Integer.MAX_VALUE`, default `Integer.MAX_VALUE`)
+* `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`. Defaults to an AuthManager corresponding to the selected deployment platform, whether explicit or automatic (see below).
 * `CRYOSTAT_PLATFORM`: the platform client used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
-* `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory (default `/opt/cryostat.d/conf.d`)
+* `CRYOSTAT_ENABLE_JDP_BROADCAST`: enable the Cryostat JVM to broadcast itself via JDP (Java Discovery Protocol). Defaults to `true`.
+* `CRYOSTAT_JDP_ADDRESS`: the JDP multicast address to send discovery packets. Defaults to `224.0.23.178`.
+* `CRYOSTAT_JDP_PORT`: the JDP multicast port to send discovery packets. Defaults to `7095`.
+* `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory. Defaults to `/opt/cryostat.d/conf.d`.
 
 #### Configuration for Automated Analysis Reports
 

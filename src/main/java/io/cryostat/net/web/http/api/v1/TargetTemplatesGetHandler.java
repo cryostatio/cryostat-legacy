@@ -44,6 +44,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
@@ -63,7 +65,9 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     public static final Template ALL_EVENTS_TEMPLATE =
             new Template(
                     "ALL",
-                    "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing Cryostat's own capabilities.",
+                    "Enable all available events in the target JVM, with default option values."
+                            + " This will be very expensive and is intended primarily for testing"
+                            + " Cryostat's own capabilities.",
                     "Cryostat",
                     TemplateType.TARGET);
 
@@ -72,8 +76,12 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     TargetTemplatesGetHandler(
-            AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            TargetConnectionManager connectionManager,
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.connectionManager = connectionManager;
         this.gson = gson;
     }

@@ -56,7 +56,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -124,7 +123,6 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
                 .body(new ApiResponse(resourceFilePath, serializedHandlers));
     }
 
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class ApiResponse {
         @SerializedName("overview")
         final URL resourceFilePath;
@@ -138,7 +136,6 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
         }
     }
 
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class SerializedHandler {
         @SerializedName("version")
         final ApiVersion apiVersion;

@@ -42,9 +42,11 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
@@ -56,7 +58,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -72,12 +74,14 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock ReportService reportService;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new ReportGetHandler(authManager, reportService, logger);
+        this.handler =
+                new ReportGetHandler(authManager, credentialsManager, reportService, 30, logger);
     }
 
     @Test
@@ -108,8 +112,8 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldBeOrdered() {
-        Assertions.assertTrue(handler.isOrdered());
+    void shouldNotBeOrdered() {
+        Assertions.assertFalse(handler.isOrdered());
     }
 
     @Test
@@ -133,12 +137,46 @@ class ReportGetHandlerTest {
         Mockito.when(file.length()).thenReturn(12345L);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString()))
+        when(ctx.queryParam("filter")).thenReturn(List.of());
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(fakePath));
 
         handler.handle(ctx);
 
-        Mockito.verify(reportService).get("someRecording");
+        Mockito.verify(reportService).get("someRecording", "");
+        Mockito.verify(resp).sendFile(fakePath.toString());
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
+    }
+
+    @Test
+    void shouldRespondBySendingFileFiltered() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+
+        Path fakePath = Mockito.mock(Path.class);
+        Mockito.when(fakePath.toAbsolutePath()).thenReturn(fakePath);
+        Mockito.when(fakePath.toString()).thenReturn("/some/fake/path.html");
+        File file = Mockito.mock(File.class);
+        Mockito.when(fakePath.toFile()).thenReturn(file);
+        Mockito.when(file.length()).thenReturn(12345L);
+
+        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+        handler.handle(ctx);
+
+        Mockito.verify(reportService).get("someRecording", "someFilter");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -158,15 +196,14 @@ class ReportGetHandlerTest {
                 .thenReturn(resp);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new RecordingNotFoundException(null, "someRecording")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-        Mockito.verify(reportService).get("someRecording");
+        Mockito.verify(reportService).get("someRecording", "");
     }
 }

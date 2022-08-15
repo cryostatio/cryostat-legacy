@@ -47,18 +47,47 @@ import javax.inject.Singleton;
 
 import io.cryostat.net.security.CertificateValidator;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.v2.graph.GraphModule;
 
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
-@Module
+@Module(includes = {GraphModule.class})
 public abstract class HttpApiV2Module {
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
+            ProbeTemplateUploadBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
 
     @Binds
     @IntoSet
     abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindLogoutPostHandler(LogoutPostHandler handler);
 
     @Binds
     @IntoSet
@@ -148,4 +177,60 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindRulesPostBodyHandler(RulesPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetCredentialsGetHandler(TargetCredentialsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsGetHandler(CredentialsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialGetHandler(CredentialGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialDeleteHandler(CredentialDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostHandler(CredentialsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostBodyHandler(CredentialsPostBodyHandler handler);
 }

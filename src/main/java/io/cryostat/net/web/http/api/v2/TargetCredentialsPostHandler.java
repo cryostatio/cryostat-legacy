@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,10 +47,12 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -60,13 +63,19 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = "targets/:targetId/credentials";
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     @Inject
     TargetCredentialsPostHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Logger logger) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
@@ -112,7 +121,9 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String targetId = params.getPathParams().get("targetId");
+        String targetId =
+                CredentialsManager.targetIdToMatchExpression(
+                        params.getPathParams().get("targetId"));
         String username = params.getFormAttributes().get("username");
         String password = params.getFormAttributes().get("password");
 
@@ -130,6 +141,16 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
         try {
             this.credentialsManager.addCredentials(targetId, new Credentials(username, password));
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("TargetCredentialsStored")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("target", targetId))
+                    .build()
+                    .send();
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(400, e);
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }

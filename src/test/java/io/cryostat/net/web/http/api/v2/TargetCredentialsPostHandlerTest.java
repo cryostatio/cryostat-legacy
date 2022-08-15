@@ -45,6 +45,8 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -73,11 +75,31 @@ class TargetCredentialsPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetCredentialsPostHandler(auth, credentialsManager, gson, logger);
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+
+        this.handler =
+                new TargetCredentialsPostHandler(
+                        auth, credentialsManager, notificationFactory, gson, logger);
     }
 
     @Nested
@@ -208,6 +230,7 @@ class TargetCredentialsPostHandlerTest {
         @Test
         void shouldDelegateToCredentialsManager() throws Exception {
             String targetId = "fooTarget";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             String username = "adminuser";
             String password = "abc123";
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
@@ -221,7 +244,14 @@ class TargetCredentialsPostHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.nullValue());
             Mockito.verify(credentialsManager)
-                    .addCredentials(targetId, new Credentials(username, password));
+                    .addCredentials(matchExpression, new Credentials(username, password));
+
+            Mockito.verify(notificationFactory).createBuilder();
+            Mockito.verify(notificationBuilder).metaCategory("TargetCredentialsStored");
+            Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+            Mockito.verify(notificationBuilder).message(Map.of("target", matchExpression));
+            Mockito.verify(notificationBuilder).build();
+            Mockito.verify(notification).send();
         }
 
         @Test

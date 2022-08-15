@@ -41,6 +41,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 import jdk.jfr.Category;
@@ -101,6 +102,10 @@ class WsClient implements AutoCloseable {
 
     SocketAddress getRemoteAddress() {
         return sws.remoteAddress();
+    }
+
+    void ping() {
+        sws.writePing(Buffer.buffer("ping"));
     }
 
     @Override

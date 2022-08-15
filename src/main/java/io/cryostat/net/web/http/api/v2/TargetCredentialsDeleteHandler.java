@@ -37,17 +37,21 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -57,12 +61,17 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = TargetCredentialsPostHandler.PATH;
 
     private final CredentialsManager credentialsManager;
+    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetCredentialsDeleteHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            NotificationFactory notificationFactory,
+            Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -107,10 +116,25 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String targetId = params.getPathParams().get("targetId");
+        String targetId =
+                CredentialsManager.targetIdToMatchExpression(
+                        params.getPathParams().get("targetId"));
         try {
-            boolean status = this.credentialsManager.removeCredentials(targetId);
-            return new IntermediateResponse<Void>().statusCode(status ? 200 : 404);
+            this.credentialsManager.removeCredentials(targetId);
+
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory("TargetCredentialsDeleted")
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("target", targetId))
+                    .build()
+                    .send();
+
+            return new IntermediateResponse<Void>().statusCode(200);
+        } catch (FileNotFoundException e) {
+            return new IntermediateResponse<Void>().statusCode(404);
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(500, e);
         } catch (IOException e) {
             throw new ApiException(
                     500, "IOException occurred while clearing persisted credentials", e);

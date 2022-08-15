@@ -40,8 +40,8 @@ package io.cryostat.net.web.http.api.v2;
 import static org.mockito.Mockito.when;
 
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.rmi.ConnectIOException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -94,7 +94,7 @@ class AbstractV2RequestHandlerTest {
     void setup() {
         Mockito.lenient().when(ctx.pathParams()).thenReturn(pathParams);
         Mockito.lenient().when(ctx.queryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.lenient().when(ctx.fileUploads()).thenReturn(Collections.emptySet());
+        Mockito.lenient().when(ctx.fileUploads()).thenReturn(Set.of());
 
         this.headers = MultiMap.caseInsensitiveMultiMap();
 
@@ -127,6 +127,28 @@ class AbstractV2RequestHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+    }
+
+    @Test
+    void shouldSendRawResponseForNonJsonPlaintextMimetype() {
+        AbstractV2RequestHandler<String> handler = new RawResponseHandler(auth, gson);
+
+        handler.handle(ctx);
+
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/jfc+xml");
+        Mockito.verify(resp).end("<xml></xml>");
+    }
+
+    @Test
+    void shouldSendFileResponseIfHandlerProvidesFileLocation() {
+        AbstractV2RequestHandler<Path> handler = new FileResponseHandler(auth, gson);
+
+        handler.handle(ctx);
+
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        Mockito.verify(resp).sendFile("/my/file.html");
     }
 
     @Nested
@@ -399,6 +421,88 @@ class AbstractV2RequestHandlerTest {
         public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             desc = getConnectionDescriptorFromParams(params);
             return new IntermediateResponse<String>().body("");
+        }
+    }
+
+    static class FileResponseHandler extends AbstractV2RequestHandler<Path> {
+        FileResponseHandler(AuthManager auth, Gson gson) {
+            super(auth, gson);
+        }
+
+        @Override
+        public ApiVersion apiVersion() {
+            return ApiVersion.V2;
+        }
+
+        @Override
+        public boolean requiresAuthentication() {
+            return false;
+        }
+
+        @Override
+        public String path() {
+            return "/my/path";
+        }
+
+        @Override
+        public HttpMethod httpMethod() {
+            return HttpMethod.GET;
+        }
+
+        @Override
+        public Set<ResourceAction> resourceActions() {
+            return Set.of();
+        }
+
+        @Override
+        public HttpMimeType mimeType() {
+            return HttpMimeType.HTML;
+        }
+
+        @Override
+        public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
+            return new IntermediateResponse<Path>().body(Path.of("/my/file.html"));
+        }
+    }
+
+    static class RawResponseHandler extends AbstractV2RequestHandler<String> {
+        RawResponseHandler(AuthManager auth, Gson gson) {
+            super(auth, gson);
+        }
+
+        @Override
+        public ApiVersion apiVersion() {
+            return ApiVersion.V2;
+        }
+
+        @Override
+        public boolean requiresAuthentication() {
+            return false;
+        }
+
+        @Override
+        public String path() {
+            return "/another/path";
+        }
+
+        @Override
+        public HttpMethod httpMethod() {
+            return HttpMethod.GET;
+        }
+
+        @Override
+        public Set<ResourceAction> resourceActions() {
+            return Set.of();
+        }
+
+        @Override
+        public HttpMimeType mimeType() {
+            return HttpMimeType.JFC;
+        }
+
+        @Override
+        public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+            return new IntermediateResponse<String>().body("<xml></xml>");
         }
     }
 }

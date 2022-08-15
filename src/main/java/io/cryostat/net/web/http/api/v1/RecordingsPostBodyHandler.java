@@ -46,6 +46,8 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -63,9 +65,11 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     RecordingsPostBodyHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            FileSystem fs) {
-        super(auth);
+            FileSystem fs,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         Path fileUploads = recordingsPath.resolve("file-uploads");
         this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
         try {

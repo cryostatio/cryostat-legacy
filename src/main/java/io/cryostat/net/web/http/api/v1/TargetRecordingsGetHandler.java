@@ -47,6 +47,8 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -55,6 +57,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -65,17 +68,22 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager connectionManager;
     private final Provider<WebServer> webServerProvider;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Gson gson;
 
     @Inject
     TargetRecordingsGetHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
             Provider<WebServer> webServerProvider,
-            Gson gson) {
-        super(auth);
+            RecordingMetadataManager recordingMetadataManager,
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.connectionManager = connectionManager;
         this.webServerProvider = webServerProvider;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.gson = gson;
     }
 
@@ -121,8 +129,11 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                 desc,
                                                 webServer.getDownloadURL(
                                                         connection, desc.getName()),
-                                                webServer.getReportURL(
-                                                        connection, desc.getName())));
+                                                webServer.getReportURL(connection, desc.getName()),
+                                                recordingMetadataManager.getMetadata(
+                                                        getConnectionDescriptorFromContext(ctx)
+                                                                .getTargetId(),
+                                                        desc.getName())));
                             }
                             return list;
                         });

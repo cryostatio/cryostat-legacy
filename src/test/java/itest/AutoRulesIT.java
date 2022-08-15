@@ -51,7 +51,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
@@ -121,6 +121,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("description", "AutoRulesIT automated rule");
         form.add("eventSpecifier", "template=Continuous,type=TARGET");
         form.add("archivalPeriodSeconds", "60");
+        form.add("initialDelaySeconds", "55");
         form.add("preservedArchives", "3");
         webClient
                 .post("/api/v2/rules")
@@ -171,6 +172,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
                                 "archivalPeriodSeconds",
                                 60,
+                                "initialDelaySeconds",
+                                55,
                                 "preservedArchives",
                                 3,
                                 "maxAgeSeconds",
@@ -344,6 +347,12 @@ class AutoRulesIT extends ExternalTargetsTest {
                                                     "Created"),
                                     "data", Map.of("result", "Regex_Rule")));
             MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+
+            // give rule some time to process. Five seconds should be massively overkill, but better
+            // to give extra time and have a reliable test than try to time it quickly and have a
+            // flakey test. Even better would be to listen for the WebSocket notification that
+            // confirms that the recordings created by the rule have been created and then continue
+            Thread.sleep(5_000);
 
             // Assert rule applied to both targets
             CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
@@ -550,7 +559,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 
@@ -568,7 +577,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 }

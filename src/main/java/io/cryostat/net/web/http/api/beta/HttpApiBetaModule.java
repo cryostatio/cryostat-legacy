@@ -47,7 +47,8 @@ import dagger.multibindings.IntoSet;
 public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
+            RecordingMetadataLabelsPostHandler handler);
 
     @Binds
     @IntoSet
@@ -80,25 +81,16 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
+    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
+        TargetRecordingMetadataLabelsPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
+            RecordingMetadataLabelsPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
+            TargetRecordingMetadataLabelsPostBodyHandler handler);
 }

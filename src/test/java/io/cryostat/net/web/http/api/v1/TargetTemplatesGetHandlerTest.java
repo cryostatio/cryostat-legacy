@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -75,13 +76,16 @@ class TargetTemplatesGetHandlerTest {
 
     TargetTemplatesGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager connectionManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetTemplatesGetHandler(auth, connectionManager, gson);
+        this.handler =
+                new TargetTemplatesGetHandler(
+                        auth, credentialsManager, connectionManager, gson, logger);
     }
 
     @Test

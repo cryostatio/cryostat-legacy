@@ -38,15 +38,20 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -57,18 +62,26 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     protected final ReportService reportService;
+    protected final long reportGenerationTimeoutSeconds;
     protected final Logger logger;
 
     @Inject
-    TargetReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
-        super(auth);
+    TargetReportGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.reportService = reportService;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
         this.logger = logger;
     }
 
@@ -109,35 +122,41 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
             ctx.response()
                     .end(
                             reportService
-                                    .get(getConnectionDescriptorFromContext(ctx), recordingName)
-                                    .get());
+                                    .get(
+                                            getConnectionDescriptorFromContext(ctx),
+                                            recordingName,
+                                            rawFilter)
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
             if (targetRecordingNotFound(rootCause)) {
-                throw new HttpStatusException(404, ee);
+                throw new HttpException(404, ee);
             }
             throw ee;
         }
     }
 
+    // TODO this needs to also handle the case where sidecar report generator container responds 404
     private boolean targetRecordingNotFound(Exception rootCause) {
         if (rootCause instanceof RecordingNotFoundException) {
             return true;
         }
         boolean isReportGenerationException =
-                rootCause instanceof SubprocessReportGenerator.ReportGenerationException;
+                rootCause instanceof SubprocessReportGenerator.SubprocessReportGenerationException;
         if (!isReportGenerationException) {
             return false;
         }
-        SubprocessReportGenerator.ReportGenerationException generationException =
-                (SubprocessReportGenerator.ReportGenerationException) rootCause;
+        SubprocessReportGenerator.SubprocessReportGenerationException generationException =
+                (SubprocessReportGenerator.SubprocessReportGenerationException) rootCause;
         boolean isTargetConnectionFailure =
                 generationException.getStatus()
                         == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;

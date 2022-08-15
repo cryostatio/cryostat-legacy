@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -53,7 +55,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -69,14 +71,18 @@ class RecordingGetHandlerTest {
 
     RecordingGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, recordingArchiveHelper);
+        this.handler =
+                new RecordingGetHandler(
+                        authManager, credentialsManager, recordingArchiveHelper, logger);
     }
 
     @Test
@@ -116,8 +122,7 @@ class RecordingGetHandlerTest {
         Mockito.when(e.getCause())
                 .thenReturn(new RecordingNotFoundException("archives", recordingName));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 

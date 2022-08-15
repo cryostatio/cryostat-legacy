@@ -128,8 +128,12 @@ class HealthGetHandlerTest {
                 Matchers.equalTo(
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", false,
                                 "dashboardAvailable", false,
-                                "datasourceAvailable", false)));
+                                "datasourceConfigured", false,
+                                "datasourceAvailable", false,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -183,8 +187,12 @@ class HealthGetHandlerTest {
                 Matchers.equalTo(
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", false,
                                 "dashboardAvailable", false,
-                                "datasourceAvailable", true)));
+                                "datasourceConfigured", true,
+                                "datasourceAvailable", true,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -238,8 +246,130 @@ class HealthGetHandlerTest {
                 Matchers.equalTo(
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", true,
                                 "dashboardAvailable", true,
-                                "datasourceAvailable", false)));
+                                "datasourceConfigured", false,
+                                "datasourceAvailable", false,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
+    }
+
+    @Test
+    void shouldHandleHealthRequestWithConfiguredButUnhealthyService() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
+
+        String url = "http://hostname:1/";
+        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
+        when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
+        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
+
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.when(req.port(Mockito.anyInt())).thenReturn(req);
+        Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
+        Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.statusCode()).thenReturn(500);
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        handler.handle(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Object> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", true,
+                                "dashboardAvailable", false,
+                                "datasourceConfigured", false,
+                                "datasourceAvailable", false,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
+    }
+
+    @Test
+    void shouldHandleHealthRequestWithConfiguredButUnreachableService() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
+
+        String url = "http://hostname:1/";
+        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
+        when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
+        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
+
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        Mockito.when(webClient.get(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.when(req.port(Mockito.anyInt())).thenReturn(req);
+        Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
+        Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.failed()).thenReturn(true);
+                                Mockito.when(asyncResult.cause())
+                                        .thenReturn(new Exception("test failure: unreachable"));
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        handler.handle(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Object> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", true,
+                                "dashboardAvailable", false,
+                                "datasourceConfigured", false,
+                                "datasourceAvailable", false,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -292,7 +422,11 @@ class HealthGetHandlerTest {
                 Matchers.equalTo(
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
+                                "dashboardConfigured", true,
                                 "dashboardAvailable", true,
-                                "datasourceAvailable", false)));
+                                "datasourceConfigured", false,
+                                "datasourceAvailable", false,
+                                "reportsConfigured", false,
+                                "reportsAvailable", true)));
     }
 }

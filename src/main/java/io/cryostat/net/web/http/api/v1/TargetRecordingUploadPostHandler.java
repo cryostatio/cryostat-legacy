@@ -40,16 +40,20 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -58,17 +62,17 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
@@ -76,20 +80,24 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
 
     private final Environment env;
     private final TargetConnectionManager targetConnectionManager;
+    private final long httpTimeoutSeconds;
     private final WebClient webClient;
     private final FileSystem fs;
-    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
 
     @Inject
     TargetRecordingUploadPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Environment env,
             TargetConnectionManager targetConnectionManager,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
-            FileSystem fs) {
-        super(auth);
+            FileSystem fs,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.env = env;
         this.targetConnectionManager = targetConnectionManager;
+        this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.fs = fs;
     }
@@ -122,38 +130,38 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
-            URL uploadUrl = new URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+            URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
-                                GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
+                                Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
             }
             ResponseMessage response = doPost(ctx, uploadUrl);
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         512,
                         String.format(
-                                "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
+                                "Invalid response from datasource server; datasource URL may be"
+                                    + " incorrect, or server may not be functioning properly: %d"
+                                    + " %s",
                                 response.statusCode, response.statusMessage));
             }
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
-            throw new HttpStatusException(501, e);
+            throw new HttpException(501, e);
         } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
+            throw new HttpException(404, e);
         }
     }
 
-    // FindBugs thinks the recordingPath or its properties is null somehow
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private ResponseMessage doPost(RoutingContext ctx, URL uploadUrl) throws Exception {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
@@ -179,7 +187,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         try {
             webClient
                     .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
-                    .timeout(30_000L)
+                    .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {
@@ -208,15 +216,14 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 .map(
                         descriptor -> {
                             try {
-                                // FIXME extract createTempFile wrapper into FileSystem
-                                Path tempFile = Files.createTempFile(null, null);
+                                Path tempFile = fs.createTempFile(null, null);
                                 try (InputStream stream =
                                         connection.getService().openStream(descriptor, false)) {
                                     fs.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
                                 }
                                 return tempFile;
                             } catch (Exception e) {
-                                throw new HttpStatusException(500, e);
+                                throw new HttpException(500, e);
                             }
                         });
     }

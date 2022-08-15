@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -55,15 +57,19 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingGetHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
+    RecordingGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
@@ -105,7 +111,7 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().sendFile(archivedRecording.toString());
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             }
             throw e;
         }

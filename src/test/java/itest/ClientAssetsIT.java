@@ -52,7 +52,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
-@DisabledIfSystemProperty(named = "isMinimalBuild", matches = "true")
+@DisabledIfSystemProperty(named = "isHeadlessBuild", matches = "true")
 public class ClientAssetsIT extends StandardSelfTest {
 
     static File file;

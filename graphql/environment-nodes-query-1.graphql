@@ -1,0 +1,15 @@
+query {
+    environmentNodes(filter: { name: "JDP" }) {
+        descendantTargets {
+            doStartRecording(recording: {
+                name: "foo",
+                template: "Profiling",
+                templateType: "TARGET",
+                duration: 30
+                }) {
+                    name
+                    state
+            }
+        }
+    }
+}

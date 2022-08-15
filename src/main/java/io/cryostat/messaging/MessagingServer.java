@@ -37,14 +37,14 @@
  */
 package io.cryostat.messaging;
 
+import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -53,70 +53,63 @@ import javax.inject.Named;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public class MessagingServer implements AutoCloseable {
+public class MessagingServer extends AbstractVerticle
+        implements AutoCloseable, NotificationListener {
 
     private final Set<WsClient> connections;
     private final HttpServer server;
     private final AuthManager authManager;
     private final NotificationFactory notificationFactory;
-    private final ScheduledExecutorService limboPruner;
     private final Clock clock;
     private final int maxConnections;
     private final Logger logger;
     private final Gson gson;
 
-    private Future<?> prunerTask;
+    private long prunerTaskId;
+    private final Map<WsClient, Long> pingTasks;
 
     MessagingServer(
+            Vertx vertx,
             HttpServer server,
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
             @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
-            @Named(MessagingModule.LIMBO_PRUNER) ScheduledExecutorService limboPruner,
             Clock clock,
             Logger logger,
             Gson gson) {
+        this.vertx = vertx;
         this.connections = new HashSet<>();
         this.server = server;
         this.authManager = authManager;
         this.notificationFactory = notificationFactory;
         this.maxConnections = maxConnections;
-        this.limboPruner = limboPruner;
         this.clock = clock;
         this.logger = logger;
         this.gson = gson;
+        this.pingTasks = new ConcurrentHashMap<>();
     }
 
+    @Override
     public void start() throws SocketException, UnknownHostException {
         logger.info("Max concurrent WebSocket connections: {}", maxConnections);
 
-        prunerTask =
-                this.limboPruner.scheduleAtFixedRate(
-                        () -> {
-                            long now = clock.getMonotonicTime();
-                            synchronized (connections) {
-                                for (WsClient wsc : connections) {
-                                    long expiry =
-                                            wsc.getConnectionTime() + TimeUnit.SECONDS.toNanos(10);
-                                    boolean isOld = now > expiry;
-                                    if (isOld && !wsc.isAccepted()) {
-                                        removeConnection(wsc);
-                                    }
-                                }
-                            }
-                        },
-                        0,
-                        1,
-                        TimeUnit.SECONDS);
+        prunerTaskId =
+                this.vertx.setPeriodic(TimeUnit.SECONDS.toMillis(1), id -> this.pruneConnections());
 
         server.websocketHandler(
                 (sws) -> {
@@ -131,7 +124,8 @@ public class MessagingServer implements AutoCloseable {
                     synchronized (connections) {
                         if (connections.size() >= maxConnections) {
                             logger.info(
-                                    "Dropping remote client {} due to too many concurrent connections",
+                                    "Dropping remote client {} due to too many concurrent"
+                                            + " connections",
                                     remoteAddress);
                             sws.reject();
                             sendClientActivityNotification(remoteAddress, "dropped");
@@ -144,49 +138,79 @@ public class MessagingServer implements AutoCloseable {
                     sws.closeHandler((unused) -> removeConnection(wsc));
                     sws.textMessageHandler(
                             msg -> {
-                                try {
-                                    authManager
-                                            .doAuthenticated(
-                                                    sws::subProtocol,
-                                                    p ->
-                                                            authManager
-                                                                    .validateWebSocketSubProtocol(
-                                                                            p,
-                                                                            ResourceAction
-                                                                                    .READ_ALL))
-                                            .onSuccess(
-                                                    () -> {
-                                                        logger.info(
-                                                                "Authenticated remote client {}",
-                                                                remoteAddress);
-                                                        sws.textMessageHandler(null);
-                                                        wsc.setAccepted();
-                                                        sendClientActivityNotification(
-                                                                remoteAddress, "accepted");
-                                                    })
-                                            // 1002: WebSocket "Protocol Error" close reason
-                                            .onFailure(
-                                                    () -> {
-                                                        logger.info(
-                                                                "Disconnected remote client {} due to authentication failure",
-                                                                remoteAddress);
-                                                        sendClientActivityNotification(
-                                                                remoteAddress, "auth failure");
-                                                        sws.close(
-                                                                (short) 1002,
-                                                                "Invalid auth subprotocol");
-                                                    })
-                                            .execute();
-                                } catch (InterruptedException
-                                        | ExecutionException
-                                        | TimeoutException e) {
-                                    logger.info(e);
-                                    // 1011: WebSocket "Internal Error" close reason
-                                    sws.close(
-                                            (short) 1011,
-                                            String.format(
-                                                    "Internal error: \"%s\"", e.getMessage()));
-                                }
+                                vertx.executeBlocking(
+                                        promise -> {
+                                            try {
+                                                authManager
+                                                        .doAuthenticated(
+                                                                sws::subProtocol,
+                                                                p ->
+                                                                        authManager
+                                                                                .validateWebSocketSubProtocol(
+                                                                                        p,
+                                                                                        ResourceAction
+                                                                                                .READ_ALL))
+                                                        .onSuccess(() -> promise.complete(true))
+                                                        .onFailure(
+                                                                () ->
+                                                                        promise.fail(
+                                                                                new AuthorizationErrorException(
+                                                                                        "")))
+                                                        .execute();
+                                            } catch (InterruptedException
+                                                    | ExecutionException
+                                                    | TimeoutException e) {
+                                                promise.fail(e);
+                                            }
+                                        },
+                                        true,
+                                        result -> {
+                                            if (result.failed()) {
+                                                if (ExceptionUtils.hasCause(
+                                                        result.cause(),
+                                                        AuthorizationErrorException.class)) {
+                                                    logger.info(
+                                                            (AuthorizationErrorException)
+                                                                    result.cause());
+                                                    logger.info(
+                                                            "Disconnected remote client {} due to"
+                                                                    + " authentication failure",
+                                                            remoteAddress);
+                                                    sendClientActivityNotification(
+                                                            remoteAddress, "auth failure");
+                                                    sws.close(
+                                                            // 1002: WebSocket "Protocol Error"
+                                                            // close reason
+                                                            (short) 1002,
+                                                            "Invalid auth subprotocol");
+                                                } else {
+                                                    logger.info(new IOException(result.cause()));
+                                                    sws.close(
+                                                            (short) 1011,
+                                                            String.format(
+                                                                    "Internal error: \"%s\"",
+                                                                    result.cause().getMessage()));
+                                                }
+                                                return;
+                                            }
+                                            logger.info(
+                                                    "Authenticated remote client {}",
+                                                    remoteAddress);
+                                            sws.textMessageHandler(null);
+                                            wsc.setAccepted();
+                                            sendClientActivityNotification(
+                                                    remoteAddress, "accepted");
+
+                                            Long ping =
+                                                    pingTasks.put(
+                                                            wsc,
+                                                            vertx.setPeriodic(
+                                                                    TimeUnit.SECONDS.toMillis(5),
+                                                                    id -> wsc.ping()));
+                                            if (ping != null) {
+                                                vertx.cancelTimer(ping);
+                                            }
+                                        });
                             });
                     addConnection(wsc);
                     sws.accept();
@@ -194,7 +218,12 @@ public class MessagingServer implements AutoCloseable {
                 });
     }
 
-    public void writeMessage(WsMessage message) {
+    @Override
+    public void onNotification(Notification notification) {
+        writeMessage(notification);
+    }
+
+    void writeMessage(Object message) {
         String json = gson.toJson(message);
         logger.info("Outgoing WS message: {}", json);
         synchronized (connections) {
@@ -203,10 +232,13 @@ public class MessagingServer implements AutoCloseable {
     }
 
     @Override
+    public void stop() {
+        this.close();
+    }
+
+    @Override
     public void close() {
-        if (prunerTask != null) {
-            prunerTask.cancel(false);
-        }
+        this.vertx.cancelTimer(prunerTaskId);
         synchronized (connections) {
             connections.forEach(this::removeConnection);
             connections.clear();
@@ -226,16 +258,39 @@ public class MessagingServer implements AutoCloseable {
                 logger.info("Disconnected remote client {}", wsc.getRemoteAddress());
                 sendClientActivityNotification(wsc.getRemoteAddress().toString(), "disconnected");
             }
+            Long ping = pingTasks.remove(wsc);
+            if (ping != null) {
+                vertx.cancelTimer(ping);
+            }
+        }
+    }
+
+    private void pruneConnections() {
+        try {
+            long now = clock.getMonotonicTime();
+            synchronized (connections) {
+                for (WsClient wsc : connections) {
+                    long expiry = wsc.getConnectionTime() + TimeUnit.SECONDS.toNanos(10);
+                    boolean isOld = now > expiry;
+                    if (isOld && !wsc.isAccepted()) {
+                        removeConnection(wsc);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e);
         }
     }
 
     private void sendClientActivityNotification(String remote, String status) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory("WsClientActivity")
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of(remote, status))
-                .build()
-                .send();
+        vertx.runOnContext(
+                n ->
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory("WsClientActivity")
+                                .metaType(HttpMimeType.JSON)
+                                .message(Map.of(remote, status))
+                                .build()
+                                .send());
     }
 }

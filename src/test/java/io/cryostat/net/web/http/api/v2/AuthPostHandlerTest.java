@@ -53,7 +53,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -110,7 +109,7 @@ class AuthPostHandlerTest {
         Mockito.when(auth.getUserInfo(Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new UnknownUserException("unknown")));
 
-        HttpStatusException ex =
+        ApiException ex =
                 Assertions.assertThrows(ApiException.class, () -> handler.handle(requestParams));
 
         MatcherAssert.assertThat(

@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-import jdk.nashorn.api.scripting.NashornException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -66,7 +65,8 @@ class MatchExpressionValidatorTest {
             strings = {
                 "true",
                 "target.alias == \"io.cryostat.Cryostat\"",
-                "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'",
+                "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN =="
+                        + " 'io.cryostat.Cryostat'",
                 "target.connectUrl != '' && target.labels.SOMETHING == 'other'",
                 "/^[a-z]+$/.test(target.alias)",
                 "/^[a-z]+$/.test(target.noSuchProperty)",
@@ -109,6 +109,7 @@ class MatchExpressionValidatorTest {
             })
     void shouldThrowOnMalformedExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
-        Assertions.assertThrows(NashornException.class, () -> validator.validate(rule));
+        Assertions.assertThrows(
+                MatchExpressionValidationException.class, () -> validator.validate(rule));
     }
 }

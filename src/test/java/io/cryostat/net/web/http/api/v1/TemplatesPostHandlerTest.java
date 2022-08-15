@@ -45,10 +45,13 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
+import io.cryostat.core.templates.Template;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -59,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -75,6 +78,7 @@ class TemplatesPostHandlerTest {
 
     TemplatesPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalStorageTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -97,7 +101,8 @@ class TemplatesPostHandlerTest {
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TemplatesPostHandler(auth, templateService, fs, notificationFactory, logger);
+                new TemplatesPostHandler(
+                        auth, credentialsManager, templateService, fs, notificationFactory, logger);
     }
 
     @Test
@@ -149,11 +154,12 @@ class TemplatesPostHandlerTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
 
-        Mockito.doThrow(InvalidXmlException.class).when(templateService).addTemplate(stream);
+        Mockito.when(templateService.addTemplate(Mockito.any()))
+                .thenThrow(InvalidXmlException.class);
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         Mockito.verify(fs).deleteIfExists(uploadPath);
     }
@@ -171,9 +177,9 @@ class TemplatesPostHandlerTest {
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         Mockito.verify(fs).deleteIfExists(uploadPath);
     }
@@ -197,6 +203,14 @@ class TemplatesPostHandlerTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
 
+        Template template =
+                new Template(
+                        "MyTemplate",
+                        "some description",
+                        "Cryostat unit tests",
+                        TemplateType.CUSTOM);
+        Mockito.when(templateService.addTemplate(Mockito.any())).thenReturn(template);
+
         handler.handleAuthenticated(ctx);
 
         Mockito.verify(templateService).addTemplate(stream);
@@ -207,7 +221,7 @@ class TemplatesPostHandlerTest {
     }
 
     @Test
-    void shouldSendNotifcationOnTemplateDeletion() throws Exception {
+    void shouldSendNotifcationOnTemplateCreation() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
@@ -225,12 +239,20 @@ class TemplatesPostHandlerTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
 
+        Template template =
+                new Template(
+                        "MyTemplate",
+                        "some description",
+                        "Cryostat unit tests",
+                        TemplateType.CUSTOM);
+        Mockito.when(templateService.addTemplate(Mockito.any())).thenReturn(template);
+
         handler.handleAuthenticated(ctx);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("TemplateUploaded");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("template", "/file-uploads/abcd-1234"));
+        Mockito.verify(notificationBuilder).message(Map.of("template", template));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }

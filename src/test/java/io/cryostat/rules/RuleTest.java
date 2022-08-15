@@ -146,6 +146,18 @@ class RuleTest {
     }
 
     @Test
+    void shouldDefaultInitialDelayToArchivalPeriod() throws MatchExpressionValidationException {
+        Rule rule =
+                builder.name(NAME)
+                        .matchExpression(MATCH_EXPRESSION)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .initialDelaySeconds(-1)
+                        .archivalPeriodSeconds(30)
+                        .build();
+        MatcherAssert.assertThat(rule.getInitialDelaySeconds(), Matchers.equalTo(30));
+    }
+
+    @Test
     void shouldThrowOnNegativeArchivalPeriod() {
         IllegalArgumentException ex =
                 Assertions.assertThrows(
@@ -250,6 +262,22 @@ class RuleTest {
         MatcherAssert.assertThat(
                 ex.getMessage(),
                 Matchers.containsString("\"archivalPeriodSeconds\" cannot be positive, was \"5\""));
+    }
+
+    @Test
+    void shouldThrowOnArchiverWithInitialDelay() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier("archive")
+                                    .initialDelaySeconds(5)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"initialDelaySeconds\" cannot be positive, was \"5\""));
     }
 
     @Test

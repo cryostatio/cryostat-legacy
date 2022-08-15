@@ -42,7 +42,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -55,7 +54,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,7 +66,6 @@ class ArchivedRecordingReportCacheTest {
     @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
-    @Mock ReentrantLock generationLock;
     @Mock Logger logger;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
@@ -76,11 +73,7 @@ class ArchivedRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ArchivedRecordingReportCache(
-                        fs,
-                        () -> subprocessReportGenerator,
-                        generationLock,
-                        logger,
-                        recordingArchiveHelper);
+                        fs, () -> subprocessReportGenerator, recordingArchiveHelper, 30, logger);
     }
 
     @Test
@@ -97,12 +90,9 @@ class ArchivedRecordingReportCacheTest {
                         new ExecutionException(
                                 new RecordingNotFoundException("archives", recordingName)));
 
-        Assertions.assertThrows(ExecutionException.class, () -> cache.get(recordingName).get());
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get(recordingName, "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
     }
 
     @Test
@@ -118,19 +108,41 @@ class ArchivedRecordingReportCacheTest {
                 .thenReturn(future);
         Mockito.when(future.get()).thenReturn(recording);
 
-        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(Path.class), Mockito.any(Path.class)))
+                                Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
                 .thenReturn(pathFuture);
 
-        Future<Path> res = cache.get(recordingName);
+        Future<Path> res = cache.get(recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
+    }
+
+    @Test
+    void getShouldGenerateAndCacheReportFiltered() throws Exception {
+        String recordingName = "foo";
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(recordingName))
+                .thenReturn(destinationFile);
+        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Path recording = Mockito.mock(Path.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Mockito.when(future.get()).thenReturn(recording);
+
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
+                .thenReturn(pathFuture);
+
+        Future<Path> res = cache.get(recordingName, "someFilter");
+
+        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
+        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
     @Test
@@ -141,12 +153,11 @@ class ArchivedRecordingReportCacheTest {
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
 
-        Future<Path> res = cache.get(recordingName);
+        Future<Path> res = cache.get(recordingName, "");
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs).isReadable(destinationFile);
         Mockito.verify(fs).isRegularFile(destinationFile);
-        Mockito.verifyNoInteractions(generationLock);
     }
 
     @Test
@@ -164,17 +175,14 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(Path.class), Mockito.any(Path.class)))
+                                Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
                 .thenThrow(
                         new CompletionException(
-                                new SubprocessReportGenerator.ReportGenerationException(
+                                new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY)));
 
-        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo").get());
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo", "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
     }
 }

@@ -38,13 +38,13 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -53,50 +53,58 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
-class ActiveRecordingReportCache {
-
-    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
+class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
+    protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
-    protected final ReentrantLock generationLock;
-    protected final LoadingCache<SubprocessReportGenerator.RecordingDescriptor, String> cache;
+    protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
+    protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
-            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
+        this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
-        this.generationLock = generationLock;
         this.targetConnectionManager = targetConnectionManager;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
-
         this.cache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build(k -> getReport(k));
+                        .build((k) -> getReport(k));
     }
 
-    Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    Future<String> get(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            f.complete(
-                    cache.get(
-                            new SubprocessReportGenerator.RecordingDescriptor(
-                                    connectionDescriptor, recordingName)));
+            if (filter.isBlank()) {
+                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            } else {
+                f.complete(
+                        getReport(
+                                new RecordingDescriptor(connectionDescriptor, recordingName),
+                                filter));
+            }
+
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
@@ -104,9 +112,7 @@ class ActiveRecordingReportCache {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        SubprocessReportGenerator.RecordingDescriptor key =
-                new SubprocessReportGenerator.RecordingDescriptor(
-                        connectionDescriptor, recordingName);
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);
@@ -117,23 +123,34 @@ class ActiveRecordingReportCache {
         return hasKey;
     }
 
-    protected String getReport(SubprocessReportGenerator.RecordingDescriptor recordingDescriptor)
+    protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
+        return getReport(recordingDescriptor, "");
+    }
+
+    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
             throws Exception {
         Path saveFile = null;
         try {
-            generationLock.lock();
+            /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
-                saveFile = subprocessReportGeneratorProvider.get().exec(recordingDescriptor).get();
+                saveFile =
+                        reportGeneratorServiceProvider
+                                .get()
+                                .exec(recordingDescriptor, filter)
+                                .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
-            } catch (ExecutionException | CompletionException ee) {
-                logger.error(ee);
+            } catch (ExecutionException | CompletionException e) {
+                logger.error(e);
 
                 delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
 
-                if (ee.getCause() instanceof SubprocessReportGenerator.ReportGenerationException) {
-                    SubprocessReportGenerator.ReportGenerationException generationException =
-                            (SubprocessReportGenerator.ReportGenerationException) ee.getCause();
+                if (e.getCause()
+                        instanceof SubprocessReportGenerator.SubprocessReportGenerationException) {
+                    SubprocessReportGenerator.SubprocessReportGenerationException
+                            generationException =
+                                    (SubprocessReportGenerator.SubprocessReportGenerationException)
+                                            e.getCause();
 
                     SubprocessReportGenerator.ExitStatus status = generationException.getStatus();
                     if (status == SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY) {
@@ -155,13 +172,29 @@ class ActiveRecordingReportCache {
                                 });
                     }
                 }
-                throw ee;
+                throw e;
             }
         } finally {
-            generationLock.unlock();
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }
+        }
+    }
+
+    @Override
+    public void onNotification(Notification<Map<String, Object>> notification) {
+        String category = notification.getCategory();
+        switch (category) {
+            case RecordingTargetHelper.STOP_NOTIFICATION_CATEGORY:
+                String targetId = notification.getMessage().get("target").toString();
+                String recordingName =
+                        ((HyperlinkedSerializableRecordingDescriptor)
+                                        notification.getMessage().get("recording"))
+                                .getName();
+                delete(new ConnectionDescriptor(targetId), recordingName);
+                break;
+            default:
+                break;
         }
     }
 }

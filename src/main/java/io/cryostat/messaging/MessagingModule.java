@@ -37,23 +37,25 @@
  */
 package io.cryostat.messaging;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.messaging.notifications.NotificationsModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 
 import com.google.gson.Gson;
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
+import io.vertx.core.Vertx;
 
 @Module(
         includes = {
@@ -62,64 +64,53 @@ import dagger.Provides;
 public abstract class MessagingModule {
 
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
-    static final String LIMBO_PRUNER = "LIMBO_PRUNER";
-
-    static final String MAX_CONNECTIONS_ENV_VAR = "CRYOSTAT_MAX_WS_CONNECTIONS";
-    static final int MIN_CONNECTIONS = 1;
-    static final int MAX_CONNECTIONS = 64;
-    static final int DEFAULT_MAX_CONNECTIONS = 2;
 
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
+            Vertx vertx,
             HttpServer server,
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
             @Named(WS_MAX_CONNECTIONS) int maxConnections,
-            @Named(LIMBO_PRUNER) ScheduledExecutorService limboPruner,
             Clock clock,
             Logger logger,
             Gson gson) {
         return new MessagingServer(
+                vertx,
                 server,
                 env,
                 authManager,
                 notificationFactory,
                 maxConnections,
-                limboPruner,
                 clock,
                 logger,
                 gson);
     }
 
+    @Binds
+    @IntoSet
+    abstract NotificationListener bindMessagingServer(MessagingServer server);
+
     @Provides
     @Named(WS_MAX_CONNECTIONS)
     static int provideWebSocketMaxConnections(Environment env, Logger logger) {
         try {
-            int maxConn =
+            int count =
                     Integer.parseInt(
                             env.getEnv(
-                                    MAX_CONNECTIONS_ENV_VAR,
-                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
-            if (maxConn > MAX_CONNECTIONS) {
-                logger.info("Requested maximum WebSocket connections {} is too large.", maxConn);
-                return MAX_CONNECTIONS;
+                                    Variables.MAX_CONNECTIONS_ENV_VAR,
+                                    String.valueOf(Integer.MAX_VALUE)));
+            if (count <= 0) {
+                logger.warn(
+                        "{} was set to {} - ignoring", Variables.MAX_CONNECTIONS_ENV_VAR, count);
+                count = Integer.MAX_VALUE;
             }
-            if (maxConn < MIN_CONNECTIONS) {
-                logger.info("Requested maximum WebSocket connections {} is too small.", maxConn);
-                return MIN_CONNECTIONS;
-            }
-            return maxConn;
+            return count;
         } catch (NumberFormatException nfe) {
             logger.warn(nfe);
-            return DEFAULT_MAX_CONNECTIONS;
+            return Integer.MAX_VALUE;
         }
-    }
-
-    @Provides
-    @Named(LIMBO_PRUNER)
-    static ScheduledExecutorService provideLimboPruner() {
-        return Executors.newSingleThreadScheduledExecutor();
     }
 }

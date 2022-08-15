@@ -39,6 +39,7 @@ package io.cryostat.net;
 
 import java.nio.file.Path;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -56,18 +57,13 @@ public class SslConfiguration {
 
     private final SslConfigurationStrategy strategy;
 
-    private static final String KEYSTORE_PATH_ENV = "KEYSTORE_PATH";
-    private static final String KEYSTORE_PASS_ENV = "KEYSTORE_PASS";
-    private static final String KEY_PATH_ENV = "KEY_PATH";
-    private static final String CERT_PATH_ENV = "CERT_PATH";
-
     SslConfiguration(Environment env, FileSystem fs, Logger logger)
             throws SslConfigurationException {
         this.env = env;
         this.fs = fs;
         this.logger = logger;
 
-        if (env.hasEnv("CRYOSTAT_DISABLE_SSL")) {
+        if (env.hasEnv(Variables.DISABLE_SSL)) {
             strategy = new NoSslStrategy();
             logger.info("Selected NoSSL strategy");
             return;
@@ -76,7 +72,7 @@ public class SslConfiguration {
         {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {
-                strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                strategy = new KeyStoreStrategy(path, env.getEnv(Variables.KEYSTORE_PASS_ENV, ""));
                 logger.info("Selected SSL KeyStore strategy with keystore {}", path.toString());
                 return;
             }
@@ -99,7 +95,7 @@ public class SslConfiguration {
         {
             Path path = discoverKeyStorePathInDefaultLocations();
             if (path != null) {
-                strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                strategy = new KeyStoreStrategy(path, env.getEnv(Variables.KEYSTORE_PASS_ENV, ""));
                 logger.info("Selected SSL KeyStore strategy in default location");
                 return;
             }
@@ -128,11 +124,11 @@ public class SslConfiguration {
     }
 
     Path obtainKeyStorePathIfSpecified() throws SslConfigurationException {
-        if (!env.hasEnv(KEYSTORE_PATH_ENV)) {
+        if (!env.hasEnv(Variables.KEYSTORE_PATH_ENV)) {
             return null;
         }
 
-        Path path = fs.pathOf(env.getEnv(KEYSTORE_PATH_ENV)).normalize();
+        Path path = fs.pathOf(env.getEnv(Variables.KEYSTORE_PATH_ENV)).normalize();
         if (!fs.exists(path)) {
             throw new SslConfigurationException(
                     String.format(
@@ -144,16 +140,16 @@ public class SslConfiguration {
     }
 
     Pair<Path, Path> obtainKeyCertPathPairIfSpecified() throws SslConfigurationException {
-        if (!env.hasEnv(KEY_PATH_ENV) && !env.hasEnv(CERT_PATH_ENV)) {
+        if (!env.hasEnv(Variables.KEY_PATH_ENV) && !env.hasEnv(Variables.CERT_PATH_ENV)) {
             return null;
         }
 
-        if (env.hasEnv(KEY_PATH_ENV) ^ env.hasEnv(CERT_PATH_ENV)) {
+        if (env.hasEnv(Variables.KEY_PATH_ENV) ^ env.hasEnv(Variables.CERT_PATH_ENV)) {
             throw new SslConfigurationException("both KEY_PATH and CERT_PATH must be specified");
         }
 
-        Path key = fs.pathOf(env.getEnv(KEY_PATH_ENV)).normalize();
-        Path cert = fs.pathOf(env.getEnv(CERT_PATH_ENV)).normalize();
+        Path key = fs.pathOf(env.getEnv(Variables.KEY_PATH_ENV)).normalize();
+        Path cert = fs.pathOf(env.getEnv(Variables.CERT_PATH_ENV)).normalize();
         if (!fs.exists(key)) {
             throw new SslConfigurationException(
                     String.format(

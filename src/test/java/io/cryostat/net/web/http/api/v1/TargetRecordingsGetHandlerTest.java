@@ -47,6 +47,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -55,6 +56,8 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -81,15 +84,24 @@ class TargetRecordingsGetHandlerTest {
 
     TargetRecordingsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager connectionManager;
     @Mock WebServer webServer;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetRecordingsGetHandler(auth, connectionManager, () -> webServer, gson);
+                new TargetRecordingsGetHandler(
+                        auth,
+                        credentialsManager,
+                        connectionManager,
+                        () -> webServer,
+                        recordingMetadataManager,
+                        gson,
+                        logger);
     }
 
     @Test
@@ -180,6 +192,9 @@ class TargetRecordingsGetHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
 
         handler.handleAuthenticated(ctx);
 

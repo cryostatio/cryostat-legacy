@@ -44,8 +44,11 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
@@ -63,23 +66,25 @@ import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
+import io.cryostat.util.resource.ResourceModule;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.codec.binary.Base32;
 
 @Module(
         includes = {
             ConfigurationModule.class,
-            PlatformModule.class,
-            SystemModule.class,
-            NetworkModule.class,
             MessagingModule.class,
-            TemplatesModule.class,
-            RulesModule.class,
+            NetworkModule.class,
+            PlatformModule.class,
             RecordingsModule.class,
+            ResourceModule.class,
+            RulesModule.class,
+            SystemModule.class,
+            TemplatesModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
@@ -95,6 +100,11 @@ public abstract class MainModule {
     @Singleton
     static Logger provideLogger() {
         return Logger.INSTANCE;
+    }
+
+    @Provides
+    static Base32 provideBase32() {
+        return new Base32();
     }
 
     @Provides
@@ -139,13 +149,18 @@ public abstract class MainModule {
         return builder.create();
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Singleton
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String archivePath = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
+        String archivePath = env.getEnv(Variables.ARCHIVE_PATH, "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
+    }
+
+    @Provides
+    @Singleton
+    public static ScriptEngine provideScriptEngine() {
+        return new ScriptEngineManager().getEngineByName("nashorn");
     }
 }

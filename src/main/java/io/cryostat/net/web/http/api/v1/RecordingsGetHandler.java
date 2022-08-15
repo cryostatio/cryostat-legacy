@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -55,7 +57,7 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -64,8 +66,12 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     RecordingsGetHandler(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Gson gson) {
-        super(auth);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.gson = gson;
     }
@@ -102,7 +108,7 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {
-                throw new HttpStatusException(501, e.getMessage(), e);
+                throw new HttpException(501, e.getMessage(), e);
             }
             throw e;
         }

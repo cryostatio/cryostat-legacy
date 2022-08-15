@@ -37,47 +37,32 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.util.Optional;
-
 import javax.inject.Inject;
 
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingPatchStop {
 
-    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
-    TargetRecordingPatchStop(TargetConnectionManager targetConnectionManager) {
-        this.targetConnectionManager = targetConnectionManager;
+    TargetRecordingPatchStop(RecordingTargetHelper recordingTargetHelper) {
+        this.recordingTargetHelper = recordingTargetHelper;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
 
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor =
-                            connection.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recording.getName().equals(recordingName))
-                                    .findFirst();
-                    if (descriptor.isPresent()) {
-                        connection.getService().stop(descriptor.get());
-                        return null;
-                    } else {
-                        throw new HttpStatusException(
-                                404,
-                                String.format(
-                                        "Recording with name \"%s\" not found", recordingName));
-                    }
-                });
+        try {
+            recordingTargetHelper.stopRecording(connectionDescriptor, recordingName);
+        } catch (RecordingNotFoundException rnfe) {
+            throw new HttpException(404, rnfe);
+        }
         ctx.response().setStatusCode(200);
         ctx.response().end();
     }

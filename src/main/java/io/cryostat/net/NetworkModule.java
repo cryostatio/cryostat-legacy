@@ -47,11 +47,13 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.net.openshift.OpenShiftNetworkModule;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
@@ -63,8 +65,6 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -74,11 +74,9 @@ import io.vertx.ext.web.client.WebClientOptions;
             WebModule.class,
             ReportsModule.class,
             SecurityModule.class,
+            OpenShiftNetworkModule.class,
         })
 public abstract class NetworkModule {
-
-    static final String TARGET_CACHE_SIZE = "CRYOSTAT_TARGET_CACHE_SIZE";
-    static final String TARGET_CACHE_TTL = "CRYOSTAT_TARGET_CACHE_TTL";
 
     @Provides
     @Singleton
@@ -101,15 +99,15 @@ public abstract class NetworkModule {
     }
 
     @Provides
-    @Named(TARGET_CACHE_SIZE)
+    @Named(Variables.TARGET_CACHE_SIZE)
     static int provideMaxTargetConnections(Environment env) {
-        return Integer.parseInt(env.getEnv(TARGET_CACHE_SIZE, "-1"));
+        return Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_SIZE, "-1"));
     }
 
     @Provides
-    @Named(TARGET_CACHE_TTL)
+    @Named(Variables.TARGET_CACHE_TTL)
     static Duration provideMaxTargetTTL(Environment env) {
-        return Duration.ofSeconds(Integer.parseInt(env.getEnv(TARGET_CACHE_TTL, "10")));
+        return Duration.ofSeconds(Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_TTL, "10")));
     }
 
     @Provides
@@ -117,8 +115,8 @@ public abstract class NetworkModule {
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
             PlatformClient platformClient,
-            @Named(TARGET_CACHE_TTL) Duration maxTargetTtl,
-            @Named(TARGET_CACHE_SIZE) int maxTargetConnections,
+            @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
+            @Named(Variables.TARGET_CACHE_SIZE) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
@@ -194,22 +192,4 @@ public abstract class NetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
-
-    @Provides
-    @Singleton
-    static OpenShiftAuthManager provideOpenShiftAuthManager(
-            Environment env, Logger logger, FileSystem fs, WebClient webClient) {
-        return new OpenShiftAuthManager(
-                env,
-                logger,
-                fs,
-                token ->
-                        new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()),
-                webClient);
-    }
-
-    @Binds
-    @IntoSet
-    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,7 +60,6 @@ import dagger.Lazy;
 
 class KubeEnvPlatformClient extends AbstractPlatformClient {
 
-    public static final KubernetesNodeType NODE_TYPE = new KubernetesNodeType();
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
@@ -86,13 +86,12 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        EnvironmentNode root = new EnvironmentNode("KubernetesEnv", BaseNodeType.REALM);
-        List<ServiceRef> targets = listDiscoverableServices();
-        for (ServiceRef target : targets) {
-            TargetNode targetNode = new TargetNode(NODE_TYPE, target);
-            root.addChildNode(targetNode);
-        }
-        return root;
+        List<TargetNode> targets =
+                listDiscoverableServices().stream()
+                        .map(sr -> new TargetNode(KubernetesNodeType.SERVICE, sr))
+                        .toList();
+        return new EnvironmentNode(
+                "KubernetesEnv", BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 
     private ServiceRef envToServiceRef(Map.Entry<String, String> entry) {
@@ -113,18 +112,24 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         }
     }
 
-    public static class KubernetesNodeType implements NodeType {
+    public enum KubernetesNodeType implements NodeType {
+        SERVICE("Service"),
+        ;
 
-        public static final String KIND = "KubernetesEnv";
+        private final String kind;
 
-        @Override
-        public String getKind() {
-            return KIND;
+        KubernetesNodeType(String kind) {
+            this.kind = kind;
         }
 
         @Override
-        public int ordinal() {
-            return 0;
+        public String getKind() {
+            return kind;
+        }
+
+        @Override
+        public String toString() {
+            return getKind();
         }
     }
 }

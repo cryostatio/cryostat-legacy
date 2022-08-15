@@ -37,117 +37,370 @@
  */
 package io.cryostat.configuration;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.script.ScriptException;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.rules.MatchExpressionEvaluator;
+import io.cryostat.rules.MatchExpressionValidationException;
+import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import org.apache.commons.lang3.StringUtils;
 
 public class CredentialsManager {
 
     private final Path credentialsDir;
+    private final MatchExpressionValidator matchExpressionValidator;
+    private final MatchExpressionEvaluator matchExpressionEvaluator;
     private final FileSystem fs;
+    private final PlatformClient platformClient;
     private final Gson gson;
     private final Logger logger;
 
-    private final Map<String, Credentials> credentialsMap;
+    private int nextId = 0;
 
-    CredentialsManager(Path credentialsDir, FileSystem fs, Gson gson, Logger logger) {
+    CredentialsManager(
+            Path credentialsDir,
+            MatchExpressionValidator matchExpressionValidator,
+            MatchExpressionEvaluator matchExpressionEvaluator,
+            FileSystem fs,
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory,
+            Gson gson,
+            Logger logger) {
         this.credentialsDir = credentialsDir;
+        this.matchExpressionValidator = matchExpressionValidator;
+        this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.fs = fs;
+        this.platformClient = platformClient;
         this.gson = gson;
         this.logger = logger;
-        this.credentialsMap = new HashMap<>();
+    }
+
+    public void migrate() throws Exception {
+        for (String file : this.fs.listDirectoryChildren(credentialsDir)) {
+            BufferedReader reader;
+            try {
+                Path path = credentialsDir.resolve(file);
+                reader = fs.readFile(path);
+                TargetSpecificStoredCredentials targetSpecificCredential =
+                        gson.fromJson(reader, TargetSpecificStoredCredentials.class);
+
+                String targetId = targetSpecificCredential.getTargetId();
+                if (StringUtils.isNotBlank(targetId)) {
+                    addCredentials(
+                            targetIdToMatchExpression(targetSpecificCredential.getTargetId()),
+                            targetSpecificCredential.getCredentials());
+                    fs.deleteIfExists(path);
+                    logger.info("Migrated {}", path);
+                }
+            } catch (IOException e) {
+                logger.warn(e);
+                continue;
+            }
+        }
+    }
+
+    public static String targetIdToMatchExpression(String targetId) {
+        if (StringUtils.isBlank(targetId)) {
+            return null;
+        }
+        return String.format("target.connectUrl == \"%s\"", targetId);
     }
 
     public void load() throws IOException {
-        this.fs.listDirectoryChildren(credentialsDir).stream()
-                .peek(n -> logger.trace("Credentials file: {}", n))
-                .map(credentialsDir::resolve)
-                .map(
-                        path -> {
-                            try {
-                                return fs.readFile(path);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                                return null;
-                            }
-                        })
-                .filter(Objects::nonNull)
-                .map(reader -> gson.fromJson(reader, StoredCredentials.class))
-                .forEach(sc -> credentialsMap.put(sc.getTargetId(), sc.getCredentials()));
+        this.nextId =
+                this.fs.listDirectoryChildren(credentialsDir).stream()
+                        .peek(n -> logger.trace("Credentials file: {}", n))
+                        .map(credentialsDir::resolve)
+                        .map(
+                                path -> {
+                                    try {
+                                        String filename = path.getFileName().toString();
+                                        return Integer.parseInt(filename);
+                                    } catch (NumberFormatException nfe) {
+                                        logger.error(nfe);
+                                        try {
+                                            fs.deleteIfExists(path);
+                                        } catch (IOException ioe) {
+                                            logger.error(ioe);
+                                        }
+                                        return 0;
+                                    }
+                                })
+                        .reduce(Math::max)
+                        .orElse(0);
     }
 
-    public boolean addCredentials(String targetId, Credentials credentials) throws IOException {
-        return addCredentials(targetId, credentials, false);
+    public int addCredentials(String matchExpression, Credentials credentials)
+            throws IOException, MatchExpressionValidationException {
+        matchExpressionValidator.validate(matchExpression);
+        Path destination = getPersistedPath(nextId);
+        fs.writeString(
+                destination,
+                gson.toJson(new StoredCredentials(matchExpression, credentials)),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+        fs.setPosixFilePermissions(
+                destination,
+                Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        return nextId++;
     }
 
-    // FIXME `persist` should not be a parameter here but rather a Strategy selected by ex. env var,
-    // with corresponding backing storage either in-memory or on-disk (with in-memory cache?)
-    boolean addCredentials(String targetId, Credentials credentials, boolean persist)
-            throws IOException {
-        boolean replaced = credentialsMap.containsKey(targetId);
-        credentialsMap.put(targetId, credentials);
-        if (persist) {
-            fs.writeString(
-                    getPersistedPath(targetId),
-                    gson.toJson(new StoredCredentials(targetId, credentials)),
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
-            // TODO do we need to secure these file contents further than simply applying owner-only
-            // permissions? Is it possible for other containers or processes to read target
-            // credentials
-            // in the mounted volume?
-            // Files.setPosixFilePermissions(destination,
-            //         PosixFilePermissions.asFileAttribute(Set.of(PosixFilePermission.OWNER_READ,
-            //                 PosixFilePermission.OWNER_WRITE)));
+    public int removeCredentials(String matchExpression)
+            throws IOException, MatchExpressionValidationException {
+        matchExpressionValidator.validate(matchExpression);
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                if (Objects.equals(matchExpression, sc.getMatchExpression())) {
+                    Path filenamePath = path.getFileName();
+                    if (filenamePath == null) {
+                        throw new IllegalStateException(path.toString());
+                    }
+                    String filename = filenamePath.toString();
+                    fs.deleteIfExists(path);
+                    return Integer.parseInt(filename);
+                }
+            }
         }
-        return replaced;
+        throw new FileNotFoundException();
     }
 
-    public boolean removeCredentials(String targetId) throws IOException {
-        Credentials deleted = this.credentialsMap.remove(targetId);
-        fs.deleteIfExists(getPersistedPath(targetId));
-        return deleted != null;
+    public Credentials getCredentialsByTargetId(String targetId)
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
+            if (Objects.equals(targetId, service.getServiceUri().toString())) {
+                return getCredentials(service);
+            }
+        }
+        return null;
     }
 
-    public Credentials getCredentials(String targetId) {
-        return this.credentialsMap.get(targetId);
+    public Credentials getCredentials(ServiceRef serviceRef)
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                if (matchExpressionEvaluator.applies(sc.getMatchExpression(), serviceRef)) {
+                    return sc.getCredentials();
+                }
+            }
+        }
+        return null;
     }
 
-    public Credentials getCredentials(ServiceRef serviceRef) {
-        return getCredentials(serviceRef.getServiceUri().toString());
+    public Collection<ServiceRef> getServiceRefsWithCredentials()
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        List<ServiceRef> result = new ArrayList<>();
+        for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
+            Credentials credentials = getCredentials(service);
+            if (credentials != null) {
+                result.add(service);
+            }
+        }
+        return result;
     }
 
-    private Path getPersistedPath(String targetId) {
-        return credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
+    public String get(int id) throws IOException {
+        Path path = credentialsDir.resolve(String.valueOf(id));
+        if (!fs.isRegularFile(path)) {
+            throw new FileNotFoundException();
+        }
+        try (BufferedReader br = fs.readFile(path)) {
+            StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+            return sc.getMatchExpression();
+        }
     }
 
-    public static class StoredCredentials {
+    public Set<ServiceRef> resolveMatchingTargets(int id) throws IOException {
+        String matchExpression = get(id);
+        Set<ServiceRef> matchedTargets = new HashSet<>();
+        for (ServiceRef target : platformClient.listDiscoverableServices()) {
+            try {
+                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                    matchedTargets.add(target);
+                }
+            } catch (ScriptException e) {
+                logger.error(e);
+                break;
+            }
+        }
+        return matchedTargets;
+    }
+
+    public void delete(int id) throws IOException {
+        Path path = credentialsDir.resolve(String.valueOf(id));
+        if (!fs.isRegularFile(path)) {
+            throw new FileNotFoundException();
+        }
+        fs.deleteIfExists(path);
+    }
+
+    public Map<Integer, String> getAll()
+            throws JsonSyntaxException, JsonIOException, NumberFormatException, IOException {
+        Map<Integer, String> result = new HashMap<>();
+
+        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
+            Path path = credentialsDir.resolve(pathString);
+            Path filenamePath = path.getFileName();
+            if (filenamePath == null) {
+                continue;
+            }
+            try (BufferedReader br = fs.readFile(path)) {
+                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
+                result.put(Integer.valueOf(filenamePath.toString()), sc.getMatchExpression());
+            }
+        }
+
+        return result;
+    }
+
+    private Path getPersistedPath(int id) {
+        return credentialsDir.resolve(String.valueOf(id));
+    }
+
+    public static class MatchedCredentials {
+        private final String matchExpression;
+        private final Collection<ServiceRef> targets;
+
+        public MatchedCredentials(String matchExpression, Collection<ServiceRef> targets) {
+            this.matchExpression = matchExpression;
+            this.targets = new HashSet<>(targets);
+        }
+
+        public String getMatchExpression() {
+            return matchExpression;
+        }
+
+        public Collection<ServiceRef> getTargets() {
+            return Collections.unmodifiableCollection(targets);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(matchExpression, targets);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            MatchedCredentials other = (MatchedCredentials) obj;
+            return Objects.equals(matchExpression, other.matchExpression)
+                    && Objects.equals(targets, other.targets);
+        }
+    }
+
+    static class StoredCredentials {
+        private final String matchExpression;
+        private final Credentials credentials;
+
+        StoredCredentials(String matchExpression, Credentials credentials) {
+            this.matchExpression = matchExpression;
+            this.credentials = credentials;
+        }
+
+        String getMatchExpression() {
+            return this.matchExpression;
+        }
+
+        Credentials getCredentials() {
+            return this.credentials;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(credentials, matchExpression);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            StoredCredentials other = (StoredCredentials) obj;
+            return Objects.equals(credentials, other.credentials)
+                    && Objects.equals(matchExpression, other.matchExpression);
+        }
+    }
+
+    @Deprecated(since = "2.2", forRemoval = true)
+    static class TargetSpecificStoredCredentials {
         private final String targetId;
         private final Credentials credentials;
 
-        StoredCredentials(String targetId, Credentials credentials) {
+        TargetSpecificStoredCredentials(String targetId, Credentials credentials) {
             this.targetId = targetId;
             this.credentials = credentials;
         }
 
-        public String getTargetId() {
+        String getTargetId() {
             return this.targetId;
         }
 
-        public Credentials getCredentials() {
+        Credentials getCredentials() {
             return this.credentials;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(credentials, targetId);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            TargetSpecificStoredCredentials other = (TargetSpecificStoredCredentials) obj;
+            return Objects.equals(credentials, other.credentials)
+                    && Objects.equals(targetId, other.targetId);
         }
     }
 }

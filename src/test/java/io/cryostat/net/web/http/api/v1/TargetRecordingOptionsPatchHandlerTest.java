@@ -45,8 +45,10 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -60,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -80,6 +82,7 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     TargetRecordingOptionsPatchHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsCustomizer customizer;
     @Mock TargetConnectionManager connectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -87,12 +90,19 @@ class TargetRecordingOptionsPatchHandlerTest {
     @Mock IConstrainedMap<String> recordingOptions;
     @Mock JFRConnection jfrConnection;
     @Mock Gson gson;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new TargetRecordingOptionsPatchHandler(
-                        auth, customizer, connectionManager, recordingOptionsBuilderFactory, gson);
+                        auth,
+                        credentialsManager,
+                        customizer,
+                        connectionManager,
+                        recordingOptionsBuilderFactory,
+                        gson,
+                        logger);
     }
 
     @Test
@@ -215,9 +225,9 @@ class TargetRecordingOptionsPatchHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.formAttributes()).thenReturn(requestAttrs);
-        HttpStatusException ex =
+        HttpException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                        HttpException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 

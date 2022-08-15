@@ -4,8 +4,8 @@ set -x
 set -e
 
 function cleanup() {
-    podman pod kill cryostat
-    podman pod rm cryostat
+    podman pod kill cryostat-pod
+    podman pod rm cryostat-pod
 }
 trap cleanup EXIT
 
@@ -76,10 +76,10 @@ if [ ! -d "$(dirname $0)/templates" ]; then
     mkdir "$(dirname $0)/templates"
 fi
 
-if ! podman pod exists cryostat; then
+if ! podman pod exists cryostat-pod; then
     podman pod create \
         --hostname cryostat \
-        --name cryostat \
+        --name cryostat-pod \
         --publish $CRYOSTAT_RJMX_PORT:$CRYOSTAT_RJMX_PORT \
         --publish $CRYOSTAT_EXT_WEB_PORT:$CRYOSTAT_WEB_PORT
 fi
@@ -88,9 +88,10 @@ fi
 # that the process will actually run with your own uid on the host machine,
 # rather than the uid being remapped to something else
 podman run \
-    --pod cryostat \
+    --pod cryostat-pod \
+    --name cryostat \
     --user 0 \
-    --memory 512M \
+    --memory 768M \
     --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared \
@@ -98,9 +99,12 @@ podman run \
     --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared \
     --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
+    -e CRYOSTAT_ENABLE_JDP_BROADCAST=true \
+    -e CRYOSTAT_REPORT_GENERATOR=$CRYOSTAT_REPORT_GENERATOR \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \
+    -e CRYOSTAT_ALLOW_UNTRUSTED_SSL=$CRYOSTAT_ALLOW_UNTRUSTED_SSL \
     -e CRYOSTAT_RJMX_USER=$CRYOSTAT_RJMX_USER \
     -e CRYOSTAT_RJMX_PASS=$CRYOSTAT_RJMX_PASS \
     -e CRYOSTAT_RJMX_PORT=$CRYOSTAT_RJMX_PORT \
@@ -109,6 +113,7 @@ podman run \
     -e CRYOSTAT_WEB_HOST=$CRYOSTAT_WEB_HOST \
     -e CRYOSTAT_WEB_PORT=$CRYOSTAT_WEB_PORT \
     -e CRYOSTAT_EXT_WEB_PORT=$CRYOSTAT_EXT_WEB_PORT \
+    -e CRYOSTAT_MAX_WS_CONNECTIONS=$CRYOSTAT_MAX_WS_CONNECTIONS \
     -e CRYOSTAT_AUTH_MANAGER=$CRYOSTAT_AUTH_MANAGER \
     -e CRYOSTAT_TARGET_CACHE_SIZE=$CRYOSTAT_TARGET_CACHE_SIZE \
     -e CRYOSTAT_TARGET_CACHE_TTL=$CRYOSTAT_TARGET_CACHE_TTL \

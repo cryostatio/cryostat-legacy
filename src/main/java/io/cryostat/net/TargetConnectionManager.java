@@ -40,8 +40,10 @@ package io.cryostat.net;
 import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,6 +77,7 @@ public class TargetConnectionManager {
     private final Logger logger;
 
     private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
+    private final Map<String, Object> targetLocks;
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
@@ -86,6 +89,8 @@ public class TargetConnectionManager {
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.logger = logger;
+
+        this.targetLocks = new ConcurrentHashMap<>();
 
         Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
                 Caffeine.newBuilder()
@@ -136,19 +141,23 @@ public class TargetConnectionManager {
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
             throws Exception {
-        if (useCache) {
-            return task.execute(connections.get(connectionDescriptor));
-        } else {
-            JFRConnection connection = connections.getIfPresent(connectionDescriptor);
-            boolean cached = connection != null;
-            if (!cached) {
-                connection = connect(connectionDescriptor);
-            }
-            try {
-                return task.execute(connection);
-            } finally {
+        synchronized (
+                targetLocks.computeIfAbsent(
+                        connectionDescriptor.getTargetId(), k -> new Object())) {
+            if (useCache) {
+                return task.execute(connections.get(connectionDescriptor));
+            } else {
+                JFRConnection connection = connections.getIfPresent(connectionDescriptor);
+                boolean cached = connection != null;
                 if (!cached) {
-                    connection.close();
+                    connection = connect(connectionDescriptor);
+                }
+                try {
+                    return task.execute(connection);
+                } finally {
+                    if (!cached) {
+                        connection.close();
+                    }
                 }
             }
         }
@@ -188,6 +197,7 @@ public class TargetConnectionManager {
             evt.begin();
             try {
                 connection.close();
+                targetLocks.remove(descriptor.getTargetId());
             } catch (RuntimeException e) {
                 evt.setExceptionThrown(true);
                 throw e;

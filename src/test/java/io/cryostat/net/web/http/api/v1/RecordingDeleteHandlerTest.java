@@ -37,20 +37,22 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -66,14 +68,18 @@ class RecordingDeleteHandlerTest {
 
     RecordingDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingDeleteHandler(auth, recordingArchiveHelper);
+        this.handler =
+                new RecordingDeleteHandler(
+                        auth, credentialsManager, recordingArchiveHelper, logger);
     }
 
     @Test
@@ -99,7 +105,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
@@ -112,8 +118,7 @@ class RecordingDeleteHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -126,7 +131,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(recordingName)).thenReturn(future);
 
         handler.handle(ctx);

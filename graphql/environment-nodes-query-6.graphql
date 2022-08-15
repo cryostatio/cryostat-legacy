@@ -1,0 +1,14 @@
+query {
+    environmentNodes(filter: { name: "JDP" }) {
+        descendantTargets {
+            recordings {
+                active {
+                    doDelete {
+                        name
+                        state
+                    }
+                }
+            }
+        }
+    }
+}

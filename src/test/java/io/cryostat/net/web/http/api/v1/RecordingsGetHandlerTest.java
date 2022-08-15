@@ -43,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -55,7 +56,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -71,6 +72,7 @@ class RecordingsGetHandlerTest {
 
     RecordingsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
@@ -80,7 +82,9 @@ class RecordingsGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingsGetHandler(auth, recordingArchiveHelper, gson);
+        this.handler =
+                new RecordingsGetHandler(
+                        auth, credentialsManager, recordingArchiveHelper, gson, logger);
     }
 
     @Test
@@ -116,8 +120,8 @@ class RecordingsGetHandlerTest {
         Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause()).thenReturn(new ArchivePathException("/some/path", "test"));
 
-        HttpStatusException httpEx =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException httpEx =
+                Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
         MatcherAssert.assertThat(
                 httpEx.getCause().getCause().getMessage(),
@@ -131,8 +135,8 @@ class RecordingsGetHandlerTest {
                 List.of(
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriFoo",
-                                "/some/path/download/recordingFoo",
                                 "recordingFoo",
+                                "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo")));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
@@ -148,6 +152,6 @@ class RecordingsGetHandlerTest {
 
         Mockito.verify(resp)
                 .end(
-                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
+                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}}}]");
     }
 }

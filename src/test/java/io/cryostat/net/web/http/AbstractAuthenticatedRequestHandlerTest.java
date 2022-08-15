@@ -47,9 +47,11 @@ import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -60,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -80,11 +82,13 @@ class AbstractAuthenticatedRequestHandlerTest {
     RequestHandler handler;
     @Mock RoutingContext ctx;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
+    @Mock Logger logger;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthenticatedHandler(auth);
+        this.handler = new AuthenticatedHandler(auth, credentialsManager, logger);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
         Mockito.lenient()
                 .when(
@@ -109,8 +113,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -120,10 +123,9 @@ class AbstractAuthenticatedRequestHandlerTest {
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new PermissionDeniedException(
-                                        "namespace", "group", "resource", "verb", "reason")));
+                                        "namespace", "resourc.group", "verb", "reason")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -132,8 +134,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -145,14 +146,9 @@ class AbstractAuthenticatedRequestHandlerTest {
                         CompletableFuture.failedFuture(
                                 new ExecutionException(
                                         new PermissionDeniedException(
-                                                "namespace",
-                                                "group",
-                                                "resource",
-                                                "verb",
-                                                "reason"))));
+                                                "namespace", "resource.group", "verb", "reason"))));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -166,8 +162,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                                         new KubernetesClientException(
                                                 "test", new Exception("test2")))));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -176,8 +171,7 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -191,22 +185,26 @@ class AbstractAuthenticatedRequestHandlerTest {
         }
 
         @Test
-        void shouldPropagateIfHandlerThrowsHttpStatusException() {
-            Exception expectedException = new HttpStatusException(200);
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+        void shouldPropagateIfHandlerThrowsHttpException() {
+            Exception expectedException = new HttpException(200);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex, Matchers.sameInstance(expectedException));
         }
 
         @Test
         void shouldThrow500IfConnectionFails() {
             Exception expectedException = new ConnectionException("");
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
 
@@ -215,12 +213,14 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new SecurityException();
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
             Mockito.when(ctx.response()).thenReturn(resp);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             Mockito.verify(resp).putHeader("X-JMX-Authenticate", "Basic");
         }
@@ -230,10 +230,12 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new ConnectIOException("SSL trust");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
             MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target SSL Untrusted"));
         }
@@ -243,10 +245,12 @@ class AbstractAuthenticatedRequestHandlerTest {
             Exception cause = new UnknownHostException("localhostt");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
             MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target Not Found"));
         }
@@ -254,10 +258,12 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Test
         void shouldThrow500IfHandlerThrowsUnexpectedly() {
             Exception expectedException = new NullPointerException();
-            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, logger, expectedException);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
     }
@@ -271,7 +277,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
         @BeforeEach
         void setup3() {
-            handler = new ConnectionDescriptorHandler(auth);
+            handler = new ConnectionDescriptorHandler(auth, credentialsManager, logger);
             Mockito.when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(headers);
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
@@ -310,8 +316,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Invalid X-JMX-Authorization format"));
@@ -336,8 +342,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Unacceptable X-JMX-Authorization type"));
@@ -362,8 +368,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(),
@@ -388,8 +394,8 @@ class AbstractAuthenticatedRequestHandlerTest {
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
-            HttpStatusException ex =
-                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            HttpException ex =
+                    Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
                     ex.getPayload(),
@@ -419,8 +425,9 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {
-        AuthenticatedHandler(AuthManager auth) {
-            super(auth);
+        AuthenticatedHandler(
+                AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+            super(auth, credentialsManager, logger);
         }
 
         @Override
@@ -450,8 +457,12 @@ class AbstractAuthenticatedRequestHandlerTest {
     static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {
         private final Exception thrown;
 
-        ThrowingAuthenticatedHandler(AuthManager auth, Exception thrown) {
-            super(auth);
+        ThrowingAuthenticatedHandler(
+                AuthManager auth,
+                CredentialsManager credentialsManager,
+                Logger logger,
+                Exception thrown) {
+            super(auth, credentialsManager, logger);
             this.thrown = thrown;
         }
 
@@ -464,8 +475,9 @@ class AbstractAuthenticatedRequestHandlerTest {
     static class ConnectionDescriptorHandler extends AuthenticatedHandler {
         ConnectionDescriptor desc;
 
-        ConnectionDescriptorHandler(AuthManager auth) {
-            super(auth);
+        ConnectionDescriptorHandler(
+                AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+            super(auth, credentialsManager, logger);
         }
 
         @Override

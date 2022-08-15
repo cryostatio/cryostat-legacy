@@ -37,37 +37,56 @@
  */
 package io.cryostat.rules;
 
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+// FIXME move to a more appropriate package
 public class ArchivedRecordingInfo {
+
     private final transient String encodedServiceUri;
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
+    private final Metadata metadata;
 
     public ArchivedRecordingInfo(
-            String encodedServiceUri, String downloadUrl, String name, String reportUrl) {
+            String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
+        this(encodedServiceUri, name, downloadUrl, reportUrl, new Metadata());
+    }
+
+    public ArchivedRecordingInfo(
+            String encodedServiceUri,
+            String name,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata) {
         this.encodedServiceUri = encodedServiceUri;
-        this.downloadUrl = downloadUrl;
         this.name = name;
+        this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
+        this.metadata = metadata;
     }
 
     public String getEncodedServiceUri() {
         return this.encodedServiceUri;
     }
 
-    public String getDownloadUrl() {
-        return this.downloadUrl;
-    }
-
     public String getName() {
         return this.name;
     }
 
+    public String getDownloadUrl() {
+        return this.downloadUrl;
+    }
+
     public String getReportUrl() {
         return this.reportUrl;
+    }
+
+    public Metadata getMetadata() {
+        return this.metadata;
     }
 
     @Override
@@ -85,8 +104,9 @@ public class ArchivedRecordingInfo {
         return new EqualsBuilder()
                 .append(encodedServiceUri, ari.encodedServiceUri)
                 .append(name, ari.name)
-                .append(reportUrl, ari.reportUrl)
                 .append(downloadUrl, ari.downloadUrl)
+                .append(reportUrl, ari.reportUrl)
+                .append(metadata, ari.metadata)
                 .isEquals();
     }
 
@@ -95,8 +115,9 @@ public class ArchivedRecordingInfo {
         return new HashCodeBuilder()
                 .append(encodedServiceUri)
                 .append(name)
-                .append(reportUrl)
                 .append(downloadUrl)
+                .append(reportUrl)
+                .append(metadata)
                 .hashCode();
     }
 }

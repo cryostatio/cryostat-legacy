@@ -48,8 +48,10 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -63,7 +65,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -77,11 +79,13 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     @Inject
     TargetRecordingOptionsPatchHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             RecordingOptionsCustomizer customizer,
             TargetConnectionManager connectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            Gson gson) {
-        super(auth);
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.customizer = customizer;
         this.connectionManager = connectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
@@ -119,7 +123,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
         MultiMap attrs = ctx.request().formAttributes();
         if (attrs.contains("toDisk")) {
             Matcher m = bool.matcher(attrs.get("toDisk"));
-            if (!m.matches()) throw new HttpStatusException(400, "Invalid options");
+            if (!m.matches()) throw new HttpException(400, "Invalid options");
         }
         Arrays.asList("maxAge", "maxSize")
                 .forEach(
@@ -132,7 +136,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                                     }
                                     Long.parseLong(v);
                                 } catch (NumberFormatException e) {
-                                    throw new HttpStatusException(400, "Invalid options");
+                                    throw new HttpException(400, "Invalid options");
                                 }
                             }
                         });

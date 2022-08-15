@@ -41,11 +41,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
@@ -58,6 +58,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -81,7 +82,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            RuleMatcher ruleMatcher,
+            MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -90,7 +91,7 @@ public abstract class RulesModule {
             if (!fs.isDirectory(rulesDir)) {
                 Files.createDirectory(rulesDir);
             }
-            return new RuleRegistry(rulesDir, ruleMatcher, fs, gson, logger);
+            return new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,13 +99,20 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static RuleMatcher provideRuleMatcher() {
-        return new RuleMatcher();
+    static MatchExpressionValidator provideMatchExpressionValidator() {
+        return new MatchExpressionValidator();
+    }
+
+    @Provides
+    @Singleton
+    static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
+        return new MatchExpressionEvaluator(scriptEngine);
     }
 
     @Provides
     @Singleton
     static RuleProcessor provideRuleProcessor(
+            Vertx vertx,
             PlatformClient platformClient,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
@@ -112,18 +120,20 @@ public abstract class RulesModule {
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger,
             Base32 base32) {
         return new RuleProcessor(
+                vertx,
                 platformClient,
                 registry,
-                Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 recordingOptionsBuilderFactory,
                 targetConnectionManager,
                 recordingArchiveHelper,
                 recordingTargetHelper,
+                metadataManager,
                 periodicArchiverFactory,
                 logger,
                 base32);

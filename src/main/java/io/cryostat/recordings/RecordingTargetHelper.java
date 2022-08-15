@@ -39,22 +39,27 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -63,41 +68,69 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import dagger.Lazy;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String CREATION_NOTIFICATION_CATEGORY = "ActiveRecordingCreated";
+    public static final String STOP_NOTIFICATION_CATEGORY = "ActiveRecordingStopped";
+    private static final String DELETION_NOTIFICATION_CATEGORY = "ActiveRecordingDeleted";
+    private static final String SNAPSHOT_CREATION_NOTIFICATION_CATEGORY = "SnapshotCreated";
+    private static final String SNAPSHOT_DELETION_NOTIFICATION_CATEGORY = "SnapshotDeleted";
+
+    private static final long TIMESTAMP_DRIFT_SAFEGUARD = 500L;
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
 
+    private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
+
+    private final Vertx vertx;
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
+    private final Map<Pair<String, String>, Long> scheduledStopNotifications;
 
     RecordingTargetHelper(
+            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
+        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
+        this.scheduledStopNotifications = new ConcurrentHashMap<>();
+    }
+
+    public List<IRecordingDescriptor> getRecordings(ConnectionDescriptor connectionDescriptor)
+            throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> connection.getService().getAvailableRecordings(),
+                false);
     }
 
     public IRecordingDescriptor startRecording(
@@ -111,6 +144,8 @@ public class RecordingTargetHelper {
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
+                    TemplateType preferredTemplateType =
+                            getPreferredTemplateType(connection, templateName, templateType);
                     Optional<IRecordingDescriptor> previous =
                             getDescriptorByName(connection, recordingName);
                     if (previous.isPresent()) {
@@ -128,19 +163,39 @@ public class RecordingTargetHelper {
                                     .getService()
                                     .start(
                                             recordingOptions,
-                                            enableEvents(connection, templateName, templateType));
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            "recording",
-                                            recordingName,
-                                            "target",
-                                            connectionDescriptor.getTargetId()))
-                            .build()
-                            .send();
+                                            enableEvents(
+                                                    connection,
+                                                    templateName,
+                                                    preferredTemplateType));
+                    String targetId = connectionDescriptor.getTargetId();
+                    Metadata metadata =
+                            recordingMetadataManager.getMetadata(targetId, recordingName);
+                    Map<String, String> labels = metadata.getLabels();
+                    labels.put("template.name", templateName);
+                    labels.put("template.type", preferredTemplateType.name());
+                    metadata = new Metadata(labels);
+                    metadata =
+                            recordingMetadataManager
+                                    .setRecordingMetadata(targetId, recordingName, metadata)
+                                    .get();
+                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                            new HyperlinkedSerializableRecordingDescriptor(
+                                    desc,
+                                    webServer.get().getDownloadURL(connection, desc.getName()),
+                                    webServer.get().getReportURL(connection, desc.getName()),
+                                    metadata);
+                    this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
+
+                    Object fixedDuration =
+                            recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
+                    if (fixedDuration != null) {
+                        Long delay =
+                                Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
+
+                        scheduleRecordingStopNotification(
+                                recordingName, delay, connectionDescriptor);
+                    }
+
                     return desc;
                 },
                 false);
@@ -195,27 +250,43 @@ public class RecordingTargetHelper {
 
     public Future<Void> deleteRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        try {
-            String targetId = connectionDescriptor.getTargetId();
-            targetConnectionManager.executeConnectedTask(
-                    connectionDescriptor,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(connection, recordingName);
-                        if (descriptor.isPresent()) {
-                            connection.getService().close(descriptor.get());
-                            reportService.delete(connectionDescriptor, recordingName);
-                        } else {
-                            throw new RecordingNotFoundException(targetId, recordingName);
+        return this.deleteRecording(connectionDescriptor, recordingName, true);
+    }
+
+    public IRecordingDescriptor stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        return stopRecording(connectionDescriptor, recordingName, false);
+    }
+
+    public IRecordingDescriptor stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean quiet)
+            throws Exception {
+        String targetId = connectionDescriptor.getTargetId();
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        IRecordingDescriptor d = descriptor.get();
+                        if (d.getState().equals(RecordingState.STOPPED) && quiet) {
+                            return d;
                         }
-                        return null;
-                    });
-            future.complete(null);
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+                        connection.getService().stop(d);
+                        this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                new HyperlinkedSerializableRecordingDescriptor(
+                                        d,
+                                        webServer.get().getDownloadURL(connection, d.getName()),
+                                        webServer.get().getReportURL(connection, d.getName()));
+                        this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
+                        return getDescriptorByName(connection, recordingName).get();
+                    } else {
+                        throw new RecordingNotFoundException(targetId, recordingName);
+                    }
+                });
     }
 
     public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(
@@ -251,13 +322,19 @@ public class RecordingTargetHelper {
 
                                 if (updatedDescriptor.isEmpty()) {
                                     throw new SnapshotCreationException(
-                                            "The newly created Snapshot could not be found under its rename");
+                                            "The newly created Snapshot could not be found under"
+                                                    + " its rename");
                                 }
+
+                                Metadata metadata =
+                                        recordingMetadataManager.getMetadata(
+                                                connectionDescriptor.getTargetId(), rename);
 
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
-                                        webServer.get().getReportURL(connection, rename));
+                                        webServer.get().getReportURL(connection, rename),
+                                        metadata);
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {
@@ -267,9 +344,18 @@ public class RecordingTargetHelper {
     }
 
     public Future<Boolean> verifySnapshot(
-            ConnectionDescriptor connectionDescriptor, String snapshotName) {
+            ConnectionDescriptor connectionDescriptor,
+            HyperlinkedSerializableRecordingDescriptor snapshotDescriptor) {
+        return this.verifySnapshot(connectionDescriptor, snapshotDescriptor, true);
+    }
+
+    public Future<Boolean> verifySnapshot(
+            ConnectionDescriptor connectionDescriptor,
+            HyperlinkedSerializableRecordingDescriptor snapshotDescriptor,
+            boolean issueNotification) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
+            String snapshotName = snapshotDescriptor.getName();
             Optional<InputStream> snapshotOptional =
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
@@ -278,9 +364,15 @@ public class RecordingTargetHelper {
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
-                        this.deleteRecording(connectionDescriptor, snapshotName).get();
+                        this.deleteRecording(connectionDescriptor, snapshotName, false).get();
                         future.complete(false);
                     } else {
+                        if (issueNotification) {
+                            this.issueNotification(
+                                    connectionDescriptor.getTargetId(),
+                                    snapshotDescriptor,
+                                    SNAPSHOT_CREATION_NOTIFICATION_CATEGORY);
+                        }
                         future.complete(true);
                     }
                 }
@@ -314,45 +406,123 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
+    private Future<Void> deleteRecording(
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            boolean issueNotification) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            String targetId = connectionDescriptor.getTargetId();
+            Void v =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> descriptor =
+                                        getDescriptorByName(connection, recordingName);
+                                if (descriptor.isPresent()) {
+                                    IRecordingDescriptor d = descriptor.get();
+                                    connection.getService().close(d);
+                                    reportService.delete(connectionDescriptor, recordingName);
+                                    this.cancelScheduledNotificationIfExists(
+                                            targetId, recordingName);
+                                    HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                            new HyperlinkedSerializableRecordingDescriptor(
+                                                    d,
+                                                    webServer
+                                                            .get()
+                                                            .getDownloadURL(
+                                                                    connection, d.getName()),
+                                                    webServer
+                                                            .get()
+                                                            .getReportURL(connection, d.getName()),
+                                                    recordingMetadataManager.getMetadata(
+                                                            connectionDescriptor.getTargetId(),
+                                                            recordingName));
+                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                            connectionDescriptor.getTargetId(), recordingName);
+                                    if (issueNotification) {
+                                        Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
+                                        String notificationCategory =
+                                                m.matches()
+                                                        ? SNAPSHOT_DELETION_NOTIFICATION_CATEGORY
+                                                        : DELETION_NOTIFICATION_CATEGORY;
+                                        this.issueNotification(
+                                                targetId, linkedDesc, notificationCategory);
+                                    }
+                                } else {
+                                    throw new RecordingNotFoundException(targetId, recordingName);
+                                }
+                                return null;
+                            });
+            future.complete(v);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    private void issueNotification(
+            String targetId,
+            HyperlinkedSerializableRecordingDescriptor linkedDesc,
+            String notificationCategory) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(notificationCategory)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", linkedDesc, "target", targetId))
+                .build()
+                .send();
+    }
+
+    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName)
+            throws IOException {
+        Long id = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
+        if (id != null) {
+            this.vertx.cancelTimer(id);
+        }
+    }
+
+    private TemplateType getPreferredTemplateType(
+            JFRConnection connection, String templateName, TemplateType templateType)
+            throws Exception {
+        if (templateType != null) {
+            return templateType;
+        }
+        if (templateName.equals("ALL")) {
+            // special case for the ALL meta-template
+            return TemplateType.TARGET;
+        }
+        List<Template> matchingNameTemplates =
+                connection.getTemplateService().getTemplates().stream()
+                        .filter(t -> t.getName().equals(templateName))
+                        .collect(Collectors.toList());
+        boolean custom =
+                matchingNameTemplates.stream()
+                        .anyMatch(t -> t.getType().equals(TemplateType.CUSTOM));
+        if (custom) {
+            return TemplateType.CUSTOM;
+        }
+        boolean target =
+                matchingNameTemplates.stream()
+                        .anyMatch(t -> t.getType().equals(TemplateType.TARGET));
+        if (target) {
+            return TemplateType.TARGET;
+        }
+        throw new IllegalArgumentException(
+                String.format("Invalid/unknown event template %s", templateName));
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
         if (templateName.equals("ALL")) {
             return enableAllEvents(connection);
         }
-        if (templateType != null) {
-            return connection
-                    .getTemplateService()
-                    .getEvents(templateName, templateType)
-                    .orElseThrow(
-                            () ->
-                                    new IllegalArgumentException(
-                                            String.format(
-                                                    "No template \"%s\" found with type %s",
-                                                    templateName, templateType)));
-        }
         // if template type not specified, try to find a Custom template by that name. If none,
         // fall back on finding a Target built-in template by the name. If not, throw an
         // exception and bail out.
-        return connection
-                .getTemplateService()
-                .getEvents(templateName, TemplateType.CUSTOM)
-                .or(
-                        () -> {
-                            try {
-                                return connection
-                                        .getTemplateService()
-                                        .getEvents(templateName, TemplateType.TARGET);
-                            } catch (Exception e) {
-                                return Optional.empty();
-                            }
-                        })
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        String.format(
-                                                "Invalid/unknown event template %s",
-                                                templateName)));
+        TemplateType type = getPreferredTemplateType(connection, templateName, templateType);
+        return connection.getTemplateService().getEvents(templateName, type).get();
     }
 
     private IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
@@ -365,6 +535,74 @@ public class RecordingTargetHelper {
 
         return builder.build();
     }
+
+    private void scheduleRecordingStopNotification(
+            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
+        String targetId = connectionDescriptor.getTargetId();
+
+        Handler<Promise<HyperlinkedSerializableRecordingDescriptor>> promiseHandler =
+                promise -> {
+                    try {
+                        HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                targetConnectionManager.executeConnectedTask(
+                                        connectionDescriptor,
+                                        connection -> {
+                                            Optional<IRecordingDescriptor> desc =
+                                                    getDescriptorByName(connection, recordingName);
+
+                                            desc =
+                                                    desc.stream()
+                                                            .filter(
+                                                                    r ->
+                                                                            r.getState()
+                                                                                    .equals(
+                                                                                            RecordingState
+                                                                                                    .STOPPED))
+                                                            .findFirst();
+                                            if (desc.isPresent()) {
+                                                String name = desc.get().getName();
+                                                HyperlinkedSerializableRecordingDescriptor linked =
+                                                        new HyperlinkedSerializableRecordingDescriptor(
+                                                                desc.get(),
+                                                                webServer
+                                                                        .get()
+                                                                        .getDownloadURL(
+                                                                                connection, name),
+                                                                webServer
+                                                                        .get()
+                                                                        .getReportURL(
+                                                                                connection, name));
+                                                return linked;
+                                            }
+                                            return null;
+                                        });
+                        promise.complete(linkedDesc);
+                    } catch (Exception e) {
+                        promise.fail(e);
+                    }
+                };
+        long task =
+                this.vertx.setTimer(
+                        delay + TIMESTAMP_DRIFT_SAFEGUARD,
+                        id -> {
+                            vertx.executeBlocking(
+                                    promiseHandler,
+                                    false,
+                                    result -> {
+                                        if (result.failed()) {
+                                            return;
+                                        }
+                                        this.issueNotification(
+                                                targetId,
+                                                ((HyperlinkedSerializableRecordingDescriptor)
+                                                        result.result()),
+                                                STOP_NOTIFICATION_CATEGORY);
+                                    });
+                        });
+
+        scheduledStopNotifications.put(Pair.of(targetId, recordingName), task);
+    }
+
     /**
      * This method will consume the first byte of the {@link InputStream} it is verifying, so
      * verification should only be done if the @param snapshot stream in question will not be used

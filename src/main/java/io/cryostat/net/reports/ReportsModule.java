@@ -37,26 +37,30 @@
  */
 package io.cryostat.net.reports;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationListener;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
+import com.google.gson.Gson;
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
 
 @Module(
         includes = {
@@ -64,29 +68,49 @@ import dagger.Provides;
         })
 public abstract class ReportsModule {
 
-    static final String REPORT_GENERATION_LOCK = "REPORT_GENERATION_LOCK";
+    public static final String REPORT_GENERATION_TIMEOUT_SECONDS =
+            "REPORT_GENERATION_TIMEOUT_SECONDS";
 
     @Provides
-    @Singleton
-    @Named(REPORT_GENERATION_LOCK)
-    /** Used to ensure that only one report is generated at a time */
-    static ReentrantLock provideReportGenerationLock() {
-        return new ReentrantLock(true);
+    @Named(REPORT_GENERATION_TIMEOUT_SECONDS)
+    static long provideReportGenerationTimeoutSeconds(
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout) {
+        return httpTimeout;
     }
 
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
-            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                subprocessReportGeneratorProvider,
+                reportGeneratorServiceProvider,
                 fs,
-                generationLock,
                 targetConnectionManager,
+                generationTimeoutSeconds,
+                logger);
+    }
+
+    @Binds
+    @IntoSet
+    abstract NotificationListener bindActiveRecordingReportCache(ActiveRecordingReportCache cache);
+
+    @Provides
+    @Singleton
+    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
+            FileSystem fs,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
+            RecordingArchiveHelper recordingArchiveHelper,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
+        return new ArchivedRecordingReportCache(
+                fs,
+                reportGeneratorServiceProvider,
+                recordingArchiveHelper,
+                generationTimeoutSeconds,
                 logger);
     }
 
@@ -96,46 +120,48 @@ public abstract class ReportsModule {
     }
 
     @Provides
+    static ReportGeneratorService provideReportGeneratorService(
+            Environment env,
+            RemoteReportGenerator remoteGenerator,
+            SubprocessReportGenerator subprocessGenerator) {
+        if (env.hasEnv(Variables.REPORT_GENERATOR_ENV)) {
+            return remoteGenerator;
+        }
+        return subprocessGenerator;
+    }
+
+    @Provides
+    static RemoteReportGenerator provideRemoteReportGenerator(
+            TargetConnectionManager targetConnectionManager,
+            FileSystem fs,
+            Vertx vertx,
+            WebClient http,
+            Environment env,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
+        return new RemoteReportGenerator(
+                targetConnectionManager, fs, vertx, http, env, generationTimeoutSeconds, logger);
+    }
+
+    @Provides
     static SubprocessReportGenerator provideSubprocessReportGenerator(
             Environment env,
+            Gson gson,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilder,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        Provider<Path> tempFileProvider =
-                () -> {
-                    try {
-                        return Files.createTempFile(null, null);
-                    } catch (IOException e) {
-                        logger.error(e);
-                        throw new RuntimeException(e);
-                    }
-                };
         return new SubprocessReportGenerator(
                 env,
+                gson,
                 fs,
                 targetConnectionManager,
                 reportTransformers,
                 javaProcessBuilder,
-                tempFileProvider,
+                generationTimeoutSeconds,
                 logger);
-    }
-
-    @Provides
-    @Singleton
-    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
-            FileSystem fs,
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
-            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
-            Logger logger,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        return new ArchivedRecordingReportCache(
-                fs,
-                subprocessReportGeneratorProvider,
-                generationLock,
-                logger,
-                recordingArchiveHelper);
     }
 
     @Provides

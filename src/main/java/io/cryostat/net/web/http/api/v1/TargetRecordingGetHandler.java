@@ -37,28 +37,32 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.util.OutputToReadStream;
 
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
@@ -66,14 +70,20 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected final TargetConnectionManager targetConnectionManager;
     protected final RecordingTargetHelper recordingTargetHelper;
 
+    private final Vertx vertx;
+
     @Inject
     TargetRecordingGetHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper) {
-        super(auth);
+            HttpServer httpServer,
+            RecordingTargetHelper recordingTargetHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
+        this.vertx = httpServer.getVertx();
     }
 
     @Override
@@ -116,24 +126,28 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                 recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
 
         if (stream.isEmpty()) {
-            throw new HttpStatusException(404, String.format("%s not found", recordingName));
+            throw new HttpException(404, String.format("%s not found", recordingName));
         }
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        try (InputStream s = stream.get()) {
-            byte[] buff = new byte[WRITE_BUFFER_SIZE];
-            int n;
-            while ((n = s.read(buff)) != -1) {
-                // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
-                ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
-                if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-                    throw new IOException(
-                            "Target connection unexpectedly closed while streaming recording");
-                }
-            }
 
-            ctx.response().end();
+        try (final InputStream is = stream.get();
+                final OutputToReadStream otrs =
+                        new OutputToReadStream(
+                                vertx, targetConnectionManager, connectionDescriptor)) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            otrs.pipeFromInput(
+                    is,
+                    ctx.response(),
+                    res -> {
+                        if (res.succeeded()) {
+                            future.complete(null);
+                        } else {
+                            future.completeExceptionally(res.cause());
+                        }
+                    });
+            future.get();
         }
     }
 }

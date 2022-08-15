@@ -37,15 +37,14 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class HttpApiV1Module {
@@ -98,8 +97,8 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchStop provideTargetRecordingPatchStop(
-            TargetConnectionManager targetConnectionManager) {
-        return new TargetRecordingPatchStop(targetConnectionManager);
+            RecordingTargetHelper recordingTargetHelper) {
+        return new TargetRecordingPatchStop(recordingTargetHelper);
     }
 
     @Binds
@@ -133,11 +132,6 @@ public abstract class HttpApiV1Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
-
-    @Provides
-    static Base32 provideBase32() {
-        return new Base32();
-    }
 
     @Binds
     @IntoSet
@@ -196,6 +190,6 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecoringOptionsGetHandler(
+    abstract RequestHandler bindTargetRecordingOptionsGetHandler(
             TargetRecordingOptionsGetHandler handler);
 }

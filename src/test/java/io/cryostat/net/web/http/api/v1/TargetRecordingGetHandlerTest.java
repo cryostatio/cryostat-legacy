@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,22 +52,30 @@ import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -82,7 +91,10 @@ class TargetRecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock HttpServer httpServer;
+    @Mock Vertx vertx;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
 
@@ -92,9 +104,15 @@ class TargetRecordingGetHandlerTest {
 
     @BeforeEach
     void setup() {
+        when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new TargetRecordingGetHandler(
-                        authManager, targetConnectionManager, recordingTargetHelper);
+                        authManager,
+                        credentialsManager,
+                        targetConnectionManager,
+                        httpServer,
+                        recordingTargetHelper,
+                        logger);
     }
 
     @Test
@@ -141,14 +159,13 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
                 .thenReturn(future);
         when(future.get()).thenReturn(stream);
         when(stream.isEmpty()).thenReturn(true);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -171,7 +188,7 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
                 .thenReturn(future);
         when(future.get())
@@ -179,9 +196,56 @@ class TargetRecordingGetHandlerTest {
                         new ExecutionException(
                                 "fake exception for testing purposes", new NullPointerException()));
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+    }
+
+    @Test
+    void shouldRespond500IfIOExceptionThrownDuringRecordingDownloadRequest() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+
+        byte[] src = new byte[1024 * 1024];
+        new Random(123456).nextBytes(src);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
+                .thenReturn(future);
+        ByteArrayInputStream source = new ByteArrayInputStream(src);
+        when(future.get()).thenReturn(Optional.of(source));
+
+        // **************Mocking specific to OutputToReadStream****************
+        Context context = mock(Context.class);
+        when(vertx.getOrCreateContext()).thenReturn(context);
+        doAnswer(
+                        invocation -> {
+                            Handler<Void> action = invocation.getArgument(0);
+                            action.handle(null);
+                            return null;
+                        })
+                .when(context)
+                .runOnContext(Mockito.any(Handler.class));
+
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(false);
+        // ********************************************************************
+
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(
+                ex.getCause().getCause().getMessage(),
+                Matchers.equalTo(
+                        "Target connection unexpectedly closed while streaming recording"));
     }
 
     @Test
@@ -212,27 +276,51 @@ class TargetRecordingGetHandlerTest {
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Optional<InputStream>> future = mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
                 .thenReturn(future);
-        when(future.get()).thenReturn(Optional.of(new ByteArrayInputStream(src)));
+        ByteArrayInputStream source = new ByteArrayInputStream(src);
+        when(future.get()).thenReturn(Optional.of(source));
 
+        // **************Mocking specific to OutputToReadStream***************
         Buffer dst = Buffer.buffer(1024 * 1024);
-        when(resp.write(Mockito.any(Buffer.class)))
-                .thenAnswer(
+        doAnswer(
                         invocation -> {
-                            Buffer chunk = invocation.getArgument(0);
+                            BufferImpl chunk = invocation.getArgument(0);
                             dst.appendBuffer(chunk);
+                            return resp;
+                        })
+                .when(resp)
+                .write(Mockito.any(BufferImpl.class), Mockito.any(Handler.class));
+
+        Context context = mock(Context.class);
+        when(vertx.getOrCreateContext()).thenReturn(context);
+        doAnswer(
+                        invocation -> {
+                            Handler<Void> action = invocation.getArgument(0);
+                            action.handle(null);
                             return null;
-                        });
+                        })
+                .when(context)
+                .runOnContext(Mockito.any(Handler.class));
+
+        doAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Void>> handler = invocation.getArgument(0);
+                            handler.handle(Future.succeededFuture());
+                            return null;
+                        })
+                .when(resp)
+                .end(Mockito.any(Handler.class));
 
         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
+        // ********************************************************************
 
         handler.handle(ctx);
 
         Assertions.assertArrayEquals(src, dst.getBytes());
         verify(resp).setChunked(true);
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        verify(resp).end();
+        verify(resp).end(Mockito.any(Handler.class));
     }
 }

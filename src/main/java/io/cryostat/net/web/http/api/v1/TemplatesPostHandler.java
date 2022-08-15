@@ -45,11 +45,13 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
+import io.cryostat.core.templates.Template;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -60,7 +62,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 
 class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -75,11 +77,12 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     TemplatesPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             LocalStorageTemplateService templateService,
             FileSystem fs,
             NotificationFactory notificationFactory,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager, logger);
         this.notificationFactory = notificationFactory;
         this.templateService = templateService;
         this.fs = fs;
@@ -123,23 +126,23 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 }
                 handledUpload = true;
                 try (InputStream is = fs.newInputStream(path)) {
+                    Template t = templateService.addTemplate(is);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("template", u.uploadedFileName()))
+                            .message(Map.of("template", t))
                             .build()
                             .send();
-                    templateService.addTemplate(is);
                 } finally {
                     fs.deleteIfExists(path);
                 }
             }
         } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
+            throw new HttpException(400, e.getMessage(), e);
         }
         if (!handledUpload) {
-            throw new HttpStatusException(400, "No template submission");
+            throw new HttpException(400, "No template submission");
         }
         ctx.response().end();
     }

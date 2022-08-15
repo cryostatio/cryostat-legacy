@@ -44,14 +44,20 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -62,25 +68,29 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
+    private final long httpTimeoutSeconds;
     private final WebClient webClient;
-    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
     RecordingUploadPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Environment env,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, logger);
         this.env = env;
+        this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
@@ -114,31 +124,33 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            URL uploadUrl = new URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+            URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
-                                GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
+                                Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
             }
             ResponseMessage response = doPost(recordingName, uploadUrl);
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
-                throw new HttpStatusException(
+                throw new HttpException(
                         512,
                         String.format(
-                                "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
+                                "Invalid response from datasource server; datasource URL may be"
+                                    + " incorrect, or server may not be functioning properly: %d"
+                                    + " %s",
                                 response.statusCode, response.statusMessage));
             }
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
-            throw new HttpStatusException(501, e);
+            throw new HttpException(501, e);
         }
     }
 
@@ -148,7 +160,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
+                throw new HttpException(404, e.getMessage(), e);
             }
             throw e;
         }
@@ -164,7 +176,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         webClient
                 .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
-                .timeout(30_000L)
+                .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                 .sendMultipartForm(
                         form,
                         uploadHandler -> {

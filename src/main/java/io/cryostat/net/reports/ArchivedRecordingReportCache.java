@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -53,44 +53,43 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 class ArchivedRecordingReportCache {
 
     protected final FileSystem fs;
-    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
-    protected final ReentrantLock generationLock;
-    protected final Logger logger;
+    protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final RecordingArchiveHelper recordingArchiveHelper;
+    protected final long generationTimeoutSeconds;
+    protected final Logger logger;
 
     ArchivedRecordingReportCache(
             FileSystem fs,
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
-            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
-            Logger logger,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
+            RecordingArchiveHelper recordingArchiveHelper,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
         this.fs = fs;
-        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
-        this.generationLock = generationLock;
-        this.logger = logger;
+        this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.logger = logger;
     }
 
-    Future<Path> get(String recordingName) {
+    Future<Path> get(String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
-        if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+        /* NOTE: This is just a temporary solution: If a request includes a filter,
+         * the report is never cached and just constructed on demand.
+         */
+        if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
             f.complete(dest);
             return f;
         }
 
         try {
-            generationLock.lock();
-            // check again in case the previous lock holder already created the cached file
-            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
-                f.complete(dest);
-                return f;
-            }
             logger.trace("Archived report cache miss for {}", recordingName);
-
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
-                    subprocessReportGeneratorProvider.get().exec(archivedRecording, dest).get();
+                    reportGeneratorServiceProvider
+                            .get()
+                            .exec(archivedRecording, dest, filter)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
             logger.error(e);
@@ -100,8 +99,6 @@ class ArchivedRecordingReportCache {
             } catch (IOException ioe) {
                 logger.warn(ioe);
             }
-        } finally {
-            generationLock.unlock();
         }
         return f;
     }

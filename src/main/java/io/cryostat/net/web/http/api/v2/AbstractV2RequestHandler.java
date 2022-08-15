@@ -37,8 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.File;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
 import java.util.concurrent.ExecutionException;
@@ -52,7 +54,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
@@ -61,6 +63,7 @@ import io.cryostat.net.web.http.api.ApiResultData;
 
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -188,11 +191,27 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         intermediateResponse.getHeaders().forEach(response::putHeader);
         response.putHeader(HttpHeaders.CONTENT_TYPE, mimeType().mime());
 
-        ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
-        ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
-        ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
+        switch (mimeType()) {
+            case PLAINTEXT:
+            case JSON:
+                ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
+                ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
+                ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
-        response.end(gson.toJson(body));
+                response.end(gson.toJson(body));
+                return;
+            default:
+                if (intermediateResponse.getBody() instanceof File) {
+                    response.sendFile(((File) intermediateResponse.getBody()).getPath());
+                } else if (intermediateResponse.getBody() instanceof Path) {
+                    response.sendFile(((Path) intermediateResponse.getBody()).toString());
+                } else if (intermediateResponse.getBody() instanceof Buffer) {
+                    response.end((Buffer) intermediateResponse.getBody());
+                } else {
+                    response.end(intermediateResponse.getBody().toString());
+                }
+                return;
+        }
     }
 
     private void handleConnectionException(RoutingContext ctx, ConnectionException e) {

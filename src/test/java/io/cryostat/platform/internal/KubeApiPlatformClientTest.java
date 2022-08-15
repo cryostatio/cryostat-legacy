@@ -234,6 +234,7 @@ class KubeApiPlatformClientTest {
                             }
                         });
 
+        platformClient.start();
         List<ServiceRef> result = platformClient.listDiscoverableServices();
 
         // targetA is intentionally not a matching service
@@ -343,6 +344,7 @@ class KubeApiPlatformClientTest {
                         .build();
         k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
 
+        platformClient.start();
         EnvironmentNode realmNode = platformClient.getDiscoveryTree();
         ServiceRef serv1 =
                 new ServiceRef(
@@ -648,7 +650,7 @@ class KubeApiPlatformClientTest {
                                         .build())
                         .endSubset()
                         .build();
-        k8sClient.endpoints().inNamespace(NAMESPACE).patch(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).replace(endpoints);
 
         latch.await();
         Thread.sleep(100); // to ensure no more events are coming
@@ -666,10 +668,6 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.NAMESPACE, NAMESPACE,
                         AnnotationKey.POD_NAME, "watchedTarget"));
 
-        TargetDiscoveryEvent found = events.remove();
-        MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        MatcherAssert.assertThat(found.getServiceRef(), Matchers.equalTo(original));
-
         ServiceRef modified =
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
@@ -681,9 +679,13 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.NAMESPACE, NAMESPACE,
                         AnnotationKey.POD_NAME, "modifiedTarget"));
 
+        TargetDiscoveryEvent found = events.remove();
+        MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(found.getServiceRef(), Matchers.equalTo(original));
+
         TargetDiscoveryEvent lost = events.remove();
         MatcherAssert.assertThat(lost.getEventKind(), Matchers.equalTo(EventKind.LOST));
-        MatcherAssert.assertThat(lost.getServiceRef(), Matchers.equalTo(modified));
+        MatcherAssert.assertThat(lost.getServiceRef(), Matchers.equalTo(original));
 
         TargetDiscoveryEvent refound = events.remove();
         MatcherAssert.assertThat(refound.getEventKind(), Matchers.equalTo(EventKind.FOUND));

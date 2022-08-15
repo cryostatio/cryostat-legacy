@@ -45,9 +45,11 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import io.cryostat.MainModule;
+import io.cryostat.MockVertx;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
@@ -60,6 +62,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +76,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MessagingServerTest {
 
+    Vertx vertx;
     MessagingServer server;
     @Mock Environment env;
     @Mock Logger logger;
@@ -80,7 +84,6 @@ class MessagingServerTest {
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson(logger);
     @Mock ServerWebSocket sws;
-    @Mock ScheduledExecutorService limboPruner;
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -89,6 +92,8 @@ class MessagingServerTest {
 
     @BeforeEach
     void setup() {
+        this.vertx = MockVertx.vertx();
+
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
@@ -116,12 +121,12 @@ class MessagingServerTest {
 
         server =
                 new MessagingServer(
+                        vertx,
                         httpServer,
                         env,
                         authManager,
                         notificationFactory,
                         2,
-                        limboPruner,
                         clock,
                         logger,
                         gson);
@@ -258,6 +263,30 @@ class MessagingServerTest {
 
     @Test
     void authFailureShouldRejectConnection() throws Exception {
+        AuthenticatedAction authAction =
+                new AuthenticatedAction() {
+                    private Runnable failureHandler;
+
+                    @Override
+                    public AuthenticatedAction onSuccess(Runnable runnable) {
+                        return this;
+                    }
+
+                    @Override
+                    public AuthenticatedAction onFailure(Runnable runnable) {
+                        this.failureHandler = runnable;
+                        return this;
+                    }
+
+                    @Override
+                    public void execute()
+                            throws InterruptedException, ExecutionException, TimeoutException {
+                        failureHandler.run();
+                    }
+                };
+        Mockito.when(authManager.doAuthenticated(Mockito.any(), Mockito.any()))
+                .thenReturn(authAction);
+
         server.start();
 
         ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
@@ -269,11 +298,34 @@ class MessagingServerTest {
         verify(sws).textMessageHandler(textMessageHandlerCaptor.capture());
         textMessageHandlerCaptor.getValue().handle("irrelevant");
 
-        ArgumentCaptor<Runnable> authFailCaptor = ArgumentCaptor.forClass(Runnable.class);
-        verify(authAction).onFailure(authFailCaptor.capture());
-        authFailCaptor.getValue().run();
-
         verify(sws).close((short) 1002, "Invalid auth subprotocol");
+    }
+
+    @Test
+    void shouldPingAcceptedClients() throws SocketException, UnknownHostException {
+        server.start();
+
+        ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(httpServer).websocketHandler(websocketHandlerCaptor.capture());
+        websocketHandlerCaptor.getValue().handle(sws);
+        verify(sws).accept();
+
+        ArgumentCaptor<Handler> textMessageHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(sws).textMessageHandler(textMessageHandlerCaptor.capture());
+        textMessageHandlerCaptor.getValue().handle("irrelevant");
+
+        ArgumentCaptor<Runnable> authSuccessCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(authAction).onSuccess(authSuccessCaptor.capture());
+        authSuccessCaptor.getValue().run();
+
+        ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(vertx, Mockito.atLeastOnce())
+                .setPeriodic(Mockito.anyLong(), handlerCaptor.capture());
+        Handler<Long> handler = handlerCaptor.getValue();
+
+        Mockito.verify(sws, Mockito.times(0)).writePing(Mockito.any());
+        handler.handle(1234L);
+        Mockito.verify(sws, Mockito.times(1)).writePing(Mockito.any());
     }
 
     @Test
@@ -301,7 +353,7 @@ class MessagingServerTest {
         verify(sws).close();
     }
 
-    static class TestMessage extends WsMessage {
+    static class TestMessage {
         List<String> msgs;
 
         TestMessage(String... msgs) {

@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
@@ -60,6 +61,8 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -70,7 +73,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -89,10 +92,12 @@ class TargetRecordingsPostHandlerTest {
 
     TargetRecordingsPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock WebServer webServer;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -108,11 +113,14 @@ class TargetRecordingsPostHandlerTest {
         this.handler =
                 new TargetRecordingsPostHandler(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
-                        gson);
+                        recordingMetadataManager,
+                        gson,
+                        logger);
     }
 
     @Test
@@ -197,6 +205,9 @@ class TargetRecordingsPostHandlerTest {
                                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(descriptor);
 
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(new Metadata());
+
         handler.handle(ctx);
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
@@ -242,7 +253,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         Mockito.verify(resp)
                 .end(
-                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
+                        "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 
     @Test
@@ -283,15 +294,13 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 
     @Test
     void shouldHandleException() throws Exception {
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -348,8 +357,7 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("events", "template=Foo");
         Mockito.when(req.formAttributes()).thenReturn(attrs);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 

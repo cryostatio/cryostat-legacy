@@ -53,16 +53,17 @@ public class ReportService {
         this.archivedCache = archivedCache;
     }
 
-    public Future<Path> get(String recordingName) {
-        return archivedCache.get(recordingName);
+    public Future<Path> get(String recordingName, String filter) {
+        return archivedCache.get(recordingName, filter);
     }
 
     public boolean delete(String recordingName) {
         return archivedCache.delete(recordingName);
     }
 
-    public Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return activeCache.get(connectionDescriptor, recordingName);
+    public Future<String> get(
+            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
+        return activeCache.get(connectionDescriptor, recordingName, filter);
     }
 
     public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
