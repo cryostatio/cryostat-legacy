@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -96,7 +97,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     UUID key = plugin.getId();
                                     URI uri = plugin.getCallback();
                                     if (uri == NO_CALLBACK) {
-                                        removePlugin(key, key);
                                         return (Future) Future.succeededFuture();
                                     }
                                     return (Future)
@@ -133,6 +133,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private void removePlugin(UUID uuid, Object label) {
         dao.delete(uuid);
         logger.info("Stale discovery service {} removed", label);
+    }
+
+    public Optional<PluginInfo> getByRealm(String realm) {
+        return dao.getByRealm(realm);
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {

@@ -98,11 +98,19 @@ public abstract class AbstractDao<I, T> {
 
     public final Optional<T> get(I id) {
         Objects.requireNonNull(id);
-        T t = entityManager.find(klazz, id);
-        if (t != null) {
-            entityManager.detach(t);
+        EntityTransaction transaction = entityManager.getTransaction();
+        try {
+            T t = entityManager.find(klazz, id);
+            if (t != null) {
+                entityManager.detach(t);
+            }
+            return Optional.ofNullable(t);
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw e;
         }
-        return Optional.ofNullable(t);
     }
 
     public final List<T> getAll() {

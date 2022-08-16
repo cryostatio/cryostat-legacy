@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -49,6 +50,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -90,21 +92,31 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                 logger.info(
                         "Starting built-in discovery with {}", platform.getClass().getSimpleName());
                 String realmName = platform.getDiscoveryTree().getName();
-                UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
+
+                UUID id =
+                        storage.getByRealm(realmName)
+                                .map(PluginInfo::getId)
+                                .or(
+                                        () -> {
+                                            try {
+                                                return Optional.of(
+                                                        storage.register(
+                                                                realmName,
+                                                                DiscoveryStorage.NO_CALLBACK));
+                                            } catch (RegistrationException re) {
+                                                logger.error(re);
+                                                return Optional.empty();
+                                            }
+                                        })
+                                .get();
+
                 ids.add(id);
                 platform.addTargetDiscoveryListener(
-                        tde ->
-                                getVertx()
-                                        .executeBlocking(
-                                                p ->
-                                                        storage.update(
-                                                                id,
-                                                                platform.getDiscoveryTree()
-                                                                        .getChildren())));
+                        tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+                Promise<EnvironmentNode> promise = Promise.promise();
+                promise.future().onSuccess(subtree -> storage.update(id, subtree.getChildren()));
                 platform.start();
-                getVertx()
-                        .runOnContext(
-                                p -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+                platform.load(promise);
             }
             start.complete();
         } catch (Exception e) {
@@ -123,7 +135,6 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                         logger.error(e);
                     }
                 });
-        this.ids.forEach(storage::deregister);
     }
 
     @Override

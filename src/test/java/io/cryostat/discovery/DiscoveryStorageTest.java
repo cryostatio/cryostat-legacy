@@ -161,23 +161,6 @@ class DiscoveryStorageTest {
         }
 
         @Test
-        void removesPluginsWithoutCallback() throws Exception {
-            Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
-                    .thenReturn(Future.succeededFuture());
-            PluginInfo plugin = new PluginInfo("test-realm", null, "[]");
-            plugin.setId(UUID.randomUUID());
-            Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
-
-            CompletableFuture<Void> f = new CompletableFuture<>();
-            Promise<Void> p = Promise.promise();
-            p.future().onComplete(ar -> f.complete(null));
-            storage.start(p);
-            f.join();
-
-            Mockito.verify(dao).delete(plugin.getId());
-        }
-
-        @Test
         void removesPluginsIfCallbackRejected() throws Exception {
             Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
                     .thenReturn(Future.succeededFuture());

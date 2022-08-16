@@ -55,6 +55,7 @@ import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.Promise;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
@@ -70,7 +71,9 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     }
 
     @Override
-    public void start() {}
+    public void load(Promise<EnvironmentNode> promise) {
+        promise.fail("none");
+    }
 
     public boolean addTarget(ServiceRef serviceRef) throws IOException {
         boolean v = targets.add(serviceRef);
