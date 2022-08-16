@@ -1793,8 +1793,9 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `CredentialsGetHandler`
 
     ##### synopsis
-    List stored credentials. Only the `id` and `matchExpression` are provided
-    here.
+    List stored credentials. Only the `id`, `matchExpression` and 
+    `numMatchingTargets` are provided here, where `numMatchingTargets` is
+    is the number of known targets matching the `matchExpression`.
 
     ##### request
     `GET /api/v2.2/credentials`
@@ -1815,8 +1816,8 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `CredentialGetHandler`
 
     ##### synopsis
-    Get stored credentials. The `id` and `matchExpression` are included, and the
-    list of known targets matching the `matchExpression` will be resolved.
+    Get stored credentials. Includes the `matchExpression` and the
+    list of known targets matching the `matchExpression`.
 
     ##### request
     `GET /api/v2.2/credentials/:id`

@@ -115,6 +115,7 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         int id = Integer.parseInt(params.getPathParams().get("id"));
         try {
+            int numMatchingTargets = credentialsManager.resolveMatchingTargets(id).size();
             String matchExpression = credentialsManager.get(id);
             this.credentialsManager.delete(id);
 
@@ -122,7 +123,14 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .createBuilder()
                     .metaCategory("CredentialsDeleted")
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .message(
+                            Map.of(
+                                    "id",
+                                    id,
+                                    "matchExpression",
+                                    matchExpression,
+                                    "numMatchingTargets",
+                                    numMatchingTargets))
                     .build()
                     .send();
 

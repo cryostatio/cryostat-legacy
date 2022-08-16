@@ -142,11 +142,20 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
                     this.credentialsManager.addCredentials(
                             matchExpression, new Credentials(username, password));
 
+            int numMatchingTargets = this.credentialsManager.resolveMatchingTargets(id).size();
+
             notificationFactory
                     .createBuilder()
                     .metaCategory("CredentialsStored")
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .message(
+                            Map.of(
+                                    "id",
+                                    id,
+                                    "matchExpression",
+                                    matchExpression,
+                                    "numMatchingTargets",
+                                    numMatchingTargets))
                     .build()
                     .send();
 

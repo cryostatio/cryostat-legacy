@@ -400,6 +400,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 storedCredential.matchExpression, Matchers.equalTo(MATCH_EXPRESSION));
         MatcherAssert.assertThat(storedCredential.id, Matchers.greaterThanOrEqualTo(0));
+        MatcherAssert.assertThat(storedCredential.numMatchingTargets, Matchers.equalTo(2));
 
         // Check that resolving the credential includes our targets
         CompletableFuture<JsonObject> resolveResponse = new CompletableFuture<>();
@@ -570,6 +571,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     private static class StoredCredential {
         int id;
         String matchExpression;
+        int numMatchingTargets;
     }
 
     private static class MatchedCredential {

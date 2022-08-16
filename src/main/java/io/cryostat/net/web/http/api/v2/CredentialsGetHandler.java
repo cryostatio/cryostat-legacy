@@ -110,9 +110,11 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
         Map<Integer, String> credentials = credentialsManager.getAll();
         List<Cred> result = new ArrayList<>(credentials.size());
         for (Map.Entry<Integer, String> entry : credentials.entrySet()) {
+            int id = entry.getKey();
             Cred cred = new Cred();
-            cred.id = entry.getKey();
+            cred.id = id;
             cred.matchExpression = entry.getValue();
+            cred.numMatchingTargets = credentialsManager.resolveMatchingTargets(id).size();
             result.add(cred);
         }
         return new IntermediateResponse<List<Cred>>().body(result);
@@ -125,10 +127,11 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
     static class Cred {
         int id;
         String matchExpression;
+        int numMatchingTargets;
 
         @Override
         public int hashCode() {
-            return Objects.hash(id, matchExpression);
+            return Objects.hash(id, matchExpression, numMatchingTargets);
         }
 
         @Override
@@ -143,7 +146,9 @@ class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
                 return false;
             }
             Cred other = (Cred) obj;
-            return id == other.id && Objects.equals(matchExpression, other.matchExpression);
+            return id == other.id
+                    && Objects.equals(matchExpression, other.matchExpression)
+                    && numMatchingTargets == other.numMatchingTargets;
         }
     }
 }
