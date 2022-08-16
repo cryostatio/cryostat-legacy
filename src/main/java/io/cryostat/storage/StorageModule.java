@@ -35,17 +35,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
+package io.cryostat.storage;
 
-public class RegistrationException extends Exception {
-    public RegistrationException(String realm) {
-        super(
-                String.format(
-                        "Failed to register new provider for \"%s\": provider already present",
-                        realm));
+import java.util.Properties;
+
+import javax.inject.Singleton;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
+
+import dagger.Module;
+import dagger.Provides;
+
+@Module
+public abstract class StorageModule {
+
+    @Provides
+    @Singleton
+    static EntityManagerFactory provideEntityManagerFactory(Environment env) {
+        Properties properties = new Properties();
+        properties.put(
+                "jakarta.persistence.jdbc.driver",
+                env.getEnv(Variables.JDBC_DRIVER, "org.h2.Driver"));
+        properties.put(
+                "jakarta.persistence.jdbc.url",
+                env.getEnv(
+                        Variables.JDBC_URL,
+                        "jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as other"));
+        properties.put("jakarta.persistence.jdbc.user", env.getEnv(Variables.JDBC_USERNAME, "sa"));
+        properties.put(
+                "jakarta.persistence.jdbc.password", env.getEnv(Variables.JDBC_PASSWORD, ""));
+        properties.put(
+                "hibernate.dialect",
+                env.getEnv(Variables.HIBERNATE_DIALECT, "org.hibernate.dialect.H2Dialect"));
+        properties.put("hibernate.hbm2ddl.auto", env.getEnv(Variables.HBM2DDL, "create"));
+        if (env.hasEnv(Variables.LOG_QUERIES)) {
+            properties.put("hibernate.show_sql", "true");
+            properties.put("hibernate.format_sql", "true");
+            properties.put("hibernate.use_sql_comments", "true");
+        }
+        return Persistence.createEntityManagerFactory("io.cryostat", properties);
     }
 
-    public RegistrationException(Exception cause) {
-        super(cause);
+    @Provides
+    static EntityManager provideEntityManager(EntityManagerFactory emf) {
+        return emf.createEntityManager();
     }
 }

@@ -10,6 +10,19 @@ function runCryostat() {
     local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
+
+    if [ "$1" = "postgres" ]; then
+        JDBC_URL="jdbc:postgresql://cryostat:5432/cryostat"
+        JDBC_DRIVER="org.postgresql.Driver"
+        HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQL95Dialect"
+        JDBC_USERNAME="postgres"
+        JDBC_PASSWORD="abcd1234"
+        HBM2DDL="update"
+    elif [ "$1" = "h2file" ]; then
+        JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other"
+        HBM2DDL="update"
+    fi
+
     GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
         GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
@@ -17,7 +30,32 @@ function runCryostat() {
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
         CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
         CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager \
+        CRYOSTAT_JDBC_URL="$JDBC_URL" \
+        CRYOSTAT_JDBC_DRIVER="$JDBC_DRIVER" \
+        CRYOSTAT_HIBERNATE_DIALECT="$HIBERNATE_DIALECT" \
+        CRYOSTAT_JDBC_USERNAME="$JDBC_USERNAME" \
+        CRYOSTAT_JDBC_PASSWORD="$JDBC_PASSWORD" \
+        CRYOSTAT_HBM2DDL="$HBM2DDL" \
         exec "$DIR/run.sh"
+}
+
+function runPostgres() {
+    if [ ! -d "$(dirname $0)/conf/postgres" ]; then
+        mkdir "$(dirname $0)/conf/postgres"
+    fi
+    local image="$(xpath -q -e 'project/properties/postgres.image/text()' pom.xml)"
+    local version="$(xpath -q -e 'project/properties/postgres.version/text()' pom.xml)"
+    podman run \
+        --name postgres \
+        --pod cryostat-pod \
+        --env POSTGRES_USER=postgres \
+        --env POSTGRES_PASSWORD=abcd1234 \
+        --env POSTGRES_DB=cryostat \
+        --env PGPASSWORD=abcd1234 \
+        --mount type=bind,source="$(dirname $0)/conf/postgres",destination=/var/lib/postgresql/data/pgdata,relabel=shared \
+        --mount type=bind,source="$(dirname $0)/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
+        --env PGDATA=/var/lib/postgresql/data/pgdata \
+        --rm -d "${image}:${version}"
 }
 
 function runDemoApps() {
@@ -64,10 +102,12 @@ function runDemoApps() {
         --name quarkus-test-plugin \
         --pod cryostat-pod \
         --restart unless-stopped \
-        --env org.acme.CryostatService.Authorization="Basic $(echo -n user:pass | base64)" \
-        --env org.acme.CryostatService/mp-rest/url="${protocol}://localhost:${webPort}" \
-        --env org.acme.CryostatService.callback-host="localhost" \
-        -d quay.io/andrewazores/quarkus-test:0.0.3
+        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
+        --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
+        --env ORG_ACME_JMXHOST="cryostat" \
+        --env ORG_ACME_JMXPORT="9097" \
+        -d quay.io/andrewazores/quarkus-test:0.0.4
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
@@ -129,6 +169,7 @@ function createPod() {
         --publish "${webPort}:${webPort}" \
         --publish "${datasourcePort}:${datasourcePort}" \
         --publish "${grafanaPort}:${grafanaPort}" \
+        --publish 5432:5432 \
         --publish 8081:8081 \
         --publish 9093:9093 \
         --publish 9094:9094 \
@@ -140,6 +181,7 @@ function createPod() {
         --publish 9991:9991 \
         --publish 10000:10000 \
         --publish 10001:10001
+    # 5432: postgres
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX
@@ -160,8 +202,15 @@ function destroyPod() {
 trap destroyPod EXIT
 
 createPod
+if [ "$1" = "postgres" ]; then
+    runPostgres
+elif [ "$1" = "postgres-pgcli" ]; then
+    runPostgres
+    PGPASSWORD=abcd1234 pgcli -h localhost -p 5432 -U postgres
+    exit
+fi
 runDemoApps
 runJfrDatasource
 runGrafana
 runReportGenerator
-runCryostat
+runCryostat "$1"

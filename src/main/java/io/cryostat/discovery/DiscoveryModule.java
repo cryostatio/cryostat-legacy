@@ -37,19 +37,14 @@
  */
 package io.cryostat.discovery;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Set;
-import java.util.UUID;
 
-import javax.inject.Named;
-import javax.inject.Provider;
 import javax.inject.Singleton;
+import javax.persistence.EntityManager;
 
-import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -65,34 +60,22 @@ import io.vertx.ext.web.client.WebClient;
 @Module
 public abstract class DiscoveryModule {
 
-    static final String PERSISTENCE_PATH = "PERSISTENCE_PATH";
-
     @Provides
     @Singleton
-    static DiscoveryStorage provideDiscoveryStorage(
-            Provider<UUID> uuid,
-            FileSystem fs,
-            @Named(PERSISTENCE_PATH) Path persistencePath,
-            Gson gson,
-            WebClient http,
-            Logger logger) {
-        return new DiscoveryStorage(uuid, fs, persistencePath, gson, http, logger);
+    static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson, Logger logger) {
+        return new PluginInfoDao(em, gson, logger);
     }
 
     @Provides
     @Singleton
-    @Named(PERSISTENCE_PATH)
-    static Path providePersistencePath(
-            @Named(ConfigurationModule.CONFIGURATION_PATH) Path conf, FileSystem fs) {
-        Path p = conf.resolve("discovery");
-        if (!fs.isDirectory(p)) {
-            try {
-                fs.createDirectory(p);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return p;
+    static DiscoveryStorage provideDiscoveryStorage(
+            VerticleDeployer deployer,
+            Lazy<BuiltInDiscovery> builtin,
+            PluginInfoDao dao,
+            Gson gson,
+            WebClient http,
+            Logger logger) {
+        return new DiscoveryStorage(deployer, builtin, dao, gson, http, logger);
     }
 
     @Provides

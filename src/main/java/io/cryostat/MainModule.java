@@ -62,6 +62,7 @@ import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
+import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
@@ -76,10 +77,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
 @Module(
         includes = {
+            StorageModule.class,
             ConfigurationModule.class,
             MessagingModule.class,
             NetworkModule.class,
@@ -177,14 +180,15 @@ public abstract class MainModule {
     }
 
     @Provides
-    public static UUID provideUuid() {
-        return UUID.randomUUID();
-    }
-
-    @Provides
     @Singleton
     @Named(UUID_FROM_STRING)
     public static Function<String, UUID> provideUuidToString() {
         return UUID::fromString;
+    }
+
+    @Provides
+    @Singleton
+    public static VerticleDeployer provideVerticleDeployer(Vertx vertx, Logger logger) {
+        return new VerticleDeployer(vertx, logger);
     }
 }

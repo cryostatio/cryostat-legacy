@@ -37,15 +37,27 @@
  */
 package io.cryostat.discovery;
 
-public class RegistrationException extends Exception {
-    public RegistrationException(String realm) {
-        super(
-                String.format(
-                        "Failed to register new provider for \"%s\": provider already present",
-                        realm));
+import java.net.URI;
+
+import javax.persistence.AttributeConverter;
+
+import org.apache.commons.lang3.StringUtils;
+
+public class UriConverter implements AttributeConverter<URI, String> {
+
+    @Override
+    public String convertToDatabaseColumn(URI attribute) {
+        if (attribute == null) {
+            return null;
+        }
+        return attribute.toString();
     }
 
-    public RegistrationException(Exception cause) {
-        super(cause);
+    @Override
+    public URI convertToEntityAttribute(String dbData) {
+        if (StringUtils.isBlank(dbData)) {
+            return null;
+        }
+        return URI.create(dbData.strip());
     }
 }

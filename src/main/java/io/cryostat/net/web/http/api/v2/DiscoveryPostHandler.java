@@ -117,10 +117,9 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
         try {
-            String key = "id";
             UUID id =
                     this.uuidFromString.apply(
-                            StringUtil.requireNonBlank(params.getPathParams().get(key), key));
+                            StringUtil.requireNonBlank(params.getPathParams().get("id"), "id"));
             Set<AbstractNode> nodes =
                     gson.fromJson(
                             StringUtil.requireNonBlank(params.getBody(), "body"),

@@ -35,17 +35,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
+package io.cryostat;
 
-public class RegistrationException extends Exception {
-    public RegistrationException(String realm) {
-        super(
-                String.format(
-                        "Failed to register new provider for \"%s\": provider already present",
-                        realm));
+import io.cryostat.core.log.Logger;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Verticle;
+import io.vertx.core.Vertx;
+
+public class VerticleDeployer {
+
+    private final Vertx vertx;
+    private final Logger logger;
+
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification = "vertx is externally mutable and that's fine")
+    public VerticleDeployer(Vertx vertx, Logger logger) {
+        this.vertx = vertx;
+        this.logger = logger;
     }
 
-    public RegistrationException(Exception cause) {
-        super(cause);
+    public Future deploy(Verticle verticle, boolean worker) {
+        String name = verticle.getClass().getName();
+        logger.info("Deploying {} Verticle", name);
+        return vertx.deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
+                .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
+                .onFailure(
+                        t -> {
+                            logger.error("FAILED to deploy {} Verticle", name);
+                            t.printStackTrace();
+                        });
     }
 }

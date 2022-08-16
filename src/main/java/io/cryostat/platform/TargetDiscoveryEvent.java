@@ -37,6 +37,8 @@
  */
 package io.cryostat.platform;
 
+import java.util.Objects;
+
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 
 public class TargetDiscoveryEvent {
@@ -54,5 +56,25 @@ public class TargetDiscoveryEvent {
 
     public ServiceRef getServiceRef() {
         return new ServiceRef(this.serviceRef);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(kind, serviceRef);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        TargetDiscoveryEvent other = (TargetDiscoveryEvent) obj;
+        return kind == other.kind && Objects.equals(serviceRef, other.serviceRef);
     }
 }

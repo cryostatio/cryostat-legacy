@@ -50,7 +50,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.discovery.TargetNode;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -102,11 +101,6 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response()
-                .end(
-                        gson.toJson(
-                                this.storage.getLeafNodes().stream()
-                                        .map(TargetNode::getTarget)
-                                        .toList()));
+        ctx.response().end(gson.toJson(this.storage.listDiscoverableServices()));
     }
 }
