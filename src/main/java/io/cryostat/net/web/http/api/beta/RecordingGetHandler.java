@@ -37,46 +37,48 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.vertx.ext.web.RoutingContext;
 
-import com.google.gson.Gson;
-
-public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
+class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingDeleteHandler(
+    RecordingGetHandler(
             AuthManager auth,
-            Gson gson,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth, gson);
+            CredentialsManager credentialsManager,
+            AssetJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
     }
 
     @Override
@@ -86,12 +88,12 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_RECORDING);
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
@@ -100,27 +102,32 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
-    }
-
-    @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
-        String sourceTarget = params.getPathParams().get("sourceTarget");
-        String recordingName = params.getPathParams().get("recordingName");
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+        String sourceTarget = ctx.pathParam("sourceTarget");
+        String recordingName = ctx.pathParam("recordingName");
         try {
-            recordingArchiveHelper.deleteRecording(sourceTarget, recordingName).get();
-            return new IntermediateResponse<Void>().body(null);
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            String.format("attachment; filename=\"%s\"", recordingName));
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_LENGTH,
+                            Long.toString(archivedRecording.toFile().length()));
+            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
         } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;
         }
     }
 }
+

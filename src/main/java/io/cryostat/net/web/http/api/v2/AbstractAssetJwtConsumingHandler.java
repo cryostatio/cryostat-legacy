@@ -74,7 +74,7 @@ import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
+public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
@@ -95,7 +95,7 @@ abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
         this.logger = logger;
     }
 
-    abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
+    public abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
 
     @Override
     public final void handle(RoutingContext ctx) {
