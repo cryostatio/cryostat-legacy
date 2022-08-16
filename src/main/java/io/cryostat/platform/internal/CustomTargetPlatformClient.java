@@ -47,6 +47,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -54,25 +55,31 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Promise;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
+    private static final String REALM = "Custom Targets";
+
     public static final CustomTargetNodeType NODE_TYPE = CustomTargetNodeType.CUSTOM_TARGET;
 
     static final String SAVEFILE_NAME = "custom_targets.json";
 
+    private final Lazy<DiscoveryStorage> storage;
     private final SortedSet<ServiceRef> targets;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Field is never mutated")
-    public CustomTargetPlatformClient() {
+    public CustomTargetPlatformClient(Lazy<DiscoveryStorage> storage) {
+        this.storage = storage;
         this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
     }
 
     @Override
     public void load(Promise<EnvironmentNode> promise) {
-        promise.fail("none");
+        targets.addAll(storage.get().listDiscoverableServices(REALM));
+        super.load(promise);
     }
 
     public boolean addTarget(ServiceRef serviceRef) throws IOException {
@@ -114,8 +121,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     public EnvironmentNode getDiscoveryTree() {
         List<TargetNode> children =
                 targets.stream().map(sr -> new TargetNode(NODE_TYPE, sr)).toList();
-        return new EnvironmentNode(
-                "Custom Targets", BaseNodeType.REALM, Collections.emptyMap(), children);
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
     }
 
     public enum CustomTargetNodeType implements NodeType {

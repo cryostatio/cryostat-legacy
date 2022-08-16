@@ -195,6 +195,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 
+    public Optional<EnvironmentNode> getSubtree(String realm) {
+        return getByRealm(realm)
+                .map(PluginInfo::getSubtree)
+                .map(s -> gson.fromJson(s, EnvironmentNode.class));
+    }
+
     private Set<TargetNode> getLeafNodes() {
         return findLeavesFrom(getDiscoveryTree());
     }
@@ -202,6 +208,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         return getLeafNodes().stream().map(TargetNode::getTarget).toList();
+    }
+
+    public List<ServiceRef> listDiscoverableServices(String realm) {
+        return getSubtree(realm)
+                .map(this::findLeavesFrom)
+                .map(leaves -> leaves.stream().map(TargetNode::getTarget).toList())
+                .orElse(List.of());
     }
 
     private Set<TargetNode> findLeavesFrom(AbstractNode node) {

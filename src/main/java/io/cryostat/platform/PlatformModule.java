@@ -47,6 +47,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -54,6 +55,7 @@ import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
 import dagger.Binds;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
@@ -63,8 +65,9 @@ public abstract class PlatformModule {
 
     @Provides
     @Singleton
-    static CustomTargetPlatformClient provideCustomTargetPlatformClient() {
-        return new CustomTargetPlatformClient();
+    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
+            Lazy<DiscoveryStorage> storage) {
+        return new CustomTargetPlatformClient(storage);
     }
 
     @Binds

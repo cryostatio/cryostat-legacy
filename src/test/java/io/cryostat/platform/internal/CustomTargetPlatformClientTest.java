@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -58,6 +59,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,9 +82,11 @@ class CustomTargetPlatformClientTest {
         }
     }
 
+    @Mock DiscoveryStorage storage;
+
     @BeforeEach
     void setup() {
-        this.client = new CustomTargetPlatformClient();
+        this.client = new CustomTargetPlatformClient(() -> storage);
     }
 
     @Test
