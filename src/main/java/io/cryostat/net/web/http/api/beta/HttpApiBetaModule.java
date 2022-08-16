@@ -68,13 +68,18 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingGetHandler(
-        RecordingGetHandler handler);
+            RecordingGetHandler handler);
 
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingDeleteHandler(
         RecordingDeleteHandler handler);
 
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(
+            ReportGetHandler handler);
+            
     @Binds
     @IntoSet
     abstract RequestHandler bindJvmIdGetHandler(JvmIdGetHandler handler);
