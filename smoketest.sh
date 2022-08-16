@@ -50,12 +50,12 @@ function runPostgres() {
         --pod cryostat-pod \
         --env POSTGRES_USER=postgres \
         --env POSTGRES_PASSWORD=abcd1234 \
+        --env POSTGRES_DB=cryostat \
+        --env PGPASSWORD=abcd1234 \
         --mount type=bind,source="$(dirname $0)/conf/postgres",destination=/var/lib/postgresql/data/pgdata,relabel=shared \
-        --mount type=bind,source="$(dirname $0)/src/test/resources/postgres",destination=/docker-entrypoint.initdb.d,relabel=shared \
+        --mount type=bind,source="$(dirname $0)/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
         --env PGDATA=/var/lib/postgresql/data/pgdata \
         --rm -d "${image}:${version}"
-    sleep 5
-    PGPASSWORD=abcd1234 psql -h localhost -p 5432 -U postgres -f src/test/resources/postgres/postgre.sql
 }
 
 function runDemoApps() {

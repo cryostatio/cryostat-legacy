@@ -27,7 +27,7 @@
   <yarn.version>v1.22.13</yarn.version>
 
   <postgres.image>docker.io/postgres</postgres.image>
-  <postgres.version>13</postgres.version>
+  <postgres.version>13-bullseye</postgres.version>
 
   <skipTests>false</skipTests>
   <skipITs>${skipTests}</skipITs>
