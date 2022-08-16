@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -58,6 +58,8 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractJwtConsumingHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -67,7 +69,9 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
+class ReportGetHandler extends AbstractJwtConsumingHandler {
+
+    static final String PATH = "recordings/:sourceTarget/:recordingName";
 
     private final ReportService reportService;
     private final long generationTimeoutSeconds;
@@ -88,7 +92,7 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -106,7 +110,7 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public String path() {
-        return basePath() + "reports/:recordingName";
+        return basePath() + PATH;
     }
 
     @Override
@@ -121,7 +125,7 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String sourceTarget = null;
+        String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);

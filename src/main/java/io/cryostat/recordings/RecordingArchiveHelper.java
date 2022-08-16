@@ -262,7 +262,7 @@ public class RecordingArchiveHelper {
         } catch (IOException | URISyntaxException e) {
             future.completeExceptionally(e);
         } finally {
-            deleteReport(recordingName);
+            deleteReport(sourceTarget, recordingName);
         }
 
         return future;
@@ -280,19 +280,27 @@ public class RecordingArchiveHelper {
         }
     }
 
-    public boolean deleteReport(String recordingName) {
+    public boolean deleteReport(String sourceTarget, String recordingName) {
         try {
             logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(getCachedReportPath(recordingName));
+            return fs.deleteIfExists(getCachedReportPath(sourceTarget, recordingName));
         } catch (IOException ioe) {
             logger.warn(ioe);
             return false;
         }
     }
 
-    public Path getCachedReportPath(String recordingName) {
+    public Path getCachedReportPath(String sourceTarget, String recordingName) {
+        String subdirectory;
+        if (sourceTarget == null) {
+            subdirectory = "default";
+        } else if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+            subdirectory = UPLOADED_RECORDINGS_SUBDIRECTORY;
+        } else {
+            subdirectory = base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
+        }
         String fileName = recordingName + ".report.html";
-        return archivedRecordingsReportPath.resolve(fileName).toAbsolutePath();
+        return archivedRecordingsReportPath.resolve(subdirectory).resolve(fileName).toAbsolutePath();
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {

@@ -71,9 +71,9 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> get(String recordingName, String filter) {
+    Future<Path> get(String sourceTarget, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
-        Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
+        Path dest = recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName);
         /* NOTE: This is just a temporary solution: If a request includes a filter,
          * the report is never cached and just constructed on demand.
          */
@@ -103,7 +103,7 @@ class ArchivedRecordingReportCache {
         return f;
     }
 
-    boolean delete(String recordingName) {
-        return recordingArchiveHelper.deleteReport(recordingName);
+    boolean delete(String sourceTarget, String recordingName) {
+        return recordingArchiveHelper.deleteReport(sourceTarget, recordingName);
     }
 }
