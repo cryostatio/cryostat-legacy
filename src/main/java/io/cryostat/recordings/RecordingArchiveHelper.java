@@ -190,18 +190,44 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    @SuppressFBWarnings(
-            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-            justification =
-                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
-                            + " getFileName() of the Path are not null, barring some exceptional"
-                            + " circumstance like some external filesystem access race.")
+    public Future<ArchivedRecordingInfo> deleteRecording(String sourceTarget, String recordingName) {
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
+        
+        try {
+            Path archivedRecording = getRecordingPath(sourceTarget, recordingName).get();
+            future = handleDeleteRecordingRequest(sourceTarget, recordingName, archivedRecording);
+        } catch (InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
     public Future<ArchivedRecordingInfo> deleteRecording(String recordingName) {
 
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
 
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
+            future = handleDeleteRecordingRequest(null, recordingName, archivedRecording);
+        } catch (InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
+
+    @SuppressFBWarnings(
+        value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+        justification =
+                "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                        + " getFileName() of the Path are not null, barring some exceptional"
+                        + " circumstance like some external filesystem access race.")
+    private CompletableFuture<ArchivedRecordingInfo> handleDeleteRecordingRequest(String sourceTarget, String recordingName, Path archivedRecording) {
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
+
+        try {
             fs.deleteIfExists(archivedRecording);
             validateSavePath(recordingName, archivedRecording);
             Path parentPath = archivedRecording.getParent();
@@ -233,7 +259,7 @@ public class RecordingArchiveHelper {
                 fs.deleteIfExists(parentPath);
             }
             future.complete(archivedRecordingInfo);
-        } catch (IOException | InterruptedException | ExecutionException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException e) {
             future.completeExceptionally(e);
         } finally {
             deleteReport(recordingName);
@@ -398,21 +424,8 @@ public class RecordingArchiveHelper {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Optional<Path> optional =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
-            if (optional.isEmpty()) {
-                throw new RecordingNotFoundException(ARCHIVES, recordingName);
-            }
-            Path archivedRecording = optional.get();
-            if (!fs.exists(archivedRecording)) {
-                throw new ArchivePathException(archivedRecording.toString(), "does not exist");
-            }
-            if (!fs.isRegularFile(archivedRecording)) {
-                throw new ArchivePathException(
-                        archivedRecording.toString(), "is not a regular file");
-            }
-            if (!fs.isReadable(archivedRecording)) {
-                throw new ArchivePathException(archivedRecording.toString(), "is not readable");
-            }
-            future.complete(archivedRecording);
+            validateRecordingPath(optional, recordingName);
+            future.complete(optional.get());
         } catch (RecordingNotFoundException | IOException | ArchivePathException e) {
             future.completeExceptionally(e);
         }
@@ -420,29 +433,72 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public Future<Path> getRecordingPath(String sourceTarget, String recordingName) {
+        CompletableFuture<Path> future = new CompletableFuture<>();
+
+        try {
+            String subdirectoryName =
+                    (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                            ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                            : base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
+            Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
+            Path archivedRecording = searchSubdirectory(subdirectory, recordingName);
+            validateRecordingPath(Optional.of(archivedRecording), recordingName);
+            future.complete(archivedRecording);
+        } catch (RecordingNotFoundException | ArchivePathException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
+    private Path searchSubdirectory(Path subdirectory, String recordingName) {
+        Path recordingPath = null;
+        try {
+            for (String file : this.fs.listDirectoryChildren(subdirectory)) {
+                if (recordingName.equals(file)) {
+                    recordingPath = 
+                        subdirectory
+                        .resolve(file)
+                        .normalize()
+                        .toAbsolutePath();
+                    break;
+                }
+            }
+        } catch (IOException ioe) {
+            logger.error(ioe);
+        }
+        return recordingPath;
+    }
+
     private Optional<Path> searchSubdirectories(
-            List<String> subdirectories, Path parent, String recordingName) throws IOException {
+            List<String> subdirectories, Path parent, String recordingName) {
         // TODO refactor this into nicer streaming
         return subdirectories.stream()
                 .map(parent::resolve)
                 .map(
                         subdirectory -> {
-                            try {
-                                for (String file : this.fs.listDirectoryChildren(subdirectory)) {
-                                    if (recordingName.equals(file)) {
-                                        return subdirectory
-                                                .resolve(file)
-                                                .normalize()
-                                                .toAbsolutePath();
-                                    }
-                                }
-                            } catch (IOException ioe) {
-                                logger.error(ioe);
-                            }
-                            return null;
+                            return searchSubdirectory(subdirectory, recordingName);
                         })
                 .filter(Objects::nonNull)
                 .findFirst();
+    }
+
+    private void validateRecordingPath(Optional<Path> optional, String recordingName) throws RecordingNotFoundException, ArchivePathException {
+        if (optional.isEmpty()) {
+            throw new RecordingNotFoundException(ARCHIVES, recordingName);
+        }
+        Path archivedRecording = optional.get();
+        if (!fs.exists(archivedRecording)) {
+            throw new ArchivePathException(archivedRecording.toString(), "does not exist");
+        }
+        if (!fs.isRegularFile(archivedRecording)) {
+            throw new ArchivePathException(
+                    archivedRecording.toString(), "is not a regular file");
+        }
+        if (!fs.isReadable(archivedRecording)) {
+            throw new ArchivePathException(archivedRecording.toString(), "is not readable");
+        }
     }
 
     Path writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
