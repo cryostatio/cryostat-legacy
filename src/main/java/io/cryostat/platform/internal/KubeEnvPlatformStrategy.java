@@ -37,26 +37,35 @@
  */
 package io.cryostat.platform.internal;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.client.Config;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
 
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
+    private final FileSystem fs;
     private final AuthManager authMgr;
     private final Environment env;
 
     KubeEnvPlatformStrategy(
             Logger logger,
+            FileSystem fs,
             AuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env) {
         this.logger = logger;
+        this.fs = fs;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
@@ -76,11 +85,21 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(connectionToolkit, env, logger);
+        return new KubeEnvPlatformClient(getNamespace(), connectionToolkit, env, logger);
     }
 
     @Override
     public AuthManager getAuthManager() {
         return authMgr;
+    }
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    private String getNamespace() {
+        try {
+            return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
+        } catch (IOException e) {
+            logger.trace(e);
+            return null;
+        }
     }
 }

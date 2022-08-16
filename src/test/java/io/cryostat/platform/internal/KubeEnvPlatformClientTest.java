@@ -52,6 +52,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -74,13 +75,14 @@ import org.mockito.stubbing.Answer;
 class KubeEnvPlatformClientTest {
 
     KubeEnvPlatformClient client;
+    final String namespace = "mynamespace";
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(() -> connectionToolkit, env, logger);
+        client = new KubeEnvPlatformClient(namespace, () -> connectionToolkit, env, logger);
     }
 
     @Nested
@@ -129,10 +131,22 @@ class KubeEnvPlatformClientTest {
                     new ServiceRef(
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
+            serv1.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM, "KubernetesEnv",
+                            AnnotationKey.SERVICE_NAME, "foo",
+                            AnnotationKey.NAMESPACE, namespace,
+                            AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
+            serv2.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM, "KubernetesEnv",
+                            AnnotationKey.SERVICE_NAME, "bar",
+                            AnnotationKey.NAMESPACE, namespace,
+                            AnnotationKey.PORT, "9999"));
 
             List<ServiceRef> services = client.listDiscoverableServices();
 
@@ -170,10 +184,22 @@ class KubeEnvPlatformClientTest {
                     new ServiceRef(
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
+            serv1.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM, "KubernetesEnv",
+                            AnnotationKey.SERVICE_NAME, "foo",
+                            AnnotationKey.NAMESPACE, namespace,
+                            AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
+            serv2.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM, "KubernetesEnv",
+                            AnnotationKey.SERVICE_NAME, "bar",
+                            AnnotationKey.NAMESPACE, namespace,
+                            AnnotationKey.PORT, "9999"));
 
             EnvironmentNode realmNode = client.getDiscoveryTree();
 

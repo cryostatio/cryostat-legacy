@@ -149,6 +149,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     cryostatAnnotations.put(ak, attrs.get(formKey));
                 }
             }
+            cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
             boolean v = customTargetPlatformClient.addTarget(serviceRef);

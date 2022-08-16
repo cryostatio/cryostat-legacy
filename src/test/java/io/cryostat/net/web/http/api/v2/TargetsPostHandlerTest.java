@@ -151,7 +151,9 @@ class TargetsPostHandlerTest {
         MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
         MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
         MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
-        MatcherAssert.assertThat(captured.getCryostatAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                captured.getCryostatAnnotations(),
+                Matchers.equalTo(Map.of(AnnotationKey.REALM, "Custom Targets")));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 
@@ -226,7 +228,13 @@ class TargetsPostHandlerTest {
         MatcherAssert.assertThat(
                 captured.getCryostatAnnotations(),
                 Matchers.equalTo(
-                        Map.of(AnnotationKey.HOST, "app.example.com", AnnotationKey.PID, "1234")));
+                        Map.of(
+                                AnnotationKey.HOST,
+                                "app.example.com",
+                                AnnotationKey.PID,
+                                "1234",
+                                AnnotationKey.REALM,
+                                "Custom Targets")));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 
