@@ -68,6 +68,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.fabric8.openshift.api.model.BuildStrategyFluent.SourceStrategyNested;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -97,8 +98,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
-    private final Map<String, String> jvmIdMap;
+    private final Map<Pair<String, String>, Metadata> recordingMetadataMap; // jvmId, recordingName
+    private final Map<String, String> jvmIdMap; // targetId, jvmId
     private final Map<String, Long> staleMetadataTimers;
 
     RecordingMetadataManager(
@@ -156,14 +157,34 @@ public class RecordingMetadataManager extends AbstractVerticle
         future.complete();
     }
 
+    public String getJvmId(String targetId) throws Exception { // public helper version just for testing
+        ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+        return this.getJvmId(cd);
+    }
+
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
+        System.out.println("ACCEPTED!!!!!!!!!!!!");
+        for (var e : recordingMetadataMap.entrySet()) {
+            System.out.println("jvmId: " + e.getKey().getLeft());
+            System.out.println("recordingName: " + e.getKey().getRight());
+            System.out.println("metadata: " + e.getValue().getLabels());
+            System.out.println("\n");
+        }
+
+        for (var e : jvmIdMap.entrySet()) {
+            System.out.println("targetId: " + e.getKey());
+            System.out.println("jvmId: " + e.getValue());
+            System.out.println("\n");
+        }
         String targetId = tde.getServiceRef().getServiceUri().toString();
         String oldJvmId = jvmIdMap.get(targetId);
 
         if (oldJvmId == null) {
+            logger.info("Target did not have a JVM id: {}\n ", targetId);
             return;
         }
+        System.out.println("\n");
 
         Credentials credentials;
         ConnectionDescriptor cd;
@@ -199,9 +220,24 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(metadata);
 
         String jvmId = this.getJvmId(connectionDescriptor);
-
+        System.out.println("before.....");
+        for (var e : recordingMetadataMap.entrySet()) {
+            System.out.println("jvmId: " + e.getKey().getLeft());
+            System.out.println("recordingName: " + e.getKey().getRight());
+            System.out.println("metadata: " + e.getValue().getLabels());
+            System.out.println("\n");
+        }
+        System.out.println("\n");
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
-        fs.writeString(
+        System.out.println("after......");
+        for (var e : recordingMetadataMap.entrySet()) {
+            System.out.println("jvmId: " + e.getKey().getLeft());
+            System.out.println("recordingName: " + e.getKey().getRight());
+            System.out.println("metadata: " + e.getValue().getLabels());
+            System.out.println("\n");
+        }
+        if (isArchivedRecording(recordingName)) {
+            fs.writeString(
                 this.getMetadataPath(jvmId, recordingName),
                 gson.toJson(
                         StoredRecordingMetadata.of(
@@ -212,6 +248,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+        }
 
         if (issueNotification) {
             notificationFactory
@@ -309,6 +346,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
+
             String newJvmId =
                     this.targetConnectionManager.executeConnectedTask(
                             cd,
@@ -332,27 +370,31 @@ public class RecordingMetadataManager extends AbstractVerticle
                 }
                 return;
             }
-
+            logger.info("Trying to transfer metadata for {}: {} -> {}", targetId, oldJvmId, newJvmId);
             recordingMetadataMap.keySet().stream()
                     .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
                     .forEach(
                             keyPair -> {
                                 try {
                                     String recordingName = keyPair.getValue();
-
+                                    logger.info("trying.........................");
                                     if (isArchivedRecording(recordingName)) {
+                                        logger.info("This is an archived recording! {}", recordingName);
                                         Metadata m = this.getMetadata(cd, recordingName);
-                                        jvmIdMap.put(targetId, newJvmId);
+                                        deleteRecordingMetadataIfExists(cd, recordingName);
+                                        jvmIdMap.put(targetId, newJvmId);    
                                         setRecordingMetadata(cd, recordingName, m);
-                                        jvmIdMap.put(targetId, oldJvmId);
+                                        jvmIdMap.put(targetId, oldJvmId);    
                                     }
                                 } catch (IOException e) {
-                                    logger.error(e);
+                                    logger.error("Metadata could not be transferred upon restart", e);
                                 }
                             });
-            jvmIdMap.put(targetId, newJvmId);
+                
+            jvmIdMap.put(targetId, newJvmId);    
+            logger.info("Metadata for targetId {} successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Metadata could not be transferred upon restart", e);
         }
     }
 
@@ -381,6 +423,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
                                                             if (!isArchivedRecording(
                                                                     recordingName)) {
+                                                                        logger.info("its not an archived recording....");
                                                                 deleteRecordingMetadataIfExists(
                                                                         cd, recordingName);
                                                             }
@@ -393,22 +436,26 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
         try {
+            System.out.println("is this an archived recording?");
+            System.out.println("trying to find match for : " + recordingName);
             return this.fs.listDirectoryChildren(archivedRecordingsPath).stream()
                     .map(
                             subdirectory -> {
                                 try {
+                                    logger.info("checking directory.....{}", subdirectory);
+                                    System.out.println(archivedRecordingsPath.resolve(subdirectory));
                                     for (String file :
-                                            this.fs.listDirectoryChildren(Path.of(subdirectory))) {
+                                            this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory))) {
+                                                System.out.println(file);
+
                                         if (recordingName.equals(file)) {
                                             return true;
                                         }
                                     }
-                                } catch (NoSuchFileException e) {
-                                    return false;
                                 } catch (IOException ioe) {
                                     logger.error(ioe);
                                 }
-                                return null;
+                                return false;
                             })
                     .filter(v -> v)
                     .findFirst()
