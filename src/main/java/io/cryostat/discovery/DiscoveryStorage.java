@@ -72,6 +72,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
+    private long timerId = -1L;
 
     DiscoveryStorage(
             VerticleDeployer deployer,
@@ -90,6 +91,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void start(Promise<Void> future) throws Exception {
+        pingPrune()
+                .onSuccess(
+                        cf ->
+                                deployer.deploy(builtin.get(), true)
+                                        .onSuccess(ar -> future.complete())
+                                        .onFailure(t -> future.fail((Throwable) t)))
+                .onFailure(future::fail);
+
+        this.timerId = getVertx().setPeriodic(30_000L, i -> pingPrune());
+    }
+
+    @Override
+    public void stop() {
+        getVertx().cancelTimer(timerId);
+    }
+
+    private CompositeFuture pingPrune() {
         List<Future> futures =
                 dao.getAll().stream()
                         .map(
@@ -110,28 +128,17 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                         .isSuccessCode(
                                                                                 res.statusCode())) {
                                                                     removePlugin(key, uri);
-                                                                    return;
                                                                 }
-                                                                logger.info(
-                                                                        "Found discovery service"
-                                                                                + " {}",
-                                                                        uri);
                                                             })
                                                     .onFailure(t -> removePlugin(key, uri))
                                                     .recover(t -> Future.succeededFuture());
                                 })
                         .toList();
-        CompositeFuture.join(futures)
-                .onSuccess(
-                        cf ->
-                                deployer.deploy(builtin.get(), true)
-                                        .onSuccess(ar -> future.complete())
-                                        .onFailure(t -> future.fail((Throwable) t)))
-                .onFailure(future::fail);
+        return CompositeFuture.join(futures);
     }
 
     private void removePlugin(UUID uuid, Object label) {
-        dao.delete(uuid);
+        deregister(uuid);
         logger.info("Stale discovery service {} removed", label);
     }
 

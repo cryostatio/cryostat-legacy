@@ -63,7 +63,7 @@ public class PluginInfo {
     @Column(unique = true, nullable = false)
     private String realm;
 
-    @Column
+    @Column(unique = true)
     @Convert(converter = UriConverter.class)
     private URI callback;
 
