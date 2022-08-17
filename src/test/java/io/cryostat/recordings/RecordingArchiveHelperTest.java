@@ -840,7 +840,8 @@ class RecordingArchiveHelperTest {
 
         String sourceTarget = null;
         MatcherAssert.assertThat(
-                recordingArchiveHelper.deleteReport(sourceTarget, "foo"), Matchers.equalTo(deleted));
+                recordingArchiveHelper.deleteReport(sourceTarget, "foo"),
+                Matchers.equalTo(deleted));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
         Mockito.verify(archivedRecordingsReportPath).resolve("default/foo.report.html");

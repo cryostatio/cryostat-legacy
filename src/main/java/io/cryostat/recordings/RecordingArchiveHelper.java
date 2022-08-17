@@ -190,9 +190,10 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Future<ArchivedRecordingInfo> deleteRecording(String sourceTarget, String recordingName) {
+    public Future<ArchivedRecordingInfo> deleteRecording(
+            String sourceTarget, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
-        
+
         try {
             Path archivedRecording = getRecordingPath(sourceTarget, recordingName).get();
             future = handleDeleteRecordingRequest(sourceTarget, recordingName, archivedRecording);
@@ -217,14 +218,14 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-
     @SuppressFBWarnings(
-        value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-        justification =
-                "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
-                        + " getFileName() of the Path are not null, barring some exceptional"
-                        + " circumstance like some external filesystem access race.")
-    private CompletableFuture<ArchivedRecordingInfo> handleDeleteRecordingRequest(String sourceTarget, String recordingName, Path archivedRecording) {
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
+    private CompletableFuture<ArchivedRecordingInfo> handleDeleteRecordingRequest(
+            String sourceTarget, String recordingName, Path archivedRecording) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
 
         try {
@@ -300,7 +301,10 @@ public class RecordingArchiveHelper {
             subdirectory = base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
         }
         String fileName = recordingName + ".report.html";
-        return archivedRecordingsReportPath.resolve(subdirectory).resolve(fileName).toAbsolutePath();
+        return archivedRecordingsReportPath
+                .resolve(subdirectory)
+                .resolve(fileName)
+                .toAbsolutePath();
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
@@ -443,7 +447,7 @@ public class RecordingArchiveHelper {
         if (sourceTarget == null) {
             return getRecordingPath(recordingName);
         }
-        
+
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
             String subdirectoryName =
@@ -465,11 +469,7 @@ public class RecordingArchiveHelper {
         try {
             for (String file : this.fs.listDirectoryChildren(subdirectory)) {
                 if (recordingName.equals(file)) {
-                    recordingPath = 
-                        subdirectory
-                        .resolve(file)
-                        .normalize()
-                        .toAbsolutePath();
+                    recordingPath = subdirectory.resolve(file).normalize().toAbsolutePath();
                     break;
                 }
             }
@@ -492,7 +492,8 @@ public class RecordingArchiveHelper {
                 .findFirst();
     }
 
-    private void validateRecordingPath(Optional<Path> optional, String recordingName) throws RecordingNotFoundException, ArchivePathException {
+    private void validateRecordingPath(Optional<Path> optional, String recordingName)
+            throws RecordingNotFoundException, ArchivePathException {
         if (optional.isEmpty()) {
             throw new RecordingNotFoundException(ARCHIVES, recordingName);
         }
@@ -501,8 +502,7 @@ public class RecordingArchiveHelper {
             throw new ArchivePathException(archivedRecording.toString(), "does not exist");
         }
         if (!fs.isRegularFile(archivedRecording)) {
-            throw new ArchivePathException(
-                    archivedRecording.toString(), "is not a regular file");
+            throw new ArchivePathException(archivedRecording.toString(), "is not a regular file");
         }
         if (!fs.isReadable(archivedRecording)) {
             throw new ArchivePathException(archivedRecording.toString(), "is not readable");

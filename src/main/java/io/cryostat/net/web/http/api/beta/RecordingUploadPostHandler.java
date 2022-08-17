@@ -64,6 +64,7 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
@@ -71,12 +72,10 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
-import com.google.gson.Gson;
-
 class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName/upload";
-    
+
     private final Environment env;
     private final long httpTimeoutSeconds;
     private final WebClient webClient;
@@ -165,10 +164,12 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
         }
     }
 
-    private ResponseMessage doPost(String sourceTarget, String recordingName, URL uploadUrl) throws Exception {
+    private ResponseMessage doPost(String sourceTarget, String recordingName, URL uploadUrl)
+            throws Exception {
         Path recordingPath = null;
         try {
-            recordingPath = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            recordingPath =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);

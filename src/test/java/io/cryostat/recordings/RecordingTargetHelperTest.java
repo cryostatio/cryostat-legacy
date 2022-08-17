@@ -226,13 +226,14 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
-        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor = ArgumentCaptor.forClass(ConnectionDescriptor.class);
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        connectionDescriptorCaptor.capture(),
-                        Mockito.eq(recordingName));
-        MatcherAssert.assertThat(connectionDescriptorCaptor.getValue().getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
-        
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
+        MatcherAssert.assertThat(
+                connectionDescriptorCaptor.getValue().getTargetId(),
+                Matchers.equalTo(connectionDescriptor.getTargetId()));
+
         Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
@@ -275,12 +276,13 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
-        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor = ArgumentCaptor.forClass(ConnectionDescriptor.class);
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        connectionDescriptorCaptor.capture(),
-                        Mockito.eq(recordingName));
-        MatcherAssert.assertThat(connectionDescriptorCaptor.getValue().getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
+        MatcherAssert.assertThat(
+                connectionDescriptorCaptor.getValue().getTargetId(),
+                Matchers.equalTo(connectionDescriptor.getTargetId()));
 
         Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =

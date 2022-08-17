@@ -111,7 +111,8 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
         try {
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             ctx.response()
                     .putHeader(
                             HttpHeaders.CONTENT_DISPOSITION,
@@ -130,4 +131,3 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
         }
     }
 }
-

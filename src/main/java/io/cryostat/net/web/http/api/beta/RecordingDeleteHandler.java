@@ -54,10 +54,9 @@ import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-
-import com.google.gson.Gson;
 
 public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
 
@@ -67,9 +66,7 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     RecordingDeleteHandler(
-            AuthManager auth,
-            Gson gson,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            AuthManager auth, Gson gson, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }

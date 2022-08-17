@@ -91,7 +91,8 @@ class ArchivedRecordingReportCacheTest {
                         new ExecutionException(
                                 new RecordingNotFoundException("archives", recordingName)));
 
-        Assertions.assertThrows(ExecutionException.class, () -> cache.get(sourceTarget, recordingName, "").get());
+        Assertions.assertThrows(
+                ExecutionException.class, () -> cache.get(sourceTarget, recordingName, "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
@@ -186,7 +187,8 @@ class ArchivedRecordingReportCacheTest {
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY)));
 
-        Assertions.assertThrows(ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
+        Assertions.assertThrows(
+                ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }

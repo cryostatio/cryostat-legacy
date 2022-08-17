@@ -144,7 +144,7 @@ class ReportGetHandlerTest {
         handler.handle(ctx);
 
         String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget,"someRecording", "");
+        Mockito.verify(reportService).get(sourceTarget, "someRecording", "");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -178,7 +178,7 @@ class ReportGetHandlerTest {
         handler.handle(ctx);
 
         String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget,"someRecording", "");
+        Mockito.verify(reportService).get(sourceTarget, "someRecording", "");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -207,6 +207,6 @@ class ReportGetHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
         String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget,"someRecording", "");
+        Mockito.verify(reportService).get(sourceTarget, "someRecording", "");
     }
 }
