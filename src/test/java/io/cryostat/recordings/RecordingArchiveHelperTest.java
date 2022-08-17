@@ -759,6 +759,7 @@ class RecordingArchiveHelperTest {
 
         Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
                 .thenReturn(destinationFile);
+        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         Mockito.when(base32.decode(Mockito.anyString()))
@@ -836,6 +837,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.deleteIfExists(Mockito.any())).thenReturn(deleted);
         Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
                 .thenReturn(destinationFile);
+        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         String sourceTarget = null;
@@ -844,7 +846,8 @@ class RecordingArchiveHelperTest {
                 Matchers.equalTo(deleted));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("default/foo.report.html");
+        Mockito.verify(archivedRecordingsReportPath).resolve("default");
+        Mockito.verify(destinationFile).resolve("foo.report.html");
     }
 
     @Test
@@ -852,6 +855,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.deleteIfExists(Mockito.any())).thenThrow(IOException.class);
         Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
                 .thenReturn(destinationFile);
+        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         String sourceTarget = null;
@@ -859,7 +863,8 @@ class RecordingArchiveHelperTest {
                 recordingArchiveHelper.deleteReport(sourceTarget, "foo"), Matchers.equalTo(false));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("default/foo.report.html");
+        Mockito.verify(archivedRecordingsReportPath).resolve("default");
+        Mockito.verify(destinationFile).resolve("foo.report.html");
     }
 
     @Test

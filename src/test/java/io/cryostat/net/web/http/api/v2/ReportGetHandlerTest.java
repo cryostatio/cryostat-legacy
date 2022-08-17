@@ -142,7 +142,11 @@ class ReportGetHandlerTest {
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("archive", "myrecording"));
-            Mockito.when(reports.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            Mockito.when(
+                            reports.get(
+                                    Mockito.nullable(String.class),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -162,7 +166,11 @@ class ReportGetHandlerTest {
             Mockito.when(path.toFile()).thenReturn(file);
             Mockito.when(file.length()).thenReturn(1234L);
             Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(reports.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            Mockito.when(
+                            reports.get(
+                                    Mockito.nullable(String.class),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -188,7 +196,11 @@ class ReportGetHandlerTest {
             Mockito.when(file.length()).thenReturn(1234L);
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(reports.get(Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+            Mockito.when(
+                            reports.get(
+                                    Mockito.nullable(String.class),
+                                    Mockito.anyString(),
+                                    Mockito.any()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);

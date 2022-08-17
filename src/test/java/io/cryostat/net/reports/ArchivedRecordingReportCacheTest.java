@@ -85,7 +85,10 @@ class ArchivedRecordingReportCacheTest {
                 .thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
+        Mockito.when(
+                        recordingArchiveHelper.getRecordingPath(
+                                Mockito.nullable(String.class), Mockito.eq(recordingName)))
+                .thenReturn(future);
         Mockito.when(future.get())
                 .thenThrow(
                         new ExecutionException(
@@ -107,7 +110,9 @@ class ArchivedRecordingReportCacheTest {
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+        Mockito.when(
+                        recordingArchiveHelper.getRecordingPath(
+                                Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future);
         Mockito.when(future.get()).thenReturn(recording);
 
@@ -133,7 +138,9 @@ class ArchivedRecordingReportCacheTest {
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+        Mockito.when(
+                        recordingArchiveHelper.getRecordingPath(
+                                Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future);
         Mockito.when(future.get()).thenReturn(recording);
 
@@ -175,7 +182,9 @@ class ArchivedRecordingReportCacheTest {
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+        Mockito.when(
+                        recordingArchiveHelper.getRecordingPath(
+                                Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future);
         Mockito.when(future.get()).thenReturn(recording);
 
