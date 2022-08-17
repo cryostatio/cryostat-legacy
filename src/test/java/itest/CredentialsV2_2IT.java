@@ -288,7 +288,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     void testWorkflow() throws Exception {
         List<URI> targetIds = startTargets();
 
@@ -444,6 +444,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main");
         expectedTarget1.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,
@@ -458,6 +460,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main");
         expectedTarget2.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,
@@ -490,7 +494,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void testDeletion() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient

@@ -50,6 +50,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
@@ -60,14 +61,20 @@ import dagger.Lazy;
 
 class KubeEnvPlatformClient extends AbstractPlatformClient {
 
+    private static final String REALM = "KubernetesEnv";
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
+    private final String namespace;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Environment env;
     private final Logger logger;
 
     KubeEnvPlatformClient(
-            Lazy<JFRConnectionToolkit> connectionToolkit, Environment env, Logger logger) {
+            String namespace,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Environment env,
+            Logger logger) {
+        this.namespace = namespace;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.logger = logger;
@@ -90,8 +97,7 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
                 listDiscoverableServices().stream()
                         .map(sr -> new TargetNode(KubernetesNodeType.SERVICE, sr))
                         .toList();
-        return new EnvironmentNode(
-                "KubernetesEnv", BaseNodeType.REALM, Collections.emptyMap(), targets);
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 
     private ServiceRef envToServiceRef(Map.Entry<String, String> entry) {
@@ -102,10 +108,20 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            return new ServiceRef(
-                    URIUtil.convert(
-                            connectionToolkit.get().createServiceURL(entry.getValue(), port)),
-                    alias);
+            ServiceRef sr =
+                    new ServiceRef(
+                            URIUtil.convert(
+                                    connectionToolkit
+                                            .get()
+                                            .createServiceURL(entry.getValue(), port)),
+                            alias);
+            sr.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.REALM, REALM,
+                            AnnotationKey.NAMESPACE, namespace,
+                            AnnotationKey.SERVICE_NAME, alias,
+                            AnnotationKey.PORT, Integer.toString(port)));
+            return sr;
         } catch (Exception e) {
             logger.warn(e);
             return null;

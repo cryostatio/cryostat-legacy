@@ -207,6 +207,8 @@ class DiscoveryIT extends ExternalTargetsTest {
                 cryostat.target.annotations.cryostat,
                 Matchers.equalTo(
                         Map.of(
+                                "REALM",
+                                "JDP",
                                 "HOST",
                                 Podman.POD_NAME,
                                 "PORT",
@@ -223,6 +225,8 @@ class DiscoveryIT extends ExternalTargetsTest {
                 demoApp.target.annotations.cryostat,
                 Matchers.equalTo(
                         Map.of(
+                                "REALM",
+                                "JDP",
                                 "HOST",
                                 Podman.POD_NAME,
                                 "PORT",

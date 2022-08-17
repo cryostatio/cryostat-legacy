@@ -64,6 +64,8 @@ import io.cryostat.util.URIUtil;
 public class DefaultPlatformClient extends AbstractPlatformClient
         implements Consumer<JvmDiscoveryEvent> {
 
+    private static final String REALM = "JDP";
+
     public static final JDPNodeType NODE_TYPE = JDPNodeType.JVM;
 
     private final Logger logger;
@@ -112,9 +114,14 @@ public class DefaultPlatformClient extends AbstractPlatformClient
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc.getMainClass(),
-                        AnnotationKey.HOST, rmiTarget.getHost(),
-                        AnnotationKey.PORT, Integer.toString(rmiTarget.getPort())));
+                        AnnotationKey.REALM,
+                        REALM,
+                        AnnotationKey.JAVA_MAIN,
+                        desc.getMainClass(),
+                        AnnotationKey.HOST,
+                        rmiTarget.getHost(),
+                        AnnotationKey.PORT,
+                        Integer.toString(rmiTarget.getPort())));
         return serviceRef;
     }
 
@@ -124,7 +131,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                 listDiscoverableServices().stream()
                         .map(sr -> new TargetNode(NODE_TYPE, sr))
                         .toList();
-        return new EnvironmentNode("JDP", BaseNodeType.REALM, Collections.emptyMap(), targets);
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 
     public enum JDPNodeType implements NodeType {

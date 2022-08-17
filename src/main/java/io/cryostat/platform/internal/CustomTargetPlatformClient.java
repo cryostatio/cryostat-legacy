@@ -63,6 +63,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
+    public static final String REALM = "Custom Targets";
     public static final CustomTargetNodeType NODE_TYPE = CustomTargetNodeType.CUSTOM_TARGET;
 
     static final String SAVEFILE_NAME = "custom_targets.json";
@@ -139,8 +140,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     public EnvironmentNode getDiscoveryTree() {
         List<TargetNode> children =
                 targets.stream().map(sr -> new TargetNode(NODE_TYPE, sr)).toList();
-        return new EnvironmentNode(
-                "Custom Targets", BaseNodeType.REALM, Collections.emptyMap(), children);
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
     }
 
     public enum CustomTargetNodeType implements NodeType {

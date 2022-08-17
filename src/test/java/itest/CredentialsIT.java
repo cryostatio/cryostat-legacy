@@ -303,6 +303,8 @@ public class CredentialsIT extends ExternalTargetsTest {
                         "io.cryostat.Cryostat");
         expectedServiceRef.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,

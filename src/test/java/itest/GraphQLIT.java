@@ -188,6 +188,8 @@ class GraphQLIT extends ExternalTargetsTest {
         Annotations cryostatAnnotations = new Annotations();
         cryostatAnnotations.cryostat =
                 Map.of(
+                        "REALM",
+                        "JDP",
                         "JAVA_MAIN",
                         "io.cryostat.Cryostat",
                         "HOST",
@@ -215,6 +217,8 @@ class GraphQLIT extends ExternalTargetsTest {
             Annotations annotations = new Annotations();
             annotations.cryostat =
                     Map.of(
+                            "REALM",
+                            "JDP",
                             "JAVA_MAIN",
                             mainClass,
                             "HOST",

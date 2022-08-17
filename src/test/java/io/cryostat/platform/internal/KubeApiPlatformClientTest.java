@@ -244,40 +244,64 @@ class KubeApiPlatformClientTest {
                         "targetB");
         serv1.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.3",
-                        AnnotationKey.PORT, "1234",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetB"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.3",
+                        AnnotationKey.PORT,
+                        "1234",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetB"));
         ServiceRef serv2 =
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.4", 9091)),
                         "targetC");
         serv2.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.4",
-                        AnnotationKey.PORT, "9091",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetC"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.4",
+                        AnnotationKey.PORT,
+                        "9091",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetC"));
         ServiceRef serv3 =
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.5", 9091)),
                         "targetD");
         serv3.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.5",
-                        AnnotationKey.PORT, "9091",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetD"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.5",
+                        AnnotationKey.PORT,
+                        "9091",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetD"));
         ServiceRef serv4 =
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.6", 5678)),
                         "targetE");
         serv4.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.6",
-                        AnnotationKey.PORT, "5678",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetE"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.6",
+                        AnnotationKey.PORT,
+                        "5678",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetE"));
         MatcherAssert.assertThat(
                 result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3, serv4)));
     }
@@ -352,20 +376,32 @@ class KubeApiPlatformClientTest {
                         "targetA");
         serv1.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.2",
-                        AnnotationKey.PORT, "9091",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetA"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.2",
+                        AnnotationKey.PORT,
+                        "9091",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetA"));
         ServiceRef serv2 =
                 new ServiceRef(
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
                         "targetB");
         serv2.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "127.0.0.3",
-                        AnnotationKey.PORT, "1234",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "targetB"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "127.0.0.3",
+                        AnnotationKey.PORT,
+                        "1234",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "targetB"));
 
         MatcherAssert.assertThat(realmNode.getName(), Matchers.equalTo("KubernetesApi"));
         MatcherAssert.assertThat(realmNode.getNodeType(), Matchers.equalTo(BaseNodeType.REALM));
@@ -482,10 +518,16 @@ class KubeApiPlatformClientTest {
                         "watchedTarget");
         serv.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "192.168.1.10",
-                        AnnotationKey.PORT, "9876",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "watchedTarget"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "192.168.1.10",
+                        AnnotationKey.PORT,
+                        "9876",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "watchedTarget"));
         MatcherAssert.assertThat(evt.getServiceRef(), Matchers.equalTo(serv));
     }
 
@@ -556,10 +598,16 @@ class KubeApiPlatformClientTest {
                         "watchedTarget");
         serv.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "192.168.1.10",
-                        AnnotationKey.PORT, "9876",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "watchedTarget"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "192.168.1.10",
+                        AnnotationKey.PORT,
+                        "9876",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "watchedTarget"));
 
         TargetDiscoveryEvent found = events.remove();
         MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
@@ -663,10 +711,16 @@ class KubeApiPlatformClientTest {
                         "watchedTarget");
         original.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "192.168.1.10",
-                        AnnotationKey.PORT, "9876",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "watchedTarget"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "192.168.1.10",
+                        AnnotationKey.PORT,
+                        "9876",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "watchedTarget"));
 
         ServiceRef modified =
                 new ServiceRef(
@@ -674,10 +728,16 @@ class KubeApiPlatformClientTest {
                         "modifiedTarget");
         modified.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.HOST, "192.168.1.10",
-                        AnnotationKey.PORT, "9876",
-                        AnnotationKey.NAMESPACE, NAMESPACE,
-                        AnnotationKey.POD_NAME, "modifiedTarget"));
+                        AnnotationKey.REALM,
+                        "KubernetesApi",
+                        AnnotationKey.HOST,
+                        "192.168.1.10",
+                        AnnotationKey.PORT,
+                        "9876",
+                        AnnotationKey.NAMESPACE,
+                        NAMESPACE,
+                        AnnotationKey.POD_NAME,
+                        "modifiedTarget"));
 
         TargetDiscoveryEvent found = events.remove();
         MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
