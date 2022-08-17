@@ -130,7 +130,7 @@ class TargetReportGetHandlerTest {
         String targetId = "fooHost:0";
         String recordingName = "foo";
         Future<String> content = CompletableFuture.completedFuture("foobar");
-        when(reportService.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+        when(reportService.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -160,7 +160,7 @@ class TargetReportGetHandlerTest {
         String targetId = "fooHost:0";
         String recordingName = "foo";
         Future<String> content = CompletableFuture.completedFuture("foobar");
-        when(reportService.get(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -186,7 +186,7 @@ class TargetReportGetHandlerTest {
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
 
-        when(reportService.get(Mockito.any(), Mockito.any(), Mockito.any()))
+        when(reportService.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                 .thenThrow(
                         new CompletionException(
                                 new RecordingNotFoundException("fooHost:0", "someRecording")));
@@ -219,7 +219,7 @@ class TargetReportGetHandlerTest {
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus
                                                 .TARGET_CONNECTION_FAILURE)));
-        when(reportService.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+        when(reportService.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -248,7 +248,7 @@ class TargetReportGetHandlerTest {
                         new ExecutionException(
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING)));
-        when(reportService.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+        when(reportService.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);

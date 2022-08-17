@@ -148,7 +148,7 @@ class TargetReportGetHandlerTest {
             Future<String> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("target", "myrecording"));
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+            Mockito.when(reports.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -166,7 +166,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
             Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
             Future<String> future = CompletableFuture.completedFuture("report text");
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+            Mockito.when(reports.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
@@ -190,7 +190,7 @@ class TargetReportGetHandlerTest {
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
             Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
             Future<String> future = CompletableFuture.completedFuture("report text");
-            Mockito.when(reports.get(Mockito.any(), Mockito.anyString(), Mockito.any()))
+            Mockito.when(reports.get(Mockito.any(ConnectionDescriptor.class), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);

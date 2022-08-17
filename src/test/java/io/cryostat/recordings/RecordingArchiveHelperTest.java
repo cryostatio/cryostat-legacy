@@ -838,11 +838,12 @@ class RecordingArchiveHelperTest {
                 .thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
+        String sourceTarget = null;
         MatcherAssert.assertThat(
-                recordingArchiveHelper.deleteReport("foo"), Matchers.equalTo(deleted));
+                recordingArchiveHelper.deleteReport(sourceTarget, "foo"), Matchers.equalTo(deleted));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("foo.report.html");
+        Mockito.verify(archivedRecordingsReportPath).resolve("default/foo.report.html");
     }
 
     @Test
@@ -852,11 +853,12 @@ class RecordingArchiveHelperTest {
                 .thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
+        String sourceTarget = null;
         MatcherAssert.assertThat(
-                recordingArchiveHelper.deleteReport("foo"), Matchers.equalTo(false));
+                recordingArchiveHelper.deleteReport(sourceTarget, "foo"), Matchers.equalTo(false));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("foo.report.html");
+        Mockito.verify(archivedRecordingsReportPath).resolve("default/foo.report.html");
     }
 
     @Test
