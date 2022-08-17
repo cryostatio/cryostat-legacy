@@ -427,7 +427,6 @@ public class RecordingArchiveHelper {
 
     public Future<Path> getRecordingPath(String recordingName) {
         CompletableFuture<Path> future = new CompletableFuture<>();
-
         try {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Optional<Path> optional =
@@ -437,13 +436,15 @@ public class RecordingArchiveHelper {
         } catch (RecordingNotFoundException | IOException | ArchivePathException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 
     public Future<Path> getRecordingPath(String sourceTarget, String recordingName) {
+        if (sourceTarget == null) {
+            return getRecordingPath(recordingName);
+        }
+        
         CompletableFuture<Path> future = new CompletableFuture<>();
-
         try {
             String subdirectoryName =
                     (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
@@ -456,7 +457,6 @@ public class RecordingArchiveHelper {
         } catch (RecordingNotFoundException | ArchivePathException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 

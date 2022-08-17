@@ -84,7 +84,7 @@ class ArchivedRecordingReportCache {
 
         try {
             logger.trace("Archived report cache miss for {}", recordingName);
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
