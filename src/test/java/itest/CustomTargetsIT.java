@@ -167,10 +167,10 @@ public class CustomTargetsIT extends StandardSelfTest {
                                 Map.of(),
                                 "annotations",
                                 Map.of(
-                                    "cryostat", Map.of(
-                                        "REALM", "Custom Targets"
-                                        ),
-                                        "platform", Map.of())));
+                                        "cryostat",
+                                        Map.of("REALM", "Custom Targets"),
+                                        "platform",
+                                        Map.of())));
         MatcherAssert.assertThat(body, Matchers.containsInAnyOrder(selfJdp, selfCustom));
     }
 
