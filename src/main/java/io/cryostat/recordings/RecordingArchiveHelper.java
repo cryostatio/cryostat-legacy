@@ -295,7 +295,7 @@ public class RecordingArchiveHelper {
         String subdirectory;
         if (sourceTarget == null) {
             subdirectory = "default";
-        } else if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+        } else if (sourceTarget.equals("")) {
             subdirectory = UPLOADED_RECORDINGS_SUBDIRECTORY;
         } else {
             subdirectory = base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
@@ -451,7 +451,7 @@ public class RecordingArchiveHelper {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
             String subdirectoryName =
-                    (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                    (sourceTarget.equals(""))
                             ? UPLOADED_RECORDINGS_SUBDIRECTORY
                             : base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
             Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
