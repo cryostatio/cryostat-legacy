@@ -146,9 +146,14 @@ public class CustomTargetsIT extends StandardSelfTest {
                                 Map.of(
                                         "cryostat",
                                         Map.of(
-                                                "HOST", "cryostat-itests",
-                                                "PORT", "9091",
-                                                "JAVA_MAIN", "io.cryostat.Cryostat"),
+                                                "REALM",
+                                                "JDP",
+                                                "HOST",
+                                                "cryostat-itests",
+                                                "PORT",
+                                                "9091",
+                                                "JAVA_MAIN",
+                                                "io.cryostat.Cryostat"),
                                         "platform",
                                         Map.of())));
         JsonObject selfCustom =
@@ -162,7 +167,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                                 Map.of(),
                                 "annotations",
                                 Map.of(
-                                        "cryostat", Map.of(),
+                                    "cryostat", Map.of(
+                                        "REALM", "Custom Targets"
+                                        ),
                                         "platform", Map.of())));
         MatcherAssert.assertThat(body, Matchers.containsInAnyOrder(selfJdp, selfCustom));
     }
@@ -243,9 +250,14 @@ public class CustomTargetsIT extends StandardSelfTest {
                                 Map.of(
                                         "cryostat",
                                         Map.of(
-                                                "HOST", "cryostat-itests",
-                                                "PORT", "9091",
-                                                "JAVA_MAIN", "io.cryostat.Cryostat"),
+                                                "REALM",
+                                                "JDP",
+                                                "HOST",
+                                                "cryostat-itests",
+                                                "PORT",
+                                                "9091",
+                                                "JAVA_MAIN",
+                                                "io.cryostat.Cryostat"),
                                         "platform",
                                         Map.of())));
         MatcherAssert.assertThat(body, Matchers.contains(selfJdp));
