@@ -162,16 +162,30 @@ function runGrafana() {
 }
 
 function runReportGenerator() {
-    local RJMX_PORT=10000
+    if [ -z "$CRYOSTAT_WEB_PORT" ]; then
+        local webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
+    else
+        local webPort="${CRYOSTAT_WEB_PORT}"
+    fi
+    if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
+        local protocol="https"
+    else
+        local protocol="http"
+    fi
+    local RJMX_PORT=7777
     podman run \
         --name reports \
-        --pull always \
         --pod cryostat-pod \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
-        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10001 \
+        --env CRYOSTAT_AGENT_APP_NAME="cryostat-reports" \
+        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
+        --env CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:${webPort}/" \
+        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --rm -d quay.io/cryostat/cryostat-reports:latest
 }
 
@@ -198,6 +212,7 @@ function createPod() {
         --publish 8082:8082 \
         --publish 9990:9990 \
         --publish 9991:9991 \
+        --publish 9977:9977 \
         --publish 10000:10000 \
         --publish 10001:10001 \
         --publish 10010:10010
@@ -213,6 +228,7 @@ function createPod() {
     # 8082: Wildfly HTTP
     # 9990: Wildfly Admin Console
     # 9991: Wildfly RJMX
+    # 9977: cryostat-reports agent callback
     # 10000: cryostat-reports RJMX
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-plugin HTTP
