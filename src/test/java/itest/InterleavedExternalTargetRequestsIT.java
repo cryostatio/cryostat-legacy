@@ -142,9 +142,14 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                         "io.cryostat.Cryostat");
         cryostat.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat",
-                        AnnotationKey.HOST, Podman.POD_NAME,
-                        AnnotationKey.PORT, "9091"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        "io.cryostat.Cryostat",
+                        AnnotationKey.HOST,
+                        Podman.POD_NAME,
+                        AnnotationKey.PORT,
+                        "9091"));
         expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             ServiceRef ext =
@@ -156,6 +161,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
                     Map.of(
+                            AnnotationKey.REALM,
+                            "JDP",
                             AnnotationKey.JAVA_MAIN,
                             "es.andrewazor.demo.Main",
                             AnnotationKey.HOST,
