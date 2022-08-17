@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -99,7 +100,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                         .onFailure(t -> future.fail((Throwable) t)))
                 .onFailure(future::fail);
 
-        this.timerId = getVertx().setPeriodic(30_000L, i -> pingPrune());
+        this.timerId = getVertx().setPeriodic(Duration.ofMinutes(5).toMillis(), i -> pingPrune());
     }
 
     @Override

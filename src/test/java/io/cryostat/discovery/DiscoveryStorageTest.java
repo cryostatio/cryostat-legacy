@@ -50,6 +50,7 @@ import javax.inject.Singleton;
 import javax.persistence.EntityExistsException;
 
 import io.cryostat.MainModule;
+import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -66,6 +67,7 @@ import com.google.gson.Gson;
 import dagger.Component;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -92,6 +94,7 @@ class DiscoveryStorageTest {
     @Mock PluginInfoDao dao;
     @Mock WebClient http;
     @Mock Logger logger;
+    Vertx vertx = MockVertx.vertx();
     Gson gson = MainModule.provideGson(logger);
 
     @Singleton
@@ -112,6 +115,7 @@ class DiscoveryStorageTest {
         Client client = DaggerDiscoveryStorageTest_Client.builder().build();
         this.gson = client.gson();
         this.storage = new DiscoveryStorage(deployer, () -> builtin, dao, gson, http, logger);
+        this.storage.init(vertx, null);
     }
 
     @Nested
@@ -164,9 +168,14 @@ class DiscoveryStorageTest {
         void removesPluginsIfCallbackRejected() throws Exception {
             Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
                     .thenReturn(Future.succeededFuture());
+            EnvironmentNode realm =
+                    new EnvironmentNode("realm", BaseNodeType.REALM, Map.of(), Set.of());
             PluginInfo plugin =
-                    new PluginInfo("test-realm", URI.create("http://example.com"), "[]");
-            plugin.setId(UUID.randomUUID());
+                    new PluginInfo(
+                            "test-realm", URI.create("http://example.com"), gson.toJson(realm));
+            UUID id = UUID.randomUUID();
+            plugin.setId(id);
+            Mockito.when(dao.get(id)).thenReturn(Optional.of(plugin));
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
@@ -192,9 +201,14 @@ class DiscoveryStorageTest {
         void removesPluginsIfCallbackFails() throws Exception {
             Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
                     .thenReturn(Future.succeededFuture());
+            EnvironmentNode realm =
+                    new EnvironmentNode("realm", BaseNodeType.REALM, Map.of(), Set.of());
             PluginInfo plugin =
-                    new PluginInfo("test-realm", URI.create("http://example.com"), "[]");
-            plugin.setId(UUID.randomUUID());
+                    new PluginInfo(
+                            "test-realm", URI.create("http://example.com"), gson.toJson(realm));
+            UUID id = UUID.randomUUID();
+            plugin.setId(id);
+            Mockito.when(dao.get(id)).thenReturn(Optional.of(plugin));
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
