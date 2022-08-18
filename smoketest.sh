@@ -179,13 +179,14 @@ function runReportGenerator() {
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
-        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -javaagent:/deployments/app/cryostat-agent.jar" \
+        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10001 \
         --env CRYOSTAT_AGENT_APP_NAME="cryostat-reports" \
         --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:${webPort}/" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
         --rm -d quay.io/cryostat/cryostat-reports:latest
 }
 
