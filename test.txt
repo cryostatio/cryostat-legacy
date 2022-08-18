@@ -1,12 +1,12 @@
-b5f48455dc69e5fb83ee83545218a39df3f034da83e5075ddceb2c0678e6d84b
-337cb1173bec524ae15090436bb40ed6d7cfd151613d93f195191b8633ff5823
-57ea26723c67a11016313fb8598b159c80d5b52883c78e8bb60e95b34c5b92b6
-8981c86c3cff22381fafc464781655974e8b891ad37b904aadcdcbc775eac2c0
-fc4b88b3289f112e45d1b401a889e0651a1ed940758f5e3003fd32fc1c4b82be
-d650d5cf59eb98862d1d50d8c59f19e9c0ffa77d1c188859e85341a75ab4b425
-7c7f28a08180580450c7040da30ce5fbabe829c009a93cde19b42acfb8ebcb69
-b7ab5f6c34c764c65089eb28d72550c165092d3cf074cf77b9e5f5289aceaab1
-24c7676637a59ddc510bd45b19424535985251c5daad91b405d81904e7d74a9a
+7494f915b65977468e5d4258c6deefd0293f57480b663d480c60a854c693508a
+bd6edf0805748ae3ea608190f3a00a810d790939b87a5a8e09c32e1760ffa593
+c88633a02c3128af829abb1c16be28ad5ebd42daa9b2521aa7595d29852584d8
+d7c459653f03ba25437bc7efeb2547910217955713ab36c950bf89bcd5023ff8
+02c268cb4ea1a99d20f16f8734bd8112936b713ff6d417838cd5083af8a4c874
+7b2f10daead87dbf863082d4e9fc53766af3b744b9994a2ed616552a9320d8a8
+db4a55e33b651f598707aa65c64eb67bcbd59390b1c38fabc22b7757a026c9c3
+ebdd872e5fa30fc52511be348a3b47b77b02ab473e9295f8420955920e4e2a04
+f0b4c1d0ebb9050a4701277ad5b0f86cd63e7e01bb2fcc8ef4432f8d7e398c68
 
 
 Running quay.io/cryostat/cryostat:latest ...
@@ -16,203 +16,659 @@ Importing certificate /truststore/dev-self-signed.cer ...
 Certificate was added to keystore
 [Storing /opt/cryostat.d/truststore.p12]
 +------------------------------------------+
-| Wed Aug 17 18:55:57 UTC 2022             |
+| Wed Aug 17 22:13:22 UTC 2022             |
 |                                          |
 | JMX Auth Disabled                        |
 +------------------------------------------+
 +------------------------------------------+
-| Wed Aug 17 18:55:57 UTC 2022             |
+| Wed Aug 17 22:13:22 UTC 2022             |
 |                                          |
 | SSL Disabled                             |
 +------------------------------------------+
-+ exec java -XX:+CrashOnOutOfMemoryError -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.rmi.port=9091 -Djavax.net.ssl.trustStore=/opt/cryostat.d/truststore.p12 -Djavax.net.ssl.trustStorePassword=mq-0LxTNIRWfpwlj_9ywiOdFscjWMzgR -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.registry.ssl=false -cp '/app/resources:/app/classes:/app/libs/cryostat-core-2.13.0-SNAPSHOT.jar:/app/libs/common-7.1.1.jar:/app/libs/encoder-1.2.2.jar:/app/libs/flightrecorder-7.1.1.jar:/app/libs/flightrecorder.rules-7.1.1.jar:/app/libs/flightrecorder.rules.jdk-7.1.1.jar:/app/libs/nashorn-core-15.4.jar:/app/libs/asm-7.3.1.jar:/app/libs/asm-commons-7.3.1.jar:/app/libs/asm-analysis-7.3.1.jar:/app/libs/asm-tree-7.3.1.jar:/app/libs/asm-util-7.3.1.jar:/app/libs/openshift-client-5.4.1.jar:/app/libs/openshift-model-5.4.1.jar:/app/libs/kubernetes-model-common-5.4.1.jar:/app/libs/jackson-annotations-2.11.2.jar:/app/libs/openshift-model-operator-5.4.1.jar:/app/libs/openshift-model-operatorhub-5.4.1.jar:/app/libs/openshift-model-monitoring-5.4.1.jar:/app/libs/openshift-model-console-5.4.1.jar:/app/libs/kubernetes-client-5.4.1.jar:/app/libs/kubernetes-model-core-5.4.1.jar:/app/libs/kubernetes-model-rbac-5.4.1.jar:/app/libs/kubernetes-model-admissionregistration-5.4.1.jar:/app/libs/kubernetes-model-apps-5.4.1.jar:/app/libs/kubernetes-model-autoscaling-5.4.1.jar:/app/libs/kubernetes-model-apiextensions-5.4.1.jar:/app/libs/kubernetes-model-batch-5.4.1.jar:/app/libs/kubernetes-model-certificates-5.4.1.jar:/app/libs/kubernetes-model-coordination-5.4.1.jar:/app/libs/kubernetes-model-discovery-5.4.1.jar:/app/libs/kubernetes-model-events-5.4.1.jar:/app/libs/kubernetes-model-extensions-5.4.1.jar:/app/libs/kubernetes-model-flowcontrol-5.4.1.jar:/app/libs/kubernetes-model-networking-5.4.1.jar:/app/libs/kubernetes-model-metrics-5.4.1.jar:/app/libs/kubernetes-model-policy-5.4.1.jar:/app/libs/kubernetes-model-scheduling-5.4.1.jar:/app/libs/kubernetes-model-storageclass-5.4.1.jar:/app/libs/kubernetes-model-node-5.4.1.jar:/app/libs/okhttp-3.12.12.jar:/app/libs/okio-1.15.0.jar:/app/libs/logging-interceptor-3.12.12.jar:/app/libs/slf4j-api-1.7.30.jar:/app/libs/jackson-dataformat-yaml-2.11.2.jar:/app/libs/snakeyaml-1.26.jar:/app/libs/jackson-datatype-jsr310-2.11.2.jar:/app/libs/jackson-databind-2.11.2.jar:/app/libs/jackson-core-2.11.2.jar:/app/libs/zjsonpatch-0.3.0.jar:/app/libs/generex-1.0.2.jar:/app/libs/automaton-1.11-8.jar:/app/libs/dagger-2.34.1.jar:/app/libs/javax.inject-1.jar:/app/libs/commons-lang3-3.12.0.jar:/app/libs/commons-codec-1.15.jar:/app/libs/commons-io-2.8.0.jar:/app/libs/commons-validator-1.7.jar:/app/libs/commons-beanutils-1.9.4.jar:/app/libs/commons-digester-2.1.jar:/app/libs/commons-logging-1.2.jar:/app/libs/commons-collections-3.2.2.jar:/app/libs/httpclient-4.5.13.jar:/app/libs/httpcore-4.4.13.jar:/app/libs/vertx-web-4.2.5.jar:/app/libs/vertx-web-common-4.2.5.jar:/app/libs/vertx-auth-common-4.2.5.jar:/app/libs/vertx-bridge-common-4.2.5.jar:/app/libs/vertx-core-4.2.5.jar:/app/libs/netty-common-4.1.74.Final.jar:/app/libs/netty-buffer-4.1.74.Final.jar:/app/libs/netty-transport-4.1.74.Final.jar:/app/libs/netty-handler-4.1.74.Final.jar:/app/libs/netty-codec-4.1.74.Final.jar:/app/libs/netty-tcnative-classes-2.0.48.Final.jar:/app/libs/netty-handler-proxy-4.1.74.Final.jar:/app/libs/netty-codec-socks-4.1.74.Final.jar:/app/libs/netty-codec-http-4.1.74.Final.jar:/app/libs/netty-codec-http2-4.1.74.Final.jar:/app/libs/netty-resolver-4.1.74.Final.jar:/app/libs/netty-resolver-dns-4.1.74.Final.jar:/app/libs/netty-codec-dns-4.1.74.Final.jar:/app/libs/vertx-web-client-4.2.5.jar:/app/libs/vertx-web-graphql-4.2.5.jar:/app/libs/graphql-java-17.3.jar:/app/libs/java-dataloader-3.1.0.jar:/app/libs/antlr4-runtime-4.9.2.jar:/app/libs/reactive-streams-1.0.3.jar:/app/libs/graphql-java-extended-scalars-17.0.jar:/app/libs/nimbus-jose-jwt-9.16.1.jar:/app/libs/jcip-annotations-1.0-1.jar:/app/libs/bcprov-jdk15on-1.69.jar:/app/libs/slf4j-jdk14-1.7.30.jar:/app/libs/gson-2.8.9.jar:/app/libs/caffeine-3.0.1.jar:/app/libs/jsoup-1.14.2.jar:/clientlib/*' @/app/jib-main-class-file
-Aug 17, 2022 6:55:58 PM io.cryostat.core.log.Logger info
-INFO: cryostat started, version: v2.0.0-SNAPSHOT-377-g56e0a47a-dirty.
-Aug 17, 2022 6:55:58 PM io.cryostat.core.log.Logger info
++ exec java -XX:+CrashOnOutOfMemoryError -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.rmi.port=9091 -Djavax.net.ssl.trustStore=/opt/cryostat.d/truststore.p12 -Djavax.net.ssl.trustStorePassword=mq-0LxTNIRWfpwlj_9ywiOdFscjWMzgR -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.registry.ssl=false -cp '/app/resources:/app/classes:/app/libs/cryostat-core-2.13.0-SNAPSHOT.jar:/app/libs/common-7.1.1.jar:/app/libs/encoder-1.2.2.jar:/app/libs/flightrecorder-7.1.1.jar:/app/libs/flightrecorder.rules-7.1.1.jar:/app/libs/flightrecorder.rules.jdk-7.1.1.jar:/app/libs/nashorn-core-15.4.jar:/app/libs/asm-7.3.1.jar:/app/libs/asm-commons-7.3.1.jar:/app/libs/asm-analysis-7.3.1.jar:/app/libs/asm-tree-7.3.1.jar:/app/libs/asm-util-7.3.1.jar:/app/libs/openshift-client-5.12.2.jar:/app/libs/openshift-model-5.12.2.jar:/app/libs/kubernetes-model-common-5.12.2.jar:/app/libs/jackson-annotations-2.13.1.jar:/app/libs/openshift-model-clusterautoscaling-5.12.2.jar:/app/libs/openshift-model-operator-5.12.2.jar:/app/libs/openshift-model-operatorhub-5.12.2.jar:/app/libs/openshift-model-machine-5.12.2.jar:/app/libs/openshift-model-whereabouts-5.12.2.jar:/app/libs/openshift-model-monitoring-5.12.2.jar:/app/libs/openshift-model-storageversionmigrator-5.12.2.jar:/app/libs/openshift-model-tuned-5.12.2.jar:/app/libs/openshift-model-console-5.12.2.jar:/app/libs/openshift-model-machineconfig-5.12.2.jar:/app/libs/openshift-model-miscellaneous-5.12.2.jar:/app/libs/openshift-model-hive-5.12.2.jar:/app/libs/openshift-model-installer-5.12.2.jar:/app/libs/kubernetes-client-5.12.2.jar:/app/libs/kubernetes-model-core-5.12.2.jar:/app/libs/kubernetes-model-rbac-5.12.2.jar:/app/libs/kubernetes-model-admissionregistration-5.12.2.jar:/app/libs/kubernetes-model-apps-5.12.2.jar:/app/libs/kubernetes-model-autoscaling-5.12.2.jar:/app/libs/kubernetes-model-apiextensions-5.12.2.jar:/app/libs/kubernetes-model-batch-5.12.2.jar:/app/libs/kubernetes-model-certificates-5.12.2.jar:/app/libs/kubernetes-model-coordination-5.12.2.jar:/app/libs/kubernetes-model-discovery-5.12.2.jar:/app/libs/kubernetes-model-events-5.12.2.jar:/app/libs/kubernetes-model-extensions-5.12.2.jar:/app/libs/kubernetes-model-flowcontrol-5.12.2.jar:/app/libs/kubernetes-model-networking-5.12.2.jar:/app/libs/kubernetes-model-metrics-5.12.2.jar:/app/libs/kubernetes-model-policy-5.12.2.jar:/app/libs/kubernetes-model-scheduling-5.12.2.jar:/app/libs/kubernetes-model-storageclass-5.12.2.jar:/app/libs/kubernetes-model-node-5.12.2.jar:/app/libs/okhttp-3.12.12.jar:/app/libs/okio-1.15.0.jar:/app/libs/logging-interceptor-3.12.12.jar:/app/libs/slf4j-api-1.7.33.jar:/app/libs/jackson-dataformat-yaml-2.13.1.jar:/app/libs/snakeyaml-1.28.jar:/app/libs/jackson-datatype-jsr310-2.13.1.jar:/app/libs/jackson-databind-2.13.1.jar:/app/libs/jackson-core-2.13.1.jar:/app/libs/zjsonpatch-0.3.0.jar:/app/libs/generex-1.0.2.jar:/app/libs/automaton-1.11-8.jar:/app/libs/dagger-2.34.1.jar:/app/libs/javax.inject-1.jar:/app/libs/commons-lang3-3.12.0.jar:/app/libs/commons-codec-1.15.jar:/app/libs/commons-io-2.8.0.jar:/app/libs/commons-validator-1.7.jar:/app/libs/commons-beanutils-1.9.4.jar:/app/libs/commons-digester-2.1.jar:/app/libs/commons-logging-1.2.jar:/app/libs/commons-collections-3.2.2.jar:/app/libs/httpclient-4.5.13.jar:/app/libs/httpcore-4.4.13.jar:/app/libs/vertx-web-4.2.5.jar:/app/libs/vertx-web-common-4.2.5.jar:/app/libs/vertx-auth-common-4.2.5.jar:/app/libs/vertx-bridge-common-4.2.5.jar:/app/libs/vertx-core-4.2.5.jar:/app/libs/netty-common-4.1.74.Final.jar:/app/libs/netty-buffer-4.1.74.Final.jar:/app/libs/netty-transport-4.1.74.Final.jar:/app/libs/netty-handler-4.1.74.Final.jar:/app/libs/netty-codec-4.1.74.Final.jar:/app/libs/netty-tcnative-classes-2.0.48.Final.jar:/app/libs/netty-handler-proxy-4.1.74.Final.jar:/app/libs/netty-codec-socks-4.1.74.Final.jar:/app/libs/netty-codec-http-4.1.74.Final.jar:/app/libs/netty-codec-http2-4.1.74.Final.jar:/app/libs/netty-resolver-4.1.74.Final.jar:/app/libs/netty-resolver-dns-4.1.74.Final.jar:/app/libs/netty-codec-dns-4.1.74.Final.jar:/app/libs/vertx-web-client-4.2.5.jar:/app/libs/vertx-web-graphql-4.2.5.jar:/app/libs/graphql-java-17.3.jar:/app/libs/java-dataloader-3.1.0.jar:/app/libs/antlr4-runtime-4.9.2.jar:/app/libs/reactive-streams-1.0.3.jar:/app/libs/graphql-java-extended-scalars-17.0.jar:/app/libs/nimbus-jose-jwt-9.16.1.jar:/app/libs/jcip-annotations-1.0-1.jar:/app/libs/bcprov-jdk15on-1.69.jar:/app/libs/slf4j-jdk14-1.7.30.jar:/app/libs/gson-2.8.9.jar:/app/libs/caffeine-3.0.1.jar:/app/libs/jsoup-1.14.2.jar:/clientlib/*' @/app/jib-main-class-file
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
+INFO: cryostat started, version: v2.0.0-SNAPSHOT-385-gb997665b-dirty.
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: Selected NoSSL strategy
-Aug 17, 2022 6:55:58 PM io.cryostat.core.log.Logger warn
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger warn
 WARNING: No available SSL certificates. Fallback to plain HTTP.
-Aug 17, 2022 6:55:58 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: Local config path set as /opt/cryostat.d/conf.d
-Aug 17, 2022 6:55:58 PM io.fabric8.kubernetes.client.Config tryServiceAccount
+Aug 17, 2022 10:13:23 PM io.fabric8.kubernetes.client.Config tryServiceAccount
 WARNING: Error reading service account token from: [/var/run/secrets/kubernetes.io/serviceaccount/token]. Ignoring.
-Aug 17, 2022 6:55:58 PM io.fabric8.kubernetes.client.Config tryServiceAccount
+Aug 17, 2022 10:13:23 PM io.fabric8.kubernetes.client.Config tryServiceAccount
 WARNING: Error reading service account token from: [/var/run/secrets/kubernetes.io/serviceaccount/token]. Ignoring.
-Aug 17, 2022 6:55:58 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: Selected Default Platform Strategy
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: HTTP service running on http://localhost:8181
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: HTTP Server Verticle Started
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: Selecting configured AuthManager "io.cryostat.net.NoopAuthManager"
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:23 PM io.cryostat.core.log.Logger info
 INFO: Local save path for flight recordings set as /opt/cryostat.d/recordings.d
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
 INFO: Max concurrent WebSocket connections: 2147483647
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
-INFO: JDP Discovery started
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
 INFO: MessagingServer Verticle Started
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
 INFO: RuleProcessor Verticle Started
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
+INFO: JDP Discovery started
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
 INFO: WebServer Verticle Started
-Aug 17, 2022 6:55:59 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:24 PM io.cryostat.core.log.Logger info
 INFO: Recording Metadata Verticle Started
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: Connected remote client 10.0.2.100:59822
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660762560},"message":{"10.0.2.100:59822":"connected"}}
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: Authenticated remote client 10.0.2.100:59822
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660762560},"message":{"10.0.2.100:59822":"accepted"}}
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59840): OPTIONS /api/v1/targets 204 6ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59828): OPTIONS /api/v1/recordings 204 0ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59856): GET /api/v1/targets 200 12ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59858): GET /api/v1/recordings 200 24ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59840): OPTIONS /api/v1/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9093%2Fjmxrmi/recordings 204 0ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59828): OPTIONS /api/v2.2/graphql 204 0ms
-Aug 17, 2022 6:56:00 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774406},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9093","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU=
+
+
+
+
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: Creating connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-Aug 17, 2022 6:56:01 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59856): POST /api/v2.2/graphql 200 255ms
-Aug 17, 2022 6:56:01 PM io.cryostat.core.log.Logger info
-INFO: (10.0.2.100:59858): GET /api/v1/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9093%2Fjmxrmi/recordings 200 426ms
-ACCEPTED!!!!!!!!!!!!
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
-
-
-targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-
-
-Aug 17, 2022 6:56:02 PM io.cryostat.core.log.Logger info
-INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:10000/jmxrmi
- 
-Aug 17, 2022 6:56:02 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762562},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:10000/jmxrmi","alias":"/deployments/quarkus-run.jar","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"10000","JAVA_MAIN":"/deployments/quarkus-run.jar"}}},"kind":"FOUND"}}}
-ACCEPTED!!!!!!!!!!!!
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
-
-
-targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-
-
-Aug 17, 2022 6:56:02 PM io.cryostat.core.log.Logger info
-INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi
- 
-Aug 17, 2022 6:56:02 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762562},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9091","JAVA_MAIN":"io.cryostat.Cryostat"}}},"kind":"FOUND"}}}
-ACCEPTED!!!!!!!!!!!!
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
-
-
-targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro=
-
-
-
-
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
-INFO: Trying to transfer metadata for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro= -> py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Trying to transfer metadata for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU= -> 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: trying.........................
 is this an archived recording?
-trying to find match for : es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: checking directory.....file-uploads
 /opt/cryostat.d/recordings.d/file-uploads
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
 /opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
-es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
-INFO: This is an archived recording! es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: This is an archived recording! es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
 before.....
+jvmId: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
 
 
 after......
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
 
 
 is this an archived recording?
-trying to find match for : es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: checking directory.....file-uploads
 /opt/cryostat.d/recordings.d/file-uploads
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
 /opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
-es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
-INFO: Metadata for targetId service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi successfully transferred: Sr4z1HGu_djmkuQtB_LGbp79gjzFxJd03kqAFL9KPro= -> py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762563},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9093","JAVA_MAIN":"es.andrewazor.demo.Main"}}},"kind":"FOUND"}}}
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: trying.........................
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: This is an archived recording! es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+before.....
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+
+
+after......
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Metadata for targetId service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi successfully transferred: giP0ZZkdM1xh2Y80Reay8FeOK5mRTu5-_QP6a4-w5EU= -> 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774406},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:10000/jmxrmi","alias":"/deployments/quarkus-run.jar","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"10000","JAVA_MAIN":"/deployments/quarkus-run.jar","REALM":"JDP"}}}}}}
 ACCEPTED!!!!!!!!!!!!
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
 
 
 targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
 
 
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:10000/jmxrmi
+ 
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774406},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9094","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+
+
+Aug 17, 2022 10:13:26 PM io.cryostat.core.log.Logger info
 INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi
  
-Aug 17, 2022 6:56:03 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762563},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9094","JAVA_MAIN":"es.andrewazor.demo.Main"}}},"kind":"FOUND"}}}
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774407},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9095/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9095","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
 ACCEPTED!!!!!!!!!!!!
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
 
 
 targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
 
 
-Aug 17, 2022 6:56:04 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
 INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:9095/jmxrmi
  
-Aug 17, 2022 6:56:04 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762564},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9095/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9095","JAVA_MAIN":"es.andrewazor.demo.Main"}}},"kind":"FOUND"}}}
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774407},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9096/jmxrmi","alias":"/deployments/quarkus-run.jar","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9096","JAVA_MAIN":"/deployments/quarkus-run.jar","REALM":"JDP"}}}}}}
 ACCEPTED!!!!!!!!!!!!
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
-recordingName: es-andrewazor-demo-Main_asdf_20220817T185525Z.jfr
-metadata: {template.name=Profiling, template.type=TARGET}
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
 
 
 targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
-jvmId: py7aQV0y9xgJ3qbGTupm2_hA44ZdmRfMr0JBwpmZT3M=
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
 
 
-Aug 17, 2022 6:56:04 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
 INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:9096/jmxrmi
  
-Aug 17, 2022 6:56:04 PM io.cryostat.core.log.Logger info
-INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660762564},"message":{"event":{"serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9096/jmxrmi","alias":"/deployments/quarkus-run.jar","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9096","JAVA_MAIN":"/deployments/quarkus-run.jar"}}},"kind":"FOUND"}}}
-Aug 17, 2022 6:56:13 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774407},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9091","JAVA_MAIN":"io.cryostat.Cryostat","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+
+
+Aug 17, 2022 10:13:27 PM io.cryostat.core.log.Logger info
+INFO: Target did not have a JVM id: service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi
+ 
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
 INFO: Removing cached connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: EXPIRED
-Aug 17, 2022 6:56:13 PM io.cryostat.core.log.Logger info
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
 INFO: Connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi closed
-^Cb5f48455dc69e5fb83ee83545218a39df3f034da83e5075ddceb2c0678e6d84b
-b5f48455dc69e5fb83ee83545218a39df3f034da83e5075ddceb2c0678e6d84b
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Connected remote client 10.0.2.100:36166
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36166":"connected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Disconnected remote client 10.0.2.100:36166
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36166":"disconnected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Authenticated remote client 10.0.2.100:36166
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Connected remote client 10.0.2.100:36174
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36174":"connected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Connected remote client 10.0.2.100:36188
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36188":"connected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Connected remote client 10.0.2.100:36192
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36192":"connected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Disconnected remote client 10.0.2.100:36174
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Authenticated remote client 10.0.2.100:36174
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36174":"disconnected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Disconnected remote client 10.0.2.100:36188
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Authenticated remote client 10.0.2.100:36188
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36188":"disconnected"}}
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Authenticated remote client 10.0.2.100:36192
+Aug 17, 2022 10:13:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774416},"message":{"10.0.2.100:36192":"accepted"}}
+Aug 17, 2022 10:14:00 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774440},"message":{"event":{"kind":"LOST","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9093","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+
+
+
+
+Aug 17, 2022 10:14:00 PM io.cryostat.core.log.Logger info
+INFO: Trying to remove lost TargetMetadata on a timer for: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+after 30 secs: reachable?
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: Creating connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: unreachable
+Hi it's unreachable ID: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Hi it's unreachable ID: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:14:05 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Disconnected remote client 10.0.2.100:36192
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774522},"message":{"10.0.2.100:36192":"disconnected"}}
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60380): OPTIONS /api/v2.1/auth 204 0ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60358): GET /api/v1/notifications_url 200 8ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): GET /health 200 138ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60386): POST /api/v2.1/auth 200 131ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60386): POST /api/v2.1/auth 200 0ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): GET /api/v1/grafana_datasource_url 200 6ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60358): GET /api/v1/grafana_dashboard_url 200 8ms
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Connected remote client 10.0.2.100:60400
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774522},"message":{"10.0.2.100:60400":"connected"}}
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Authenticated remote client 10.0.2.100:60400
+Aug 17, 2022 10:15:22 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"WsClientActivity","type":{"type":"application","subType":"json"},"serverTime":1660774522},"message":{"10.0.2.100:60400":"accepted"}}
+Aug 17, 2022 10:15:23 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): OPTIONS /api/v1/recordings 204 0ms
+Aug 17, 2022 10:15:23 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60358): OPTIONS /api/v1/targets 204 0ms
+Aug 17, 2022 10:15:23 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60386): GET /api/v1/recordings 200 18ms
+Aug 17, 2022 10:15:23 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60402): GET /api/v1/targets 200 19ms
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774525},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9093","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+
+
+
+
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: Creating connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: Trying to transfer metadata for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ= -> q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: trying.........................
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: This is an archived recording! es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+before.....
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+
+
+after......
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: trying.........................
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: This is an archived recording! es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+before.....
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+
+
+after......
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:15:25 PM io.cryostat.core.log.Logger info
+INFO: Metadata for targetId service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi successfully transferred: 0tZpCmuzmKv5X09gyrO7XtkCq9W2KF3VwU5k9iArfoQ= -> q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+Aug 17, 2022 10:15:35 PM io.cryostat.core.log.Logger info
+INFO: Removing cached connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: EXPIRED
+Aug 17, 2022 10:15:35 PM io.cryostat.core.log.Logger info
+INFO: Connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi closed
+Aug 17, 2022 10:15:36 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): OPTIONS /api/v2/targets 204 0ms
+Aug 17, 2022 10:15:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774536},"message":{"event":{"kind":"FOUND","serviceRef":{"connectUrl":"cryostat:9091","alias":"asdf","labels":{},"annotations":{"platform":{},"cryostat":{"REALM":"Custom Targets"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+
+
+Aug 17, 2022 10:15:36 PM io.cryostat.core.log.Logger info
+INFO: Target did not have a JVM id: cryostat:9091
+ 
+Aug 17, 2022 10:15:36 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60386): POST /api/v2/targets 200 9ms
+Aug 17, 2022 10:15:51 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:37820): GET /api/beta/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9093%2Fjmxrmi 200 0ms
+Aug 17, 2022 10:16:00 PM io.cryostat.core.log.Logger info
+INFO: Creating connection for service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi
+Aug 17, 2022 10:16:00 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:49458): GET /api/beta/targets/localhost:9093 200 37ms
+Aug 17, 2022 10:16:10 PM io.cryostat.core.log.Logger info
+INFO: Removing cached connection for localhost:9093: EXPIRED
+Aug 17, 2022 10:16:10 PM io.cryostat.core.log.Logger info
+INFO: Connection for service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi closed
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): OPTIONS /api/v1/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9093%2Fjmxrmi/recordings 204 0ms
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60374): OPTIONS /api/v2.2/graphql 204 0ms
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: Creating connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: connection attempt failed.
+
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: Connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi closed
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: Removing cached connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi: EXPLICIT
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60402): POST /api/v2.2/graphql 200 150ms
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger error
+SEVERE: HTTP 500: Failed to retrieve RMIServer stub: javax.naming.ServiceUnavailableException [Root exception is java.rmi.ConnectException: Connection refused to host: cryostat; nested exception is: 
+	java.net.ConnectException: Connection refused]
+io.vertx.ext.web.handler.HttpException: Internal Server Error
+Caused by: org.openjdk.jmc.rjmx.ConnectionException caused by java.io.IOException: Failed to retrieve RMIServer stub: javax.naming.ServiceUnavailableException [Root exception is java.rmi.ConnectException: Connection refused to host: cryostat; nested exception is: 
+	java.net.ConnectException: Connection refused]
+	at org.openjdk.jmc.rjmx.internal.RJMXConnection.connect(RJMXConnection.java:441)
+	at io.cryostat.core.net.JFRConnection.attemptConnect(JFRConnection.java:304)
+	at io.cryostat.core.net.JFRConnection.connect(JFRConnection.java:261)
+	at io.cryostat.core.net.JFRConnection.getService(JFRConnection.java:121)
+	at io.cryostat.net.web.http.api.v1.TargetRecordingsGetHandler.lambda$handleAuthenticated$0(TargetRecordingsGetHandler.java:123)
+	at io.cryostat.net.TargetConnectionManager.executeConnectedTask(TargetConnectionManager.java:148)
+	at io.cryostat.net.TargetConnectionManager.executeConnectedTask(TargetConnectionManager.java:126)
+	at io.cryostat.net.web.http.api.v1.TargetRecordingsGetHandler.handleAuthenticated(TargetRecordingsGetHandler.java:119)
+	at io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler.handle(AbstractAuthenticatedRequestHandler.java:99)
+	at io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler.handle(AbstractAuthenticatedRequestHandler.java:69)
+	at io.vertx.ext.web.impl.BlockingHandlerDecorator.lambda$handle$0(BlockingHandlerDecorator.java:48)
+	at io.vertx.core.impl.ContextImpl.lambda$null$0(ContextImpl.java:159)
+	at io.vertx.core.impl.AbstractContext.dispatch(AbstractContext.java:100)
+	at io.vertx.core.impl.ContextImpl.lambda$executeBlocking$1(ContextImpl.java:157)
+	at io.vertx.core.impl.TaskQueue.run(TaskQueue.java:76)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+Caused by: java.io.IOException: Failed to retrieve RMIServer stub: javax.naming.ServiceUnavailableException [Root exception is java.rmi.ConnectException: Connection refused to host: cryostat; nested exception is: 
+	java.net.ConnectException: Connection refused]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnector.connect(RMIConnector.java:370)
+	at org.openjdk.jmc.rjmx.internal.RJMXConnection.connectJmxConnector(RJMXConnection.java:487)
+	at org.openjdk.jmc.rjmx.internal.RJMXConnection.establishConnection(RJMXConnection.java:464)
+	at org.openjdk.jmc.rjmx.internal.RJMXConnection.connect(RJMXConnection.java:434)
+	... 18 more
+Caused by: javax.naming.ServiceUnavailableException [Root exception is java.rmi.ConnectException: Connection refused to host: cryostat; nested exception is: 
+	java.net.ConnectException: Connection refused]
+	at jdk.naming.rmi/com.sun.jndi.rmi.registry.RegistryContext.lookup(RegistryContext.java:138)
+	at java.naming/com.sun.jndi.toolkit.url.GenericURLContext.lookup(GenericURLContext.java:220)
+	at java.naming/javax.naming.InitialContext.lookup(InitialContext.java:409)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnector.findRMIServerJNDI(RMIConnector.java:1839)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnector.findRMIServer(RMIConnector.java:1813)
+	at java.management.rmi/javax.management.remote.rmi.RMIConnector.connect(RMIConnector.java:302)
+	... 21 more
+Caused by: java.rmi.ConnectException: Connection refused to host: cryostat; nested exception is: 
+	java.net.ConnectException: Connection refused
+	at java.rmi/sun.rmi.transport.tcp.TCPEndpoint.newSocket(TCPEndpoint.java:626)
+	at java.rmi/sun.rmi.transport.tcp.TCPChannel.createConnection(TCPChannel.java:217)
+	at java.rmi/sun.rmi.transport.tcp.TCPChannel.newConnection(TCPChannel.java:204)
+	at java.rmi/sun.rmi.server.UnicastRef.newCall(UnicastRef.java:344)
+	at java.rmi/sun.rmi.registry.RegistryImpl_Stub.lookup(RegistryImpl_Stub.java:116)
+	at jdk.naming.rmi/com.sun.jndi.rmi.registry.RegistryContext.lookup(RegistryContext.java:134)
+	... 26 more
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.connect0(Native Method)
+	at java.base/sun.nio.ch.Net.connect(Net.java:579)
+	at java.base/sun.nio.ch.Net.connect(Net.java:568)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:588)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:633)
+	at java.base/java.net.Socket.connect(Socket.java:583)
+	at java.base/java.net.Socket.<init>(Socket.java:507)
+	at java.base/java.net.Socket.<init>(Socket.java:287)
+	at java.rmi/sun.rmi.transport.tcp.TCPDirectSocketFactory.createSocket(TCPDirectSocketFactory.java:40)
+	at java.rmi/sun.rmi.transport.tcp.TCPEndpoint.newSocket(TCPEndpoint.java:620)
+	... 31 more
+Aug 17, 2022 10:16:30 PM io.cryostat.core.log.Logger info
+INFO: (10.0.2.100:60386): GET /api/v1/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9093%2Fjmxrmi/recordings 500 156ms
+Aug 17, 2022 10:16:36 PM io.cryostat.core.log.Logger info
+INFO: Outgoing WS message: {"meta":{"category":"TargetJvmDiscovery","type":{"type":"application","subType":"json"},"serverTime":1660774596},"message":{"event":{"kind":"LOST","serviceRef":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi","alias":"es.andrewazor.demo.Main","labels":{},"annotations":{"platform":{},"cryostat":{"HOST":"cryostat","PORT":"9093","JAVA_MAIN":"es.andrewazor.demo.Main","REALM":"JDP"}}}}}}
+ACCEPTED!!!!!!!!!!!!
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+metadata: {template.name=f, a=a, template.type=TARGET}
+
+
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+recordingName: es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+metadata: {template.name=Continuous, asdf=asdf, template.type=TARGET}
+
+
+targetId: service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+
+
+targetId: localhost:9093
+jvmId: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+
+
+
+
+Aug 17, 2022 10:16:36 PM io.cryostat.core.log.Logger info
+INFO: Trying to remove lost TargetMetadata on a timer for: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+after 30 secs: reachable?
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: Creating connection for service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: unreachable
+Hi it's unreachable ID: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+es-andrewazor-demo-Main_asdf_20220817T220122Z.jfr
+Hi it's unreachable ID: q2RVfapvjOGK6B3W1dfmQTqwtcI0ppXJWlTTmYfQfTc=
+is this an archived recording?
+trying to find match for : es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....file-uploads
+/opt/cryostat.d/recordings.d/file-uploads
+Aug 17, 2022 10:16:41 PM io.cryostat.core.log.Logger info
+INFO: checking directory.....ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+/opt/cryostat.d/recordings.d/ONSXE5TJMNSTU2TNPA5HE3LJHIXS6L3KNZSGSL3SNVUTULZPMNZHS33TORQXIORZGA4TGL3KNV4HE3LJ
+es-andrewazor-demo-Main_a_20220817T210920Z.jfr
+^C7494f915b65977468e5d4258c6deefd0293f57480b663d480c60a854c693508a
+7494f915b65977468e5d4258c6deefd0293f57480b663d480c60a854c693508a

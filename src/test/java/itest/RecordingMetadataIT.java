@@ -313,6 +313,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             credentialsForm.add("username", "admin");
             credentialsForm.add("password", "adminpass123");
 
+            CompletableFuture<JsonObject> metaFuture = new CompletableFuture<>();
             webClient
                     .post("/api/v2.2/credentials")
                     .sendForm(
@@ -322,6 +323,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
                                     credentialsFuture.complete(null);
+
                                 }
                             });
             credentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -350,9 +352,30 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
                                     dumpRespFuture.complete(null);
+                                    metaFuture.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject asdf = metaFuture.get().getJsonObject("metadata");
+            System.out.println(asdf.encodePrettily());
+
+            CompletableFuture<String> targetGetResponse = new CompletableFuture<>();
+
+            webClient
+                    .get(
+                            String.format(
+                                    "/api/beta/targets/%s", targetId))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                targetGetResponse.complete(ar.result().bodyAsString());
+                            });
+        String s = targetGetResponse.get();
+        System.out.println(s);
 
             // save the recording to archives
             CompletableFuture<Void> saveRespFuture = new CompletableFuture<>();
@@ -394,7 +417,29 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             // check that a new active recording with the same name has a new set of labels
             CompletableFuture<JsonObject> activeRecordingFuture = new CompletableFuture<>();
+            System.out.println(form);
             form.remove("metadata");
+            System.out.println(form);
+
+            CompletableFuture<String> futt = new CompletableFuture<>();
+
+            webClient
+                    .get(
+                            String.format(
+                                    "/api/beta/targets/%s", targetId))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, futt)) {
+                                        futt.complete(ar.result().bodyAsString());
+                                }
+                            });
+        System.out.println(futt.get());
+
 
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))
@@ -442,7 +487,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             JsonObject recordingInfo = archivedRecordings.getJsonObject(0);
 
             JsonObject archivedMetadata = recordingInfo.getJsonObject("metadata");
-            JsonObject expectedArchivedMetadata = new JsonObject(Map.of("labels", responseLabels));
+            JsonObject expectedArchivedMetadata = new JsonObject(Map.of("labels", updatedLabels));
 
             MatcherAssert.assertThat(archivedMetadata, Matchers.equalTo(expectedArchivedMetadata));
         } finally {

@@ -41,7 +41,6 @@ package io.cryostat.recordings;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
@@ -68,7 +67,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.fabric8.openshift.api.model.BuildStrategyFluent.SourceStrategyNested;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -399,39 +397,67 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
-        staleMetadataTimers.computeIfAbsent(
-                unreachableJvmId,
-                k ->
-                        this.vertx.setTimer(
-                                Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
-                                initialId -> {
-                                    if (this.isTargetReachable(cd)) {
-                                        return;
-                                    }
+        logger.info("Trying to remove lost TargetMetadata on a timer for: {}", unreachableJvmId);
+        recordingMetadataMap.keySet().stream()
+        .forEach(
+                keyPair -> {
+                    if (!keyPair.getKey()
+                            .equals(unreachableJvmId)) {
+                        return;
+                    }
 
-                                    recordingMetadataMap.keySet().stream()
-                                            .forEach(
-                                                    keyPair -> {
-                                                        if (!keyPair.getKey()
-                                                                .equals(unreachableJvmId)) {
-                                                            return;
-                                                        }
+                    try {
+                        System.out.println("Hi it's unreachable ID: " + unreachableJvmId);
+                        String recordingName =
+                                keyPair.getValue();
 
-                                                        try {
-                                                            String recordingName =
-                                                                    keyPair.getValue();
+                        if (!isArchivedRecording(
+                                recordingName)) {
+                                    logger.info("its not an archived recording....");
+                            deleteRecordingMetadataIfExists(
+                                    cd, recordingName);
+                        }
+                    } catch (IOException e) {
+                        logger.error(e);
+                    }
+                });
+        // staleMetadataTimers.computeIfAbsent(
+        //         unreachableJvmId,
+        //         k ->
+        //                 this.vertx.setTimer(
+        //                         Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
+        //                         initialId -> {
+        //                             System.out.println("after 5 secs: reachable?");
+        //                             if (this.isTargetReachable(cd)) {
+        //                                 logger.info("still reachable");
+        //                                 return;
+        //                             }
 
-                                                            if (!isArchivedRecording(
-                                                                    recordingName)) {
-                                                                        logger.info("its not an archived recording....");
-                                                                deleteRecordingMetadataIfExists(
-                                                                        cd, recordingName);
-                                                            }
-                                                        } catch (IOException e) {
-                                                            logger.error(e);
-                                                        }
-                                                    });
-                                }));
+        //                             logger.info("unreachable");
+        //                             recordingMetadataMap.keySet().stream()
+        //                                     .forEach(
+        //                                             keyPair -> {
+        //                                                 if (!keyPair.getKey()
+        //                                                         .equals(unreachableJvmId)) {
+        //                                                     return;
+        //                                                 }
+
+        //                                                 try {
+        //                                                     System.out.println("Hi it's unreachable ID: " + unreachableJvmId);
+        //                                                     String recordingName =
+        //                                                             keyPair.getValue();
+
+        //                                                     if (!isArchivedRecording(
+        //                                                             recordingName)) {
+        //                                                                 logger.info("its not an archived recording....");
+        //                                                         deleteRecordingMetadataIfExists(
+        //                                                                 cd, recordingName);
+        //                                                     }
+        //                                                 } catch (IOException e) {
+        //                                                     logger.error(e);
+        //                                                 }
+        //                                             });
+        //                         }));
     }
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
@@ -512,13 +538,16 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private boolean isTargetReachable(ConnectionDescriptor cd) {
+        CompletableFuture<Boolean> connectFuture = new CompletableFuture<>(); 
         try {
-            return this.targetConnectionManager.executeConnectedTask(
+            this.targetConnectionManager.executeConnectedTask(
                     cd,
                     connection -> {
-                        return true;
-                    });
+                        return connectFuture.complete(connection.isConnected());
+                }, false);
+            return connectFuture.get();
         } catch (Exception e) {
+            logger.error(e);
             return false;
         }
     }
