@@ -71,7 +71,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
-    static final String PATH = "recordings/:sourceTarget/:recordingName";
+    static final String PATH = "reports/:sourceTarget/:recordingName";
 
     private final ReportService reportService;
     private final long generationTimeoutSeconds;

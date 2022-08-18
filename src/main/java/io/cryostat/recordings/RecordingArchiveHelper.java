@@ -244,14 +244,14 @@ public class RecordingArchiveHelper {
                             : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
-                            parentPath.toString(),
+                            subdirectoryName,
                             filename,
                             webServerProvider
                                     .get()
-                                    .getArchivedDownloadURL(subdirectoryName, filename),
+                                    .getArchivedDownloadURL(targetId, filename),
                             webServerProvider
                                     .get()
-                                    .getArchivedReportURL(subdirectoryName, filename),
+                                    .getArchivedReportURL(targetId, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     new ConnectionDescriptor(targetId), recordingName),
                             getFileSize(filename));
