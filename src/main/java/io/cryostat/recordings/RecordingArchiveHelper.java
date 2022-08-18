@@ -166,7 +166,7 @@ public class RecordingArchiveHelper {
                             .get();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
-                            parentPath.toString(),
+                            parentPath.getFileName().toString(),
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(connectionDescriptor.getTargetId(), filename),
                             webServerProvider.get().getArchivedReportURL(connectionDescriptor.getTargetId(), filename),
