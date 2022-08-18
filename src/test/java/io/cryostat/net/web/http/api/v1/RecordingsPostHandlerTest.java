@@ -280,7 +280,7 @@ class RecordingsPostHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
-        when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+        when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .then(
                         new Answer<String>() {
                             @Override
@@ -288,7 +288,7 @@ class RecordingsPostHandlerTest {
                                 return "/some/download/path/" + invocation.getArgument(0);
                             }
                         });
-        when(webServer.getArchivedReportURL(Mockito.anyString()))
+        when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .then(
                         new Answer<String>() {
                             @Override
@@ -305,7 +305,7 @@ class RecordingsPostHandlerTest {
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
-                        "archive",
+                        RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY,
                         filename,
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
@@ -465,7 +465,7 @@ class RecordingsPostHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
-        when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+        when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .then(
                         new Answer<String>() {
                             @Override
@@ -473,7 +473,7 @@ class RecordingsPostHandlerTest {
                                 return "/some/download/path/" + invocation.getArgument(0);
                             }
                         });
-        when(webServer.getArchivedReportURL(Mockito.anyString()))
+        when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .then(
                         new Answer<String>() {
                             @Override

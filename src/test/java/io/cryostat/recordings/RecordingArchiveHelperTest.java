@@ -769,7 +769,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
 
-        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -778,7 +778,7 @@ class RecordingArchiveHelperTest {
                                 return "/some/path/archive/" + name;
                             }
                         });
-        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -889,7 +889,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(base32.decode(Mockito.anyString()))
                 .thenReturn(subdirectories.get(0).getBytes());
 
-        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -898,7 +898,7 @@ class RecordingArchiveHelperTest {
                                 return "/some/path/archive/" + name;
                             }
                         });
-        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -966,7 +966,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.listDirectoryChildren(specificRecordingsPath))
                 .thenReturn(List.of("foo_recording"));
 
-        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -975,7 +975,7 @@ class RecordingArchiveHelperTest {
                                 return "/some/path/archive/" + name;
                             }
                         });
-        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
