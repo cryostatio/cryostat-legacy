@@ -238,9 +238,8 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
@@ -315,9 +314,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         String savedName =
                 URLEncoder.encode(alias.replaceAll("[\\._]+", "-"), StandardCharsets.UTF_8)
                         + "_someRecording_"
@@ -412,9 +410,8 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
@@ -492,9 +489,8 @@ class RecordingArchiveHelperTest {
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
@@ -578,9 +574,8 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
@@ -715,9 +710,8 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String savedName = "some-hostname-local_someRecording_" + timestamp + ".jfr";
         Path filenamePath = Mockito.mock(Path.class);
-        Path parentPath = Mockito.mock(Path.class);
+        Path parentPath = Path.of("some", "storage");
         Mockito.when(destination.getParent()).thenReturn(parentPath);
-        Mockito.when(parentPath.toString()).thenReturn("/some/storage/");
         Mockito.when(filenamePath.toString()).thenReturn(savedName);
         Mockito.when(destination.getFileName()).thenReturn(filenamePath);
         Mockito.when(
@@ -821,7 +815,7 @@ class RecordingArchiveHelperTest {
                         Map.of(
                                 "recording",
                                 new ArchivedRecordingInfo(
-                                        Path.of(subdirectories.get(1)).toAbsolutePath().toString(),
+                                        Path.of(subdirectories.get(1)).toAbsolutePath().getFileName().toString(),
                                         recordingName,
                                         "/some/path/download/" + recordingName,
                                         "/some/path/archive/" + recordingName,
