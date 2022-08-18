@@ -246,8 +246,12 @@ public class RecordingArchiveHelper {
                     new ArchivedRecordingInfo(
                             parentPath.toString(),
                             filename,
-                            webServerProvider.get().getArchivedDownloadURL(subdirectoryName, filename),
-                            webServerProvider.get().getArchivedReportURL(subdirectoryName, filename),
+                            webServerProvider
+                                    .get()
+                                    .getArchivedDownloadURL(subdirectoryName, filename),
+                            webServerProvider
+                                    .get()
+                                    .getArchivedReportURL(subdirectoryName, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     new ConnectionDescriptor(targetId), recordingName),
                             getFileSize(filename));
@@ -393,9 +397,9 @@ public class RecordingArchiveHelper {
             List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
             for (String subdirectory : subdirectories) {
                 String targetId =
-                    (subdirectory.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
-                            ? UPLOADED_RECORDINGS_SUBDIRECTORY
-                            : new String(base32.decode(subdirectory), StandardCharsets.UTF_8);
+                        (subdirectory.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                                ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                                : new String(base32.decode(subdirectory), StandardCharsets.UTF_8);
                 List<String> files =
                         this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory));
                 String metadataSourceTarget =
@@ -411,8 +415,10 @@ public class RecordingArchiveHelper {
                                                 return new ArchivedRecordingInfo(
                                                         subdirectory,
                                                         file,
-                                                        webServer.getArchivedDownloadURL(targetId, file),
-                                                        webServer.getArchivedReportURL(targetId, file),
+                                                        webServer.getArchivedDownloadURL(
+                                                                targetId, file),
+                                                        webServer.getArchivedReportURL(
+                                                                targetId, file),
                                                         recordingMetadataManager.getMetadata(
                                                                 new ConnectionDescriptor(
                                                                         metadataSourceTarget),
