@@ -119,6 +119,7 @@ Cryostat can be configured via the following environment variables:
 * `CRYOSTAT_JDP_ADDRESS`: the JDP multicast address to send discovery packets. Defaults to `224.0.23.178`.
 * `CRYOSTAT_JDP_PORT`: the JDP multicast port to send discovery packets. Defaults to `7095`.
 * `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory. Defaults to `/opt/cryostat.d/conf.d`.
+* `CRYOSTAT_DISABLE_BUILTIN_DISCOVERY`: set to `true` to disable built-in target discovery mechanisms (see `CRYOSTAT_PLATFORM`). This will still allow platform detection to automatically select an `AuthManager`. This is intended for use when Cryostat Discovery Plugins are the only desired mechanism for locating target applications. See #936 and [cryostat-agent](https://github.com/cryostatio/cryostat-agent). Defaults to `false`.
 
 #### Configuration for Automated Analysis Reports
 
@@ -142,6 +143,16 @@ connections. Defaults to `10`.
 #### Configuration for Archiving
 
 * `CRYOSTAT_ARCHIVE_PATH`: the storage path for archived recordings
+
+#### Configuration for database
+
+* `CRYOSTAT_JDBC_DRIVER`: driver to use for communicating with the database. Defaults to `org.h2.Driver`. `org.postgresql.Driver` is also supported.
+* `CRYOSTAT_JDBC_URL`: URL for connecting to the database. Defaults to `jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as other` for an h2 in-memory database. Also supported: `jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other`, or a PostgreSQL URL such as `jdbc:postgresql://cryostat:5432/cryostat`.
+* `CRYOSTAT_JDBC_USERNAME`: username for JDBC connection.
+* `CRYOSTAT_JDBC_PASSWORD`: password for JDBC connection.
+* `CRYOSTAT_HIBERNATE_DIALECT`: Defaults to `org.hibernate.dialect.H2Dialect`. Also supported: `org.hibernate.dialect.PostgreSQL95Dialect`.
+* `CRYOSTAT_HBM2DDL`: Control Hibernate schema DDL. Defaults to `create`.
+* `CRYOSTAT_LOG_DB_QUERIES`: Enable verbose logging of database queries. Defaults to `false`.
 
 ## MONITORING APPLICATIONS
 In order for `cryostat` to be able to monitor JVM application targets the
