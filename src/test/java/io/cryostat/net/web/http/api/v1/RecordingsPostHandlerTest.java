@@ -285,7 +285,7 @@ class RecordingsPostHandlerTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                return "/some/download/path/" + invocation.getArgument(0);
+                                return "/some/download/path/" + invocation.getArgument(1);
                             }
                         });
         when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
@@ -293,7 +293,7 @@ class RecordingsPostHandlerTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                return "/some/report/path/" + invocation.getArgument(0);
+                                return "/some/report/path/" + invocation.getArgument(1);
                             }
                         });
 

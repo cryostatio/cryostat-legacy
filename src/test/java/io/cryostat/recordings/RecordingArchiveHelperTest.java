@@ -774,7 +774,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/archive/" + name;
                             }
                         });
@@ -783,7 +783,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/download/" + name;
                             }
                         });
@@ -874,6 +874,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
 
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
+        Mockito.when(base32.decode(Mockito.anyString()))
+                .thenReturn(subdirectories.get(0).getBytes(StandardCharsets.UTF_8))
+                .thenReturn(subdirectories.get(1).getBytes(StandardCharsets.UTF_8));
         Mockito.when(fs.listDirectoryChildren(archivedRecordingsPath)).thenReturn(subdirectories);
 
         Mockito.when(archivedRecordingsPath.resolve(subdirectories.get(0)))
@@ -894,7 +897,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/archive/" + name;
                             }
                         });
@@ -903,7 +906,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/download/" + name;
                             }
                         });
@@ -971,7 +974,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/archive/" + name;
                             }
                         });
@@ -980,7 +983,7 @@ class RecordingArchiveHelperTest {
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
+                                String name = invocation.getArgument(1);
                                 return "/some/path/download/" + name;
                             }
                         });
