@@ -78,7 +78,6 @@ public class CustomTargetsIT extends StandardSelfTest {
                         expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
                                 .thenAcceptAsync(
                                         notification -> {
-                                            latch.countDown();
                                             JsonObject event =
                                                     notification
                                                             .getJsonObject("message")
@@ -94,6 +93,7 @@ public class CustomTargetsIT extends StandardSelfTest {
                                                     event.getJsonObject("serviceRef")
                                                             .getString("alias"),
                                                     Matchers.equalTo("self"));
+                                            latch.countDown();
                                         })
                                 .get();
                     } catch (Exception e) {
@@ -107,9 +107,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            latch.countDown();
                             assertRequestStatus(ar, response);
                             response.complete(ar.result().bodyAsJsonObject());
+                            latch.countDown();
                         });
         JsonObject body = response.get().getJsonObject("data").getJsonObject("result");
         MatcherAssert.assertThat(body.getString("connectUrl"), Matchers.equalTo("localhost:0"));
@@ -186,7 +186,6 @@ public class CustomTargetsIT extends StandardSelfTest {
                         expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
                                 .thenAcceptAsync(
                                         notification -> {
-                                            latch.countDown();
                                             JsonObject event =
                                                     notification
                                                             .getJsonObject("message")
@@ -202,6 +201,7 @@ public class CustomTargetsIT extends StandardSelfTest {
                                                     event.getJsonObject("serviceRef")
                                                             .getString("alias"),
                                                     Matchers.equalTo("self"));
+                                            latch.countDown();
                                         })
                                 .get();
                     } catch (Exception e) {
@@ -214,9 +214,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                 .delete("/api/v2/targets/localhost:0")
                 .send(
                         ar -> {
-                            latch.countDown();
                             assertRequestStatus(ar, response);
                             response.complete(null);
+                            latch.countDown();
                         });
 
         latch.await(5, TimeUnit.SECONDS);
