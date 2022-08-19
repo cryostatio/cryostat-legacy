@@ -44,26 +44,27 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+<<<<<<< HEAD
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
+=======
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+>>>>>>> a053b15f (Add beta JWT and non-JWT version of the RecordingGetHandler and ReportGetHandler)
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import com.nimbusds.jwt.JWT;
-import dagger.Lazy;
+import com.google.gson.Gson;
+
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
-class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
+public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName";
 
@@ -72,13 +73,15 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
     @Inject
     RecordingGetHandler(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            AssetJwtHelper jwtFactory,
-            Lazy<WebServer> webServer,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
+            Gson gson,
+            RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -102,27 +105,23 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
     }
 
     @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.OCTET_STREAM; 
+    }
+
+    @Override
     public boolean isAsync() {
         return true;
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String sourceTarget = ctx.pathParam("sourceTarget");
-        String recordingName = ctx.pathParam("recordingName");
+    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
         try {
-            Path archivedRecording =
-                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            String.format("attachment; filename=\"%s\"", recordingName));
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()));
-            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+            
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            return new IntermediateResponse<Path>().addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(archivedRecording.toFile().length())).body(archivedRecording);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);

@@ -39,57 +39,46 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportGenerationException;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import com.google.gson.Gson;
-
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
+class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
-    static final String PATH = "recordings/:sourceTarget/:recordingName";
+    static final String PATH = "recordings/:sourceTarget/:recordingName/jwt";
 
-    private final ReportService reportService;
-    private final long reportGenerationTimeoutSeconds;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    ReportGetHandler(
+    RecordingGetWithJwtHandler(
             AuthManager auth,
-            Gson gson,
-            ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
-                    long reportGenerationTimeoutSeconds) {
-        super(auth, gson);
-        this.reportService = reportService;
-        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
+            CredentialsManager credentialsManager,
+            AssetJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
@@ -104,10 +93,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_RECORDING,
-                ResourceAction.CREATE_REPORT,
-                ResourceAction.READ_REPORT);
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
@@ -116,36 +102,30 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.HTML; 
-    }
-
-    @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
-    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
-        String sourceTarget = params.getPathParams().get("sourceTarget");
-        String recordingName = params.getPathParams().get("recordingName");
-        List<String> queriedFilter = params.getQueryParams().getAll("filter");
-        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+        String sourceTarget = ctx.pathParam("sourceTarget");
+        String recordingName = ctx.pathParam("recordingName");
         try {
-            Path report = 
-                    reportService
-                            .get(sourceTarget, recordingName, rawFilter)
-                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            return new IntermediateResponse<Path>().addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length())).body(report);
-        } catch (ExecutionException | CompletionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof ReportGenerationException) {
-                ReportGenerationException rge =
-                        (ReportGenerationException) ExceptionUtils.getRootCause(e);
-                throw new ApiException(rge.getStatusCode(), e.getMessage());
-            }
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e);
+            Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            String.format("attachment; filename=\"%s\"", recordingName));
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_LENGTH,
+                            Long.toString(archivedRecording.toFile().length()));
+            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
             }
             throw e;
         }

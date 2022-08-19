@@ -48,48 +48,46 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.AbstractJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import com.google.gson.Gson;
-
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
+class ReportGetWithJwtHandler extends AbstractJwtConsumingHandler {
 
-    static final String PATH = "recordings/:sourceTarget/:recordingName";
+    static final String PATH = "reports/:sourceTarget/:recordingName/jwt";
 
     private final ReportService reportService;
-    private final long reportGenerationTimeoutSeconds;
+    private final long generationTimeoutSeconds;
 
     @Inject
-    ReportGetHandler(
+    ReportGetWithJwtHandler(
             AuthManager auth,
-            Gson gson,
+            CredentialsManager credentialsManager,
+            AssetJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
             ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
-                    long reportGenerationTimeoutSeconds) {
-        super(auth, gson);
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
+        super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.reportService = reportService;
-        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
@@ -116,38 +114,36 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.HTML; 
+    public boolean isAsync() {
+        return true;
     }
 
     @Override
-    public boolean isAsync() {
+    public boolean isOrdered() {
         return false;
     }
 
     @Override
-    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
-        String sourceTarget = params.getPathParams().get("sourceTarget");
-        String recordingName = params.getPathParams().get("recordingName");
-        List<String> queriedFilter = params.getQueryParams().getAll("filter");
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+        String sourceTarget = ctx.pathParam("sourceTarget");
+        String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        
         try {
-            Path report = 
+            Path report =
                     reportService
                             .get(sourceTarget, recordingName, rawFilter)
-                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            return new IntermediateResponse<Path>().addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length())).body(report);
-        } catch (ExecutionException | CompletionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof ReportGenerationException) {
-                ReportGenerationException rge =
-                        (ReportGenerationException) ExceptionUtils.getRootCause(e);
-                throw new ApiException(rge.getStatusCode(), e.getMessage());
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response()
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new ApiException(404, ee);
             }
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e);
-            }
-            throw e;
+            throw ee;
         }
     }
 }
