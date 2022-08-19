@@ -96,8 +96,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Base32 base32;
     private final Logger logger;
 
-    private final Map<Pair<String, String>, Metadata> recordingMetadataMap; // jvmId, recordingName
-    private final Map<String, String> jvmIdMap; // targetId, jvmId
+    private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
+    private final Map<String, String> jvmIdMap;
     private final Map<String, Long> staleMetadataTimers;
 
     RecordingMetadataManager(
@@ -133,7 +133,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.platformClient.addTargetDiscoveryListener(this);
 
         this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                .peek(n -> logger.info("Recording Metadata file: {}", n))
+                .peek(n -> logger.trace("Recording Metadata file: {}", n))
                 .map(recordingMetadataDir::resolve)
                 .map(
                         path -> {
@@ -161,35 +161,15 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.platformClient.removeTargetDiscoveryListener(this);
     }
 
-    public String getJvmId(String targetId)
-            throws Exception { // public helper version just for testing
-        ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
-        return this.getJvmId(cd);
-    }
-
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
-        System.out.println("ACCEPTED!!!!!!!!!!!!");
-        for (var e : recordingMetadataMap.entrySet()) {
-            System.out.println("jvmId: " + e.getKey().getLeft());
-            System.out.println("recordingName: " + e.getKey().getRight());
-            System.out.println("metadata: " + e.getValue().getLabels());
-            System.out.println("\n");
-        }
-
-        for (var e : jvmIdMap.entrySet()) {
-            System.out.println("targetId: " + e.getKey());
-            System.out.println("jvmId: " + e.getValue());
-            System.out.println("\n");
-        }
         String targetId = tde.getServiceRef().getServiceUri().toString();
         String oldJvmId = jvmIdMap.get(targetId);
 
         if (oldJvmId == null) {
-            logger.info("Target {} did not have a jvmId", targetId);
+            logger.trace("Target {} did not have a jvmId", targetId);
             return;
         }
-        System.out.println("\n");
 
         Credentials credentials;
         ConnectionDescriptor cd;
@@ -225,24 +205,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(metadata);
 
         String jvmId = this.getJvmId(connectionDescriptor);
-        System.out.println("labels: " + metadata.getLabels());
-        System.out.println(String.format("jvmId: %s, recordingName: %s", jvmId, recordingName));
-
-        System.out.println("before...");
-        for (var e : recordingMetadataMap.entrySet()) {
-            System.out.println("jvmId: " + e.getKey().getLeft());
-            System.out.println("recordingName: " + e.getKey().getRight());
-            System.out.println("metadata: " + e.getValue().getLabels());
-            System.out.println("\n");
-        }
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
-        System.out.println("after...");
-        for (var e : recordingMetadataMap.entrySet()) {
-            System.out.println("jvmId: " + e.getKey().getLeft());
-            System.out.println("recordingName: " + e.getKey().getRight());
-            System.out.println("metadata: " + e.getValue().getLabels());
-            System.out.println("\n");
-        }
+
         fs.writeString(
                 this.getMetadataPath(jvmId, recordingName),
                 gson.toJson(
@@ -350,7 +314,6 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
-
             String newJvmId =
                     this.targetConnectionManager.executeConnectedTask(
                             cd,
@@ -364,6 +327,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                             });
 
             if (newJvmId == null) {
+                logger.trace(
+                        "Couldn't generate a new jvmId for target {} with old jvmId {}",
+                        targetId,
+                        oldJvmId);
                 return;
             }
 
@@ -374,58 +341,49 @@ public class RecordingMetadataManager extends AbstractVerticle
                 }
                 return;
             }
-            logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
+            logger.trace("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             recordingMetadataMap.keySet().stream()
-                    .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
+                    .filter(
+                            keyPair ->
+                                    keyPair.getKey() != null && keyPair.getKey().equals(oldJvmId))
                     .forEach(
                             keyPair -> {
                                 try {
                                     String recordingName = keyPair.getValue();
-                                    logger.info("trying.........................");
                                     if (isArchivedRecording(recordingName)) {
-                                        logger.info(
-                                                "This is an archived recording! {}", recordingName);
                                         Metadata m = this.getMetadata(cd, recordingName);
                                         deleteRecordingMetadataIfExists(cd, recordingName);
                                         jvmIdMap.put(targetId, newJvmId);
                                         setRecordingMetadata(cd, recordingName, m);
                                         jvmIdMap.put(targetId, oldJvmId);
                                     } else {
-                                        logger.info(
-                                                "This is a normal recording! {}", recordingName);
                                         deleteRecordingMetadataIfExists(cd, recordingName);
                                     }
                                 } catch (IOException e) {
                                     logger.error(
-                                            "Metadata could not be transferred upon restart", e);
+                                            "Metadata could not be transferred upon target restart",
+                                            e);
                                 }
                             });
 
             jvmIdMap.put(targetId, newJvmId);
-            logger.info(
+            logger.trace(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
-            logger.error("Metadata could not be transferred upon restart", e);
+            logger.error("Metadata could not be transferred upon target restart", e);
         }
     }
 
     private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
-        logger.info(
-                "Trying to remove lost target metadata on a timer for unreachableJvmId: {}",
-                unreachableJvmId);
         staleMetadataTimers.computeIfAbsent(
                 unreachableJvmId,
                 k ->
                         this.vertx.setTimer(
                                 Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
                                 initialId -> {
-                                    System.out.println("after 5 secs: reachable?");
                                     if (this.isTargetReachable(cd)) {
-                                        logger.info("still reachable");
                                         return;
                                     }
-
-                                    logger.info("unreachable");
                                     recordingMetadataMap.keySet().stream()
                                             .forEach(
                                                     keyPair -> {
@@ -435,17 +393,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                         }
 
                                                         try {
-                                                            System.out.println(
-                                                                    "Hi it's unreachable ID: "
-                                                                            + unreachableJvmId);
                                                             String recordingName =
                                                                     keyPair.getValue();
 
                                                             if (!isArchivedRecording(
                                                                     recordingName)) {
-                                                                logger.info(
-                                                                        "its not an archived"
-                                                                                + " recording....");
                                                                 deleteRecordingMetadataIfExists(
                                                                         cd, recordingName);
                                                             }
@@ -458,13 +410,11 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
         try {
-            System.out.println("is this an archived recording?");
-            System.out.println("trying to find match for : " + recordingName);
+            // FIXME: this should be improved when we store recording data in the our postgres db
             return this.fs.listDirectoryChildren(archivedRecordingsPath).stream()
                     .map(
                             subdirectory -> {
                                 try {
-                                    logger.info("checking directory.....{}", subdirectory);
                                     for (String file :
                                             this.fs.listDirectoryChildren(
                                                     archivedRecordingsPath.resolve(subdirectory))) {

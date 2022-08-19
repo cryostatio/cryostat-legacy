@@ -39,6 +39,7 @@ package itest;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -75,6 +76,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 public class RecordingMetadataIT extends ExternalTargetsTest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
+    static final Map<String, String> NULL_RESULT = new HashMap<>();
     static final Map<String, String> requestLabels =
             Map.of("KEY", "VALUE", "key.2", "some.value", "key3", "1234");
     static Map<String, String> responseLabels;
@@ -162,7 +164,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         String aliasTargetThree =
                 URLEncodedUtils.formatSegments(String.format("%s:9091", Podman.POD_NAME));
 
-        // verify in-memory recording from previous test created with labels for self with alias aliasTargetOne
+        // verify in-memory recording from previous test created with labels for self with alias
+        // aliasTargetOne
         CompletableFuture<JsonArray> listRespFutureTargetOne = new CompletableFuture<>();
         webClient
                 .get(String.format("/api/v1/targets/%s/recordings", aliasTargetOne))
@@ -555,6 +558,39 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                 }
                             });
 
+            // get the correct credential id to delete
+            CompletableFuture<JsonObject> getCredentialsFuture = new CompletableFuture<>();
+            webClient
+                    .get("/api/v2.2/credentials")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, getCredentialsFuture)) {
+                                    getCredentialsFuture.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            JsonObject response =
+                    getCredentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            List<StoredCredential> actualList =
+                    gson.fromJson(
+                            response.getJsonObject("data").getValue("result").toString(),
+                            new TypeToken<List<StoredCredential>>() {}.getType());
+
+            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
+            StoredCredential storedCredential = actualList.get(0);
+
+            // delete credentials to clean up
+            CompletableFuture<JsonObject> deleteCredentialsResponse = new CompletableFuture<>();
+            webClient
+                    .delete("/api/v2.2/credentials" + "/" + storedCredential.id)
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteCredentialsResponse)) {
+                                    deleteCredentialsResponse.complete(null);
+                                }
+                            });
+
             try {
                 deleteTargetRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -572,6 +608,23 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                         REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
                         e);
             }
+            try {
+                deleteCredentialsResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException
+                    | ExecutionException
+                    | TimeoutException
+                    | AssertionError e) {
+                throw new ITestCleanupFailedException(
+                        String.format(
+                                "Failed to delete credentials because of exception: %s",
+                                e.getCause()));
+            }
         }
+    }
+
+    private static class StoredCredential {
+        int id;
+        String matchExpression;
+        int numMatchingTargets;
     }
 }

@@ -64,7 +64,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -158,7 +157,7 @@ public abstract class RecordingsModule {
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
@@ -181,7 +180,7 @@ public abstract class RecordingsModule {
                     fs,
                     targetConnectionManager,
                     credentialsManager,
-                    platformClient,
+                    storage,
                     notificationFactory,
                     gson,
                     base32,
