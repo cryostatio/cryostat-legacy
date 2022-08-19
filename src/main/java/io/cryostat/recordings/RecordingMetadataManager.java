@@ -128,6 +128,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.staleMetadataTimers = new ConcurrentHashMap<>();
     }
 
+    @Override
     public void start(Promise<Void> future) throws IOException {
         this.platformClient.addTargetDiscoveryListener(this);
 
@@ -153,6 +154,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                             jvmIdMap.putIfAbsent(srm.getTargetId(), srm.getJvmId());
                         });
         future.complete();
+    }
+
+    @Override
+    public void stop() {
+        this.platformClient.removeTargetDiscoveryListener(this);
     }
 
     public String getJvmId(String targetId)
