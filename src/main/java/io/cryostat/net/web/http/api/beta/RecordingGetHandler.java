@@ -60,7 +60,6 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
@@ -72,9 +71,7 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Inject
     RecordingGetHandler(
-            AuthManager auth,
-            Gson gson,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            AuthManager auth, Gson gson, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
@@ -106,7 +103,7 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.OCTET_STREAM; 
+        return HttpMimeType.OCTET_STREAM;
     }
 
     @Override
@@ -119,9 +116,14 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
         try {
-            
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-            return new IntermediateResponse<Path>().addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(archivedRecording.toFile().length())).body(archivedRecording);
+
+            Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            return new IntermediateResponse<Path>()
+                    .addHeader(
+                            HttpHeaders.CONTENT_LENGTH,
+                            Long.toString(archivedRecording.toFile().length()))
+                    .body(archivedRecording);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);

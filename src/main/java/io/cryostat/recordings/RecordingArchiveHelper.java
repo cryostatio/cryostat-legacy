@@ -246,12 +246,8 @@ public class RecordingArchiveHelper {
                     new ArchivedRecordingInfo(
                             subdirectoryName,
                             filename,
-                            webServerProvider
-                                    .get()
-                                    .getArchivedDownloadURL(targetId, filename),
-                            webServerProvider
-                                    .get()
-                                    .getArchivedReportURL(targetId, filename),
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     new ConnectionDescriptor(targetId), recordingName),
                             getFileSize(filename));

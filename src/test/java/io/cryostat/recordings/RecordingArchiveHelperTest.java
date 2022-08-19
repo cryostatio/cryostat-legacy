@@ -815,7 +815,10 @@ class RecordingArchiveHelperTest {
                         Map.of(
                                 "recording",
                                 new ArchivedRecordingInfo(
-                                        Path.of(subdirectories.get(1)).toAbsolutePath().getFileName().toString(),
+                                        Path.of(subdirectories.get(1))
+                                                .toAbsolutePath()
+                                                .getFileName()
+                                                .toString(),
                                         recordingName,
                                         "/some/path/download/" + recordingName,
                                         "/some/path/archive/" + recordingName,

@@ -48,8 +48,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
@@ -64,9 +62,9 @@ import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
@@ -117,7 +115,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.HTML; 
+        return HttpMimeType.HTML;
     }
 
     @Override
@@ -131,13 +129,15 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
         String recordingName = params.getPathParams().get("recordingName");
         List<String> queriedFilter = params.getQueryParams().getAll("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        
+
         try {
-            Path report = 
+            Path report =
                     reportService
                             .get(sourceTarget, recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            return new IntermediateResponse<Path>().addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length())).body(report);
+            return new IntermediateResponse<Path>()
+                    .addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()))
+                    .body(report);
         } catch (ExecutionException | CompletionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof ReportGenerationException) {
                 ReportGenerationException rge =
