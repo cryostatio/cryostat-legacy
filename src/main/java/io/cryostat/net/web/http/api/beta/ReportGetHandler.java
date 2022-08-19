@@ -68,7 +68,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
-    static final String PATH = "recordings/:sourceTarget/:recordingName";
+    static final String PATH = "reports/:sourceTarget/:recordingName";
 
     private final ReportService reportService;
     private final long reportGenerationTimeoutSeconds;

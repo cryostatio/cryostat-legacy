@@ -108,7 +108,7 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public boolean isAsync() {
-        return true;
+        return false;
     }
 
     @Override
