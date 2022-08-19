@@ -48,7 +48,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class EnvironmentNode extends AbstractNode {
 
-    private final SortedSet<AbstractNode> children;
+    private SortedSet<AbstractNode> children;
 
     public EnvironmentNode(EnvironmentNode other) {
         this(other.name, other.nodeType, other.labels, other.children);
@@ -77,6 +77,10 @@ public class EnvironmentNode extends AbstractNode {
 
     public void addChildNode(AbstractNode child) {
         this.children.add(child);
+    }
+
+    public void addChildren(Collection<? extends AbstractNode> children) {
+        this.children.addAll(children);
     }
 
     @Override

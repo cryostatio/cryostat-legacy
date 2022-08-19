@@ -57,12 +57,12 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -111,7 +111,7 @@ public abstract class RecordingsModule {
             TargetConnectionManager targetConnectionManager,
             RecordingMetadataManager recordingMetadataManager,
             Clock clock,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             NotificationFactory notificationFactory,
             Base32 base32) {
         return new RecordingArchiveHelper(
@@ -123,7 +123,7 @@ public abstract class RecordingsModule {
                 targetConnectionManager,
                 recordingMetadataManager,
                 clock,
-                platformClient,
+                storage,
                 notificationFactory,
                 base32);
     }

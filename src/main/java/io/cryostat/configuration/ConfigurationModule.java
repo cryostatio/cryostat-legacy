@@ -51,8 +51,8 @@ import javax.inject.Singleton;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidator;
 
@@ -81,7 +81,7 @@ public abstract class ConfigurationModule {
             MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
             FileSystem fs,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
@@ -101,7 +101,7 @@ public abstract class ConfigurationModule {
                     matchExpressionValidator,
                     matchExpressionEvaluator,
                     fs,
-                    platformClient,
+                    storage,
                     notificationFactory,
                     gson,
                     logger);

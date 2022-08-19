@@ -37,14 +37,21 @@
  */
 package io.cryostat.platform;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
 
+import io.vertx.core.Promise;
+
 public interface PlatformClient {
-    void start() throws IOException;
+    default void start() throws Exception {}
+
+    default void load(Promise<EnvironmentNode> promise) {
+        promise.complete(getDiscoveryTree());
+    }
+
+    void stop() throws Exception;
 
     List<ServiceRef> listDiscoverableServices();
 

@@ -40,6 +40,8 @@ package io.cryostat;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -52,6 +54,7 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -59,11 +62,13 @@ import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
+import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
+import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
 import io.cryostat.util.resource.ResourceModule;
@@ -72,13 +77,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
 @Module(
         includes = {
+            StorageModule.class,
             ConfigurationModule.class,
             MessagingModule.class,
             NetworkModule.class,
+            DiscoveryModule.class,
             PlatformModule.class,
             RecordingsModule.class,
             ResourceModule.class,
@@ -89,6 +97,7 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
+    public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
 
     @Provides
     @Singleton
@@ -127,13 +136,16 @@ public abstract class MainModule {
 
     // testing-only when extra adapters aren't needed
     public static Gson provideGson(Logger logger) {
-        return provideGson(Set.of(), logger);
+        return provideGson(Set.of(), Set.of(), logger);
     }
 
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson(Set<PluggableTypeAdapter<?>> extraAdapters, Logger logger) {
+    public static Gson provideGson(
+            Set<PluggableTypeAdapter<?>> extraAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
         GsonBuilder builder =
                 new GsonBuilder()
                         .serializeNulls()
@@ -145,6 +157,9 @@ public abstract class MainModule {
                         .registerTypeAdapter(Rule.class, new RuleDeserializer());
         for (PluggableTypeAdapter<?> pta : extraAdapters) {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
+        }
+        for (PluggableJsonDeserializer<?> pjd : deserializers) {
+            builder = builder.registerTypeAdapter(pjd.getAdaptedType(), pjd);
         }
         return builder.create();
     }
@@ -162,5 +177,18 @@ public abstract class MainModule {
     @Singleton
     public static ScriptEngine provideScriptEngine() {
         return new ScriptEngineManager().getEngineByName("nashorn");
+    }
+
+    @Provides
+    @Singleton
+    @Named(UUID_FROM_STRING)
+    public static Function<String, UUID> provideUuidToString() {
+        return UUID::fromString;
+    }
+
+    @Provides
+    @Singleton
+    public static VerticleDeployer provideVerticleDeployer(Vertx vertx, Logger logger) {
+        return new VerticleDeployer(vertx, logger);
     }
 }

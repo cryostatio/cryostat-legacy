@@ -60,6 +60,7 @@ public final class Variables {
     // platform configuration
     public static final String PLATFORM_STRATEGY_ENV_VAR = "CRYOSTAT_PLATFORM";
     public static final String AUTH_MANAGER_ENV_VAR = "CRYOSTAT_AUTH_MANAGER";
+    public static final String DISABLE_BUILTIN_DISCOVERY = "CRYOSTAT_DISABLE_BUILTIN_DISCOVERY";
 
     // webserver configuration
     public static final String WEBSERVER_HOST = "CRYOSTAT_WEB_HOST";
@@ -79,4 +80,13 @@ public final class Variables {
     // paths configuration
     public static final String ARCHIVE_PATH = "CRYOSTAT_ARCHIVE_PATH";
     public static final String CONFIG_PATH = "CRYOSTAT_CONFIG_PATH";
+
+    // database configuration
+    public static final String JDBC_DRIVER = "CRYOSTAT_JDBC_DRIVER";
+    public static final String JDBC_URL = "CRYOSTAT_JDBC_URL";
+    public static final String JDBC_USERNAME = "CRYOSTAT_JDBC_USERNAME";
+    public static final String JDBC_PASSWORD = "CRYOSTAT_JDBC_PASSWORD";
+    public static final String HIBERNATE_DIALECT = "CRYOSTAT_HIBERNATE_DIALECT";
+    public static final String HBM2DDL = "CRYOSTAT_HBM2DDL";
+    public static final String LOG_QUERIES = "CRYOSTAT_LOG_DB_QUERIES";
 }

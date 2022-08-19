@@ -35,36 +35,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.internal;
+package io.cryostat;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Consumer;
+import io.cryostat.core.log.Logger;
 
-import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Verticle;
+import io.vertx.core.Vertx;
 
-abstract class AbstractPlatformClient implements PlatformClient {
+public class VerticleDeployer {
 
-    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
+    private final Vertx vertx;
+    private final Logger logger;
 
-    protected AbstractPlatformClient() {
-        this.discoveryListeners = new HashSet<>();
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification = "vertx is externally mutable and that's fine")
+    public VerticleDeployer(Vertx vertx, Logger logger) {
+        this.vertx = vertx;
+        this.logger = logger;
     }
 
-    @Override
-    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.add(listener);
-    }
-
-    @Override
-    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.remove(listener);
-    }
-
-    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
-        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
+    public Future deploy(Verticle verticle, boolean worker) {
+        String name = verticle.getClass().getName();
+        logger.info("Deploying {} Verticle", name);
+        return vertx.deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
+                .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
+                .onFailure(
+                        t -> {
+                            logger.error("FAILED to deploy {} Verticle", name);
+                            t.printStackTrace();
+                        });
     }
 }

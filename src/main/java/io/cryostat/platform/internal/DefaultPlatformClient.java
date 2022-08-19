@@ -53,6 +53,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -80,6 +81,13 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public void start() throws IOException {
         discoveryClient.addListener(this);
         discoveryClient.start();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        discoveryClient.removeListener(this);
+        discoveryClient.stop();
     }
 
     @Override

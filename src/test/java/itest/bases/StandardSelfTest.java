@@ -39,8 +39,6 @@ package itest.bases;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -74,8 +72,9 @@ public abstract class StandardSelfTest {
     public static final int REQUEST_TIMEOUT_SECONDS = 30;
     public static final WebClient webClient = Utils.getWebClient();
 
-    public static CompletableFuture<JsonObject> sendMessage(String command, String... args)
-            throws InterruptedException, ExecutionException, TimeoutException {
+    public static CompletableFuture<JsonObject> expectNotification(
+            String category, long timeout, TimeUnit unit)
+            throws TimeoutException, ExecutionException, InterruptedException {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
         Utils.HTTP_CLIENT.webSocket(
@@ -88,36 +87,23 @@ public abstract class StandardSelfTest {
                     WebSocket ws = ar.result();
 
                     ws.handler(
-                            m -> {
-                                JsonObject resp = m.toJsonObject();
-                                String commandName = resp.getString("commandName");
-                                ws.end(
-                                        unused -> {
-                                            if (Objects.equals(command, commandName)) {
-                                                future.complete(resp);
-                                            } else {
-                                                future.completeExceptionally(
-                                                        new Exception(
-                                                                String.format(
-                                                                        "Unexpected command"
-                                                                                + " response %s for"
-                                                                                + " command %s",
-                                                                        commandName, command)));
-                                            }
-                                        });
-                            });
-
-                    ws.writeTextMessage(
-                            new JsonObject(Map.of("command", command, "args", Arrays.asList(args)))
-                                    .toString(),
-                            wsar -> {
-                                if (wsar.failed()) {
-                                    future.completeExceptionally(wsar.cause());
-                                }
-                            });
+                                    m -> {
+                                        JsonObject resp = m.toJsonObject();
+                                        JsonObject meta = resp.getJsonObject("meta");
+                                        String c = meta.getString("category");
+                                        if (Objects.equals(c, category)) {
+                                            ws.end(unused -> future.complete(resp));
+                                            ws.close();
+                                        }
+                                    })
+                            // just to initialize the connection - Cryostat expects
+                            // clients to send a message after the connection opens
+                            // to authenticate themselves, but in itests we don't
+                            // use auth
+                            .writeTextMessage("");
                 });
 
-        return future;
+        return future.orTimeout(timeout, unit);
     }
 
     public static void assertResponseStatus(JsonObject response) {
