@@ -39,11 +39,9 @@ package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -286,14 +284,16 @@ public class RecordingArchiveHelper {
     public boolean deleteReport(String sourceTarget, String recordingName) {
         try {
             logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(getCachedReportPath(sourceTarget, recordingName));
-        } catch (IOException ioe) {
-            logger.warn(ioe);
+            return fs.deleteIfExists(getCachedReportPath(sourceTarget, recordingName).get());
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.warn(e);
             return false;
         }
     }
 
-    public Path getCachedReportPath(String sourceTarget, String recordingName) {
+    public Future<Path> getCachedReportPath(String sourceTarget, String recordingName) {
+        CompletableFuture<Path> future = new CompletableFuture<>();
+
         String subdirectory;
         if (sourceTarget == null) {
             subdirectory = "default";
@@ -303,10 +303,15 @@ public class RecordingArchiveHelper {
             subdirectory = base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
         }
         String fileName = recordingName + ".report.html";
-        return archivedRecordingsReportPath
-                .resolve(subdirectory)
-                .resolve(fileName)
-                .toAbsolutePath();
+
+        try {
+            Path tempSubdirectory = fs.createTempDirectory(archivedRecordingsReportPath, subdirectory);
+            future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
