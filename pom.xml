@@ -85,8 +85,8 @@
   <com.github.ben-manes.caffeine.version>3.0.1</com.github.ben-manes.caffeine.version>
   <org.hibernate.hibernate.version>5.6.7.Final</org.hibernate.hibernate.version>
   <com.vladmihalcea.hibernate.types.version>2.17.1</com.vladmihalcea.hibernate.types.version>
-  <com.h2database.h2.version>1.4.197</com.h2database.h2.version>
-  <org.postgresql.postgresql.version>42.4.0</org.postgresql.postgresql.version>
+  <com.h2database.h2.version>2.1.214</com.h2database.h2.version>
+  <org.postgresql.postgresql.version>42.4.2</org.postgresql.postgresql.version>
 
   <com.github.spotbugs.version>4.5.3</com.github.spotbugs.version>
   <com.github.spotbugs.plugin.version>4.5.3.0</com.github.spotbugs.plugin.version>
