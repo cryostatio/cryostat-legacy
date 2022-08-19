@@ -751,9 +751,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of(recordingName));
 
-        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
-                .thenReturn(destinationFile);
-        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         Mockito.when(base32.decode(Mockito.anyString()))
@@ -786,6 +783,11 @@ class RecordingArchiveHelperTest {
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
+
+        Path tempSubdirectory = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempDirectory(Mockito.any(Path.class), Mockito.anyString()))
+                .thenReturn(tempSubdirectory);
+        Mockito.when(tempSubdirectory.resolve(Mockito.anyString())).thenReturn(destinationFile);
 
         recordingArchiveHelper.deleteRecording(recordingName);
 
@@ -831,11 +833,12 @@ class RecordingArchiveHelperTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void deleteReportShouldDelegateToFileSystem(boolean deleted) throws IOException {
-        Mockito.when(fs.deleteIfExists(Mockito.any())).thenReturn(deleted);
-        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
-                .thenReturn(destinationFile);
-        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Path tempSubdirectory = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempDirectory(Mockito.any(Path.class), Mockito.anyString()))
+                .thenReturn(tempSubdirectory);
+        Mockito.when(tempSubdirectory.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+        Mockito.when(fs.deleteIfExists(Mockito.any())).thenReturn(deleted);
 
         String sourceTarget = null;
         MatcherAssert.assertThat(
@@ -843,25 +846,24 @@ class RecordingArchiveHelperTest {
                 Matchers.equalTo(deleted));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("default");
-        Mockito.verify(destinationFile).resolve("foo.report.html");
+        Mockito.verify(tempSubdirectory).resolve("foo.report.html");
     }
 
     @Test
     void deleteReportShouldReturnFalseIfFileSystemThrows() throws IOException {
-        Mockito.when(fs.deleteIfExists(Mockito.any())).thenThrow(IOException.class);
-        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
-                .thenReturn(destinationFile);
-        Mockito.when(destinationFile.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Path tempSubdirectory = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempDirectory(Mockito.any(Path.class), Mockito.anyString()))
+                .thenReturn(tempSubdirectory);
+        Mockito.when(tempSubdirectory.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+        Mockito.when(fs.deleteIfExists(Mockito.any())).thenThrow(IOException.class);
 
         String sourceTarget = null;
         MatcherAssert.assertThat(
                 recordingArchiveHelper.deleteReport(sourceTarget, "foo"), Matchers.equalTo(false));
 
         Mockito.verify(fs).deleteIfExists(destinationFile);
-        Mockito.verify(archivedRecordingsReportPath).resolve("default");
-        Mockito.verify(destinationFile).resolve("foo.report.html");
+        Mockito.verify(tempSubdirectory).resolve("foo.report.html");
     }
 
     @Test

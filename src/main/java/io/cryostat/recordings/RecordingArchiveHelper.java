@@ -305,7 +305,8 @@ public class RecordingArchiveHelper {
         String fileName = recordingName + ".report.html";
 
         try {
-            Path tempSubdirectory = fs.createTempDirectory(archivedRecordingsReportPath, subdirectory);
+            Path tempSubdirectory =
+                    fs.createTempDirectory(archivedRecordingsReportPath, subdirectory);
             future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
             future.completeExceptionally(e);

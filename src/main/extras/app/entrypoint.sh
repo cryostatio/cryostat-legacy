@@ -110,7 +110,6 @@ FLAGS=(
     "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
     "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
-    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 )
 
 if [ -z "$CRYOSTAT_ENABLE_JDP_BROADCAST" ]; then
