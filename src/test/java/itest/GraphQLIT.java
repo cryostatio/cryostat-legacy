@@ -412,11 +412,12 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                         + "recordings { archived {"
+                        + " data {"
                         + " doPutMetadata(metadata: { labels: ["
                         + " {key:\"template.name\",value:\"Profiling\"},"
                         + " {key:\"template.type\",value:\"TARGET\"},"
                         + " {key:\"newArchivedLabel\",value:\"newArchivedValue\"}] })"
-                        + " { metadata { labels } } } } } }");
+                        + " { metadata { labels } } } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(

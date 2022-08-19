@@ -339,7 +339,8 @@ public class RuleProcessor extends AbstractVerticle
                                                     connectionDescriptor,
                                                     builder.build(),
                                                     template.getLeft(),
-                                                    template.getRight());
+                                                    template.getRight(),
+                                                    new Metadata());
                                         },
                                         false);
                         promise.complete(recording);

@@ -66,9 +66,12 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
+@TestMethodOrder(OrderAnnotation.class)
 public class RecordingMetadataIT extends ExternalTargetsTest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
@@ -150,6 +153,87 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
     @Test
     @Order(1)
+    void testRecordingsQueriedFromDifferentTargetIdsHaveSameLabels() throws Exception {
+        String aliasTargetOne =
+                URLEncodedUtils.formatSegments("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
+        String aliasTargetTwo =
+                URLEncodedUtils.formatSegments(
+                        "service:jmx:rmi:///jndi/rmi://localhost:9091/jmxrmi");
+        String aliasTargetThree =
+                URLEncodedUtils.formatSegments(String.format("%s:9091", Podman.POD_NAME));
+
+        // verify in-memory recording from previous test created with labels for self with alias aliasTargetOne
+        CompletableFuture<JsonArray> listRespFutureTargetOne = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetOne))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFutureTargetOne)) {
+                                listRespFutureTargetOne.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listRespTargetOne =
+                listRespFutureTargetOne.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject recordingInfoTargetOne = listRespTargetOne.getJsonObject(0);
+        Metadata actualMetadataTargetOne =
+                gson.fromJson(
+                        recordingInfoTargetOne.getValue("metadata").toString(),
+                        new TypeToken<Metadata>() {}.getType());
+
+        MatcherAssert.assertThat(
+                recordingInfoTargetOne.getString("name"), Matchers.equalTo(RECORDING_NAME));
+        MatcherAssert.assertThat(
+                actualMetadataTargetOne.getLabels(), Matchers.equalTo(responseLabels));
+
+        // verify in-memory recording created with labels from aliased self aliasTargetTwo
+        CompletableFuture<JsonArray> listRespFutureTargetTwo = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetTwo))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFutureTargetTwo)) {
+                                listRespFutureTargetTwo.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listRespTargetTwo =
+                listRespFutureTargetTwo.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject recordingInfoTargetTwo = listRespTargetTwo.getJsonObject(0);
+        Metadata actualMetadataTargetTwo =
+                gson.fromJson(
+                        recordingInfoTargetTwo.getValue("metadata").toString(),
+                        new TypeToken<Metadata>() {}.getType());
+
+        MatcherAssert.assertThat(
+                recordingInfoTargetTwo.getString("name"), Matchers.equalTo(RECORDING_NAME));
+        MatcherAssert.assertThat(
+                actualMetadataTargetTwo.getLabels(), Matchers.equalTo(responseLabels));
+
+        // verify in-memory recording created with labels from aliased self aliasTargetThree
+        CompletableFuture<JsonArray> listRespFutureTargetThree = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetThree))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFutureTargetThree)) {
+                                listRespFutureTargetThree.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listRespTargetThree =
+                listRespFutureTargetThree.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject recordingInfoTargetThree = listRespTargetThree.getJsonObject(0);
+        Metadata actualMetadataTargetThree =
+                gson.fromJson(
+                        recordingInfoTargetThree.getValue("metadata").toString(),
+                        new TypeToken<Metadata>() {}.getType());
+
+        MatcherAssert.assertThat(
+                recordingInfoTargetThree.getString("name"), Matchers.equalTo(RECORDING_NAME));
+        MatcherAssert.assertThat(
+                actualMetadataTargetThree.getLabels(), Matchers.equalTo(responseLabels));
+    }
+
+    @Test
+    @Order(2)
     void testUpdateTargetRecordingLabels() throws Exception {
         // update the recording labels
         Map<String, Map<String, String>> updatedMetadata = Map.of("labels", updatedLabels);
@@ -199,7 +283,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     void testSaveTargetRecordingCopiesLabelsToArchivedRecording() throws Exception {
         String archivedRecordingName = null;
         try {
@@ -287,7 +371,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void testStaleMetadataDeletedAndArchivedMetadataPreservedWhenTargetRestarted()
             throws Exception {
         String targetId =
@@ -313,7 +397,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             credentialsForm.add("username", "admin");
             credentialsForm.add("password", "adminpass123");
 
-            CompletableFuture<JsonObject> metaFuture = new CompletableFuture<>();
             webClient
                     .post("/api/v2.2/credentials")
                     .sendForm(
@@ -323,7 +406,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
                                     credentialsFuture.complete(null);
-
                                 }
                             });
             credentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -352,30 +434,9 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
                                     dumpRespFuture.complete(null);
-                                    metaFuture.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            JsonObject asdf = metaFuture.get().getJsonObject("metadata");
-            System.out.println(asdf.encodePrettily());
-
-            CompletableFuture<String> targetGetResponse = new CompletableFuture<>();
-
-            webClient
-                    .get(
-                            String.format(
-                                    "/api/beta/targets/%s", targetId))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                targetGetResponse.complete(ar.result().bodyAsString());
-                            });
-        String s = targetGetResponse.get();
-        System.out.println(s);
 
             // save the recording to archives
             CompletableFuture<Void> saveRespFuture = new CompletableFuture<>();
@@ -417,29 +478,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             // check that a new active recording with the same name has a new set of labels
             CompletableFuture<JsonObject> activeRecordingFuture = new CompletableFuture<>();
-            System.out.println(form);
             form.remove("metadata");
-            System.out.println(form);
-
-            CompletableFuture<String> futt = new CompletableFuture<>();
-
-            webClient
-                    .get(
-                            String.format(
-                                    "/api/beta/targets/%s", targetId))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, futt)) {
-                                        futt.complete(ar.result().bodyAsString());
-                                }
-                            });
-        System.out.println(futt.get());
-
 
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))

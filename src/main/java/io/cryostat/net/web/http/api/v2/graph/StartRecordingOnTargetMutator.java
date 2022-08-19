@@ -64,7 +64,6 @@ import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
@@ -138,15 +137,13 @@ class StartRecordingOnTargetMutator
                     if (settings.containsKey("maxSize")) {
                         builder = builder.maxSize((Long) settings.get("maxSize"));
                     }
+                    Metadata m = new Metadata();
                     if (settings.containsKey("metadata")) {
-                        Metadata m =
+                        m =
                                 (Metadata)
                                         gson.fromJson(
                                                 settings.get("metadata").toString(),
                                                 new TypeToken<Metadata>() {}.getType());
-                        metadataManager
-                                .setRecordingMetadata(cd, (String) settings.get("name"), m)
-                                .get();
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
@@ -154,7 +151,8 @@ class StartRecordingOnTargetMutator
                                     builder.build(),
                                     (String) settings.get("template"),
                                     TemplateType.valueOf(
-                                            ((String) settings.get("templateType")).toUpperCase()));
+                                            ((String) settings.get("templateType")).toUpperCase()),
+                                    m);
                     WebServer ws = webServer.get();
                     Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
                     return new HyperlinkedSerializableRecordingDescriptor(

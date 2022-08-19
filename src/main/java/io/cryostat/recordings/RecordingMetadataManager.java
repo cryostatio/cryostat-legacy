@@ -132,7 +132,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.platformClient.addTargetDiscoveryListener(this);
 
         this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                .peek(n -> logger.trace("Recording Metadata file: {}", n))
+                .peek(n -> logger.info("Recording Metadata file: {}", n))
                 .map(recordingMetadataDir::resolve)
                 .map(
                         path -> {
@@ -155,7 +155,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         future.complete();
     }
 
-    public String getJvmId(String targetId) throws Exception { // public helper version just for testing
+    public String getJvmId(String targetId)
+            throws Exception { // public helper version just for testing
         ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
         return this.getJvmId(cd);
     }
@@ -179,7 +180,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         String oldJvmId = jvmIdMap.get(targetId);
 
         if (oldJvmId == null) {
-            logger.info("Target did not have a JVM id: {}\n ", targetId);
+            logger.info("Target {} did not have a jvmId", targetId);
             return;
         }
         System.out.println("\n");
@@ -218,24 +219,25 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(metadata);
 
         String jvmId = this.getJvmId(connectionDescriptor);
-        System.out.println("before.....");
+        System.out.println("labels: " + metadata.getLabels());
+        System.out.println(String.format("jvmId: %s, recordingName: %s", jvmId, recordingName));
+
+        System.out.println("before...");
         for (var e : recordingMetadataMap.entrySet()) {
             System.out.println("jvmId: " + e.getKey().getLeft());
             System.out.println("recordingName: " + e.getKey().getRight());
             System.out.println("metadata: " + e.getValue().getLabels());
             System.out.println("\n");
         }
-        System.out.println("\n");
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
-        System.out.println("after......");
+        System.out.println("after...");
         for (var e : recordingMetadataMap.entrySet()) {
             System.out.println("jvmId: " + e.getKey().getLeft());
             System.out.println("recordingName: " + e.getKey().getRight());
             System.out.println("metadata: " + e.getValue().getLabels());
             System.out.println("\n");
         }
-        if (isArchivedRecording(recordingName)) {
-            fs.writeString(
+        fs.writeString(
                 this.getMetadataPath(jvmId, recordingName),
                 gson.toJson(
                         StoredRecordingMetadata.of(
@@ -246,8 +248,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
-        }
-
         if (issueNotification) {
             notificationFactory
                     .createBuilder()
@@ -368,7 +368,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 }
                 return;
             }
-            logger.info("Trying to transfer metadata for {}: {} -> {}", targetId, oldJvmId, newJvmId);
+            logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             recordingMetadataMap.keySet().stream()
                     .filter(keyPair -> keyPair.getKey().equals(oldJvmId))
                     .forEach(
@@ -377,87 +377,77 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     String recordingName = keyPair.getValue();
                                     logger.info("trying.........................");
                                     if (isArchivedRecording(recordingName)) {
-                                        logger.info("This is an archived recording! {}", recordingName);
+                                        logger.info(
+                                                "This is an archived recording! {}", recordingName);
                                         Metadata m = this.getMetadata(cd, recordingName);
                                         deleteRecordingMetadataIfExists(cd, recordingName);
-                                        jvmIdMap.put(targetId, newJvmId);    
+                                        jvmIdMap.put(targetId, newJvmId);
                                         setRecordingMetadata(cd, recordingName, m);
-                                        jvmIdMap.put(targetId, oldJvmId);    
+                                        jvmIdMap.put(targetId, oldJvmId);
+                                    } else {
+                                        logger.info(
+                                                "This is a normal recording! {}", recordingName);
+                                        deleteRecordingMetadataIfExists(cd, recordingName);
                                     }
                                 } catch (IOException e) {
-                                    logger.error("Metadata could not be transferred upon restart", e);
+                                    logger.error(
+                                            "Metadata could not be transferred upon restart", e);
                                 }
                             });
-                
-            jvmIdMap.put(targetId, newJvmId);    
-            logger.info("Metadata for targetId {} successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
+
+            jvmIdMap.put(targetId, newJvmId);
+            logger.info(
+                    "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
             logger.error("Metadata could not be transferred upon restart", e);
         }
     }
 
     private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
-        logger.info("Trying to remove lost TargetMetadata on a timer for: {}", unreachableJvmId);
-        recordingMetadataMap.keySet().stream()
-        .forEach(
-                keyPair -> {
-                    if (!keyPair.getKey()
-                            .equals(unreachableJvmId)) {
-                        return;
-                    }
+        logger.info(
+                "Trying to remove lost target metadata on a timer for unreachableJvmId: {}",
+                unreachableJvmId);
+        staleMetadataTimers.computeIfAbsent(
+                unreachableJvmId,
+                k ->
+                        this.vertx.setTimer(
+                                Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
+                                initialId -> {
+                                    System.out.println("after 5 secs: reachable?");
+                                    if (this.isTargetReachable(cd)) {
+                                        logger.info("still reachable");
+                                        return;
+                                    }
 
-                    try {
-                        System.out.println("Hi it's unreachable ID: " + unreachableJvmId);
-                        String recordingName =
-                                keyPair.getValue();
+                                    logger.info("unreachable");
+                                    recordingMetadataMap.keySet().stream()
+                                            .forEach(
+                                                    keyPair -> {
+                                                        if (!keyPair.getKey()
+                                                                .equals(unreachableJvmId)) {
+                                                            return;
+                                                        }
 
-                        if (!isArchivedRecording(
-                                recordingName)) {
-                                    logger.info("its not an archived recording....");
-                            deleteRecordingMetadataIfExists(
-                                    cd, recordingName);
-                        }
-                    } catch (IOException e) {
-                        logger.error(e);
-                    }
-                });
-        // staleMetadataTimers.computeIfAbsent(
-        //         unreachableJvmId,
-        //         k ->
-        //                 this.vertx.setTimer(
-        //                         Duration.ofSeconds(STALE_METADATA_TIMEOUT_SECONDS).toMillis(),
-        //                         initialId -> {
-        //                             System.out.println("after 5 secs: reachable?");
-        //                             if (this.isTargetReachable(cd)) {
-        //                                 logger.info("still reachable");
-        //                                 return;
-        //                             }
+                                                        try {
+                                                            System.out.println(
+                                                                    "Hi it's unreachable ID: "
+                                                                            + unreachableJvmId);
+                                                            String recordingName =
+                                                                    keyPair.getValue();
 
-        //                             logger.info("unreachable");
-        //                             recordingMetadataMap.keySet().stream()
-        //                                     .forEach(
-        //                                             keyPair -> {
-        //                                                 if (!keyPair.getKey()
-        //                                                         .equals(unreachableJvmId)) {
-        //                                                     return;
-        //                                                 }
-
-        //                                                 try {
-        //                                                     System.out.println("Hi it's unreachable ID: " + unreachableJvmId);
-        //                                                     String recordingName =
-        //                                                             keyPair.getValue();
-
-        //                                                     if (!isArchivedRecording(
-        //                                                             recordingName)) {
-        //                                                                 logger.info("its not an archived recording....");
-        //                                                         deleteRecordingMetadataIfExists(
-        //                                                                 cd, recordingName);
-        //                                                     }
-        //                                                 } catch (IOException e) {
-        //                                                     logger.error(e);
-        //                                                 }
-        //                                             });
-        //                         }));
+                                                            if (!isArchivedRecording(
+                                                                    recordingName)) {
+                                                                logger.info(
+                                                                        "its not an archived"
+                                                                                + " recording....");
+                                                                deleteRecordingMetadataIfExists(
+                                                                        cd, recordingName);
+                                                            }
+                                                        } catch (IOException e) {
+                                                            logger.error(e);
+                                                        }
+                                                    });
+                                }));
     }
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
@@ -469,11 +459,9 @@ public class RecordingMetadataManager extends AbstractVerticle
                             subdirectory -> {
                                 try {
                                     logger.info("checking directory.....{}", subdirectory);
-                                    System.out.println(archivedRecordingsPath.resolve(subdirectory));
                                     for (String file :
-                                            this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory))) {
-                                                System.out.println(file);
-
+                                            this.fs.listDirectoryChildren(
+                                                    archivedRecordingsPath.resolve(subdirectory))) {
                                         if (recordingName.equals(file)) {
                                             return true;
                                         }
@@ -538,13 +526,14 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private boolean isTargetReachable(ConnectionDescriptor cd) {
-        CompletableFuture<Boolean> connectFuture = new CompletableFuture<>(); 
+        CompletableFuture<Boolean> connectFuture = new CompletableFuture<>();
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd,
                     connection -> {
                         return connectFuture.complete(connection.isConnected());
-                }, false);
+                    },
+                    false);
             return connectFuture.get();
         } catch (Exception e) {
             logger.error(e);

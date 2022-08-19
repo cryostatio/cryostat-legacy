@@ -703,6 +703,8 @@ public class RecordingTargetHelperTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -731,8 +733,6 @@ public class RecordingTargetHelperTest {
         Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of(events));
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
                                 Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
@@ -746,7 +746,12 @@ public class RecordingTargetHelperTest {
                         });
 
         recordingTargetHelper.startRecording(
-                false, connectionDescriptor, recordingOptions, templateName, templateType);
+                false,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata);
 
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
 
@@ -786,6 +791,7 @@ public class RecordingTargetHelperTest {
                 capturedDescriptor.getStartTime(), Matchers.equalTo(linkedDesc.getStartTime()));
         MatcherAssert.assertThat(
                 capturedDescriptor.getToDisk(), Matchers.equalTo(linkedDesc.getToDisk()));
+
         MatcherAssert.assertThat(
                 capturedDescriptor.getMetadata(),
                 Matchers.equalTo(
