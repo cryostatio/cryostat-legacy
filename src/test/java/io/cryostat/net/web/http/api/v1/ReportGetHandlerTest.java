@@ -138,14 +138,12 @@ class ReportGetHandlerTest {
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         when(ctx.queryParam("filter")).thenReturn(List.of());
-        when(reportService.get(
-                        Mockito.nullable(String.class), Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(fakePath));
 
         handler.handle(ctx);
 
-        String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget, "someRecording", "");
+        Mockito.verify(reportService).get("someRecording", "");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -173,14 +171,12 @@ class ReportGetHandlerTest {
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-        when(reportService.get(
-                        Mockito.nullable(String.class), Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(CompletableFuture.completedFuture(fakePath));
 
         handler.handle(ctx);
 
-        String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget, "someRecording", "someFilter");
+        Mockito.verify(reportService).get("someRecording", "someFilter");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
@@ -200,8 +196,7 @@ class ReportGetHandlerTest {
                 .thenReturn(resp);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(
-                        Mockito.nullable(String.class), Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new RecordingNotFoundException(null, "someRecording")));
@@ -209,7 +204,6 @@ class ReportGetHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-        String sourceTarget = null;
-        Mockito.verify(reportService).get(sourceTarget, "someRecording", "");
+        Mockito.verify(reportService).get("someRecording", "");
     }
 }

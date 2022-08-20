@@ -71,6 +71,10 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
+    Future<Path> get(String recordingName, String filter) {
+        return this.get(null, recordingName, filter);
+    }
+
     Future<Path> get(String sourceTarget, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
@@ -104,6 +108,10 @@ class ArchivedRecordingReportCache {
             }
         }
         return f;
+    }
+
+    boolean delete(String recordingName) {
+        return this.delete(null, recordingName);
     }
 
     boolean delete(String sourceTarget, String recordingName) {

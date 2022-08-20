@@ -121,14 +121,13 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String sourceTarget = null;
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
             Path report =
                     reportService
-                            .get(sourceTarget, recordingName, rawFilter)
+                            .get(recordingName, rawFilter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());

@@ -124,7 +124,6 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String sourceTarget = null;
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
@@ -132,7 +131,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
             Path report =
                     reportService
-                            .get(sourceTarget, recordingName, rawFilter)
+                            .get(recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
