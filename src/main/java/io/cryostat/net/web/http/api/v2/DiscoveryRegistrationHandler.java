@@ -46,6 +46,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.RegistrationException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -122,10 +123,8 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
                     .statusCode(201)
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
                     .body(Map.of("id", id, "token", "placeholder"));
-        } catch (IllegalArgumentException iae) {
-            throw new ApiException(400, iae);
-        } catch (URISyntaxException use) {
-            throw new ApiException(400, use);
+        } catch (IllegalArgumentException | URISyntaxException | RegistrationException e) {
+            throw new ApiException(400, e);
         }
     }
 }

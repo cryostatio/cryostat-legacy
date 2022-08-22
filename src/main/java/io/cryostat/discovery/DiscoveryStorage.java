@@ -154,7 +154,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return id;
         } catch (Exception e) {
-            throw new RegistrationException(e);
+            throw new RegistrationException(realm, callback, e);
         }
     }
 
