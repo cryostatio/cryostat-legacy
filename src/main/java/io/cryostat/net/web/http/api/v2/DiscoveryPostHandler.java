@@ -47,6 +47,7 @@ import javax.inject.Named;
 
 import io.cryostat.MainModule;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -131,6 +132,8 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
             return new IntermediateResponse<Void>().body(null);
         } catch (JsonSyntaxException | IllegalArgumentException e) {
             throw new ApiException(400, e);
+        } catch (NotFoundException e) {
+            throw new ApiException(404, e);
         }
     }
 }
