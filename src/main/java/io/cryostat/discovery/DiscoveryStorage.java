@@ -63,6 +63,8 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hibernate.exception.ConstraintViolationException;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
@@ -154,7 +156,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return id;
         } catch (Exception e) {
-            throw new RegistrationException(realm, callback, e);
+            if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
+                throw new RegistrationException(realm, callback, e);
+            }
+            throw e;
         }
     }
 
