@@ -47,7 +47,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
-import javax.persistence.EntityExistsException;
 
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
@@ -74,6 +73,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -268,14 +268,15 @@ class DiscoveryStorageTest {
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
                                     Mockito.any(EnvironmentNode.class)))
-                    .thenThrow(EntityExistsException.class);
+                    .thenThrow(ConstraintViolationException.class);
 
             Exception ex =
                     Assertions.assertThrows(
                             Exception.class,
                             () -> storage.register("test-realm", URI.create("http://example.com")));
             MatcherAssert.assertThat(ex, Matchers.isA(RegistrationException.class));
-            MatcherAssert.assertThat(ex.getCause(), Matchers.isA(EntityExistsException.class));
+            MatcherAssert.assertThat(
+                    ex.getCause(), Matchers.isA(ConstraintViolationException.class));
         }
 
         @Test
