@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -52,23 +53,39 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class ServiceRef {
 
+    private UUID id;
     private final @SerializedName("connectUrl") URI serviceUri;
     private final String alias;
     private final Map<String, String> labels;
     private final Annotations annotations;
 
-    public ServiceRef(URI uri, String alias) {
+    // TODO we generate these IDs manually in application code, and these get stored in the
+    // Discovery database where ServiceRefs are embedded within TargetNodes in the realms' subtrees.
+    // Should we create a table just for ServiceRefs, allow the database to generate the ID, and
+    // have a relationship between the Discovery plugin table and the ServiceRef table? It's a tree
+    // relationship, not a simple relational one-one or many-many etc.
+    public ServiceRef(UUID id, URI uri, String alias) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
         this.labels = new HashMap<>();
         this.annotations = new Annotations();
     }
 
+    public ServiceRef(URI uri, String alias) {
+        this(UUID.randomUUID(), uri, alias);
+    }
+
     public ServiceRef(ServiceRef sr) {
+        this.id = sr.id;
         this.serviceUri = sr.serviceUri;
         this.alias = sr.alias;
         this.labels = new HashMap<String, String>(sr.labels);
         this.annotations = new Annotations(sr.annotations);
+    }
+
+    public Optional<UUID> getId() {
+        return Optional.ofNullable(id);
     }
 
     public URI getServiceUri() {
@@ -127,6 +144,7 @@ public class ServiceRef {
             return false;
         }
         ServiceRef sr = (ServiceRef) other;
+        // id is intentionally ignored
         return new EqualsBuilder()
                 .append(serviceUri, sr.serviceUri)
                 .append(alias, sr.alias)
@@ -137,6 +155,7 @@ public class ServiceRef {
 
     @Override
     public int hashCode() {
+        // id is intentionally ignored
         return new HashCodeBuilder()
                 .append(serviceUri)
                 .append(alias)

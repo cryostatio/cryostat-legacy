@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
@@ -128,6 +129,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     break;
                 case "target":
                     reader.beginObject();
+                    UUID id = null;
                     URI connectUrl = null;
                     String alias = null;
                     Map<String, String> targetLabels = new HashMap<>();
@@ -136,6 +138,9 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     while (reader.hasNext()) {
                         String targetTokenName = reader.nextName();
                         switch (targetTokenName) {
+                            case "id":
+                                id = UUID.fromString(reader.nextString());
+                                break;
                             case "connectUrl":
                                 try {
                                     connectUrl = new URI(reader.nextString());
@@ -190,7 +195,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                         }
                     }
                     reader.endObject();
-                    target = new ServiceRef(connectUrl, alias);
+                    target = new ServiceRef(id, connectUrl, alias);
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);

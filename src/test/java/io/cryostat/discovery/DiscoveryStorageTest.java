@@ -388,7 +388,6 @@ class DiscoveryStorageTest {
 
         @Test
         void throwsIfUuidNull() {
-            Mockito.when(dao.get(Mockito.isNull())).thenThrow(NullPointerException.class);
             Assertions.assertThrows(
                     NullPointerException.class, () -> storage.update(null, Set.of()));
         }
@@ -401,9 +400,8 @@ class DiscoveryStorageTest {
 
         @Test
         void throwsIfChildrenNull() {
-            UUID id = UUID.randomUUID();
-            Mockito.when(dao.get(id)).thenReturn(Optional.of(new PluginInfo()));
-            Assertions.assertThrows(NullPointerException.class, () -> storage.update(id, null));
+            Assertions.assertThrows(
+                    NullPointerException.class, () -> storage.update(UUID.randomUUID(), null));
         }
 
         @Test
@@ -456,7 +454,6 @@ class DiscoveryStorageTest {
 
         @Test
         void throwsIfUuidNull() {
-            Mockito.when(dao.get(Mockito.isNull())).thenThrow(NullPointerException.class);
             Assertions.assertThrows(NullPointerException.class, () -> storage.deregister(null));
         }
 

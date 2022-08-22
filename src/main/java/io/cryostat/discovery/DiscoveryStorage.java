@@ -176,11 +176,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public Optional<PluginInfo> getByRealm(String realm) {
+        Objects.requireNonNull(realm, "realm");
         return dao.getByRealm(realm);
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {
         // FIXME this method should return a Future and be performed async
+        Objects.requireNonNull(realm, "realm");
         try {
             CompletableFuture<Boolean> cf = new CompletableFuture<>();
             ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
@@ -200,6 +202,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public Set<? extends AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(children, "children");
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
@@ -226,6 +230,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public PluginInfo deregister(UUID id) {
+        Objects.requireNonNull(id, "id");
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         dao.delete(id);
         findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
@@ -245,6 +250,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public Optional<EnvironmentNode> getSubtree(String realm) {
+        Objects.requireNonNull(realm, "realm");
         return getByRealm(realm)
                 .map(PluginInfo::getSubtree)
                 .map(s -> gson.fromJson(s, EnvironmentNode.class));
@@ -254,12 +260,27 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return findLeavesFrom(getDiscoveryTree());
     }
 
+    public Optional<ServiceRef> getServiceById(UUID id) {
+        Objects.requireNonNull(id, "id");
+        for (ServiceRef sr : listDiscoverableServices()) {
+            if (sr.getId().isEmpty()) {
+                logger.warn("ServiceRef {} has a null ID!");
+                continue;
+            }
+            if (sr.getId().equals(id)) {
+                return Optional.of(sr);
+            }
+        }
+        return Optional.empty();
+    }
+
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         return getLeafNodes().stream().map(TargetNode::getTarget).toList();
     }
 
     public List<ServiceRef> listDiscoverableServices(String realm) {
+        Objects.requireNonNull(realm, "realm");
         return getSubtree(realm)
                 .map(this::findLeavesFrom)
                 .map(leaves -> leaves.stream().map(TargetNode::getTarget).toList())

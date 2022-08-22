@@ -68,13 +68,13 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         this.gson = gson;
     }
 
-    public PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
+    PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
         Objects.requireNonNull(realm);
         Objects.requireNonNull(subtree);
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
-    public Optional<PluginInfo> getByRealm(String realm) {
+    Optional<PluginInfo> getByRealm(String realm) {
         Objects.requireNonNull(realm);
 
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -94,7 +94,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         }
     }
 
-    public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
+    PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(children);
         EntityTransaction transaction = entityManager.getTransaction();

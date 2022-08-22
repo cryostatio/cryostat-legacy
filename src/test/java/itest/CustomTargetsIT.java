@@ -133,6 +133,7 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(body, Matchers.notNullValue());
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(2));
 
+        // TODO fix test assertion to tolerate random UUIDs
         JsonObject selfJdp =
                 new JsonObject(
                         Map.of(
