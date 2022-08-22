@@ -104,6 +104,23 @@ class DiscoveryPluginIT extends StandardSelfTest {
 
     @Test
     @Order(2)
+    void shouldFailToRegisterWithNonUriCallback() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("realm", realm, "callback", "not a valid URI"));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(3)
     void shouldBeAbleToUpdate() throws InterruptedException, ExecutionException {
         JsonObject service = new JsonObject(Map.of("connectUrl", callback, "alias", "mynode"));
         JsonObject target =
@@ -131,6 +148,35 @@ class DiscoveryPluginIT extends StandardSelfTest {
 
     @Test
     @Order(3)
+    void shouldFailToUpdateWithInvalidSubtreeJson()
+            throws InterruptedException, ExecutionException {
+        JsonObject service = new JsonObject(Map.of("connectUrl", callback, "alias", "mynode"));
+        JsonObject target =
+                new JsonObject(
+                        Map.of(
+                                "target",
+                                service,
+                                "name",
+                                getClass().getSimpleName(),
+                                "nodeType",
+                                "JVM"));
+        JsonArray subtree = new JsonArray(List.of(target));
+        String body = subtree.encode().replaceAll("\\[", "").replaceAll("\\]", "");
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery/" + id)
+                .sendBuffer(
+                        Buffer.buffer(body),
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(4)
     void shouldFailToReregister() throws InterruptedException, ExecutionException {
         JsonObject body = new JsonObject(Map.of("realm", realm, "callback", callback));
 
@@ -147,7 +193,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(4)
+    @Order(6)
     void shouldBeAbleToDeregister() throws InterruptedException, ExecutionException {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
@@ -162,7 +208,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(5)
+    @Order(7)
     void shouldFailToDoubleDeregister() throws InterruptedException, ExecutionException {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
@@ -176,7 +222,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(6)
+    @Order(8)
     void shouldFailToUpdateUnregisteredPluginID() throws InterruptedException, ExecutionException {
         JsonObject service = new JsonObject(Map.of("connectUrl", callback, "alias", "mynode"));
         JsonObject target =
@@ -200,5 +246,73 @@ class DiscoveryPluginIT extends StandardSelfTest {
                         });
         int code = response.get();
         MatcherAssert.assertThat(code, Matchers.equalTo(404));
+    }
+
+    @Test
+    @Order(9)
+    void shouldFailToRegisterNullCallback() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("realm", realm));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(10)
+    void shouldFailToRegisterEmptyCallback() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("realm", realm, "callback", ""));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(11)
+    void shouldFailToRegisterNullRealm() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("callback", callback));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(12)
+    void shouldFailToRegisterEmptyRealm() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("realm", "", "callback", callback));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
     }
 }
