@@ -64,4 +64,8 @@ public abstract class HttpApiBetaModule {
     @IntoSet
     abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
             TargetRecordingMetadataLabelsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindJvmIdGetHandler(JvmIdGetHandler handler);
 }

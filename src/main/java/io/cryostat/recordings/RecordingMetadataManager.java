@@ -442,7 +442,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
+    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
         String targetId = connectionDescriptor.getTargetId();
 
         String jvmId =
