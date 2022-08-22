@@ -227,10 +227,12 @@ trailing slash is significant.
     targetNodes(filter: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi" }) {
         recordings {
             archived(filter: { name: "myArchivedRecording" }) {
-                doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Continuous"},{key:"template.type",value:"TARGET"}] }) {
-                    name
-                    metadata {
-                        labels
+                data {
+                    doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Continuous"},{key:"template.type",value:"TARGET"}] }) {
+                        name
+                        metadata {
+                            labels
+                        }
                     }
                 }
             }
@@ -243,20 +245,22 @@ trailing slash is significant.
             "targetNodes": [
                 {
                     "recordings": {
-                        "archived": [
-                            {
-                                "doPutMetadata": {
-                                    "metadata": {
-                                        "labels": {
-                                            "app": "cryostat",
-                                            "template.name": "Continuous",
-                                            "template.type": "TARGET"
-                                        }
-                                    },
-                                    "name": "myArchivedRecording"
+                        "archived": {
+                            "data": [
+                                {
+                                    "doPutMetadata": {
+                                        "metadata": {
+                                            "labels": {
+                                                "app": "cryostat",
+                                                "template.name": "Continuous",
+                                                "template.type": "TARGET"
+                                            }
+                                        },
+                                        "name": "myArchivedRecording"
+                                    }
                                 }
-                            }
-                        ],
+                            ]
+                        }
                     }
                 }
             ]

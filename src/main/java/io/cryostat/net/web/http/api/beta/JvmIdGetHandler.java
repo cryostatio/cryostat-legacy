@@ -92,7 +92,6 @@ class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        System.out.println(targetId);
         try {
             ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
             String jvmId = this.recordingMetadataManager.getJvmId(cd);

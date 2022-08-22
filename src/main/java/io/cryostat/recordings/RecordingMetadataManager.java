@@ -311,6 +311,18 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
+    private void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
+        if (oldJvmId.equals(newJvmId)) {
+            return;
+        }
+        jvmIdMap.entrySet().stream()
+                .filter(e -> e.getValue().equals(oldJvmId))
+                .forEach(
+                        e -> {
+                            jvmIdMap.put(e.getKey(), newJvmId);
+                        });
+    }
+
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
@@ -365,8 +377,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             e);
                                 }
                             });
-
-            jvmIdMap.put(targetId, newJvmId);
+            transferJvmIds(oldJvmId, newJvmId);
             logger.trace(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
@@ -410,7 +421,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
         try {
-            // FIXME: this should be improved when we store recording data in the our postgres db
+            // FIXME: this should be improved when we store recording data in the postgres db
             return this.fs.listDirectoryChildren(archivedRecordingsPath).stream()
                     .map(
                             subdirectory -> {
