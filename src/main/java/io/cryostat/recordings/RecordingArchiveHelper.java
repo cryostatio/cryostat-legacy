@@ -205,17 +205,7 @@ public class RecordingArchiveHelper {
     }
 
     public Future<ArchivedRecordingInfo> deleteRecording(String recordingName) {
-
-        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
-
-        try {
-            Path archivedRecording = getRecordingPath(recordingName).get();
-            future = handleDeleteRecordingRequest(null, recordingName, archivedRecording);
-        } catch (InterruptedException | ExecutionException e) {
-            future.completeExceptionally(e);
-        }
-
-        return future;
+        return deleteRecording(null, recordingName);
     }
 
     @SuppressFBWarnings(
