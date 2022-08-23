@@ -435,9 +435,6 @@ class OpenShiftAuthManagerTest {
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
 
         HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
-        Mockito.when(requestBuilder.post(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(requestBuilder);
-        Mockito.when(requestBuilder.url(Mockito.any(URL.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.header(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(requestBuilder);
@@ -445,7 +442,6 @@ class OpenShiftAuthManagerTest {
         HttpRequest request = Mockito.mock(HttpRequest.class);
         Mockito.when(requestBuilder.build()).thenReturn(request);
         Mockito.when(httpClient.newHttpRequestBuilder()).thenReturn(requestBuilder);
-        Mockito.when(request.uri()).thenReturn(URI.create("https://example.com"));
 
         HttpResponse<String> resp = Mockito.mock(HttpResponse.class);
         Mockito.when(resp.body()).thenReturn(OAUTH_METADATA);
