@@ -60,8 +60,6 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 
 public abstract class StandardSelfTest {
 
@@ -104,14 +102,6 @@ public abstract class StandardSelfTest {
                 });
 
         return future.orTimeout(timeout, unit);
-    }
-
-    public static void assertResponseStatus(JsonObject response) {
-        assertResponseStatus(response, 0);
-    }
-
-    public static void assertResponseStatus(JsonObject response, int status) {
-        MatcherAssert.assertThat(response.getInteger("status"), Matchers.equalTo(status));
     }
 
     public static boolean assertRequestStatus(

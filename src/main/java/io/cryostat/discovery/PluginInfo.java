@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.persistence.Column;
@@ -113,29 +114,24 @@ public class PluginInfo {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((callback == null) ? 0 : callback.hashCode());
-        result = prime * result + ((realm == null) ? 0 : realm.hashCode());
-        result = prime * result + ((subtree == null) ? 0 : subtree.hashCode());
-        return result;
+        return Objects.hash(callback, id, realm, subtree);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
         PluginInfo other = (PluginInfo) obj;
-        if (callback == null) {
-            if (other.callback != null) return false;
-        } else if (!callback.equals(other.callback)) return false;
-        if (realm == null) {
-            if (other.realm != null) return false;
-        } else if (!realm.equals(other.realm)) return false;
-        if (subtree == null) {
-            if (other.subtree != null) return false;
-        } else if (!subtree.equals(other.subtree)) return false;
-        return true;
+        return Objects.equals(callback, other.callback)
+                && Objects.equals(id, other.id)
+                && Objects.equals(realm, other.realm)
+                && Objects.equals(subtree, other.subtree);
     }
 }
