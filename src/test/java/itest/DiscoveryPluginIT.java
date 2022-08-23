@@ -44,10 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.cryostat.platform.discovery.NodeType;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -61,22 +57,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(OrderAnnotation.class)
 class DiscoveryPluginIT extends StandardSelfTest {
-
-    private static final Gson gson =
-            new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-
-    static final NodeType NODE_TYPE =
-            new NodeType() {
-                @Override
-                public String getKind() {
-                    return "JVM";
-                }
-
-                @Override
-                public int ordinal() {
-                    return 0;
-                }
-            };
 
     final String realm = getClass().getSimpleName();
     final URI callback = URI.create("http://localhost:8181/");
