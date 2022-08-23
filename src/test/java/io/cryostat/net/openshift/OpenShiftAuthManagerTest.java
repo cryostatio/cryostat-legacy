@@ -147,7 +147,8 @@ class OpenShiftAuthManagerTest {
         tokenProvider = new TokenProvider(client);
         Mockito.lenient()
                 .when(classPropertiesLoader.loadAsMap(Mockito.any()))
-                .thenReturn(Map.of("RECORDING", "pods/exec", "CERTIFICATE", "deployments.apps,pods"));
+                .thenReturn(
+                        Map.of("RECORDING", "pods/exec", "CERTIFICATE", "deployments.apps,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
