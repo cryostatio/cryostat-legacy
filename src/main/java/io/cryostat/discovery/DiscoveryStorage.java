@@ -267,7 +267,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 logger.warn("ServiceRef {} has a null ID!");
                 continue;
             }
-            if (sr.getId().equals(id)) {
+            if (sr.getId().get().equals((id))) {
                 return Optional.of(sr);
             }
         }
