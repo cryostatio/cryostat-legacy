@@ -66,14 +66,12 @@ import io.fabric8.kubernetes.api.model.EndpointAddressBuilder;
 import io.fabric8.kubernetes.api.model.EndpointPortBuilder;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.EndpointsBuilder;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -95,14 +93,6 @@ class KubeApiPlatformClientTest {
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
     @Mock Logger logger;
-
-    @BeforeAll
-    static void disableKubeConfig() {
-        // FIXME Disable reading ~/.kube/config. Remove once fabric8-client updated to 5.5.0 or
-        // newer.
-        System.setProperty(Config.KUBERNETES_AUTH_TRYKUBECONFIG_SYSTEM_PROPERTY, "false");
-        System.setProperty(Config.KUBERNETES_AUTH_TRYSERVICEACCOUNT_SYSTEM_PROPERTY, "false");
-    }
 
     @BeforeEach
     void setup() throws Exception {

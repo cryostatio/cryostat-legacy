@@ -71,7 +71,6 @@ import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.http.HttpClient;
@@ -91,7 +90,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -144,14 +142,6 @@ class OpenShiftAuthManagerTest {
     TokenProvider tokenProvider;
     Gson gson = MainModule.provideGson(logger);
     @Mock CompletableFuture<String> redirectUrl;
-
-    @BeforeAll
-    static void disableKubeConfig() {
-        // FIXME Disable reading ~/.kube/config. Remove once fabric8-client updated to 5.5.0 or
-        // newer.
-        System.setProperty(Config.KUBERNETES_AUTH_TRYKUBECONFIG_SYSTEM_PROPERTY, "false");
-        System.setProperty(Config.KUBERNETES_AUTH_TRYSERVICEACCOUNT_SYSTEM_PROPERTY, "false");
-    }
 
     @BeforeEach
     void setup() throws IOException {
