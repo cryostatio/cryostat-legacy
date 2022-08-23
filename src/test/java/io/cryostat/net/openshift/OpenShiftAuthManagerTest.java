@@ -147,14 +147,12 @@ class OpenShiftAuthManagerTest {
     void setup() throws IOException {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
         Mockito.lenient()
                 .when(classPropertiesLoader.loadAsMap(Mockito.any()))
                 .thenReturn(
                         Map.of(
                                 "RECORDING",
-                                "recordings.operator.cryostat.io",
+                                "pods",
                                 "CERTIFICATE",
                                 "deployments.apps,pods"));
         mgr =
@@ -194,13 +192,13 @@ class OpenShiftAuthManagerTest {
                 Map.of("expected", Map.of()),
                 Map.of(
                         ResourceType.RECORDING.name(),
-                        "recordings.operator.cryostat.io",
+                        "cryostats.operator.cryostat.io",
                         "expected",
                         Map.of(
                                 ResourceType.RECORDING,
                                 Set.of(
                                         new GroupResource(
-                                                "operator.cryostat.io", "recordings", null)))),
+                                                "operator.cryostat.io", "cryostats", null)))),
                 Map.of(
                         ResourceType.RECORDING.name(),
                         "deployments.apps/scale",
@@ -220,13 +218,13 @@ class OpenShiftAuthManagerTest {
                         Map.of(ResourceType.RECORDING, Set.<String>of())),
                 Map.of(
                         ResourceType.RECORDING.name(),
-                        "recordings.operator.cryostat.io, deployments.apps",
+                        "pods/exec, deployments.apps",
                         "expected",
                         Map.of(
                                 ResourceType.RECORDING,
                                 Set.of(
                                         new GroupResource(
-                                                "operator.cryostat.io", "recordings", null),
+                                                "", "pods", "exec"),
                                         new GroupResource("apps", "deployments", null)))));
     }
 
@@ -349,7 +347,7 @@ class OpenShiftAuthManagerTest {
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
         MatcherAssert.assertThat(
-                pde.getResourceType(), Matchers.equalTo("recordings.operator.cryostat.io"));
+                pde.getResourceType(), Matchers.equalTo("pods"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
@@ -540,8 +538,8 @@ class OpenShiftAuthManagerTest {
         Set<String> expectedGroups;
         Set<String> expectedResources;
         if (resourceAction.getResource() == ResourceType.RECORDING) {
-            expectedGroups = Set.of("operator.cryostat.io");
-            expectedResources = Set.of("recordings");
+            expectedGroups = Set.of("");
+            expectedResources = Set.of("pods");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
             expectedGroups = Set.of("apps", "");
             expectedResources = Set.of("deployments", "pods");
