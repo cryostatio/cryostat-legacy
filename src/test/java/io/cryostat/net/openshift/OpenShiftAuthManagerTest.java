@@ -147,7 +147,7 @@ class OpenShiftAuthManagerTest {
         tokenProvider = new TokenProvider(client);
         Mockito.lenient()
                 .when(classPropertiesLoader.loadAsMap(Mockito.any()))
-                .thenReturn(Map.of("RECORDING", "pods", "CERTIFICATE", "deployments.apps,pods"));
+                .thenReturn(Map.of("RECORDING", "pods/exec", "CERTIFICATE", "deployments.apps,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
@@ -338,7 +338,7 @@ class OpenShiftAuthManagerTest {
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
-        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("pods"));
+        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("pods/exec"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
@@ -528,12 +528,15 @@ class OpenShiftAuthManagerTest {
 
         Set<String> expectedGroups;
         Set<String> expectedResources;
+        Set<String> expectedSubResources;
         if (resourceAction.getResource() == ResourceType.RECORDING) {
             expectedGroups = Set.of("");
             expectedResources = Set.of("pods");
+            expectedSubResources = Set.of("exec");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
             expectedGroups = Set.of("apps", "");
             expectedResources = Set.of("deployments", "pods");
+            expectedSubResources = Set.of("");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
         }
@@ -559,8 +562,8 @@ class OpenShiftAuthManagerTest {
         // SelfSubjectAccessReview requests made by the OpenShiftAuthManager
         int maxDroppedRequests = 2;
         int requestCount = 0;
-        RecordedRequest req = server.takeRequest();
-        while (true) {
+        RecordedRequest req;
+        while ((req = server.takeRequest()) != null) {
             if (++requestCount > maxDroppedRequests) {
                 throw new IllegalStateException();
             }
@@ -568,7 +571,6 @@ class OpenShiftAuthManagerTest {
             if (SUBJECT_REVIEW_API_PATH.equals(path)) {
                 break;
             }
-            req = server.takeRequest();
         }
         MatcherAssert.assertThat(req.getPath(), Matchers.equalTo(SUBJECT_REVIEW_API_PATH));
         MatcherAssert.assertThat(tokenProvider.token, Matchers.equalTo(token));
@@ -581,8 +583,10 @@ class OpenShiftAuthManagerTest {
 
         Set<String> actualGroups = new HashSet<>();
         Set<String> actualResources = new HashSet<>();
+        Set<String> actualSubResources = new HashSet<>();
         actualGroups.add(body.getSpec().getResourceAttributes().getGroup());
         actualResources.add(body.getSpec().getResourceAttributes().getResource());
+        actualSubResources.add(body.getSpec().getResourceAttributes().getSubresource());
         // start at 1 because we've already checked the first request above
         for (int i = 1; i < expectedResources.size(); i++) {
             // request should already have been made, so there should be no time waiting for a
@@ -601,10 +605,12 @@ class OpenShiftAuthManagerTest {
                     Matchers.equalTo(expectedVerb));
             actualGroups.add(body.getSpec().getResourceAttributes().getGroup());
             actualResources.add(body.getSpec().getResourceAttributes().getResource());
+            actualSubResources.add(body.getSpec().getResourceAttributes().getSubresource());
         }
 
         MatcherAssert.assertThat(actualGroups, Matchers.equalTo(expectedGroups));
         MatcherAssert.assertThat(actualResources, Matchers.equalTo(expectedResources));
+        MatcherAssert.assertThat(actualSubResources, Matchers.equalTo(expectedSubResources));
     }
 
     @ParameterizedTest
