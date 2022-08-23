@@ -50,6 +50,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -133,46 +134,69 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(body, Matchers.notNullValue());
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(2));
 
-        // TODO fix test assertion to tolerate random UUIDs
-        JsonObject selfJdp =
-                new JsonObject(
-                        Map.of(
-                                "alias",
-                                "io.cryostat.Cryostat",
-                                "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of(
-                                                "REALM",
-                                                "JDP",
-                                                "HOST",
-                                                "cryostat-itests",
-                                                "PORT",
-                                                "9091",
-                                                "JAVA_MAIN",
-                                                "io.cryostat.Cryostat"),
-                                        "platform",
-                                        Map.of())));
-        JsonObject selfCustom =
-                new JsonObject(
-                        Map.of(
-                                "alias",
-                                "self",
-                                "connectUrl",
-                                "localhost:0",
-                                "labels",
-                                Map.of(),
-                                "annotations",
-                                Map.of(
-                                        "cryostat",
-                                        Map.of("REALM", "Custom Targets"),
-                                        "platform",
-                                        Map.of())));
-        MatcherAssert.assertThat(body, Matchers.containsInAnyOrder(selfJdp, selfCustom));
+        Matcher selfJdpMatcher =
+                Matchers.allOf(
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("id"),
+                                        Matchers.not(Matchers.blankOrNullString())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("alias"),
+                                        Matchers.equalTo("io.cryostat.Cryostat")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("connectUrl"),
+                                        Matchers.equalTo(
+                                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("labels"), Matchers.equalTo(Map.of())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("annotations"),
+                                        Matchers.equalTo(
+                                                Map.of(
+                                                        "cryostat",
+                                                                Map.of(
+                                                                        "REALM",
+                                                                        "JDP",
+                                                                        "HOST",
+                                                                        "cryostat-itests",
+                                                                        "PORT",
+                                                                        "9091",
+                                                                        "JAVA_MAIN",
+                                                                        "io.cryostat.Cryostat"),
+                                                        "platform", Map.of()))));
+
+        Matcher selfCustomMatcher =
+                Matchers.allOf(
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("id"),
+                                        Matchers.not(Matchers.blankOrNullString())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("alias"), Matchers.equalTo("self")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("connectUrl"),
+                                        Matchers.equalTo("localhost:0")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("labels"), Matchers.equalTo(Map.of())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("annotations"),
+                                        Matchers.equalTo(
+                                                Map.of(
+                                                        "cryostat",
+                                                        Map.of("REALM", "Custom Targets"),
+                                                        "platform",
+                                                        Map.of()))));
+
+        MatcherAssert.assertThat(
+                body.getList(), Matchers.containsInAnyOrder(selfJdpMatcher, selfCustomMatcher));
     }
 
     @Test
@@ -261,6 +285,41 @@ public class CustomTargetsIT extends StandardSelfTest {
                                                 "io.cryostat.Cryostat"),
                                         "platform",
                                         Map.of())));
-        MatcherAssert.assertThat(body, Matchers.contains(selfJdp));
+
+        Matcher selfJdpMatcher =
+                Matchers.allOf(
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("id"),
+                                        Matchers.not(Matchers.blankOrNullString())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("alias"),
+                                        Matchers.equalTo("io.cryostat.Cryostat")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("connectUrl"),
+                                        Matchers.equalTo(
+                                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("labels"), Matchers.equalTo(Map.of())),
+                        (Matcher)
+                                Matchers.hasEntry(
+                                        Matchers.equalTo("annotations"),
+                                        Matchers.equalTo(
+                                                Map.of(
+                                                        "cryostat",
+                                                                Map.of(
+                                                                        "REALM",
+                                                                        "JDP",
+                                                                        "HOST",
+                                                                        "cryostat-itests",
+                                                                        "PORT",
+                                                                        "9091",
+                                                                        "JAVA_MAIN",
+                                                                        "io.cryostat.Cryostat"),
+                                                        "platform", Map.of()))));
+        MatcherAssert.assertThat(body.getList(), Matchers.containsInAnyOrder(selfJdpMatcher));
     }
 }
