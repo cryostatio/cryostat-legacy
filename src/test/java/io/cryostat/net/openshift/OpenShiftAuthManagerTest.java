@@ -82,8 +82,6 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -149,12 +147,7 @@ class OpenShiftAuthManagerTest {
         tokenProvider = new TokenProvider(client);
         Mockito.lenient()
                 .when(classPropertiesLoader.loadAsMap(Mockito.any()))
-                .thenReturn(
-                        Map.of(
-                                "RECORDING",
-                                "pods",
-                                "CERTIFICATE",
-                                "deployments.apps,pods"));
+                .thenReturn(Map.of("RECORDING", "pods", "CERTIFICATE", "deployments.apps,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
@@ -223,8 +216,7 @@ class OpenShiftAuthManagerTest {
                         Map.of(
                                 ResourceType.RECORDING,
                                 Set.of(
-                                        new GroupResource(
-                                                "", "pods", "exec"),
+                                        new GroupResource("", "pods", "exec"),
                                         new GroupResource("apps", "deployments", null)))));
     }
 
@@ -346,8 +338,7 @@ class OpenShiftAuthManagerTest {
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
-        MatcherAssert.assertThat(
-                pde.getResourceType(), Matchers.equalTo("pods"));
+        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("pods"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
