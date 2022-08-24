@@ -64,7 +64,7 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
-    static AssetJwtHelper provideJwtFactory(
+    static AssetJwtHelper provideAssetJwtFactory(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,

@@ -61,7 +61,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingGetHandler extends AbstractJwtConsumingHandler {
+class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
