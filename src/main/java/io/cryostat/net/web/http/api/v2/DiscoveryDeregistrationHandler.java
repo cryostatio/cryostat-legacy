@@ -62,7 +62,7 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandler {
+class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandler<String> {
 
     private final DiscoveryStorage storage;
     private final Function<String, UUID> uuidFromString;
@@ -93,7 +93,7 @@ class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandle
 
     @Override
     public String path() {
-        return basePath() + "discovery/:id";
+        return basePath() + DiscoveryPostHandler.PATH;
     }
 
     @Override
@@ -112,7 +112,7 @@ class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandle
             String key = "id";
             UUID id = uuidFromString.apply(StringUtil.requireNonBlank(ctx.pathParam(key), key));
             storage.deregister(id);
-            ctx.json(new IntermediateResponse<String>().body(id.toString()));
+            writeResponse(ctx, new IntermediateResponse<String>().body(id.toString()));
         } catch (IllegalArgumentException iae) {
             throw new ApiException(400, iae);
         } catch (NotFoundException nfe) {

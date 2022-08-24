@@ -65,7 +65,7 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler {
+class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler<Void> {
 
     static final String PATH = "discovery/:id";
     private final DiscoveryStorage storage;
@@ -130,7 +130,7 @@ class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler {
             // fields should be null, etc.
             storage.update(id, nodes);
 
-            ctx.json(new IntermediateResponse<String>());
+            writeResponse(ctx, new IntermediateResponse<Void>());
         } catch (JsonSyntaxException | IllegalArgumentException e) {
             throw new ApiException(400, e);
         } catch (NotFoundException e) {

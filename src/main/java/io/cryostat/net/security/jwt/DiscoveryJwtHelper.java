@@ -67,6 +67,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -112,7 +113,7 @@ public class DiscoveryJwtHelper {
         JWTClaimsSet claims =
                 new JWTClaimsSet.Builder()
                         .issuer(issuer)
-                        .audience(List.of(issuer, requestAddr.toString()))
+                        .audience(List.of(issuer, requestAddr.getHostAddress()))
                         .issueTime(now)
                         .notBeforeTime(now)
                         .expirationTime(expiry)
@@ -134,7 +135,19 @@ public class DiscoveryJwtHelper {
         return jwe.serialize();
     }
 
-    public JWT parseDiscoveryPluginJwt(String rawToken, String realm, InetAddress requestAddr)
+    public JWT parseDiscoveryPluginJwt(
+            String rawToken, String realm, URI resource, InetAddress requestAddr)
+            throws ParseException, JOSEException, BadJWTException, SocketException,
+                    UnknownHostException, URISyntaxException, MalformedURLException {
+        return parseDiscoveryPluginJwt(rawToken, realm, resource, requestAddr, true);
+    }
+
+    public JWT parseDiscoveryPluginJwt(
+            String rawToken,
+            String realm,
+            URI resource,
+            InetAddress requestAddr,
+            boolean checkTimeClaims)
             throws ParseException, JOSEException, BadJWTException, SocketException,
                     UnknownHostException, URISyntaxException, MalformedURLException {
         JWEObject jwe = JWEObject.parse(rawToken);
@@ -147,13 +160,22 @@ public class DiscoveryJwtHelper {
         JWTClaimsSet exactMatchClaims =
                 new JWTClaimsSet.Builder()
                         .issuer(cryostatUri)
-                        .audience(List.of(cryostatUri, requestAddr.toString()))
+                        .audience(List.of(cryostatUri, requestAddr.getHostAddress()))
+                        .claim(AssetJwtHelper.RESOURCE_CLAIM, resource.toASCIIString())
                         .claim(REALM_CLAIM, realm)
                         .build();
         Set<String> requiredClaimNames =
-                new HashSet<>(Set.of("exp", "nbf", "iat", "iss", "aud", "sub", REALM_CLAIM));
-        new DefaultJWTClaimsVerifier<>(cryostatUri, exactMatchClaims, requiredClaimNames)
-                .verify(jwt.getJWTClaimsSet(), null);
+                new HashSet<>(Set.of("iat", "iss", "aud", "sub", REALM_CLAIM));
+        if (checkTimeClaims) {
+            requiredClaimNames.add("exp");
+            requiredClaimNames.add("nbf");
+        }
+        DefaultJWTClaimsVerifier<SecurityContext> verifier =
+                new DefaultJWTClaimsVerifier<>(cryostatUri, exactMatchClaims, requiredClaimNames);
+        if (checkTimeClaims) {
+            verifier.setMaxClockSkew(5);
+        }
+        verifier.verify(jwt.getJWTClaimsSet(), null);
 
         return jwt;
     }

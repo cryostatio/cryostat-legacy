@@ -42,8 +42,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,7 +51,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -62,11 +59,7 @@ import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.BadJWTException;
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -160,26 +153,12 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
                             .getId()
                             .toString();
             try {
-                JWT jwt = jwtFactory.parseDiscoveryPluginJwt(priorToken, realm, address);
-                String cryostatUri = hostUrl.toString();
-                // TODO extract this to AssetJwtHelper
-                JWTClaimsSet exactMatchClaims =
-                        new JWTClaimsSet.Builder()
-                                .issuer(cryostatUri)
-                                .audience(List.of(cryostatUri, address.toString()))
-                                .claim(DiscoveryJwtHelper.REALM_CLAIM, realm)
-                                .claim(
-                                        AssetJwtHelper.RESOURCE_CLAIM,
-                                        getResourceUri(hostUrl, pluginId).toASCIIString())
-                                .build();
-                Set<String> requiredClaimNames =
-                        new HashSet<>(
-                                Set.of("iat", "iss", "aud", "sub", DiscoveryJwtHelper.REALM_CLAIM));
-                DefaultJWTClaimsVerifier<SecurityContext> verifier =
-                        new DefaultJWTClaimsVerifier<>(
-                                cryostatUri, exactMatchClaims, requiredClaimNames);
-                verifier.setMaxClockSkew(5);
-                verifier.verify(jwt.getJWTClaimsSet(), null);
+                jwtFactory.parseDiscoveryPluginJwt(
+                        priorToken,
+                        realm,
+                        AbstractDiscoveryJwtConsumingHandler.getResourceUri(hostUrl, pluginId),
+                        address,
+                        false);
             } catch (JOSEException e) {
                 throw new ApiException(400, e);
             } catch (BadJWTException e) {
@@ -189,14 +168,13 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
 
         String token =
                 jwtFactory.createDiscoveryPluginJwt(
-                        authzHeader, realm, address, getResourceUri(hostUrl, pluginId));
+                        authzHeader,
+                        realm,
+                        address,
+                        AbstractDiscoveryJwtConsumingHandler.getResourceUri(hostUrl, pluginId));
         return new IntermediateResponse<Map<String, String>>()
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), pluginId))
                 .body(Map.of("id", pluginId, "token", token));
-    }
-
-    private URI getResourceUri(URL baseUrl, String pluginId) throws URISyntaxException {
-        return baseUrl.toURI().resolve("/api/v2.2/discovery/" + pluginId);
     }
 }

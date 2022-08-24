@@ -44,17 +44,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.rmi.ConnectIOException;
 import java.text.ParseException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-
-import javax.security.sasl.SaslException;
-
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -63,8 +58,11 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.ApiMeta;
+import io.cryostat.net.web.http.api.ApiResponse;
+import io.cryostat.net.web.http.api.ApiResultData;
 import io.cryostat.util.StringUtil;
 
 import com.nimbusds.jose.JOSEException;
@@ -75,9 +73,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
-abstract class AbstractDiscoveryJwtConsumingHandler implements RequestHandler {
+abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
 
@@ -110,29 +107,19 @@ abstract class AbstractDiscoveryJwtConsumingHandler implements RequestHandler {
         try {
             JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
-        } catch (ConnectionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SecurityException || cause instanceof SaslException) {
-                ctx.response()
-                        .putHeader(
-                                AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
-                                "Basic");
-                throw new ApiException(427, "JMX Authentication Failure", e);
-            }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new ApiException(502, "Target SSL Untrusted", e);
-            }
-            if (rootCause instanceof UnknownHostException) {
-                throw new ApiException(404, "Target Not Found", e);
-            }
-            throw new ApiException(500, e);
         } catch (Exception e) {
             if (e instanceof ApiException) {
                 throw (ApiException) e;
             }
             throw new ApiException(500, e);
         }
+    }
+
+    protected void writeResponse(RoutingContext ctx, IntermediateResponse<T> intermediateResponse) {
+        ApiMeta meta = new ApiMeta(HttpMimeType.JSON, "OK");
+        ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
+        ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
+        ctx.json(body);
     }
 
     private JWT validateJwt(RoutingContext ctx)
@@ -152,14 +139,20 @@ abstract class AbstractDiscoveryJwtConsumingHandler implements RequestHandler {
         MultiMap h = ctx.request().headers();
         addr = tryResolveAddress(addr, h.get(RequestParameters.X_FORWARDED_FOR));
 
+        URL hostUrl = webServer.get().getHostUrl();
+
         JWT parsed;
         try {
-            parsed = jwt.parseDiscoveryPluginJwt(token, plugin.get().getRealm(), addr);
+            parsed =
+                    jwt.parseDiscoveryPluginJwt(
+                            token,
+                            plugin.get().getRealm(),
+                            getResourceUri(hostUrl, id.toString()),
+                            addr);
         } catch (BadJWTException e) {
             throw new ApiException(401, e);
         }
 
-        URL hostUrl = webServer.get().getHostUrl();
         URI requestUri = new URI(ctx.request().absoluteURI());
         URI fullRequestUri =
                 new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
@@ -189,6 +182,10 @@ abstract class AbstractDiscoveryJwtConsumingHandler implements RequestHandler {
         }
 
         return parsed;
+    }
+
+    static URI getResourceUri(URL baseUrl, String pluginId) throws URISyntaxException {
+        return baseUrl.toURI().resolve("/api/v2.2/discovery/" + pluginId);
     }
 
     static InetAddress tryResolveAddress(InetAddress addr, String host) {
