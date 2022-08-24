@@ -101,6 +101,7 @@ public class RecordingArchiveHelper {
 
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
+    public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
 
     RecordingArchiveHelper(
             FileSystem fs,
@@ -284,19 +285,20 @@ public class RecordingArchiveHelper {
     public Future<Path> getCachedReportPath(String sourceTarget, String recordingName) {
         CompletableFuture<Path> future = new CompletableFuture<>();
 
-        String subdirectory;
-        if (sourceTarget == null) {
-            subdirectory = "default";
-        } else if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            subdirectory = UPLOADED_RECORDINGS_SUBDIRECTORY;
-        } else {
-            subdirectory = base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
-        }
+        String subdirectory =
+                sourceTarget == null
+                        ? DEFAULT_CACHED_REPORT_SUBDIRECTORY
+                        : sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
+                                ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                                : base32.encodeAsString(
+                                        sourceTarget.getBytes(StandardCharsets.UTF_8));
         String fileName = recordingName + ".report.html";
 
         try {
-            Path tempSubdirectory =
-                    fs.createTempDirectory(archivedRecordingsReportPath, subdirectory);
+            Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectory);
+            if (!fs.exists(tempSubdirectory)) {
+              tempSubdirectory = fs.createDirectory(tempSubdirectory);
+            }
             future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
             future.completeExceptionally(e);
