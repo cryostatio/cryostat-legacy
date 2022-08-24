@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.reports;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -48,6 +49,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -79,26 +81,35 @@ class ArchivedRecordingReportCacheTest {
     @Test
     void getShouldThrowIfNoCacheAndNoRecording() throws Exception {
         String recordingName = "foo";
-
         String sourceTarget = null;
+
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenReturn(destinationFile);
+
         Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
                 .thenReturn(future1);
-        Mockito.when(future1.get()).thenReturn(destinationFile);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
+
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future2.get())
+                .thenThrow(
+                        new ExecutionException(
+                                new RecordingNotFoundException(
+                                        RecordingArchiveHelper.ARCHIVES, recordingName)));
+
         Mockito.when(
                         recordingArchiveHelper.getRecordingPath(
                                 Mockito.nullable(String.class), Mockito.eq(recordingName)))
                 .thenReturn(future2);
-        Mockito.when(future2.get())
-                .thenThrow(
-                        new ExecutionException(
-                                new RecordingNotFoundException("archives", recordingName)));
 
-        Assertions.assertThrows(
-                ExecutionException.class, () -> cache.get(sourceTarget, recordingName, "").get());
-
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> cache.get(sourceTarget, recordingName, "").get());
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee),
+                Matchers.instanceOf(RecordingNotFoundException.class));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
     }
 
@@ -106,21 +117,26 @@ class ArchivedRecordingReportCacheTest {
     void getShouldGenerateAndCacheReport() throws Exception {
         String recordingName = "foo";
         String sourceTarget = null;
+
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenReturn(destinationFile);
+
         Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
                 .thenReturn(future1);
-        Mockito.when(future1.get()).thenReturn(destinationFile);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
+        Mockito.when(future2.get()).thenReturn(recording);
+
         Mockito.when(
                         recordingArchiveHelper.getRecordingPath(
                                 Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future2);
-        Mockito.when(future2.get()).thenReturn(recording);
 
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+
         Mockito.when(
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
@@ -136,21 +152,26 @@ class ArchivedRecordingReportCacheTest {
     void getShouldGenerateAndCacheReportFiltered() throws Exception {
         String recordingName = "foo";
         String sourceTarget = null;
+
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenReturn(destinationFile);
+
         Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
                 .thenReturn(future1);
-        Mockito.when(future1.get()).thenReturn(destinationFile);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
+        Mockito.when(future2.get()).thenReturn(recording);
+
         Mockito.when(
                         recordingArchiveHelper.getRecordingPath(
                                 Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future2);
-        Mockito.when(future2.get()).thenReturn(recording);
 
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+
         Mockito.when(
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class), Mockito.any(Path.class), Mockito.any()))
@@ -166,12 +187,15 @@ class ArchivedRecordingReportCacheTest {
     void getShouldReturnCachedFileIfAvailable() throws Exception {
         String recordingName = "foo";
         String sourceTarget = null;
+
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future.get()).thenReturn(destinationFile);
+
         Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
                 .thenReturn(future);
-        Mockito.when(future.get()).thenReturn(destinationFile);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(true);
+        Mockito.when(fs.isRegularFile(Mockito.any(Path.class))).thenReturn(true);
 
         Future<Path> res = cache.get(sourceTarget, recordingName, "");
 
@@ -184,19 +208,23 @@ class ArchivedRecordingReportCacheTest {
     void shouldThrowErrorIfReportGenerationFails() throws Exception {
         String recordingName = "foo";
         String sourceTarget = null;
+
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenReturn(destinationFile);
+
         Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
                 .thenReturn(future1);
-        Mockito.when(future1.get()).thenReturn(destinationFile);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
         Path recording = Mockito.mock(Path.class);
+        Mockito.when(future2.get()).thenReturn(recording);
+
         Mockito.when(
                         recordingArchiveHelper.getRecordingPath(
                                 Mockito.nullable(String.class), Mockito.anyString()))
                 .thenReturn(future2);
-        Mockito.when(future2.get()).thenReturn(recording);
 
         Mockito.when(
                         subprocessReportGenerator.exec(
@@ -206,9 +234,36 @@ class ArchivedRecordingReportCacheTest {
                                 new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY)));
 
-        Assertions.assertThrows(
-                ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
 
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee),
+                Matchers.instanceOf(
+                        SubprocessReportGenerator.SubprocessReportGenerationException.class));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
+    }
+
+    @Test
+    void shouldThrowErrorIfCachedFileResolutionFails() throws Exception {
+        String recordingName = "foo";
+        String sourceTarget = null;
+
+        CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenThrow(new CompletionException(new IOException()));
+
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+                .thenReturn(future1);
+
+        Mockito.when(fs.deleteIfExists(Mockito.nullable(Path.class))).thenReturn(false);
+
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee), Matchers.instanceOf(IOException.class));
+
+        Mockito.verify(fs, Mockito.atLeastOnce()).deleteIfExists(null);
     }
 }

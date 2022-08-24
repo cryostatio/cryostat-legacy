@@ -297,7 +297,7 @@ public class RecordingArchiveHelper {
         try {
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectory);
             if (!fs.exists(tempSubdirectory)) {
-              tempSubdirectory = fs.createDirectory(tempSubdirectory);
+                tempSubdirectory = fs.createDirectory(tempSubdirectory);
             }
             future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
