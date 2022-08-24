@@ -99,7 +99,7 @@ class Cryostat extends AbstractVerticle {
                         client.deployer().deploy(client.webServer(), false),
                         client.deployer().deploy(client.messagingServer(), false),
                         client.deployer().deploy(client.ruleProcessor(), true),
-                        client.deployer().deploy(client.recordingMetadataManager(), true));
+                        client.deployer().deploy(client.recordingMetadataManager(), false));
         CompositeFuture.join(futures)
                 .onSuccess(cf -> future.complete())
                 .onFailure(
