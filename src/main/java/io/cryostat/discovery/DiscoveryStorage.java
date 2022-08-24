@@ -145,6 +145,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         logger.info("Stale discovery service {} removed", label);
     }
 
+    public Optional<PluginInfo> getById(UUID id) {
+        return dao.get(id);
+    }
+
     public Optional<PluginInfo> getByRealm(String realm) {
         return dao.getByRealm(realm);
     }

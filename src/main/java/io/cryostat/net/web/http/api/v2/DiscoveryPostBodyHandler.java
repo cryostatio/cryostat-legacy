@@ -41,26 +41,21 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class DiscoveryPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+class DiscoveryPostBodyHandler implements RequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    DiscoveryPostBodyHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
-        super(auth, credentialsManager, logger);
-    }
+    DiscoveryPostBodyHandler(Logger logger) {}
 
     @Override
     public ApiVersion apiVersion() {
@@ -88,7 +83,7 @@ class DiscoveryPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) {
+    public void handle(RoutingContext ctx) {
         BODY_HANDLER.handle(ctx);
     }
 }

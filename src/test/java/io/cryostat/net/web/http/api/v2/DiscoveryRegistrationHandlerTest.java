@@ -48,6 +48,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -73,12 +75,15 @@ class DiscoveryRegistrationHandlerTest {
     AbstractV2RequestHandler<Map<String, String>> handler;
     @Mock AuthManager auth;
     @Mock DiscoveryStorage storage;
+    @Mock WebServer webServer;
+    @Mock DiscoveryJwtHelper jwt;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new DiscoveryRegistrationHandler(auth, storage, gson);
+        this.handler =
+                new DiscoveryRegistrationHandler(auth, storage, () -> webServer, jwt, gson, logger);
     }
 
     @Nested

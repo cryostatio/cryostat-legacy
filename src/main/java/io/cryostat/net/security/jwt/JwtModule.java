@@ -88,6 +88,24 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
+    static DiscoveryJwtHelper provideDiscoveryJwtFactory(
+            Lazy<WebServer> webServer,
+            JWSSigner signer,
+            JWSVerifier verifier,
+            JWEEncrypter encrypter,
+            JWEDecrypter decrypter,
+            AuthManager auth,
+            Logger logger) {
+        try {
+            return new DiscoveryJwtHelper(
+                    webServer, signer, verifier, encrypter, decrypter, logger);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Singleton
     static SecretKey provideSecretKey() {
         try {
             KeyGenerator generator = KeyGenerator.getInstance("AES");
