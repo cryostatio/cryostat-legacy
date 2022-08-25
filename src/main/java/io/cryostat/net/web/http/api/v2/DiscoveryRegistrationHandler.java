@@ -43,12 +43,14 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.PluginInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
@@ -147,11 +149,15 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
         if (StringUtils.isBlank(priorToken)) {
             pluginId = storage.register(realm, callbackUri).toString();
         } else {
-            pluginId =
-                    storage.getByRealm(realm)
-                            .orElseThrow(() -> new ApiException(404))
-                            .getId()
-                            .toString();
+            PluginInfo plugin = storage.getByRealm(realm).orElseThrow(() -> new ApiException(404));
+            if (!Objects.equals(plugin.getRealm(), realm)) {
+                throw new ApiException(400);
+            }
+            if (!Objects.equals(plugin.getCallback(), callbackUri)) {
+                throw new ApiException(400);
+            }
+
+            pluginId = plugin.getId().toString();
             try {
                 jwtFactory.parseDiscoveryPluginJwt(
                         priorToken,
