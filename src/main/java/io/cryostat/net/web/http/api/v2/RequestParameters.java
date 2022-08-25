@@ -64,6 +64,10 @@ public class RequestParameters {
     private final Set<FileUpload> fileUploads;
     private final String body;
 
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "InetAddress is mutable but there is no immutable form or copy constructor")
     public RequestParameters(
             InetAddress addr,
             Map<String, String> pathParams,
