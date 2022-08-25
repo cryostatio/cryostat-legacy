@@ -463,7 +463,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     } catch (ExecutionException
                             | InterruptedException
                             | URISyntaxException
-                            | MissingEnvironmentVariableException e) {
+                            | MissingEnvironmentVariableException
+                            | IllegalArgumentException e) {
                         return CompletableFuture.failedFuture(e);
                     }
                 });
@@ -531,25 +532,29 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_CLIENT_ID)));
     }
 
-    private String getTokenScope() throws MissingEnvironmentVariableException {
-        Optional<String> baseRoleScope = Optional.ofNullable(env.getEnv(CRYOSTAT_BASE_OAUTH_ROLE));
+    private String getTokenScope()
+            throws MissingEnvironmentVariableException, IllegalArgumentException {
+        Optional<String> baseOAuthRole = Optional.ofNullable(env.getEnv(CRYOSTAT_BASE_OAUTH_ROLE));
+        Optional<String> customOAuthRole =
+                Optional.ofNullable(env.getEnv(CRYOSTAT_CUSTOM_OAUTH_ROLE));
 
         String tokenScope =
                 String.format(
                         "user:check-access role:%s:%s",
-                        baseRoleScope.orElseThrow(
+                        baseOAuthRole.orElseThrow(
                                 () ->
                                         new MissingEnvironmentVariableException(
                                                 CRYOSTAT_BASE_OAUTH_ROLE)),
                         namespace.get());
 
-        Optional<String> customRoleScope =
-                Optional.ofNullable(env.getEnv(CRYOSTAT_CUSTOM_OAUTH_ROLE));
-
-        if (customRoleScope.isPresent()) {
+        if (customOAuthRole.isPresent()) {
+            if (customOAuthRole.get().isBlank()) {
+                throw new IllegalArgumentException(
+                        CRYOSTAT_CUSTOM_OAUTH_ROLE + " must not be blank.");
+            }
             tokenScope =
                     String.format(
-                            "%s role:%s:%s", tokenScope, customRoleScope.get(), namespace.get());
+                            "%s role:%s:%s", tokenScope, customOAuthRole.get(), namespace.get());
         }
         return tokenScope;
     }
