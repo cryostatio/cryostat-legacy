@@ -345,7 +345,10 @@ public class RuleProcessor extends AbstractVerticle
                                         false);
                         promise.complete(recording);
                     } catch (Exception e) {
-                        logger.error("Failed to start rule {} recording on {}", rule.getName(), connectionDescriptor.getTargetId());
+                        logger.error(
+                                "Failed to start rule {} recording on {}",
+                                rule.getName(),
+                                connectionDescriptor.getTargetId());
                         promise.fail(e);
                     }
                 },
