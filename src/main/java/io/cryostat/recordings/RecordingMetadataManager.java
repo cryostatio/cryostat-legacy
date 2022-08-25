@@ -83,7 +83,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
-    private static final String NULL_JVM_ID = "";
     private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
 
     private final Path recordingMetadataDir;
@@ -274,6 +273,12 @@ public class RecordingMetadataManager extends AbstractVerticle
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
+
+        if (connectionDescriptor.getTargetId().equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+            return this.recordingMetadataMap.computeIfAbsent(
+                Pair.of(RecordingArchiveHelper.ARCHIVES, recordingName), k -> new Metadata()
+            );
+        }
 
         String jvmId = this.getJvmId(connectionDescriptor);
         return this.recordingMetadataMap.computeIfAbsent(
