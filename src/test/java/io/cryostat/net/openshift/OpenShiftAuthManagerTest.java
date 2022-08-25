@@ -106,7 +106,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith({MockitoExtension.class, OpenShiftMockServerExtension.class})
 @EnableOpenShiftMockClient(https = false, crud = false)
 class OpenShiftAuthManagerTest {
-
     static final String SUBJECT_REVIEW_API_PATH =
             "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews";
     static final String TOKEN_REVIEW_API_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";
@@ -117,17 +116,29 @@ class OpenShiftAuthManagerTest {
     static final String CLIENT_ID = "oauth-client-id";
     static final String SERVICE_ACCOUNT =
             String.format("system:serviceaccount:%s:%s", NAMESPACE, CLIENT_ID);
-    static final String ROLE_SCOPE = "oauth-role-scope";
-    static final String TOKEN_SCOPE =
-            String.format("user:check-access+role:%s:%s", ROLE_SCOPE, NAMESPACE);
-    static final String OAUTH_QUERY_PARAMETERS =
+    static final String BASE_ROLE_SCOPE = "oauth-role-scope";
+    static final String CUSTOM_ROLE_SCOPE = "custom-oauth-role-scope";
+    static final String BASE_TOKEN_SCOPE =
+            String.format("user:check-access+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
+    static final String CUSTOM_TOKEN_SCOPE =
+            String.format("%s+role:%s:%s", BASE_ROLE_SCOPE, CUSTOM_ROLE_SCOPE, NAMESPACE);
+    static final String BASE_OAUTH_QUERY_PARAMETERS =
             String.format(
                     "?client_id=%s&response_type=token&response_mode=fragment&scope=%s",
-                    SERVICE_ACCOUNT.replaceAll(":", "%3A"), TOKEN_SCOPE.replaceAll(":", "%3A"));
+                    SERVICE_ACCOUNT.replaceAll(":", "%3A"),
+                    BASE_TOKEN_SCOPE.replaceAll(":", "%3A"));
+    static final String CUSTOM_OAUTH_QUERY_PARAMETERS =
+            String.format(
+                    "?client_id=%s&response_type=token&response_mode=fragment&scope=%s",
+                    SERVICE_ACCOUNT.replaceAll(":", "%3A"),
+                    CUSTOM_TOKEN_SCOPE.replaceAll(":", "%3A"));
     static final String OAUTH_METADATA =
             new JsonObject(Map.of("issuer", BASE_URL, "authorization_endpoint", AUTHORIZATION_URL))
                     .toString();
-    static final String EXPECTED_LOGIN_REDIRECT_URL = AUTHORIZATION_URL + OAUTH_QUERY_PARAMETERS;
+    static final String BASE_EXPECTED_LOGIN_REDIRECT_URL =
+            AUTHORIZATION_URL + BASE_OAUTH_QUERY_PARAMETERS;
+    static final String CUSTOM_EXPECTED_LOGIN_REDIRECT_URL =
+            AUTHORIZATION_URL + CUSTOM_OAUTH_QUERY_PARAMETERS;
     static final String EXPECTED_LOGOUT_REDIRECT_URL = BASE_URL + "/logout";
 
     OpenShiftAuthManager mgr;
@@ -346,7 +357,7 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "Bearer ", "invalidHeader"})
     void shouldSendRedirectResponseOnEmptyOrInvalidHeaders(String headers) throws Exception {
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, ROLE_SCOPE);
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, null);
 
         Mockito.when(client.getHttpClient()).thenReturn(httpClient);
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
@@ -370,14 +381,14 @@ class OpenShiftAuthManagerTest {
                 mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
 
         MatcherAssert.assertThat(
-                actualLoginRedirectUrl, Matchers.equalTo(EXPECTED_LOGIN_REDIRECT_URL));
+                actualLoginRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
     void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
         Mockito.when(env.getEnv(Mockito.anyString()))
-                .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
+                .thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, null, CLIENT_ID, BASE_ROLE_SCOPE, null);
 
         Mockito.when(client.getHttpClient()).thenReturn(httpClient);
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
@@ -405,14 +416,14 @@ class OpenShiftAuthManagerTest {
                 mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
 
         MatcherAssert.assertThat(
-                actualLoginRedirectUrl, Matchers.equalTo(EXPECTED_LOGIN_REDIRECT_URL));
+                actualLoginRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
     }
 
     @ParameterizedTest
-    @CsvSource(value = {",", CLIENT_ID + ",", "," + ROLE_SCOPE})
+    @CsvSource(value = {",", CLIENT_ID + ",", "," + BASE_ROLE_SCOPE})
     void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String tokenScope)
             throws Exception {
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, tokenScope);
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, tokenScope, null);
 
         ExecutionException ee =
                 Assertions.assertThrows(
@@ -425,11 +436,10 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldCacheOAuthServerResponse() throws Exception {
-        Mockito.when(env.getEnv(Mockito.anyString()))
-                .thenReturn(CLIENT_ID, ROLE_SCOPE, CLIENT_ID, ROLE_SCOPE);
-
         Mockito.when(client.getHttpClient()).thenReturn(httpClient);
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, null, CLIENT_ID, BASE_ROLE_SCOPE, null);
 
         HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
         Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
@@ -450,12 +460,13 @@ class OpenShiftAuthManagerTest {
 
         String firstRedirectUrl =
                 mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
-
-        MatcherAssert.assertThat(firstRedirectUrl, Matchers.equalTo(EXPECTED_LOGIN_REDIRECT_URL));
+        MatcherAssert.assertThat(
+                firstRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
 
         String secondRedirectUrl =
                 mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
-        MatcherAssert.assertThat(secondRedirectUrl, Matchers.equalTo(EXPECTED_LOGIN_REDIRECT_URL));
+        MatcherAssert.assertThat(
+                secondRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
 
         Mockito.verify(httpClient, Mockito.times(1))
                 .sendAsync(Mockito.eq(request), Mockito.eq(String.class));
