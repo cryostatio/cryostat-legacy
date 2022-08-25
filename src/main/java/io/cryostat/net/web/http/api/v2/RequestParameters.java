@@ -46,6 +46,7 @@ import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.FileUpload;
@@ -140,6 +141,10 @@ public class RequestParameters {
         return addr;
     }
 
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP",
+            justification =
+                    "InetAddress is mutable but there is no immutable form or copy constructor")
     public InetAddress getAddress() {
         return this.addr;
     }

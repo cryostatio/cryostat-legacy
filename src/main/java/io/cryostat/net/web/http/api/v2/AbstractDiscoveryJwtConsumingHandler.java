@@ -108,8 +108,8 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
             JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
         } catch (Exception e) {
-            if (e instanceof ApiException ae) {
-                throw ae;
+            if (e instanceof ApiException) {
+                throw (ApiException) e;
             }
             throw new ApiException(500, e);
         }
@@ -133,7 +133,7 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
         }
         InetAddress addr = null;
         HttpServerRequest req = ctx.request();
-        if (req != null && req.remoteAddress() != null) {
+        if (req.remoteAddress() != null) {
             addr = tryResolveAddress(addr, req.remoteAddress().host());
         }
         MultiMap headers = req.headers();
