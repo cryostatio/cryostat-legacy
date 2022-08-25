@@ -164,7 +164,6 @@ public class RuleProcessor extends AbstractVerticle
     public synchronized void accept(TargetDiscoveryEvent tde) {
         switch (tde.getEventKind()) {
             case FOUND:
-                System.out.println("Found " + tde.getEventKind());
                 registry.getRules(tde.getServiceRef())
                         .forEach(rule -> activate(rule, tde.getServiceRef()));
                 break;
@@ -310,7 +309,6 @@ public class RuleProcessor extends AbstractVerticle
     }
 
     private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
-        System.out.println("startRuleRecording, targetId: " + connectionDescriptor.getTargetId() + ", rule: " + rule.getName());
         vertx.<IRecordingDescriptor>executeBlocking(
                 promise -> {
                     try {
