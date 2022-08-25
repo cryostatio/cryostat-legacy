@@ -48,7 +48,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
@@ -141,7 +140,8 @@ public class JvmIdIT extends ExternalTargetsTest {
                                         "service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi"))
                         .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         String targetOneAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9093")).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9093"))
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         MatcherAssert.assertThat(targetOneAliasJvmId1, Matchers.equalTo(one));
         MatcherAssert.assertThat(targetOneAliasJvmId2, Matchers.equalTo(one));
@@ -159,7 +159,8 @@ public class JvmIdIT extends ExternalTargetsTest {
                                         "service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi"))
                         .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         String targetTwoAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9094")).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9094"))
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         MatcherAssert.assertThat(targetTwoAliasJvmId1, Matchers.equalTo(two));
         MatcherAssert.assertThat(targetTwoAliasJvmId2, Matchers.equalTo(two));
@@ -177,7 +178,8 @@ public class JvmIdIT extends ExternalTargetsTest {
                                         "service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi"))
                         .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         String targetThreeAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9095")).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9095"))
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         MatcherAssert.assertThat(targetThreeAliasJvmId1, Matchers.equalTo(three));
         MatcherAssert.assertThat(targetThreeAliasJvmId2, Matchers.equalTo(three));
