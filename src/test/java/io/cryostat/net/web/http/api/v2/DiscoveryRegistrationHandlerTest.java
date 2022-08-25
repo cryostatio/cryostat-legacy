@@ -37,7 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +56,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
@@ -164,9 +167,9 @@ class DiscoveryRegistrationHandlerTest {
 
         @Test
         void shouldRegisterWithStorageAndSendResponse() throws Exception {
-            UUID uuid = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
             Mockito.when(storage.register(Mockito.anyString(), Mockito.any(URI.class)))
-                    .thenReturn(uuid);
+                    .thenReturn(id);
 
             Mockito.when(requestParams.getBody())
                     .thenReturn(
@@ -174,16 +177,32 @@ class DiscoveryRegistrationHandlerTest {
                                     Map.of(
                                             "callback", "http://example.com/callback",
                                             "realm", "test-realm")));
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set("Authorization", "None");
+            Mockito.when(requestParams.getHeaders()).thenReturn(headers);
+
+            Mockito.when(webServer.getHostUrl()).thenReturn(new URL("http://localhost:8181/"));
+
+            InetAddress addr = Mockito.mock(InetAddress.class);
+            Mockito.when(requestParams.getAddress()).thenReturn(addr);
+
+            String token = "abcd-1234";
+            Mockito.when(
+                            jwt.createDiscoveryPluginJwt(
+                                    Mockito.any(String.class),
+                                    Mockito.any(String.class),
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.any(URI.class)))
+                    .thenReturn(token);
 
             IntermediateResponse<Map<String, String>> resp = handler.handle(requestParams);
 
             MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(201));
             MatcherAssert.assertThat(
                     resp.getHeaders(),
-                    Matchers.equalTo(Map.of(HttpHeaders.LOCATION, "/api/v2.2/discovery/" + uuid)));
+                    Matchers.equalTo(Map.of(HttpHeaders.LOCATION, "/api/v2.2/discovery/" + id)));
             MatcherAssert.assertThat(
-                    resp.getBody(),
-                    Matchers.equalTo(Map.of("token", "placeholder", "id", uuid.toString())));
+                    resp.getBody(), Matchers.equalTo(Map.of("token", token, "id", id.toString())));
 
             Mockito.verify(storage)
                     .register(

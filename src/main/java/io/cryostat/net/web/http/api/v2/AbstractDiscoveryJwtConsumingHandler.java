@@ -108,8 +108,8 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
             JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
         } catch (Exception e) {
-            if (e instanceof ApiException) {
-                throw (ApiException) e;
+            if (e instanceof ApiException ae) {
+                throw ae;
             }
             throw new ApiException(500, e);
         }
@@ -136,8 +136,8 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
         if (req != null && req.remoteAddress() != null) {
             addr = tryResolveAddress(addr, req.remoteAddress().host());
         }
-        MultiMap h = ctx.request().headers();
-        addr = tryResolveAddress(addr, h.get(RequestParameters.X_FORWARDED_FOR));
+        MultiMap headers = req.headers();
+        addr = tryResolveAddress(addr, headers.get(RequestParameters.X_FORWARDED_FOR));
 
         URL hostUrl = webServer.get().getHostUrl();
 
@@ -153,7 +153,7 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
             throw new ApiException(401, e);
         }
 
-        URI requestUri = new URI(ctx.request().absoluteURI());
+        URI requestUri = new URI(req.absoluteURI());
         URI fullRequestUri =
                 new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
                         .resolve(requestUri.getRawPath());

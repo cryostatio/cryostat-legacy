@@ -79,7 +79,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryPostHandlerTest {
-    AbstractDiscoveryJwtConsumingHandler handler;
+    AbstractDiscoveryJwtConsumingHandler<Void> handler;
     @Mock AuthManager auth;
     @Mock DiscoveryJwtHelper jwt;
     @Mock WebServer webServer;
@@ -130,11 +130,6 @@ class DiscoveryPostHandlerTest {
         @Mock HttpServerResponse resp;
         @Mock JWT jwt;
 
-        @BeforeEach
-        void setup() {
-            Mockito.when(ctx.response()).thenReturn(resp);
-        }
-
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {" ", "\n", "\t", "not a uuid", "1234", "abc-123"})
@@ -171,7 +166,9 @@ class DiscoveryPostHandlerTest {
         }
 
         @Test
-        @Disabled
+        @Disabled(
+                "Test harness gson instance cannot deserialize AbstractNode - needs to have the"
+                        + " various adapters registered")
         void shouldUpdateStorageAndSendResponse() throws Exception {
             UUID uuid = UUID.randomUUID();
             Mockito.when(storage.deregister(Mockito.any(UUID.class))).thenReturn(null);
