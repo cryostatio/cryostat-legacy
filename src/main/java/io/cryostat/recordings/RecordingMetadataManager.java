@@ -158,7 +158,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             }
                             else {
                                 logger.warn("Metadata with no jvmId originating from {}", targetId);
-                                String newJvmId = computeJvmId(targetId);
+                                String newJvmId = computeJvmId(new ConnectionDescriptor(targetId));
                                 if (newJvmId == null) {
                                     throw new IllegalStateException("new jvmId should have been computed");
                                 }
@@ -467,20 +467,18 @@ public class RecordingMetadataManager extends AbstractVerticle
                 base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
     }
 
-    private String computeJvmId(String targetId) {
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES)) {
+    private String computeJvmId(ConnectionDescriptor cd) {
+        if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)) {
             return RecordingArchiveHelper.ARCHIVES;
         }
 
         try {
-            ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
-
             if (cd.getCredentials().isEmpty()) {
                 cd =
                         new ConnectionDescriptor(
-                                targetId,
+                                cd.getTargetId(),
                                 credentialsManager.getCredentialsByTargetId(
-                                        targetId));
+                                        cd.getTargetId()));
             }
 
             return this.targetConnectionManager.executeConnectedTask(
@@ -501,7 +499,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
                         k -> {
-                            return computeJvmId(targetId);
+                            return computeJvmId(connectionDescriptor);
                         });
 
         if (jvmId == null) {
