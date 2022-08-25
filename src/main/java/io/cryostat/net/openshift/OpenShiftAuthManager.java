@@ -111,7 +111,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final String LOGOUT_URL_KEY = "logout";
     private static final String OAUTH_METADATA_KEY = "oauth_metadata";
     private static final String CRYOSTAT_OAUTH_CLIENT_ID = "CRYOSTAT_OAUTH_CLIENT_ID";
-    private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
+    private static final String CRYOSTAT_BASE_OAUTH_ROLE = "CRYOSTAT_BASE_OAUTH_ROLE";
+    private static final String CRYOSTAT_CUSTOM_OAUTH_ROLE = "CRYOSTAT_CUSTOM_OAUTH_ROLE";
 
     static final Pattern RESOURCE_PATTERN =
             Pattern.compile(
@@ -531,12 +532,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private String getTokenScope() throws MissingEnvironmentVariableException {
-        Optional<String> tokenScope = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
-        return String.format(
-                "user:check-access role:%s:%s",
-                tokenScope.orElseThrow(
-                        () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_ROLE)),
-                namespace.get());
+        Optional<String> baseRoleScope = Optional.ofNullable(env.getEnv(CRYOSTAT_BASE_OAUTH_ROLE));
+
+        String tokenScope =
+                String.format(
+                        "user:check-access role:%s:%s",
+                        baseRoleScope.orElseThrow(
+                                () ->
+                                        new MissingEnvironmentVariableException(
+                                                CRYOSTAT_BASE_OAUTH_ROLE)),
+                        namespace.get());
+
+        Optional<String> customRoleScope =
+                Optional.ofNullable(env.getEnv(CRYOSTAT_CUSTOM_OAUTH_ROLE));
+
+        if (customRoleScope.isPresent()) {
+            tokenScope =
+                    String.format(
+                            "%s role:%s:%s", tokenScope, customRoleScope.get(), namespace.get());
+        }
+        return tokenScope;
     }
 
     private String getOauthAccessTokenName(String token) {
