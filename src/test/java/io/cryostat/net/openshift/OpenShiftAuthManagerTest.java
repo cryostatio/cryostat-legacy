@@ -121,7 +121,7 @@ class OpenShiftAuthManagerTest {
     static final String BASE_TOKEN_SCOPE =
             String.format("user:check-access+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
     static final String CUSTOM_TOKEN_SCOPE =
-            String.format("%s+role:%s:%s", BASE_ROLE_SCOPE, CUSTOM_ROLE_SCOPE, NAMESPACE);
+            String.format("%s+role:%s:%s", BASE_TOKEN_SCOPE, CUSTOM_ROLE_SCOPE, NAMESPACE);
     static final String BASE_OAUTH_QUERY_PARAMETERS =
             String.format(
                     "?client_id=%s&response_type=token&response_mode=fragment&scope=%s",
@@ -384,6 +384,51 @@ class OpenShiftAuthManagerTest {
                 actualLoginRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
     }
 
+    @Test
+    void shouldSendRedirectResponseWithValidCustomOAuthRoleScope() throws Exception {
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, CUSTOM_ROLE_SCOPE);
+
+        Mockito.when(client.getHttpClient()).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+
+        HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
+        Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
+        Mockito.when(requestBuilder.header(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(requestBuilder);
+
+        HttpRequest request = Mockito.mock(HttpRequest.class);
+        Mockito.when(requestBuilder.build()).thenReturn(request);
+        Mockito.when(httpClient.newHttpRequestBuilder()).thenReturn(requestBuilder);
+
+        HttpResponse<String> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(resp.body()).thenReturn(OAUTH_METADATA);
+
+        Mockito.when(httpClient.sendAsync(request, String.class))
+                .thenReturn(CompletableFuture.completedFuture(resp));
+
+        String actualLoginRedirectUrl =
+                mgr.getLoginRedirectUrl(() -> "Bearer ", ResourceAction.NONE).get();
+
+        MatcherAssert.assertThat(
+                actualLoginRedirectUrl, Matchers.equalTo(CUSTOM_EXPECTED_LOGIN_REDIRECT_URL));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void shouldThrowWhenCustomOAuthRoleScopeIsInvalid(String invalidCustomRoleScope)
+            throws Exception {
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, invalidCustomRoleScope);
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> mgr.getLoginRedirectUrl(() -> "Bearer ", ResourceAction.NONE).get());
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee),
+                Matchers.instanceOf(IllegalArgumentException.class));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
     void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
@@ -419,6 +464,7 @@ class OpenShiftAuthManagerTest {
                 actualLoginRedirectUrl, Matchers.equalTo(BASE_EXPECTED_LOGIN_REDIRECT_URL));
     }
 
+    // CLIENT_ID and BASE_OAUTH_ROLE must be set while CUSTOM_OAUTH_ROLE is optional
     @ParameterizedTest
     @CsvSource(value = {",", CLIENT_ID + ",", "," + BASE_ROLE_SCOPE})
     void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String tokenScope)
@@ -439,7 +485,8 @@ class OpenShiftAuthManagerTest {
         Mockito.when(client.getHttpClient()).thenReturn(httpClient);
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
 
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, null, CLIENT_ID, BASE_ROLE_SCOPE, null);
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn(CLIENT_ID, BASE_ROLE_SCOPE, null, CLIENT_ID, BASE_ROLE_SCOPE, null);
 
         HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
         Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
