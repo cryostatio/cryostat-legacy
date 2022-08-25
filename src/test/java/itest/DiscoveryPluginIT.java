@@ -61,6 +61,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     final String realm = getClass().getSimpleName();
     final URI callback = URI.create("http://localhost:8181/");
     private static volatile String id;
+    private static volatile String token;
 
     @Test
     @Order(1)
@@ -70,6 +71,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {
@@ -79,7 +81,9 @@ class DiscoveryPluginIT extends StandardSelfTest {
         JsonObject resp = response.get();
         JsonObject info = resp.getJsonObject("data").getJsonObject("result");
         DiscoveryPluginIT.id = info.getString("id");
-        MatcherAssert.assertThat(id, Matchers.notNullValue());
+        DiscoveryPluginIT.token = info.getString("token");
+        MatcherAssert.assertThat(id, Matchers.not(Matchers.emptyOrNullString()));
+        MatcherAssert.assertThat(token, Matchers.not(Matchers.emptyOrNullString()));
     }
 
     @Test
@@ -90,6 +94,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {
@@ -117,6 +122,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
         CompletableFuture<Buffer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery/" + id)
+                .addQueryParam("token", token)
                 .sendJson(
                         subtree,
                         ar -> {
@@ -127,7 +133,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void shouldFailToUpdateWithInvalidSubtreeJson()
             throws InterruptedException, ExecutionException {
         JsonObject service = new JsonObject(Map.of("connectUrl", callback, "alias", "mynode"));
@@ -146,6 +152,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery/" + id)
+                .addQueryParam("token", token)
                 .sendBuffer(
                         Buffer.buffer(body),
                         ar -> {
@@ -156,13 +163,14 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(4)
-    void shouldFailToReregister() throws InterruptedException, ExecutionException {
+    @Order(5)
+    void shouldFailToReregisterWithoutToken() throws InterruptedException, ExecutionException {
         JsonObject body = new JsonObject(Map.of("realm", realm, "callback", callback));
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {
@@ -174,10 +182,41 @@ class DiscoveryPluginIT extends StandardSelfTest {
 
     @Test
     @Order(6)
+    void shouldBeAbleToRefreshToken() throws InterruptedException, ExecutionException {
+        JsonObject body =
+                new JsonObject(Map.of("realm", realm, "callback", callback, "token", token));
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                // intentionally don't include this header on refresh - it should still work
+                // .putHeader("Authorization", "None")
+                .sendJson(
+                        body,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                            response.complete(ar.result().bodyAsJsonObject());
+                        });
+        JsonObject resp = response.get();
+        JsonObject info = resp.getJsonObject("data").getJsonObject("result");
+        String newId = info.getString("id");
+        MatcherAssert.assertThat(newId, Matchers.equalTo(DiscoveryPluginIT.id));
+        MatcherAssert.assertThat(newId, Matchers.not(Matchers.emptyOrNullString()));
+        DiscoveryPluginIT.id = newId;
+
+        String newToken = info.getString("token");
+        MatcherAssert.assertThat(newToken, Matchers.not(Matchers.equalTo(DiscoveryPluginIT.token)));
+        MatcherAssert.assertThat(token, Matchers.not(Matchers.emptyOrNullString()));
+        DiscoveryPluginIT.token = newToken;
+    }
+
+    @Test
+    @Order(7)
     void shouldBeAbleToDeregister() throws InterruptedException, ExecutionException {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .delete("/api/v2.2/discovery/" + id)
+                .addQueryParam("token", token)
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
@@ -188,11 +227,12 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     void shouldFailToDoubleDeregister() throws InterruptedException, ExecutionException {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .delete("/api/v2.2/discovery/" + id)
+                .addQueryParam("token", token)
                 .send(
                         ar -> {
                             response.complete(ar.result().statusCode());
@@ -202,7 +242,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void shouldFailToUpdateUnregisteredPluginID() throws InterruptedException, ExecutionException {
         JsonObject service = new JsonObject(Map.of("connectUrl", callback, "alias", "mynode"));
         JsonObject target =
@@ -229,30 +269,14 @@ class DiscoveryPluginIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     void shouldFailToRegisterNullCallback() throws InterruptedException, ExecutionException {
         JsonObject body = new JsonObject(Map.of("realm", realm));
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
-                .sendJson(
-                        body,
-                        ar -> {
-                            response.complete(ar.result().statusCode());
-                        });
-        int code = response.get();
-        MatcherAssert.assertThat(code, Matchers.equalTo(400));
-    }
-
-    @Test
-    @Order(10)
-    void shouldFailToRegisterEmptyCallback() throws InterruptedException, ExecutionException {
-        JsonObject body = new JsonObject(Map.of("realm", realm, "callback", ""));
-
-        CompletableFuture<Integer> response = new CompletableFuture<>();
-        webClient
-                .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {
@@ -264,12 +288,13 @@ class DiscoveryPluginIT extends StandardSelfTest {
 
     @Test
     @Order(11)
-    void shouldFailToRegisterNullRealm() throws InterruptedException, ExecutionException {
-        JsonObject body = new JsonObject(Map.of("callback", callback));
+    void shouldFailToRegisterEmptyCallback() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("realm", realm, "callback", ""));
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {
@@ -281,12 +306,31 @@ class DiscoveryPluginIT extends StandardSelfTest {
 
     @Test
     @Order(12)
+    void shouldFailToRegisterNullRealm() throws InterruptedException, ExecutionException {
+        JsonObject body = new JsonObject(Map.of("callback", callback));
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
+                .sendJson(
+                        body,
+                        ar -> {
+                            response.complete(ar.result().statusCode());
+                        });
+        int code = response.get();
+        MatcherAssert.assertThat(code, Matchers.equalTo(400));
+    }
+
+    @Test
+    @Order(13)
     void shouldFailToRegisterEmptyRealm() throws InterruptedException, ExecutionException {
         JsonObject body = new JsonObject(Map.of("realm", "", "callback", callback));
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery")
+                .putHeader("Authorization", "None")
                 .sendJson(
                         body,
                         ar -> {

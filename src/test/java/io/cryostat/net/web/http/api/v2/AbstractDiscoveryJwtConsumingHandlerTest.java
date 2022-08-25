@@ -51,11 +51,28 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.PluginInfo;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.api.ApiVersion;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.BadJWTException;
-
+import dagger.Lazy;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -66,24 +83,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import dagger.Lazy;
-import io.cryostat.core.log.Logger;
-import io.cryostat.discovery.DiscoveryStorage;
-import io.cryostat.discovery.PluginInfo;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.PermissionDeniedException;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.net.SocketAddress;
-import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractDiscoveryJwtConsumingHandlerTest {
@@ -100,9 +99,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new JwtConsumingHandler(
-                        storage, auth, jwtHelper, () -> webServer, logger);
+        this.handler = new JwtConsumingHandler(storage, auth, jwtHelper, () -> webServer, logger);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
         Mockito.lenient()
                 .when(
@@ -124,7 +121,9 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
         @Mock PluginInfo pluginInfo;
 
         @BeforeEach
-        void setup() throws MalformedURLException, SocketException, UnknownHostException, URISyntaxException {
+        void setup()
+                throws MalformedURLException, SocketException, UnknownHostException,
+                        URISyntaxException {
             headers = MultiMap.caseInsensitiveMultiMap();
             queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("token", "mytoken");
@@ -133,10 +132,15 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Mockito.lenient().when(ctx.pathParam("id")).thenReturn(id.toString());
             Mockito.lenient().when(ctx.request()).thenReturn(req);
             Mockito.lenient().when(req.headers()).thenReturn(headers);
-            Mockito.lenient().when(req.absoluteURI())
+            Mockito.lenient()
+                    .when(req.absoluteURI())
                     .thenReturn("http://cryostat.example.com:8080/api/resource");
-            Mockito.lenient().when(req.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(8181, "localhost"));
-            Mockito.lenient().when(webServer.getHostUrl()).thenReturn(new URL("http://localhost:8181/"));
+            Mockito.lenient()
+                    .when(req.remoteAddress())
+                    .thenReturn(SocketAddress.inetSocketAddress(8181, "localhost"));
+            Mockito.lenient()
+                    .when(webServer.getHostUrl())
+                    .thenReturn(new URL("http://localhost:8181/"));
             Mockito.lenient().when(storage.getById(id)).thenReturn(Optional.of(pluginInfo));
             Mockito.lenient().when(pluginInfo.getRealm()).thenReturn("test-realm");
         }
@@ -151,8 +155,12 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfJwtDoesntParse() throws Exception {
-            Mockito.when(jwtHelper.parseDiscoveryPluginJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.any(URI.class), Mockito.any(InetAddress.class)))
+            Mockito.when(
+                            jwtHelper.parseDiscoveryPluginJwt(
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.any(URI.class),
+                                    Mockito.any(InetAddress.class)))
                     .thenThrow(new BadJWTException(""));
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -165,8 +173,13 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.when(jwt.getJWTClaimsSet()).thenReturn(claims);
             Mockito.when(claims.getStringClaim("resource")).thenReturn("not-a-uri");
-            Mockito.when(jwtHelper.parseDiscoveryPluginJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.any(URI.class), Mockito.any(InetAddress.class))).thenReturn(jwt);
+            Mockito.when(
+                            jwtHelper.parseDiscoveryPluginJwt(
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.any(URI.class),
+                                    Mockito.any(InetAddress.class)))
+                    .thenReturn(jwt);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -180,8 +193,13 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Mockito.when(jwt.getJWTClaimsSet()).thenReturn(claims);
             Mockito.when(claims.getStringClaim("resource"))
                     .thenReturn("http://othercryostat.com:8080/api/resource");
-            Mockito.when(jwtHelper.parseDiscoveryPluginJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.any(URI.class), Mockito.any(InetAddress.class))).thenReturn(jwt);
+            Mockito.when(
+                            jwtHelper.parseDiscoveryPluginJwt(
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.any(URI.class),
+                                    Mockito.any(InetAddress.class)))
+                    .thenReturn(jwt);
 
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
@@ -202,7 +220,9 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
         @Mock PluginInfo pluginInfo;
 
         @BeforeEach
-        void setup() throws MalformedURLException, SocketException, UnknownHostException, URISyntaxException, ParseException, JOSEException, BadJWTException {
+        void setup()
+                throws MalformedURLException, SocketException, UnknownHostException,
+                        URISyntaxException, ParseException, JOSEException, BadJWTException {
             headers = MultiMap.caseInsensitiveMultiMap();
             queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("token", "mytoken");
@@ -211,20 +231,32 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Mockito.lenient().when(ctx.pathParam("id")).thenReturn(id.toString());
             Mockito.lenient().when(ctx.request()).thenReturn(req);
             Mockito.lenient().when(req.headers()).thenReturn(headers);
-            Mockito.lenient().when(req.absoluteURI())
+            Mockito.lenient()
+                    .when(req.absoluteURI())
                     .thenReturn("http://localhost:8181/api/v2.2/discovery/" + id.toString());
-            Mockito.lenient().when(req.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(8181, "localhost"));
-            Mockito.lenient().when(webServer.getHostUrl()).thenReturn(new URL("http://localhost:8181/"));
+            Mockito.lenient()
+                    .when(req.remoteAddress())
+                    .thenReturn(SocketAddress.inetSocketAddress(8181, "localhost"));
+            Mockito.lenient()
+                    .when(webServer.getHostUrl())
+                    .thenReturn(new URL("http://localhost:8181/"));
             Mockito.lenient().when(storage.getById(id)).thenReturn(Optional.of(pluginInfo));
             Mockito.lenient().when(pluginInfo.getRealm()).thenReturn("test-realm");
 
             JWT jwt = Mockito.mock(JWT.class);
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.lenient().when(jwt.getJWTClaimsSet()).thenReturn(claims);
-            Mockito.lenient().when(claims.getStringClaim("resource"))
+            Mockito.lenient()
+                    .when(claims.getStringClaim("resource"))
                     .thenReturn("http://localhost:8181/api/v2.2/discovery/" + id.toString());
-            Mockito.lenient().when(jwtHelper.parseDiscoveryPluginJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.any(URI.class), Mockito.any(InetAddress.class))).thenReturn(jwt);
+            Mockito.lenient()
+                    .when(
+                            jwtHelper.parseDiscoveryPluginJwt(
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.any(URI.class),
+                                    Mockito.any(InetAddress.class)))
+                    .thenReturn(jwt);
         }
 
         @Test
@@ -320,30 +352,41 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             params = MultiMap.caseInsensitiveMultiMap();
             HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
             Mockito.lenient().when(ctx.request()).thenReturn(req);
-            Mockito.lenient().when(req.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(8181,
-                        "localhost"));
+            Mockito.lenient()
+                    .when(req.remoteAddress())
+                    .thenReturn(SocketAddress.inetSocketAddress(8181, "localhost"));
             Mockito.lenient().when(ctx.queryParams()).thenReturn(params);
             Mockito.lenient().when(req.headers()).thenReturn(headers);
             Mockito.lenient().when(ctx.pathParam("id")).thenReturn(UUID.randomUUID().toString());
-            Mockito.lenient().when(req.absoluteURI())
+            Mockito.lenient()
+                    .when(req.absoluteURI())
                     .thenReturn("http://localhost:8181/api/v2.2/discovery/" + id.toString());
 
             params.set("token", "mytoken");
-            Mockito.lenient().when(storage.getById(Mockito.any())).thenReturn(Optional.of(pluginInfo));
+            Mockito.lenient()
+                    .when(storage.getById(Mockito.any()))
+                    .thenReturn(Optional.of(pluginInfo));
             Mockito.lenient().when(pluginInfo.getRealm()).thenReturn("test-realm");
 
             JWT jwt = Mockito.mock(JWT.class);
             JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
             Mockito.lenient().when(jwt.getJWTClaimsSet()).thenReturn(claims);
-            Mockito.lenient().when(claims.getStringClaim("resource"))
+            Mockito.lenient()
+                    .when(claims.getStringClaim("resource"))
                     .thenReturn("http://localhost:8181/api/v2.2/discovery/" + id.toString());
-            Mockito.when(jwtHelper.parseDiscoveryPluginJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.any(URI.class), Mockito.any(InetAddress.class))).thenReturn(jwt);
+            Mockito.when(
+                            jwtHelper.parseDiscoveryPluginJwt(
+                                    Mockito.anyString(),
+                                    Mockito.anyString(),
+                                    Mockito.any(URI.class),
+                                    Mockito.any(InetAddress.class)))
+                    .thenReturn(jwt);
 
             URL hostUrl = new URL("http://localhost:8181/api/v2.2/discovery/" + id.toString());
             Mockito.lenient().when(webServer.getHostUrl()).thenReturn(hostUrl);
 
-            Mockito.lenient().when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.lenient()
+                    .when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -352,12 +395,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Exception expectedException = new ApiException(200);
             handler =
                     new ThrowingJwtConsumingHandler(
-                            storage,
-                            auth,
-                            jwtHelper,
-                            () -> webServer,
-                            logger,
-                            expectedException);
+                            storage, auth, jwtHelper, () -> webServer, logger, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -369,12 +407,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Exception expectedException = new NullPointerException();
             handler =
                     new ThrowingJwtConsumingHandler(
-                            storage,
-                            auth,
-                            jwtHelper,
-                            () -> webServer,
-                            logger,
-                            expectedException);
+                            storage, auth, jwtHelper, () -> webServer, logger, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -425,8 +458,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                 DiscoveryJwtHelper jwtHelper,
                 Lazy<WebServer> webServer,
                 Logger logger,
-                Exception thrown
-) {
+                Exception thrown) {
             super(storage, auth, jwtHelper, webServer, logger);
             this.thrown = thrown;
         }

@@ -44,6 +44,7 @@ import java.net.URL;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -51,6 +52,7 @@ import javax.inject.Inject;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
+import io.cryostat.discovery.RegistrationException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
@@ -143,11 +145,17 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
         }
 
         InetAddress address = params.getAddress();
-        String authzHeader = params.getHeaders().get(HttpHeaders.AUTHORIZATION);
+        String authzHeader =
+                Optional.ofNullable(params.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                        .orElse("None");
         String pluginId;
         URL hostUrl = webServer.get().getHostUrl();
         if (StringUtils.isBlank(priorToken)) {
-            pluginId = storage.register(realm, callbackUri).toString();
+            try {
+                pluginId = storage.register(realm, callbackUri).toString();
+            } catch (RegistrationException e) {
+                throw new ApiException(400, e);
+            }
         } else {
             PluginInfo plugin = storage.getByRealm(realm).orElseThrow(() -> new ApiException(404));
             if (!Objects.equals(plugin.getRealm(), realm)) {

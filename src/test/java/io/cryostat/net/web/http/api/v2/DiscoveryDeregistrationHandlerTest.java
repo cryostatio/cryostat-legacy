@@ -40,9 +40,25 @@ package io.cryostat.net.web.http.api.v2;
 import java.util.Set;
 import java.util.UUID;
 
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiData;
+import io.cryostat.net.web.http.api.ApiMeta;
+import io.cryostat.net.web.http.api.ApiResponse;
+import io.cryostat.net.web.http.api.ApiResultData;
+import io.cryostat.net.web.http.api.ApiVersion;
+
 import com.google.gson.Gson;
 import com.nimbusds.jwt.JWT;
-
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -57,23 +73,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.MainModule;
-import io.cryostat.net.web.http.api.ApiResponse;
-import io.cryostat.net.web.http.api.ApiMeta;
-import io.cryostat.net.web.http.api.ApiData;
-import io.cryostat.net.web.http.api.ApiResultData;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.core.log.Logger;
-import io.cryostat.discovery.DiscoveryStorage;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryDeregistrationHandlerTest {
@@ -163,8 +162,8 @@ class DiscoveryDeregistrationHandlerTest {
 
             ApiData data = resp.getData();
             MatcherAssert.assertThat(data, Matchers.isA(ApiResultData.class));
-            MatcherAssert.assertThat(((ApiResultData) data).getResult(),
-                    Matchers.equalTo(uuid.toString()));
+            MatcherAssert.assertThat(
+                    ((ApiResultData) data).getResult(), Matchers.equalTo(uuid.toString()));
         }
     }
 }
