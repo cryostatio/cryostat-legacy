@@ -179,6 +179,23 @@ public class RecordingMetadataManager extends AbstractVerticle
         String targetId = tde.getServiceRef().getServiceUri().toString();
         String oldJvmId = jvmIdMap.get(targetId);
         System.out.println("ACCEPTED!!!!!!!!!!!! for " + targetId + " oldJvmId: " + oldJvmId);
+        for (var e : recordingMetadataMap.entrySet()) {
+            System.out.println("jvmId: " + e.getKey().getLeft());
+            System.out.println("recordingName: " + e.getKey().getRight());
+            System.out.println("metadata: " + e.getValue().getLabels());
+            System.out.println("\n");
+        }
+
+        for (var e : jvmIdMap.entrySet()) {
+            System.out.println("targetId: " + e.getKey());
+            System.out.println("jvmId: " + e.getValue());
+            System.out.println("\n");
+        }
+
+        if (oldJvmId == null) {
+            logger.info("Target {} did not have a jvmId", targetId);
+            return;
+        }
 
         Credentials credentials;
         ConnectionDescriptor cd;
@@ -201,19 +218,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             default:
                 throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
-        System.out.println("AFTER ACCEPPTED for: " + targetId + "\n");
-        for (var e : recordingMetadataMap.entrySet()) {
-            System.out.println("jvmId: " + e.getKey().getLeft());
-            System.out.println("recordingName: " + e.getKey().getRight());
-            System.out.println("metadata: " + e.getValue().getLabels());
-            System.out.println("\n");
-        }
 
-        for (var e : jvmIdMap.entrySet()) {
-            System.out.println("targetId: " + e.getKey());
-            System.out.println("jvmId: " + e.getValue());
-            System.out.println("\n");
-        }
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -341,32 +346,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private void transferMetadata(ConnectionDescriptor cd, String targetId, String oldJvmId, String newJvmId) throws IOException {
-        recordingMetadataMap.keySet().stream()
-        .filter(
-                keyPair ->
-                        keyPair.getKey() != null && keyPair.getKey().equals(oldJvmId))
-        .forEach(
-                keyPair -> {
-                    try {
-                        String recordingName = keyPair.getValue();
-                        if (isArchivedRecording(recordingName)) {
-                            Metadata m = this.getMetadata(cd, recordingName);
-                            deleteRecordingMetadataIfExists(cd, recordingName);
-                            jvmIdMap.put(targetId, newJvmId);
-                            setRecordingMetadata(cd, recordingName, m);
-                            jvmIdMap.put(targetId, oldJvmId);
-                        } else {
-                            deleteRecordingMetadataIfExists(cd, recordingName);
-                        }
-                    } catch (IOException e) {
-                        logger.error(
-                                "Metadata could not be transferred",
-                                e);
-                    }
-                });
-    }
-
     private void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
         if (oldJvmId.equals(newJvmId)) {
             return;
@@ -375,6 +354,9 @@ public class RecordingMetadataManager extends AbstractVerticle
                 .filter(e -> e.getValue().equals(oldJvmId))
                 .forEach(
                         e -> {
+                            System.out.println("transferring target: " + e.getKey());
+                            System.out.println("tramsferring jvmId: " + oldJvmId);
+                            System.out.println("to newJvmId: " + newJvmId);
                             jvmIdMap.put(e.getKey(), newJvmId);
                         });
     }
@@ -383,6 +365,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
                 System.out.println("oldJvmId: " + oldJvmId);
                 System.out.println("targetId: " + targetId);
+                System.out.println("transferMetadataIfRestarted");
         try {
             String newJvmId =
                     this.targetConnectionManager.executeConnectedTask(
@@ -414,7 +397,28 @@ public class RecordingMetadataManager extends AbstractVerticle
                 return;
             }
             logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
-            transferMetadata(cd, targetId, oldJvmId, newJvmId);
+            recordingMetadataMap.keySet().stream()
+            .filter(
+                    keyPair ->
+                            keyPair.getKey() != null && keyPair.getKey().equals(oldJvmId))
+            .forEach(
+                    keyPair -> {
+                        try {
+                            String recordingName = keyPair.getValue();
+
+                                Metadata m = this.getMetadata(cd, recordingName);
+                                deleteRecordingMetadataIfExists(cd, recordingName);
+                                jvmIdMap.put(targetId, newJvmId);
+                                setRecordingMetadata(cd, recordingName, m);
+                                jvmIdMap.put(targetId, oldJvmId);
+
+                        } catch (IOException e) {
+                            logger.error(
+                                    "Metadata could not be transferred",
+                                    e);
+                        }
+                    });
+            jvmIdMap.put(targetId, newJvmId);
             transferJvmIds(oldJvmId, newJvmId);
             logger.info(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
@@ -424,6 +428,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private void removeLostTargetMetadata(ConnectionDescriptor cd, String unreachableJvmId) {
+        System.out.println("removeLostTargetMetadata");
         staleMetadataTimers.computeIfAbsent(
                 unreachableJvmId,
                 k ->
@@ -447,6 +452,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
                                                             if (!isArchivedRecording(
                                                                     recordingName)) {
+                                                                        System.out.println("deleted: " + recordingName + " from " + unreachableJvmId);
                                                                 deleteRecordingMetadataIfExists(
                                                                         cd, recordingName);
                                                             }

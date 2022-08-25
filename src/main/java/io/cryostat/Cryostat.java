@@ -92,21 +92,45 @@ class Cryostat extends AbstractVerticle {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null)));
 
-        List<Future> futures =
-                List.of(
-                        client.deployer().deploy(client.discoveryStorage(), true),
-                        client.deployer().deploy(client.httpServer(), false),
-                        client.deployer().deploy(client.webServer(), false),
-                        client.deployer().deploy(client.messagingServer(), false),
-                        client.deployer().deploy(client.ruleProcessor(), true),
-                        client.deployer().deploy(client.recordingMetadataManager(), false));
-        CompositeFuture.join(futures)
-                .onSuccess(cf -> future.complete())
-                .onFailure(
-                        t -> {
-                            future.fail(t);
-                            shutdown(t);
-                        });
+        client.deployer().deploy(client.httpServer(), false)
+            .compose((m) -> {
+                return client.deployer().deploy(client.webServer(), false);
+            }).compose((m) -> {
+                return client.deployer().deploy(client.messagingServer(), false);
+            }).compose((m) -> {
+                return client.deployer().deploy(client.ruleProcessor(), true);
+            }).compose((m) -> {
+                return client.deployer().deploy(client.recordingMetadataManager(), true);
+            }).compose((m) -> {
+                return client.deployer().deploy(client.discoveryStorage(), true);
+            })
+            .onSuccess(cf -> future.complete())
+            .onFailure(
+                            t -> {
+                                future.fail((Throwable) t);
+                                shutdown((Throwable)t);
+                            });
+
+            
+
+        // List<Future> futures =
+        //         List.of(
+
+        //                 client.deployer().deploy(client.discoveryStorage(), true),
+        //                 client.deployer().deploy(client.httpServer(), false),
+        //                 client.deployer().deploy(client.webServer(), false),
+        //                 client.deployer().deploy(client.messagingServer(), false),
+        //                 client.deployer().deploy(client.ruleProcessor(), true),
+        //                 client.deployer().deploy(client.recordingMetadataManager(), true));
+
+    
+        // CompositeFuture.join(futures)
+        //         .onSuccess(cf -> future.complete())
+        //         .onFailure(
+        //                 t -> {
+        //                     future.fail(t);
+        //                     shutdown(t);
+        //                 });
     }
 
     @Override
