@@ -69,6 +69,7 @@ import org.hibernate.exception.ConstraintViolationException;
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
+    public static final Duration PING_PERIOD = Duration.ofMinutes(5);
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
@@ -102,7 +103,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                         .onFailure(t -> future.fail((Throwable) t)))
                 .onFailure(future::fail);
 
-        this.timerId = getVertx().setPeriodic(Duration.ofMinutes(5).toMillis(), i -> pingPrune());
+        this.timerId = getVertx().setPeriodic(PING_PERIOD.toMillis(), i -> pingPrune());
     }
 
     @Override

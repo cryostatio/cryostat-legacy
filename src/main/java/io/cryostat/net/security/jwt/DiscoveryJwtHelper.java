@@ -46,13 +46,13 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -106,10 +106,7 @@ public class DiscoveryJwtHelper {
         URL hostUrl = webServer.get().getHostUrl();
         String issuer = hostUrl.toString();
         Date now = Date.from(Instant.now());
-        // FIXME extract this constant somewhere. We ping discovery plugins every 5 minutes, so
-        // the tokens we supply them need to be valid at least that long. On ping we supply a new
-        // token that the plugin should use to replace their previous one, which will soon expire.
-        Date expiry = Date.from(now.toInstant().plus(5, ChronoUnit.MINUTES));
+        Date expiry = Date.from(now.toInstant().plus(DiscoveryStorage.PING_PERIOD.multipliedBy(2)));
         JWTClaimsSet claims =
                 new JWTClaimsSet.Builder()
                         .issuer(issuer)
