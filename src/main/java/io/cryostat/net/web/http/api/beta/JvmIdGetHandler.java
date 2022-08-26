@@ -45,28 +45,28 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.net.web.http.api.v2.ApiException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 
 class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "targets/:targetId";
-    private final RecordingMetadataManager recordingMetadataManager;
+    private final TargetConnectionManager targetConnectionManager;
 
     @Inject
     JvmIdGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Logger logger,
-            RecordingMetadataManager recordingMetadataManager) {
+            TargetConnectionManager targetConnectionManager) {
         super(auth, credentialsManager, logger);
-        this.recordingMetadataManager = recordingMetadataManager;
+        this.targetConnectionManager = targetConnectionManager;
     }
 
     @Override
@@ -94,11 +94,24 @@ class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
         String targetId = ctx.pathParam("targetId");
         try {
             ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
-            String jvmId = this.recordingMetadataManager.getJvmId(cd);
+            if (cd.getCredentials().isEmpty()) {
+                cd =
+                        new ConnectionDescriptor(
+                                cd.getTargetId(),
+                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
+            }
+
+            String jvmId =
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                return (String) connection.getJvmId();
+                            });
+
             ctx.response().setStatusCode(200).end(jvmId);
         } catch (Exception e) {
             logger.error("Couldn't get the jvmId from {}", targetId);
-            throw new HttpException(500);
+            throw new ApiException(500);
         }
     }
 }
