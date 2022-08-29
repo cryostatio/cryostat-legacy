@@ -62,6 +62,7 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -620,11 +621,5 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                 e.getCause()));
             }
         }
-    }
-
-    private static class StoredCredential {
-        int id;
-        String matchExpression;
-        int numMatchingTargets;
     }
 }
