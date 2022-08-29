@@ -133,7 +133,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.platformClient.addTargetDiscoveryListener(this);
 
         this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                .peek(n -> logger.info("Recording Metadata file: {}", n))
+                .peek(n -> logger.trace("Recording Metadata file: {}", n))
                 .map(recordingMetadataDir::resolve)
                 .map(
                         path -> {
@@ -179,7 +179,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         String oldJvmId = jvmIdMap.get(targetId);
 
         if (oldJvmId == null) {
-            logger.info("Target {} did not have a jvmId", targetId);
+            logger.trace("Target {} did not have a jvmId", targetId);
             return;
         }
 
@@ -359,7 +359,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             });
 
             if (newJvmId == null) {
-                logger.info(
+                logger.trace(
                         "Couldn't generate a new jvmId for target {} with old jvmId {}",
                         targetId,
                         oldJvmId);
@@ -373,7 +373,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 }
                 return;
             }
-            logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
+            logger.trace("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             recordingMetadataMap.keySet().stream()
                     .filter(
                             keyPair ->
@@ -395,7 +395,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             });
             jvmIdMap.put(targetId, newJvmId);
             transferJvmIds(oldJvmId, newJvmId);
-            logger.info(
+            logger.trace(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
             logger.error("Metadata could not be transferred upon target restart", e);
