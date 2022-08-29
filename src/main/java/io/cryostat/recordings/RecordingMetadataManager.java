@@ -158,8 +158,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 logger.warn("Metadata with no jvmId originating from {}", targetId);
                                 String newJvmId = computeJvmId(new ConnectionDescriptor(targetId));
                                 if (newJvmId == null) {
-                                    throw new IllegalStateException(
-                                            "new jvmId should have been computed");
+                                    return;
                                 }
                                 recordingMetadataMap.put(
                                         Pair.of(newJvmId, srm.getRecordingName()), srm);
