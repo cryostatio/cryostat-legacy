@@ -65,6 +65,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ArchivedRecordingReportCacheTest {
 
     ArchivedRecordingReportCache cache;
+    String sourceTarget;
+    String recordingName;
+
     @Mock CompletableFuture<Path> pathFuture;
     @Mock Path destinationFile;
     @Mock FileSystem fs;
@@ -77,13 +80,12 @@ class ArchivedRecordingReportCacheTest {
         this.cache =
                 new ArchivedRecordingReportCache(
                         fs, () -> subprocessReportGenerator, recordingArchiveHelper, 30, logger);
+        this.sourceTarget = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        this.recordingName = "foo";
     }
 
     @Test
     void getShouldThrowIfNoCacheAndNoRecording() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
@@ -119,9 +121,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void getShouldGenerateAndCacheReport() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
@@ -154,9 +153,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void getShouldGenerateAndCacheReportFiltered() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
@@ -189,9 +185,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void getShouldReturnCachedFileIfAvailable() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(future.get()).thenReturn(destinationFile);
 
@@ -210,9 +203,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void shouldThrowErrorIfReportGenerationFails() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
@@ -251,9 +241,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void shouldThrowIfCachedPathResolutionFails() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenThrow(new CompletionException(new IOException()));
 
@@ -273,9 +260,6 @@ class ArchivedRecordingReportCacheTest {
 
     @Test
     void shouldThrowIfRecordingPathResolutionFails() throws Exception {
-        String recordingName = "foo";
-        String sourceTarget = null;
-
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
