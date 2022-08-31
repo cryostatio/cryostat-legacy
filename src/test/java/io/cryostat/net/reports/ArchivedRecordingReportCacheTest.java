@@ -48,6 +48,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivePathException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -90,6 +91,7 @@ class ArchivedRecordingReportCacheTest {
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
+        Mockito.when(fs.deleteIfExists(Mockito.any(Path.class))).thenReturn(false);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future2.get())
@@ -107,10 +109,12 @@ class ArchivedRecordingReportCacheTest {
                 Assertions.assertThrows(
                         ExecutionException.class,
                         () -> cache.get(sourceTarget, recordingName, "").get());
+
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(RecordingNotFoundException.class));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
+        Mockito.verify(fs, Mockito.atLeastOnce()).deleteIfExists(destinationFile);
     }
 
     @Test
@@ -246,7 +250,7 @@ class ArchivedRecordingReportCacheTest {
     }
 
     @Test
-    void shouldThrowErrorIfCachedFileResolutionFails() throws Exception {
+    void shouldThrowIfCachedPathResolutionFails() throws Exception {
         String recordingName = "foo";
         String sourceTarget = null;
 
@@ -265,5 +269,37 @@ class ArchivedRecordingReportCacheTest {
                 ExceptionUtils.getRootCause(ee), Matchers.instanceOf(IOException.class));
 
         Mockito.verify(fs, Mockito.atLeastOnce()).deleteIfExists(null);
+    }
+
+    @Test
+    void shouldThrowIfRecordingPathResolutionFails() throws Exception {
+        String recordingName = "foo";
+        String sourceTarget = null;
+
+        CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future1.get()).thenReturn(destinationFile);
+
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+                .thenReturn(future1);
+
+        CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(future2.get())
+                .thenThrow(
+                        new CompletionException(
+                                new ArchivePathException("/path/to/foo", "does not exist")));
+
+        Mockito.when(recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName))
+                .thenReturn(future2);
+
+        Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(true);
+        Mockito.when(fs.deleteIfExists(Mockito.nullable(Path.class))).thenReturn(false);
+
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class, () -> cache.get(sourceTarget, "foo", "").get());
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee), Matchers.instanceOf(ArchivePathException.class));
+
+        Mockito.verify(fs, Mockito.atLeastOnce()).deleteIfExists(destinationFile);
     }
 }
