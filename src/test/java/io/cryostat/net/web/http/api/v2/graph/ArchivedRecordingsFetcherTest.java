@@ -37,4 +37,4 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-public class GraphQLGetHandlerTest {}
+class ArchivedRecordingsFetcherTest {}
