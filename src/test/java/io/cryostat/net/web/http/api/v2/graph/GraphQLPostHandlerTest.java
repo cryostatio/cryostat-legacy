@@ -49,7 +49,6 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import graphql.GraphQL;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.RoutingContextInternal;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -104,8 +103,7 @@ class GraphQLPostHandlerTest {
 
     @Nested
     class Requests {
-        @Mock(extraInterfaces = {RoutingContextInternal.class})
-        RoutingContext ctx;
+        @Mock RoutingContext ctx;
 
         @Test
         void shouldThrow401OnInvalidAuthHeader() {

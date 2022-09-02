@@ -42,21 +42,16 @@ import static org.mockito.Mockito.when;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
-import javax.inject.Provider;
+import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.TargetConnectionManager.ConnectedTask;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.GraphQLContext;
@@ -72,32 +67,23 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class StartRecordingOnTargetMutatorTest {
-    StartRecordingOnTargetMutator mutator;
+class SnapshotOnTargetMutatorTest {
+    SnapshotOnTargetMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
-    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock CredentialsManager credentialsManager;
-    @Mock Provider<WebServer> webServer;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
     @Mock RoutingContext ctx;
     @Mock Credentials credentials;
     @Mock URI uri;
+    @Mock Future<HyperlinkedSerializableRecordingDescriptor> future;
 
     @BeforeEach
     void setup() {
-        this.mutator =
-                new StartRecordingOnTargetMutator(
-                        auth,
-                        targetConnectionManager,
-                        recordingTargetHelper,
-                        recordingOptionsBuilderFactory,
-                        credentialsManager,
-                        webServer);
+        this.mutator = new SnapshotOnTargetMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
     @Test
@@ -107,6 +93,7 @@ class StartRecordingOnTargetMutatorTest {
                 Matchers.equalTo(
                         Set.of(
                                 ResourceAction.READ_RECORDING,
+                                ResourceAction.UPDATE_RECORDING,
                                 ResourceAction.CREATE_RECORDING,
                                 ResourceAction.READ_TARGET,
                                 ResourceAction.UPDATE_TARGET,
@@ -114,7 +101,7 @@ class StartRecordingOnTargetMutatorTest {
     }
 
     @Test
-    void shouldStartAndReturnRecording() throws Exception {
+    void shouldDeleteAndReturnSource() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -127,15 +114,21 @@ class StartRecordingOnTargetMutatorTest {
         when(env.getSource()).thenReturn(source);
         when(source.getTarget()).thenReturn(target);
         when(target.getServiceUri()).thenReturn(uri);
-        when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
-                .thenReturn(hsrd);
+        when(credentialsManager.getCredentials(Mockito.any(ServiceRef.class)))
+                .thenReturn(credentials);
+        when(recordingTargetHelper.createSnapshot(Mockito.any())).thenReturn(future);
+        when(future.get()).thenReturn(hsrd);
+        when(hsrd.getName()).thenReturn("foo");
+        when(hsrd.getDuration()).thenReturn(100L);
 
-        HyperlinkedSerializableRecordingDescriptor recording = mutator.get(env);
+        GraphRecordingDescriptor recording = mutator.get(env);
 
         MatcherAssert.assertThat(recording, Matchers.notNullValue());
-        MatcherAssert.assertThat(recording, Matchers.equalTo(hsrd));
+        MatcherAssert.assertThat(recording.target, Matchers.equalTo(target));
+        MatcherAssert.assertThat(recording.getName(), Matchers.equalTo("foo"));
+        MatcherAssert.assertThat(recording.getDuration(), Matchers.equalTo(100L));
+
+        Mockito.verify(recordingTargetHelper)
+                .createSnapshot(Mockito.any(ConnectionDescriptor.class));
     }
 }
