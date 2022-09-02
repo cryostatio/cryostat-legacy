@@ -37,10 +37,19 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.Set;
+import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
@@ -51,45 +60,56 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ArchivedRecordingsFetcherTest {
-    ArchivedRecordingsFetcher fetcher;
+class DeleteArchivedRecordingMutatorTest {
+    DeleteArchivedRecordingMutator mutator;
 
     @Mock AuthManager auth;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
     @Mock RoutingContext ctx;
-    @Mock FilterInput filter;
+    @Mock Credentials credentials;
+    @Mock URI uri;
+    @Mock Future<ArchivedRecordingInfo> future;
 
     @BeforeEach
     void setup() {
-        this.fetcher = new ArchivedRecordingsFetcher(auth);
+        this.mutator = new DeleteArchivedRecordingMutator(auth, recordingArchiveHelper);
     }
 
     @Test
     void shouldHaveExpectedRequiredPermissions() {
         MatcherAssert.assertThat(
-                fetcher.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
+                mutator.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.DELETE_RECORDING)));
     }
 
-    // TODO
-    // @Test
-    // void shouldReturnEmptyList() throws Exception {
-    //     try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
-    //         staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+    @Test
+    void shouldArchiveAndReturnRecording() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
-    //         when(filter.contains(Mockito.any())).thenReturn(false);
-    //         when(archiveHelper.getRecordings()).thenReturn(future);
-    //         when(future.get()).thenReturn(List.of());
+        ArchivedRecordingInfo mockRecording = Mockito.mock(ArchivedRecordingInfo.class);
+        ArchivedRecordingInfo source = Mockito.mock(ArchivedRecordingInfo.class);
 
-    //         List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+        when(env.getSource()).thenReturn(source);
+        when(source.getName()).thenReturn("foo");
 
-    //         MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-    //         MatcherAssert.assertThat(recordings, Matchers.empty());
-    //         MatcherAssert.assertThat(recordings, Matchers.instanceOf(List.class));
-    //     }
-    // }
+        when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
+        when(future.get()).thenReturn(mockRecording);
+
+        ArchivedRecordingInfo recording = mutator.get(env);
+
+        MatcherAssert.assertThat(recording, Matchers.notNullValue());
+        MatcherAssert.assertThat(recording, Matchers.equalTo(mockRecording));
+
+        Mockito.verify(recordingArchiveHelper).deleteRecording(Mockito.anyString());
+    }
 }

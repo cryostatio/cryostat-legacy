@@ -42,16 +42,20 @@ import static org.mockito.Mockito.when;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
+
+import javax.inject.Provider;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.TargetConnectionManager.ConnectedTask;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.rules.ArchivedRecordingInfo;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
@@ -66,24 +70,32 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ArchiveRecordingMutatorTest {
-    ArchiveRecordingMutator mutator;
+class StopRecordingMutatorTest {
+    StopRecordingMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingMetadataManager metadataManager;
+    @Mock Provider<WebServer> webServer;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
     @Mock RoutingContext ctx;
     @Mock Credentials credentials;
     @Mock URI uri;
-    @Mock Future<ArchivedRecordingInfo> future;
 
     @BeforeEach
     void setup() {
         this.mutator =
-                new ArchiveRecordingMutator(auth, recordingArchiveHelper, credentialsManager);
+                new StopRecordingMutator(
+                        auth,
+                        targetConnectionManager,
+                        recordingTargetHelper,
+                        credentialsManager,
+                        metadataManager,
+                        webServer);
     }
 
     @Test
@@ -92,37 +104,34 @@ class ArchiveRecordingMutatorTest {
                 mutator.resourceActions(),
                 Matchers.equalTo(
                         Set.of(
-                                ResourceAction.READ_TARGET,
-                                ResourceAction.CREATE_RECORDING,
                                 ResourceAction.READ_RECORDING,
+                                ResourceAction.UPDATE_RECORDING,
+                                ResourceAction.READ_TARGET,
                                 ResourceAction.READ_CREDENTIALS)));
     }
 
     @Test
-    void shouldArchiveAndReturnRecording() throws Exception {
+    void shouldStartAndReturnRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        ArchivedRecordingInfo mockRecording = Mockito.mock(ArchivedRecordingInfo.class);
-        GraphRecordingDescriptor source = Mockito.mock(GraphRecordingDescriptor.class);
+        GraphRecordingDescriptor mockRecording = Mockito.mock(GraphRecordingDescriptor.class);
         ServiceRef target = Mockito.mock(ServiceRef.class);
+        GraphRecordingDescriptor source = Mockito.mock(GraphRecordingDescriptor.class);
         source.target = target;
 
         when(env.getSource()).thenReturn(source);
-        when(source.getName()).thenReturn("foo");
         when(target.getServiceUri()).thenReturn(uri);
-        when(credentialsManager.getCredentials(Mockito.any(ServiceRef.class)))
-                .thenReturn(credentials);
-        when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any())).thenReturn(future);
-        when(future.get()).thenReturn(mockRecording);
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class),
+                        Mockito.any(ConnectedTask.class),
+                        Mockito.anyBoolean()))
+                .thenReturn(mockRecording);
 
-        ArchivedRecordingInfo recording = mutator.get(env);
+        GraphRecordingDescriptor recording = mutator.get(env);
 
         MatcherAssert.assertThat(recording, Matchers.notNullValue());
         MatcherAssert.assertThat(recording, Matchers.equalTo(mockRecording));
-
-        Mockito.verify(recordingArchiveHelper)
-                .saveRecording(Mockito.any(ConnectionDescriptor.class), Mockito.anyString());
     }
 }

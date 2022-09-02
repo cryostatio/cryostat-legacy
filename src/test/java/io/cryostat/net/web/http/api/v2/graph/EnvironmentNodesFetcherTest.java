@@ -42,13 +42,10 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -122,7 +119,10 @@ class EnvironmentNodesFetcherTest {
 
             EnvironmentNode universe =
                     new EnvironmentNode(
-                            "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), Set.of(leftChildNode, rightChildNode));
+                            "Universe",
+                            BaseNodeType.UNIVERSE,
+                            Collections.emptyMap(),
+                            Set.of(leftChildNode, rightChildNode));
 
             when(filter.contains(Mockito.any())).thenReturn(false);
             when(rootNodeFetcher.get(env)).thenReturn(universe);
@@ -156,7 +156,10 @@ class EnvironmentNodesFetcherTest {
 
             EnvironmentNode universe =
                     new EnvironmentNode(
-                            "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), Set.of(leftChildNode, rightChildNode));
+                            "Universe",
+                            BaseNodeType.UNIVERSE,
+                            Collections.emptyMap(),
+                            Set.of(leftChildNode, rightChildNode));
 
             when(filter.contains(Mockito.any())).thenReturn(false);
             when(filter.contains(FilterInput.Key.NODE_TYPE)).thenReturn(true);

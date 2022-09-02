@@ -77,6 +77,8 @@ class AllArchivedRecordingsFetcherTest {
         this.fetcher = new AllArchivedRecordingsFetcher(archiveHelper);
     }
 
+    /* Should this implement AbstractPermissionedDataFetcher? */
+
     @Test
     void shouldReturnEmptyList() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
@@ -162,7 +164,7 @@ class AllArchivedRecordingsFetcherTest {
     }
 
     @Test
-    void shouldReturnRecordingsLabelFilter() throws Exception {
+    void shouldReturnRecordingsLabelFiltered() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
 

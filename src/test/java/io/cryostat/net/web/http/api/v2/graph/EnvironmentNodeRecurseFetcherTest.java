@@ -46,6 +46,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.UnknownNode;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -117,6 +118,7 @@ class EnvironmentNodeRecurseFetcherTest {
 
         MatcherAssert.assertThat(nodes, Matchers.notNullValue());
         MatcherAssert.assertThat(nodes, Matchers.empty());
+        MatcherAssert.assertThat(nodes, Matchers.instanceOf(List.class));
     }
 
     @Test
@@ -172,17 +174,6 @@ class EnvironmentNodeRecurseFetcherTest {
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(
                     nodes, Matchers.contains(source, leftChildNode, rightChildNode));
-        }
-    }
-
-    static class UnknownNode extends AbstractNode {
-        protected UnknownNode(AbstractNode other) {
-            super(other);
-        }
-
-        @Override
-        public String getName() {
-            return "unknown";
         }
     }
 }

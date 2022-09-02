@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -246,8 +247,9 @@ class ActiveRecordingsFetcherTest {
             GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording3 = Mockito.mock(GraphRecordingDescriptor.class);
-            // when(recording1.getStartTime()).thenReturn(500L);
-            // Mockito unnecessary stubbing since Key.STATE is checked first
+
+            // Mockito unnecessary stubbing
+            lenient().when(recording1.getStartTime()).thenReturn(500L);
             when(recording2.getStartTime()).thenReturn(750L);
             when(recording3.getStartTime()).thenReturn(1000L);
             when(recording1.getState()).thenReturn(RecordingState.CREATED);

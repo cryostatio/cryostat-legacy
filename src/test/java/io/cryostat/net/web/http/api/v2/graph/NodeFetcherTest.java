@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -138,10 +139,9 @@ class NodeFetcherTest {
         EnvironmentNode rightChildNode = Mockito.mock(EnvironmentNode.class);
         when(leftChildNode.getName()).thenReturn("Earth");
         when(rightChildNode.getName()).thenReturn("Mars");
-        // Mockito unnecessary stubbing since getName() is checked first
-        /*
-        when(leftChildNode.getNodeType()).thenReturn(BaseNodeType.REALM);
-        */
+
+        // Mockito unnecessary stubbing
+        lenient().when(leftChildNode.getNodeType()).thenReturn(BaseNodeType.REALM);
         when(rightChildNode.getNodeType()).thenReturn(BaseNodeType.REALM);
 
         SortedSet<AbstractNode> children =
