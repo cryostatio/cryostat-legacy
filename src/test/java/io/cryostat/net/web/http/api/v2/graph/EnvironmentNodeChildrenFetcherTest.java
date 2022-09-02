@@ -121,6 +121,6 @@ class EnvironmentNodeChildrenFetcherTest {
         List<AbstractNode> nodes = fetcher.get(env);
 
         MatcherAssert.assertThat(nodes, Matchers.notNullValue());
-        MatcherAssert.assertThat(nodes, Matchers.contains(leftChildNode, rightChildNode));
+        MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(leftChildNode, rightChildNode));
     }
 }

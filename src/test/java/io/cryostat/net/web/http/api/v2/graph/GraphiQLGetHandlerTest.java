@@ -37,9 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.AuthManager;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import graphql.GraphQL;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -50,19 +51,33 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class GraphQLGetHandlerTest {
-    GraphQLGetHandler handler;
+class GraphiQLGetHandlerTest {
+    GraphiQLGetHandler handler;
 
-    @Mock GraphQL graph;
-    @Mock AuthManager auth;
+    @Mock Environment env;
 
     @BeforeEach
     void setup() {
-        this.handler = new GraphQLGetHandler(graph, auth);
+        this.handler = new GraphiQLGetHandler(env);
+    }
+
+    @Test
+    void shouldBeV2Handler() {
+        MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_2));
     }
 
     @Test
     void shouldBeGETHandler() {
         MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
+    }
+
+    @Test
+    void shouldHaveExpectedApiPath() {
+        MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.2/graphiql/*"));
     }
 }

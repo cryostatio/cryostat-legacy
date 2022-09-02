@@ -146,7 +146,6 @@ class EnvironmentNodeRecurseFetcherTest {
             staticEnv
                     .when(() -> DataFetchingEnvironmentImpl.newDataFetchingEnvironment(env))
                     .thenReturn(builder);
-
             when(env.getGraphQlContext()).thenReturn(graphCtx);
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
@@ -173,7 +172,7 @@ class EnvironmentNodeRecurseFetcherTest {
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(
-                    nodes, Matchers.contains(source, leftChildNode, rightChildNode));
+                    nodes, Matchers.containsInAnyOrder(source, leftChildNode, rightChildNode));
         }
     }
 }

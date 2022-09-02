@@ -89,13 +89,14 @@ class ActiveRecordingsFetcherTest {
 
     @Test
     void shouldReturnEmptyList() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
         Recordings source = Mockito.mock(Recordings.class);
         source.active = List.of();
 
         when(env.getSource()).thenReturn(source);
-        when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
 
         List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -106,14 +107,15 @@ class ActiveRecordingsFetcherTest {
 
     @Test
     void shouldReturnRecording() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
         Recordings source = Mockito.mock(Recordings.class);
         GraphRecordingDescriptor recording = Mockito.mock(GraphRecordingDescriptor.class);
         source.active = List.of(recording);
 
         when(env.getSource()).thenReturn(source);
-        when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
 
         List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -125,6 +127,9 @@ class ActiveRecordingsFetcherTest {
     void shouldReturnRecordingsMultiple() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             Recordings source = Mockito.mock(Recordings.class);
             List<GraphRecordingDescriptor> mockList =
@@ -134,9 +139,6 @@ class ActiveRecordingsFetcherTest {
             source.active = mockList;
 
             when(env.getSource()).thenReturn(source);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -149,6 +151,9 @@ class ActiveRecordingsFetcherTest {
     void shouldReturnRecordingsFiltered() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
@@ -165,9 +170,6 @@ class ActiveRecordingsFetcherTest {
             source.active = List.of(recording1, recording2, recording3);
 
             when(env.getSource()).thenReturn(source);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -180,6 +182,9 @@ class ActiveRecordingsFetcherTest {
     void shouldFilterOutEverything() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
@@ -196,9 +201,6 @@ class ActiveRecordingsFetcherTest {
             source.active = List.of(recording1, recording2, recording3);
 
             when(env.getSource()).thenReturn(source);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -211,6 +213,9 @@ class ActiveRecordingsFetcherTest {
     void shouldFilterOutNothing() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
@@ -227,9 +232,6 @@ class ActiveRecordingsFetcherTest {
             source.active = List.of(recording1, recording2, recording3);
 
             when(env.getSource()).thenReturn(source);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 
@@ -243,6 +245,9 @@ class ActiveRecordingsFetcherTest {
     void shouldReturnRecordingsMultipleFilters() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
             GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
@@ -266,9 +271,6 @@ class ActiveRecordingsFetcherTest {
             source.active = List.of(recording1, recording2, recording3);
 
             when(env.getSource()).thenReturn(source);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<GraphRecordingDescriptor> recordings = fetcher.get(env);
 

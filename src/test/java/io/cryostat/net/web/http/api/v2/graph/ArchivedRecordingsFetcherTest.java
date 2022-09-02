@@ -37,10 +37,20 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
+import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
@@ -51,6 +61,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,21 +87,155 @@ class ArchivedRecordingsFetcherTest {
                 fetcher.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
     }
 
-    // TODO
-    // @Test
-    // void shouldReturnEmptyList() throws Exception {
-    //     try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
-    //         staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+    @Test
+    void shouldReturnEmpty() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
-    //         when(filter.contains(Mockito.any())).thenReturn(false);
-    //         when(archiveHelper.getRecordings()).thenReturn(future);
-    //         when(future.get()).thenReturn(List.of());
+        Recordings source = Mockito.mock(Recordings.class);
+        source.archived = List.of();
 
-    //         List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+        when(env.getSource()).thenReturn(source);
 
-    //         MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-    //         MatcherAssert.assertThat(recordings, Matchers.empty());
-    //         MatcherAssert.assertThat(recordings, Matchers.instanceOf(List.class));
-    //     }
-    // }
+        Archived archived = fetcher.get(env);
+
+        MatcherAssert.assertThat(archived, Matchers.notNullValue());
+        MatcherAssert.assertThat(archived.data, Matchers.empty());
+        MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(0L));
+    }
+
+    @Test
+    void shouldReturnRecording() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        ArchivedRecordingInfo recording = Mockito.mock(ArchivedRecordingInfo.class);
+
+        Recordings source = Mockito.mock(Recordings.class);
+        source.archived = List.of(recording);
+
+        when(env.getSource()).thenReturn(source);
+
+        Archived archived = fetcher.get(env);
+
+        MatcherAssert.assertThat(archived, Matchers.notNullValue());
+        MatcherAssert.assertThat(archived.data, Matchers.contains(recording));
+        MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(1L));
+    }
+
+    @Test
+    void shouldReturnRecordingsMultiple() throws Exception {
+        when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
+        ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
+        ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
+
+        Recordings source = Mockito.mock(Recordings.class);
+        source.archived = List.of(recording1, recording2, recording3);
+
+        when(env.getSource()).thenReturn(source);
+
+        Archived archived = fetcher.get(env);
+
+        MatcherAssert.assertThat(archived, Matchers.notNullValue());
+        MatcherAssert.assertThat(
+                archived.data, Matchers.contains(recording1, recording2, recording3));
+        MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(3L));
+    }
+
+    @Test
+    void shouldReturnRecordingsFiltered() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
+            when(recording1.getName()).thenReturn("foo");
+            when(recording2.getName()).thenReturn("bar");
+            when(recording3.getName()).thenReturn("baz");
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
+            when(filter.get(FilterInput.Key.NAME)).thenReturn("foo");
+
+            Recordings source = Mockito.mock(Recordings.class);
+            source.archived = List.of(recording1, recording2, recording3);
+
+            when(env.getSource()).thenReturn(source);
+
+            Archived archived = fetcher.get(env);
+
+            MatcherAssert.assertThat(archived, Matchers.notNullValue());
+            MatcherAssert.assertThat(archived.data, Matchers.contains(recording1));
+            MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(1L));
+        }
+    }
+
+    @Test
+    void shouldReturnRecordingsMultipleFilters() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            String nameFilter = "foo";
+            String labelFilter1 = "template.type";
+            String labelFilter2 = "myLabel";
+
+            ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording4 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording5 = Mockito.mock(ArchivedRecordingInfo.class);
+            when(recording1.getName()).thenReturn("foo");
+            when(recording2.getName()).thenReturn("bar");
+            when(recording3.getName()).thenReturn("foo");
+            when(recording4.getName()).thenReturn("baz");
+            when(recording5.getName()).thenReturn("foo");
+            when(recording1.getMetadata())
+                    .thenReturn(
+                            new Metadata(Map.of("myLabel", "bar", "template.name", "Cryostat")));
+            lenient()
+                    .when(recording2.getMetadata())
+                    .thenReturn(new Metadata(Map.of("template.type", "CUSTOM", "", "")));
+            when(recording3.getMetadata())
+                    .thenReturn(new Metadata(Map.of("template.type", "TARGET", "myLabel", "foo")));
+            lenient()
+                    .when(recording4.getMetadata())
+                    .thenReturn(
+                            new Metadata(Map.of("myLabel", "value", "reason", "service-outage")));
+            when(recording5.getMetadata())
+                    .thenReturn(
+                            new Metadata(Map.of("myLabel", "foo", "template.type", "Profiling")));
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
+            when(filter.contains(FilterInput.Key.LABELS)).thenReturn(true);
+            when(filter.get(FilterInput.Key.NAME)).thenReturn(nameFilter);
+            when(filter.get(FilterInput.Key.LABELS))
+                    .thenReturn(List.of(labelFilter1, labelFilter2));
+
+            Recordings source = Mockito.mock(Recordings.class);
+            source.archived = List.of(recording1, recording2, recording3, recording4, recording5);
+
+            when(env.getSource()).thenReturn(source);
+
+            Archived archived = fetcher.get(env);
+
+            MatcherAssert.assertThat(archived, Matchers.notNullValue());
+            MatcherAssert.assertThat(
+                    archived.data, Matchers.containsInAnyOrder(recording3, recording5));
+            MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(2L));
+        }
+    }
 }

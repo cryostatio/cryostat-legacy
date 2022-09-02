@@ -137,7 +137,7 @@ class NodeFetcherTest {
 
         EnvironmentNode leftChildNode = Mockito.mock(EnvironmentNode.class);
         EnvironmentNode rightChildNode = Mockito.mock(EnvironmentNode.class);
-        when(leftChildNode.getName()).thenReturn("Earth");
+        lenient().when(leftChildNode.getName()).thenReturn("Earth");
         when(rightChildNode.getName()).thenReturn("Mars");
 
         // Mockito unnecessary stubbing
