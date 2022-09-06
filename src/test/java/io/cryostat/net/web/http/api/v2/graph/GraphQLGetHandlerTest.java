@@ -38,15 +38,26 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import io.cryostat.net.AuthManager;
-
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import graphql.GraphQL;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.CompletableFuture;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,8 +72,47 @@ class GraphQLGetHandlerTest {
         this.handler = new GraphQLGetHandler(graph, auth);
     }
 
-    @Test
-    void shouldBeGETHandler() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    @Nested
+    class BasicHandlerDefinition {
+        @Test
+        void shouldBeV2Handler() {
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_2));
+        }
+
+        @Test
+        void shouldBeGETHandler() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
+        }
+
+        @Test
+        void shouldHaveExpectedApiPath() {
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.2/graphql"));
+        }
+
+        @Test
+        void shouldNotBeAsyncHandler() {
+            Assertions.assertFalse(handler.isAsync());
+        }
+    }
+
+    @Nested
+    class Requests {
+        @Mock RoutingContext ctx;
+
+        @Test
+        void shouldThrow401OnInvalidAuthHeader() {
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(false));
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        }
     }
 }

@@ -41,8 +41,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -64,6 +68,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AllArchivedRecordingsFetcherTest {
     AllArchivedRecordingsFetcher fetcher;
 
+    @Mock AuthManager auth;
     @Mock RecordingArchiveHelper archiveHelper;
 
     @Mock DataFetchingEnvironment env;
@@ -74,15 +79,22 @@ class AllArchivedRecordingsFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new AllArchivedRecordingsFetcher(archiveHelper);
+        this.fetcher = new AllArchivedRecordingsFetcher(auth, archiveHelper);
     }
 
-    /* Should this implement AbstractPermissionedDataFetcher? */
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                fetcher.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
+    }
 
     @Test
     void shouldReturnEmptyList() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             when(filter.contains(Mockito.any())).thenReturn(false);
             when(archiveHelper.getRecordings()).thenReturn(future);
@@ -100,6 +112,9 @@ class AllArchivedRecordingsFetcherTest {
     void shouldReturnRecording() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             ArchivedRecordingInfo recording = Mockito.mock(ArchivedRecordingInfo.class);
 
@@ -118,6 +133,9 @@ class AllArchivedRecordingsFetcherTest {
     void shouldReturnRecordingsMultiple() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             List<ArchivedRecordingInfo> mockList =
                     List.of(
@@ -141,6 +159,9 @@ class AllArchivedRecordingsFetcherTest {
     void shouldReturnRecordingsFiltered() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
 
             ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
@@ -167,7 +188,10 @@ class AllArchivedRecordingsFetcherTest {
     void shouldReturnRecordingsLabelFiltered() throws Exception {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
-
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+                    
             ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
