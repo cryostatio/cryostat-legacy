@@ -214,6 +214,12 @@ public abstract class GraphModule {
     }
 
     @Provides
+    static AllArchivedRecordingsFetcher provideAllArchivedRecordingsFetcher(
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
+        return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper);
+    }
+
+    @Provides
     static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher(AuthManager auth) {
         return new ArchivedRecordingsFetcher(auth);
     }

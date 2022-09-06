@@ -38,29 +38,41 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class AllArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+class AllArchivedRecordingsFetcher
+        extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
 
     private final RecordingArchiveHelper archiveHelper;
 
     @Inject
-    AllArchivedRecordingsFetcher(RecordingArchiveHelper archiveHelper) {
+    AllArchivedRecordingsFetcher(AuthManager auth, RecordingArchiveHelper archiveHelper) {
+        super(auth);
         this.archiveHelper = archiveHelper;
     }
 
-    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
+    }
+
+    @Override
+    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         FilterInput filter = FilterInput.from(environment);
         List<ArchivedRecordingInfo> result = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
