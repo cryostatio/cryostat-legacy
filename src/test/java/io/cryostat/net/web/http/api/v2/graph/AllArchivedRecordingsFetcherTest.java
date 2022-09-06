@@ -191,7 +191,7 @@ class AllArchivedRecordingsFetcherTest {
             when(env.getGraphQlContext()).thenReturn(graphCtx);
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
-                    
+
             ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);

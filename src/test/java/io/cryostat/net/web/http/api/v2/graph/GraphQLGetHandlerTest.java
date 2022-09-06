@@ -37,18 +37,18 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.ApiException;
-import graphql.GraphQL;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
+
+import graphql.GraphQL;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
