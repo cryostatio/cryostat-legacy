@@ -126,6 +126,9 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
             throws ParseException, JOSEException, SocketException, UnknownHostException,
                     URISyntaxException, MalformedURLException {
         String token = ctx.queryParams().get("token");
+        if (StringUtils.isBlank(token)) {
+            throw new ApiException(401);
+        }
         UUID id = uuidFromString.apply(StringUtil.requireNonBlank(ctx.pathParam("id"), "id"));
         Optional<PluginInfo> plugin = storage.getById(id);
         if (!plugin.isPresent()) {

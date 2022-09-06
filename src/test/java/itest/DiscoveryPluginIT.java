@@ -259,6 +259,7 @@ class DiscoveryPluginIT extends StandardSelfTest {
         CompletableFuture<Integer> response = new CompletableFuture<>();
         webClient
                 .post("/api/v2.2/discovery/" + UUID.randomUUID())
+                .addQueryParam("token", token)
                 .sendJson(
                         subtree,
                         ar -> {

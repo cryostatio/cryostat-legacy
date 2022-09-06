@@ -80,6 +80,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -143,6 +145,15 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                     .thenReturn(new URL("http://localhost:8181/"));
             Mockito.lenient().when(storage.getById(id)).thenReturn(Optional.of(pluginInfo));
             Mockito.lenient().when(pluginInfo.getRealm()).thenReturn("test-realm");
+        }
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        void shouldThrow401IfTokenNotProvided(String token) throws Exception {
+            queryParams.set("token", token);
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
         }
 
         @Test
