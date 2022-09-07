@@ -40,12 +40,12 @@ package io.cryostat.discovery;
 import java.net.URI;
 
 public class RegistrationException extends Exception {
-    public RegistrationException(String realm, URI callback, Exception cause) {
+
+    public RegistrationException(String realm, URI callback, Exception cause, String msg) {
         super(
                 String.format(
-                        "Failed to register new provider for \"%s\" @ \"%s\": provider already"
-                                + " present",
-                        realm, callback),
+                        "Failed to register new provider for \"%s\" @ \"%s\": %s",
+                        realm, callback, msg),
                 cause);
     }
 
