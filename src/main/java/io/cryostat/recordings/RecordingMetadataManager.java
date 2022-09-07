@@ -133,37 +133,65 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.platformClient.addTargetDiscoveryListener(this);
 
         this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                .peek(n -> logger.trace("Recording Metadata file: {}", n))
+                .peek(n -> logger.trace("Recording Metadata subdirectory: {}", n))
                 .map(recordingMetadataDir::resolve)
-                .map(
-                        path -> {
+                .forEach(
+                        subdirectory -> {
                             try {
-                                return fs.readFile(path);
+                                this.fs.listDirectoryChildren(subdirectory).stream()
+                                        .peek(n -> logger.trace("Recording Metadata file: {}", n))
+                                        .map(subdirectory::resolve)
+                                        .map(
+                                                path -> {
+                                                    try {
+                                                        return fs.readFile(path);
+                                                    } catch (IOException e) {
+                                                        logger.error(e);
+                                                        future.fail(e);
+                                                        return null;
+                                                    }
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .map(
+                                                reader ->
+                                                        gson.fromJson(
+                                                                reader,
+                                                                StoredRecordingMetadata.class))
+                                        .forEach(
+                                                srm -> {
+                                                    String targetId = srm.getTargetId();
+                                                    if (srm.getJvmId() != null) {
+                                                        jvmIdMap.putIfAbsent(
+                                                                targetId, srm.getJvmId());
+                                                        recordingMetadataMap.put(
+                                                                Pair.of(
+                                                                        srm.getJvmId(),
+                                                                        srm.getRecordingName()),
+                                                                srm);
+                                                    } else {
+                                                        logger.warn(
+                                                                "Metadata with no jvmId originating"
+                                                                        + " from {}",
+                                                                targetId);
+                                                        String newJvmId =
+                                                                computeJvmId(
+                                                                        new ConnectionDescriptor(
+                                                                                targetId));
+                                                        if (newJvmId == null) {
+                                                            return;
+                                                        }
+                                                        recordingMetadataMap.put(
+                                                                Pair.of(
+                                                                        newJvmId,
+                                                                        srm.getRecordingName()),
+                                                                srm);
+                                                    }
+                                                });
                             } catch (IOException e) {
                                 logger.error(e);
-                                future.fail(e);
-                                return null;
-                            }
-                        })
-                .filter(Objects::nonNull)
-                .map(reader -> gson.fromJson(reader, StoredRecordingMetadata.class))
-                .forEach(
-                        srm -> {
-                            String targetId = srm.getTargetId();
-                            if (srm.getJvmId() != null) {
-                                jvmIdMap.putIfAbsent(targetId, srm.getJvmId());
-                                recordingMetadataMap.put(
-                                        Pair.of(srm.getJvmId(), srm.getRecordingName()), srm);
-                            } else {
-                                logger.warn("Metadata with no jvmId originating from {}", targetId);
-                                String newJvmId = computeJvmId(new ConnectionDescriptor(targetId));
-                                if (newJvmId == null) {
-                                    return;
-                                }
-                                recordingMetadataMap.put(
-                                        Pair.of(newJvmId, srm.getRecordingName()), srm);
                             }
                         });
+
         future.complete();
     }
 
@@ -292,6 +320,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
         fs.deleteIfExists(this.getMetadataPath(jvmId, recordingName));
+        deleteSubdirectoryIfEmpty(jvmId);
         return deleted;
     }
 
@@ -463,10 +492,25 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private Path getMetadataPath(String jvmId, String recordingName) {
-        String filename = String.format("%s%s", jvmId, recordingName);
-        return recordingMetadataDir.resolve(
-                base32.encodeAsString(filename.getBytes(StandardCharsets.UTF_8)) + ".json");
+    private Path getMetadataPath(String jvmId, String recordingName) throws IOException {
+        String subdirectory = base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
+        String filename =
+                base32.encodeAsString(recordingName.getBytes(StandardCharsets.UTF_8)) + ".json";
+        if (!fs.exists(recordingMetadataDir.resolve(subdirectory))) {
+            fs.createDirectory(recordingMetadataDir.resolve(subdirectory));
+        }
+        return recordingMetadataDir.resolve(subdirectory).resolve(filename);
+    }
+
+    private boolean deleteSubdirectoryIfEmpty(String jvmId) throws IOException {
+        String subdirectory = base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
+        Path dirPath = recordingMetadataDir.resolve(subdirectory);
+        if (fs.exists(recordingMetadataDir.resolve(dirPath))) {
+            if (fs.listDirectoryChildren(recordingMetadataDir.resolve(dirPath)).isEmpty()) {
+                return fs.deleteIfExists(dirPath);
+            }
+        }
+        return false;
     }
 
     private String computeJvmId(ConnectionDescriptor cd) {

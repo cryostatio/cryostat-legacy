@@ -138,6 +138,7 @@ public class RecordingMetadataManagerTest {
         Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, new Metadata(labels))
@@ -191,6 +192,7 @@ public class RecordingMetadataManagerTest {
         Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
@@ -228,6 +230,7 @@ public class RecordingMetadataManagerTest {
         Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
@@ -253,6 +256,9 @@ public class RecordingMetadataManagerTest {
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenReturn(jvmId);
         Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        Path mockPath = Mockito.mock(Path.class);
+        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
