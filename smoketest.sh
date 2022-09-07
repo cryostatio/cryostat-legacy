@@ -107,7 +107,7 @@ function runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
         --env ORG_ACME_JMXPORT="9097" \
-        -d quay.io/andrewazores/quarkus-test:0.0.4
+        -d quay.io/andrewazores/quarkus-test:0.0.5
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
@@ -180,7 +180,8 @@ function createPod() {
         --publish 9990:9990 \
         --publish 9991:9991 \
         --publish 10000:10000 \
-        --publish 10001:10001
+        --publish 10001:10001 \
+        --publish 10010:10010
     # 5432: postgres
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
