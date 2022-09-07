@@ -1469,7 +1469,11 @@ The handler-specific descriptions below describe how each handler populates the
     `realm` and `callback`, and the previously held `token`. Cryostat will then
     issue a refreshed `token`. Cryostat may issue a `callback` request to
     plugins at any time, in particular before token expiration to ensure plugins
-    have fresh tokens.
+    have fresh tokens. Cryostat will also send a `GET` request to the same
+    `callback` at plugin registration time in order to validate the URI. The
+    plugin should respond to this `GET` with a `2xx` response, but is not
+    expected to attempt re-registration (since initial registration is still in
+    progress).
 
     This initial registration request requires the plugin to provide a request
     `Authorization` header and pass authz checks. The authz here will be
