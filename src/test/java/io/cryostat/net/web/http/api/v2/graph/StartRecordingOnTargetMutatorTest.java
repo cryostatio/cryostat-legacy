@@ -56,9 +56,11 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import io.vertx.ext.web.RoutingContext;
@@ -80,7 +82,9 @@ class StartRecordingOnTargetMutatorTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
+    @Mock Gson gson;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -97,7 +101,9 @@ class StartRecordingOnTargetMutatorTest {
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         credentialsManager,
-                        webServer);
+                        metadataManager,
+                        webServer,
+                        gson);
     }
 
     @Test
