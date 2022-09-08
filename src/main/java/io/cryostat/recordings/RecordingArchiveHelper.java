@@ -209,10 +209,9 @@ public class RecordingArchiveHelper {
             String filename = filenamePath.toString();
             String subdirectoryName = parentPath.getFileName().toString();
             String targetId =
-                    (subdirectoryName.equals(ARCHIVES))
-                            ? ""
+                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                            ? UPLOADED_RECORDINGS_SUBDIRECTORY
                             : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-            String metadataSourceTarget = targetId.equals("") ? ARCHIVES : targetId;
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             parentPath.toString(),
@@ -220,7 +219,7 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                    new ConnectionDescriptor(metadataSourceTarget), recordingName));
+                                    new ConnectionDescriptor(targetId), recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -353,8 +352,9 @@ public class RecordingArchiveHelper {
                 List<String> files =
                         this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory));
                 String metadataSourceTarget =
-                        (subdirectory.equals(ARCHIVES))
-                                ? ARCHIVES
+                        (subdirectory.equals(ARCHIVES)
+                                        || subdirectory.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                                ? UPLOADED_RECORDINGS_SUBDIRECTORY
                                 : new String(base32.decode(subdirectory), StandardCharsets.UTF_8);
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
