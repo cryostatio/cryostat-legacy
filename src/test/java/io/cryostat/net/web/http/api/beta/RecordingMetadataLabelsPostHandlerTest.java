@@ -38,6 +38,8 @@
 
 package io.cryostat.net.web.http.api.beta;
 
+import static org.mockito.Mockito.when;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +99,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
     }
 
     @Nested
-    class BasicHandlerDefinition {
+    class ApiSpec {
 
         @Test
         void shouldRequireAuthentication() {
@@ -150,7 +152,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
     }
 
     @Nested
-    class Requests {
+    class Behaviour {
         @Test
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
@@ -160,18 +162,17 @@ public class RecordingMetadataLabelsPostHandlerTest {
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn(recordingName);
-            Mockito.when(params.get("sourceTarget")).thenReturn(sourceTarget);
-            Mockito.when(requestParameters.getBody()).thenReturn(requestLabels);
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn(recordingName);
+            when(params.get("sourceTarget")).thenReturn(sourceTarget);
+            when(requestParameters.getBody()).thenReturn(requestLabels);
 
-            Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
+            when(recordingArchiveHelper.getRecordingPath(recordingName))
                     .thenReturn(CompletableFuture.completedFuture(Path.of(recordingName)));
 
-            Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
-                    .thenReturn(labels);
+            when(recordingMetadataManager.parseRecordingLabels(requestLabels)).thenReturn(labels);
 
-            Mockito.when(
+            when(
                             recordingMetadataManager.setRecordingMetadata(
                                     new ConnectionDescriptor(sourceTarget),
                                     recordingName,
@@ -187,10 +188,10 @@ public class RecordingMetadataLabelsPostHandlerTest {
         @Test
         void shouldThrow400OnEmptyLabels() throws Exception {
             Map<String, String> params = Mockito.mock(Map.class);
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn("someRecording");
-            Mockito.when(params.get("sourceTarget")).thenReturn("someTarget");
-            Mockito.when(requestParameters.getBody()).thenReturn("invalid");
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn("someRecording");
+            when(params.get("sourceTarget")).thenReturn("someTarget");
+            when(requestParameters.getBody()).thenReturn("invalid");
             Mockito.doThrow(new IllegalArgumentException())
                     .when(recordingMetadataManager)
                     .parseRecordingLabels("invalid");
@@ -206,12 +207,12 @@ public class RecordingMetadataLabelsPostHandlerTest {
             String labels = Map.of("key", "value").toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn(recordingName);
-            Mockito.when(params.get("sourceTarget")).thenReturn("someTarget");
-            Mockito.when(requestParameters.getBody()).thenReturn(labels);
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn(recordingName);
+            when(params.get("sourceTarget")).thenReturn("someTarget");
+            when(requestParameters.getBody()).thenReturn(labels);
 
-            Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
+            when(recordingArchiveHelper.getRecordingPath(recordingName))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new RecordingNotFoundException(

@@ -65,10 +65,12 @@ import org.junit.jupiter.api.Test;
 public class ReportIT extends StandardSelfTest {
 
     static final String TEST_RECORDING_NAME = "someRecording";
-    static final String REPORT_REQ_URL = String.format("/api/beta/reports/%s", SELF_REFERENCE_TARGET_ID);
+    static final String REPORT_REQ_URL =
+            String.format("/api/beta/reports/%s", SELF_REFERENCE_TARGET_ID);
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
-    static final String ARCHIVE_REQ_URL = String.format("/api/beta/recordings/%s", SELF_REFERENCE_TARGET_ID);
+    static final String ARCHIVE_REQ_URL =
+            String.format("/api/beta/recordings/%s", SELF_REFERENCE_TARGET_ID);
     static final String TEMP_REPORT = "src/test/resources/reportTest.html";
 
     @Test
@@ -197,7 +199,9 @@ public class ReportIT extends StandardSelfTest {
                                 }
                             });
             try {
-                MatcherAssert.assertThat(deleteActiveRecResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(null));
+                MatcherAssert.assertThat(
+                        deleteActiveRecResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                        Matchers.equalTo(null));
             } catch (ExecutionException | InterruptedException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
@@ -236,7 +240,9 @@ public class ReportIT extends StandardSelfTest {
                             assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));

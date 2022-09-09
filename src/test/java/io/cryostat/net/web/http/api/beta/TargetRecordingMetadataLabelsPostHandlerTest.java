@@ -39,6 +39,8 @@
 package io.cryostat.net.web.http.api.beta;
 
 import java.util.List;
+import static org.mockito.Mockito.when;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -102,7 +104,7 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
     }
 
     @Nested
-    class BasicHandlerDefinition {
+    class ApiSpec {
 
         @Test
         void shouldRequireAuthentication() {
@@ -156,7 +158,7 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
     }
 
     @Nested
-    class Requests {
+    class Behaviour {
         @Test
         void shouldUpdateLabels() throws Exception {
             String recordingName = "someRecording";
@@ -166,28 +168,27 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn(recordingName);
-            Mockito.when(params.get("targetId")).thenReturn(targetId);
-            Mockito.when(requestParameters.getBody()).thenReturn(requestLabels);
-            Mockito.when(requestParameters.getHeaders())
-                    .thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn(recordingName);
+            when(params.get("targetId")).thenReturn(targetId);
+            when(requestParameters.getBody()).thenReturn(requestLabels);
+            when(requestParameters.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
             Optional<IRecordingDescriptor> descriptor = Mockito.mock(Optional.class);
-            Mockito.when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
+            when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
                     .thenReturn(descriptor);
-            Mockito.when(descriptor.isPresent()).thenReturn(true);
+            when(descriptor.isPresent()).thenReturn(true);
 
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+            when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                     .thenAnswer(
                             arg0 ->
                                     ((TargetConnectionManager.ConnectedTask<Object>)
                                                     arg0.getArgument(1))
                                             .execute(connection));
 
-            Mockito.when(recordingMetadataManager.parseRecordingLabels(requestLabels))
+            when(recordingMetadataManager.parseRecordingLabels(requestLabels))
                     .thenReturn(labels);
-            Mockito.when(
+            when(
                             recordingMetadataManager.setRecordingMetadata(
                                     Mockito.any(),
                                     Mockito.anyString(),
@@ -203,9 +204,9 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
         @Test
         void shouldThrow400OnEmptyLabels() throws Exception {
             Map<String, String> params = Mockito.mock(Map.class);
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn("someRecording");
-            Mockito.when(requestParameters.getBody()).thenReturn("invalid");
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn("someRecording");
+            when(requestParameters.getBody()).thenReturn("invalid");
             Mockito.doThrow(new IllegalArgumentException())
                     .when(recordingMetadataManager)
                     .parseRecordingLabels("invalid");
@@ -222,20 +223,19 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
             String targetId = "fooTarget";
             String labels = Map.of("key", "value").toString();
             Map<String, String> params = Mockito.mock(Map.class);
-            Mockito.when(requestParameters.getHeaders())
-                    .thenReturn(MultiMap.caseInsensitiveMultiMap());
+            when(requestParameters.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-            Mockito.when(requestParameters.getPathParams()).thenReturn(params);
-            Mockito.when(params.get("recordingName")).thenReturn(recordingName);
-            Mockito.when(params.get("targetId")).thenReturn(targetId);
-            Mockito.when(requestParameters.getBody()).thenReturn(labels);
+            when(requestParameters.getPathParams()).thenReturn(params);
+            when(params.get("recordingName")).thenReturn(recordingName);
+            when(params.get("targetId")).thenReturn(targetId);
+            when(requestParameters.getBody()).thenReturn(labels);
 
             Optional<IRecordingDescriptor> descriptor = Mockito.mock(Optional.class);
-            Mockito.when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
+            when(recordingTargetHelper.getDescriptorByName(connection, recordingName))
                     .thenReturn(descriptor);
-            Mockito.when(descriptor.isPresent()).thenReturn(false);
+            when(descriptor.isPresent()).thenReturn(false);
 
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+            when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                     .thenAnswer(
                             arg0 ->
                                     ((TargetConnectionManager.ConnectedTask<Object>)

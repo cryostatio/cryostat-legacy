@@ -56,8 +56,6 @@ import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
-
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -299,7 +297,10 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                         TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
                     CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
                     webClient
-                            .delete(String.format("/api/beta/recordings/%s/%s", SELF_REFERENCE_TARGET_ID, recordingName))
+                            .delete(
+                                    String.format(
+                                            "/api/beta/recordings/%s/%s",
+                                            SELF_REFERENCE_TARGET_ID, recordingName))
                             .send(
                                     ar -> {
                                         if (assertRequestStatus(ar, deleteRespFuture2)) {
