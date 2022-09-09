@@ -56,6 +56,8 @@ import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
+
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -66,15 +68,15 @@ import org.junit.jupiter.api.Test;
 
 public class RecordingWorkflowIT extends StandardSelfTest {
 
-    static final String TARGET_ID = "localhost";
     static final String TEST_RECORDING_NAME = "workflow_itest";
+    static final String TARGET_ALIAS = "io-cryostat-Cryostat";
 
     @Test
     public void testWorkflow() throws Exception {
         // Check preconditions
         CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
         webClient
-                .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, listRespFuture1)) {
@@ -92,7 +94,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             form.add("duration", "5");
             form.add("events", "template=ALL");
             webClient
-                    .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                     .sendForm(
                             form,
                             ar -> {
@@ -105,7 +107,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             // verify in-memory recording created
             CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, listRespFuture2)) {
@@ -131,7 +133,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     .patch(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
-                                    TARGET_ID, TEST_RECORDING_NAME))
+                                    SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME))
                     .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
@@ -145,7 +147,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             // check that the in-memory recording list hasn't changed
             CompletableFuture<JsonArray> listRespFuture3 = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, listRespFuture3)) {
@@ -183,7 +185,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"),
                     Matchers.matchesRegex(
-                            TARGET_ID + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr"));
+                            TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr"));
             String savedDownloadUrl = recordingInfo.getString("downloadUrl");
 
             Thread.sleep(3_000L); // wait for the dump to complete
@@ -191,7 +193,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             // verify the in-memory recording list has not changed, except recording is now stopped
             CompletableFuture<JsonArray> listRespFuture5 = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, listRespFuture5)) {
@@ -257,7 +259,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     .delete(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
-                                    TARGET_ID, TEST_RECORDING_NAME))
+                                    SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteRespFuture1)) {
@@ -294,10 +296,10 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             for (Object savedRecording : savedRecordings) {
                 String recordingName = ((JsonObject) savedRecording).getString("name");
                 if (recordingName.matches(
-                        TARGET_ID + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
+                        TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
                     CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
                     webClient
-                            .delete(String.format("/api/v1/recordings/%s", recordingName))
+                            .delete(String.format("/api/beta/recordings/%s/%s", SELF_REFERENCE_TARGET_ID, recordingName))
                             .send(
                                     ar -> {
                                         if (assertRequestStatus(ar, deleteRespFuture2)) {

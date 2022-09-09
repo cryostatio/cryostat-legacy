@@ -462,6 +462,9 @@ public class RecordingArchiveHelper {
                             : base32.encodeAsString(sourceTarget.getBytes(StandardCharsets.UTF_8));
             Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
             Path archivedRecording = searchSubdirectory(subdirectory, recordingName);
+            if (archivedRecording == null) {
+                throw new RecordingNotFoundException(sourceTarget, recordingName);
+            }
             validateRecordingPath(Optional.of(archivedRecording), recordingName);
             future.complete(archivedRecording);
         } catch (RecordingNotFoundException | ArchivePathException e) {

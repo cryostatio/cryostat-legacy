@@ -87,7 +87,9 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
                 cleanupCreatedResources(resource.getPath());
             }
             if (archivedResource != null) {
-                cleanupCreatedResources(archivedResource.getPath());
+                // updated because of v1 RecordingDeleteHandler deprecation
+                String updatedArchivedPath = archivedResource.getPath().replaceFirst("/api/v1/", "/api/beta/").replaceFirst("/recordings/", String.format("/recordings%s/", SELF_REFERENCE_TARGET_ID));
+                cleanupCreatedResources(updatedArchivedPath);
             }
             if (assetDownload != null) {
                 Files.deleteIfExists(assetDownload);
