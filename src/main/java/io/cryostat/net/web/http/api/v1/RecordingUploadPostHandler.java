@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -51,7 +50,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
@@ -62,17 +60,17 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
-import org.apache.commons.validator.routines.UrlValidator;
 
+@Deprecated(forRemoval = true)
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
@@ -128,36 +126,40 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        try {
-            URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
-            boolean isValidUploadUrl =
-                    new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
-            if (!isValidUploadUrl) {
-                throw new HttpException(
-                        501,
-                        String.format(
-                                "$%s=%s is an invalid datasource URL",
-                                Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
-            }
-            ResponseMessage response = doPost(recordingName, uploadUrl);
-            if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
-                    || response.statusMessage == null
-                    || response.body == null) {
-                throw new HttpException(
-                        512,
-                        String.format(
-                                "Invalid response from datasource server; datasource URL may be"
-                                    + " incorrect, or server may not be functioning properly: %d"
-                                    + " %s",
-                                response.statusCode, response.statusMessage));
-            }
-            ctx.response().setStatusCode(response.statusCode);
-            ctx.response().setStatusMessage(response.statusMessage);
-            ctx.response().end(response.body);
-        } catch (MalformedURLException e) {
-            throw new HttpException(501, e);
-        }
+        ctx.response()
+                .putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName/upload");
+        ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
+        // String recordingName = ctx.pathParam("recordingName");
+        // try {
+        //     URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
+        //     boolean isValidUploadUrl =
+        //             new
+        // UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
+        //     if (!isValidUploadUrl) {
+        //         throw new HttpException(
+        //                 501,
+        //                 String.format(
+        //                         "$%s=%s is an invalid datasource URL",
+        //                         Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
+        //     }
+        //     ResponseMessage response = doPost(recordingName, uploadUrl);
+        //     if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
+        //             || response.statusMessage == null
+        //             || response.body == null) {
+        //         throw new HttpException(
+        //                 512,
+        //                 String.format(
+        //                         "Invalid response from datasource server; datasource URL may be"
+        //                             + " incorrect, or server may not be functioning properly: %d"
+        //                             + " %s",
+        //                         response.statusCode, response.statusMessage));
+        //     }
+        //     ctx.response().setStatusCode(response.statusCode);
+        //     ctx.response().setStatusMessage(response.statusMessage);
+        //     ctx.response().end(response.body);
+        // } catch (MalformedURLException e) {
+        //     throw new HttpException(501, e);
+        // }
     }
 
     private ResponseMessage doPost(String recordingName, URL uploadUrl) throws Exception {
