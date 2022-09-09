@@ -187,9 +187,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                         getJvmId(
                                                                                 new ConnectionDescriptor(
                                                                                         targetId));
-                                                                if (newJvmId == null) {
-                                                                    return;
-                                                                }
                                                                 recordingMetadataMap.put(
                                                                         Pair.of(
                                                                                 newJvmId,
