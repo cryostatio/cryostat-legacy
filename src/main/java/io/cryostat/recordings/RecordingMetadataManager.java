@@ -48,12 +48,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.script.ScriptException;
 
 import io.cryostat.MainModule;
@@ -89,6 +91,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Path recordingMetadataDir;
     private final Path archivedRecordingsPath;
     private final FileSystem fs;
+    private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final PlatformClient platformClient;
@@ -106,6 +109,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             Path recordingMetadataDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             FileSystem fs,
+            Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
@@ -117,6 +121,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
         this.fs = fs;
+        this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.platformClient = platformClient;
@@ -153,9 +158,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                     path -> {
                                                         try {
                                                             return fs.readFile(path);
-                                                        } catch (IOException e) {
-                                                            logger.error(e);
-                                                            future.fail(e);
+                                                        } catch (IOException ioe) {
+                                                            logger.error(ioe);
                                                             return null;
                                                         }
                                                     })
@@ -193,16 +197,14 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                                 srm
                                                                                         .getRecordingName()),
                                                                         srm);
-                                                            } catch (IOException e) {
-                                                                logger.error(e);
+                                                            } catch (IOException ioe) {
+                                                                logger.error(ioe);
                                                             }
                                                         }
                                                     });
                                 }
-                                // TODO: This is a migration check for the old metadata files that
-                                // were stored without a directory
-                                // (remove in future version with and replace with
-                                // subdirectory::fs.isDirectory (ignore files))?
+                                /* TODO: This is a migration check for the old metadata files that were stored without a directory
+                                (remove in future version with and replace with subdirectory::fs.isDirectory (ignore files))? */
                                 else if (fs.isRegularFile(subdirectory)) {
                                     logger.info("Found old metadata file: {}", subdirectory);
                                     StoredRecordingMetadata srm =
@@ -210,11 +212,68 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                     fs.readFile(subdirectory),
                                                     StoredRecordingMetadata.class);
                                     String targetId = srm.getTargetId();
+                                    String recordingName = srm.getRecordingName();
+                                    if (targetId.equals("archives")) {
+                                        try {
+                                            if (isArchivedRecording(recordingName)) {
+                                                RecordingArchiveHelper archiveHelper =
+                                                        archiveHelperProvider.get();
+                                                Path recordingPath =
+                                                        archiveHelper
+                                                                .getRecordingPath(recordingName)
+                                                                .get();
+                                                String subdirectoryName =
+                                                        recordingPath
+                                                                .getParent()
+                                                                .getFileName()
+                                                                .toString();
+                                                String newTargetId =
+                                                        new String(
+                                                                base32.decode(subdirectoryName),
+                                                                StandardCharsets.UTF_8);
+                                                logger.info(
+                                                        "Found metadata corresponding to archived"
+                                                                + " recording: {}",
+                                                        recordingName);
+                                                setRecordingMetadata(
+                                                        new ConnectionDescriptor(newTargetId),
+                                                        recordingName,
+                                                        new Metadata(srm.getLabels()));
+                                            } else {
+                                                logger.warn(
+                                                        "Found metadata for lost archived"
+                                                                + " recording: {}",
+                                                        recordingName);
+                                            }
+                                        } catch (InterruptedException | ExecutionException e) {
+                                            logger.error(e);
+                                        }
 
-                                    setRecordingMetadata(
-                                            new ConnectionDescriptor(targetId),
-                                            srm.getRecordingName(),
-                                            new Metadata(srm.getLabels()));
+                                    } else {
+                                        try {
+                                            ConnectionDescriptor cd =
+                                                    new ConnectionDescriptor(targetId);
+                                            if (targetRecordingExists(cd, recordingName).get()) {
+                                                logger.info(
+                                                        "Found metadata corresponding to recording:"
+                                                                + " {}",
+                                                        recordingName);
+                                                setRecordingMetadata(
+                                                        new ConnectionDescriptor(targetId),
+                                                        recordingName,
+                                                        new Metadata(srm.getLabels()));
+                                            } else {
+                                                logger.warn(
+                                                        "Found metadata for lost active recording:"
+                                                                + " {}",
+                                                        recordingName);
+                                            }
+                                        } catch (InterruptedException | ExecutionException e) {
+                                            logger.info("Couldn't connect to target: {}", targetId);
+                                            logger.error(e);
+                                        }
+                                    }
+                                    // delete old metadata file after migration
                                     fs.deleteIfExists(subdirectory);
                                 } else {
                                     logger.warn(
@@ -223,8 +282,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             subdirectory);
                                 }
 
-                            } catch (IOException e) {
-                                logger.error(e);
+                            } catch (IOException ioe) {
+                                logger.error(ioe);
                             }
                         });
 
@@ -526,6 +585,27 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
+    public Future<Boolean> targetRecordingExists(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            Boolean present =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            conn ->
+                                    conn.getService().getAvailableRecordings().stream()
+                                            .anyMatch(
+                                                    r ->
+                                                            Objects.equals(
+                                                                    recordingName, r.getName())));
+
+            future.complete(present);
+        } catch (Exception e) {
+            future.complete(false);
+        }
+        return future;
+    }
+
     private Path getMetadataPath(String jvmId, String recordingName) throws IOException {
         String subdirectory =
                 jvmId.equals(UPLOADS)
@@ -711,16 +791,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         @Override
         public int hashCode() {
             return new HashCodeBuilder().append(labels).toHashCode();
-        }
-    }
-
-    static class MetadataException extends Exception {
-        public MetadataException(String message) {
-            super(message);
-        }
-
-        public MetadataException(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }

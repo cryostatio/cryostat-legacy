@@ -41,6 +41,8 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Map;
 
+import javax.inject.Provider;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -78,6 +80,7 @@ public class RecordingMetadataManagerTest {
     @Mock Path recordingMetadataDir;
     @Mock Path archivedRecordingsPath;
     @Mock FileSystem fs;
+    @Mock Provider<RecordingArchiveHelper> archiveHelperProvider;
     @Mock Base32 base32;
     @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
@@ -115,6 +118,7 @@ public class RecordingMetadataManagerTest {
                         recordingMetadataDir,
                         archivedRecordingsPath,
                         fs,
+                        archiveHelperProvider,
                         targetConnectionManager,
                         credentialsManager,
                         platformClient,
