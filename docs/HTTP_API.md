@@ -1200,11 +1200,15 @@ The handler-specific descriptions below describe how each handler populates the
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
 | Perform batched start/stop/delete operations across target JVMs           | [`GraphQLHandler`](#GraphQLHandler)                                             |
-| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
 | Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                         |
 | **Target JVMs**                                                           |                                                                                 |
 | Add a custom target definition                                            | [`TargetsPostHandler`](#TargetsPostHandler)                                     |
 | Delete a custom target definition                                         | [`TargetDeleteHandler`](#TargetDeleteHandler)                                   |
+| **Target Discovery**                                                      |                                                                                 |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| Register a discovery plugin                                               | [`DiscoveryRegistrationHandler`](#DiscoveryRegistrationHandler)                 |
+| Update discovered scenario                                                | [`DiscoveryPostHandler`](#DiscoveryPostHandler)                                 |
+| Deregister a discovery plugin                                             | [`DiscoveryDeregistrationHandler`](#DiscoveryDeregistrationHandler)             |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1221,7 +1225,7 @@ The handler-specific descriptions below describe how each handler populates the
 | Add stored credentials                                                    | [`CredentialsPostHandler`](#CredentialsPostHandler)                             |
 | Get a list of stored credentials                                          | [`CredentialsGetHandler`](#CredentialsGetHandler)                               |
 | Get a stored credential and its matching targets                          | [`CredentialGetHandler`](#CredentialGetHandler)                                 |
-| Delete stored credentials                                                 | [`CredentialDeleteHandler`](#CredentialDeleteHandler)                         |
+| Delete stored credentials                                                 | [`CredentialDeleteHandler`](#CredentialDeleteHandler)                           |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
@@ -1281,21 +1285,6 @@ The handler-specific descriptions below describe how each handler populates the
     performed by the GraphQL internal interface. Requests may be rejected if the
     requesting client lacks sufficient permissions, even if the particular
     request sent does not require such permissions.
-
-* #### `DiscoveryGetHandler`
-
-    ###### synopsis
-    Queries the platform client(s) for the discoverable targets and constructs a
-    hierarchical tree view of the full deployment environment with targets
-    belonging to ex. Pods, belonging to Deployments, etc.
-
-    ###### request
-    `GET /api/v2.1/discovery`
-
-    ###### response
-    `200` - The result is the path of the saved file in the server's storage.
-
-    `401` - The user does not have sufficient permissions.
 
 * #### `HealthLivenessGetHandler`
 
@@ -1382,6 +1371,254 @@ The handler-specific descriptions below describe how each handler populates the
     $ curl -X DELETE https://0.0.0.0:8181/api/v2/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9099%2Fjmxrmi
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":null}}
     ```
+
+### Target Discovery
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Collates the deployment scenarios discovered by the built-in discovery
+    mechanisms and any registered discovery plugins into a hierarchical tree
+    view of the full deployment environment with targets as leaf nodes belonging
+    to ex. Pods, belonging to Deployments, belonging to a Namespace etc. The
+    root of the tree is always the `UNIVERSE` node. The `UNIVERSE`'s children
+    are `REALM`s, some of which are provided by Cryostat's built-in
+    platform-specific discovery mechanisms and others which are provided by
+    discovery plugins. The subtrees below the `REALM` are specific to the
+    platform mechanism or discovery plugin.
+
+    ###### request
+    `GET /api/v2.1/discovery`
+
+    ###### response
+    `200` - The result is the hierarchical tree view as JSON.
+    ```json
+    {
+        "data": {
+            "result": {
+                "children": [
+                    {
+                        "children": [],
+                        "labels": {},
+                        "name": "Custom Targets",
+                        "nodeType": "Realm"
+                    },
+                    {
+                        "children": [
+                            {
+                                "labels": {},
+                                "name": "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi",
+                                "nodeType": "JVM",
+                                "target": {
+                                    "alias": "io.cryostat.Cryostat",
+                                    "annotations": {
+                                        "cryostat": {
+                                            "HOST": "cryostat",
+                                            "JAVA_MAIN": "io.cryostat.Cryostat",
+                                            "PORT": "9091",
+                                            "REALM": "JDP"
+                                        },
+                                        "platform": {}
+                                    },
+                                    "connectUrl": "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi",
+                                    "labels": {}
+                                }
+                            }
+                        ],
+                        "labels": {},
+                        "name": "JDP",
+                        "nodeType": "Realm"
+                    }
+                ],
+                "labels": {},
+                "name": "Universe",
+                "nodeType": "Universe"
+            }
+        },
+        "meta": {
+            "status": "OK",
+            "type": "application/json"
+        }
+    }
+    ```
+
+    `401` - The user does not have sufficient permissions.
+
+* #### `DiscoveryRegistrationHandler`
+
+    ###### synopsis
+    Registers a discovery plugin. Plugins must be registered before they can
+    publish updates. Request must include a JSON body with a `realm` and a
+    `callback`. The `realm` is a unique name label for the subtree that this
+    plugin will publish and may not be blank. The `callback` is a URI to an
+    endpoint where Cryostat can reach the discovery plugin to perform health
+    checks. The plugin may optionally include a `token` in the JSON body. This
+    `token` is expected to be the `token` that the plugin previously received
+    from Cryostat after an earlier registration. This token is opaque to the
+    client but contains an expiry time known to Cryostat, as well as
+    authorization information. If the request includes a prior `token` then
+    rather than processing the request as a new plugin registration (with a
+    unique `realm`), Cryostat will reuse the same registration and issue a
+    refreshed token.
+
+    Cryostat will perform a `POST` to the supplied `callback` when
+    Cryostat restarts to ensure that the previously-registered discovery plugins
+    are still present. This `POST` will have an empty body. It is recommended
+    that plugins respond to this callback `POST` by attempting to re-register
+    themselves by sending a request to this endpoint containing a repeated
+    `realm` and `callback`, and the previously held `token`. Cryostat will then
+    issue a refreshed `token`. Cryostat may issue a `callback` request to
+    plugins at any time, in particular before token expiration to ensure plugins
+    have fresh tokens. Cryostat will also send a `GET` request to the same
+    `callback` at plugin registration time in order to validate the URI. The
+    plugin should respond to this `GET` with a `2xx` response, but is not
+    expected to attempt re-registration (since initial registration is still in
+    progress).
+
+    This initial registration request requires the plugin to provide a request
+    `Authorization` header and pass authz checks. The authz here will be
+    inherited by the provided access token. The access token will be scoped to
+    the `id` and `realm` only.
+
+    ###### request
+    `POST /api/v2.2/discovery`
+    ```json
+    {
+        "realm": "my-plugin",
+        "callback": "http://my-plugin.my-namespace.svc.local:1234/callback"
+    }
+    ```
+
+    ###### response
+    `200` - The result is a JSON object containing metadata, a plugin
+    registration ID, and an access token.
+    ```json
+   {
+    "data": {
+        "result": {
+            "id": "922dd4f4-9d7c-4ae2-8982-0903868226a6",
+            "token": "eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiZGlyIn0..y_hecOmStA-oEtRL.ErjTrEYFRscWtTlzsBCYWu24QRnu9zs8gkSfri64pepvQzK6oxv2DMXgdtUT17M8S4a_8xmBMBzDMiPOU7sFI3tQFgskuWhjp1RC4uDxePv40A1NAi0p2Ncej0DXZ-k8s563luBhViuJXfx4y-b7eC0gmOEal852mLYbRv5Qtfi9BhS-6hqgH3XJFsoLUr6F2SG8ahFq_pF8uT1nrUnW5pmmMRE8BcnUMTKl2dbXA9Uhq-rkcTYdIUOdujJixDBgJtBODS-_1_6UbL98xBbYW5-DwtxWAeDNDmoOLMDbJrcMKyKBdvvOQ44b0adB10knIeWjlbDZ0eEuw7tjq1IPjutXz_fnBmEirWNhjh_uB-N5gllVgxn0gAm8tbU7Ed6HmN5utYg3wucPCZ2jGgr1dnujt0Kl-sgb0tARYZNYKO4JDKfZ5cI9IEck4ep_o5uE8Bv3GEtiTSZ3QVdTk-6OyPNdQfV4oQJzPDwPL2zFwBLTEuhCcCZqXcA4asdC6L7pEUSaeTruEOBG7idQ8Gb87C7ImDWBMn3PxLdXiSqAZejzDBOV61bcjMcVs-2duy_r-s2BpPGDFQ.eb4UZ82Hro0LOpkmPbSjAQ"
+        }
+    },
+    "meta": {
+        "status": "Created",
+        "type": "application/json"
+    }
+} ```
+
+    `401` - The user does not have sufficient permissions.
+
+* #### `DiscoveryPostHandler`
+
+    ###### synopsis
+    Registered discovery plugins `POST` the subtrees describing their scenario
+    to this endpoint. The subtree root `REALM` node is generated by Cryostat, so
+    in fact the plugins publish here the *children* and descendants of that
+    `REALM`, only. This is a push-based publishing system - plugins are
+    responsible for performing their own monitoring of their scenario,
+    transforming this into a set of leaf nodes or a tree structure, and
+    `POST`ing this to Cryostat. Each request wholly replaces the previous
+    `REALM` contents previously provided. The `POST` body must be in JSON form.
+    The generated access token must be supplied as a query parameter, and the
+    `Authorization` header is not used.
+
+    ###### request
+    `POST /api/v2.2/discovery/:id?token=:token`
+
+    `id` - the plugin registration `id` as provided by the discovery
+    registration handler.
+
+    `token` - the access token as provided by the discovery registration
+    handler.
+
+    ```json
+    [
+        {
+            "labels": {},
+            "name": "service:jmx:rmi:///jndi/rmi://myapp.svc.local:9091/jmxrmi",
+            "nodeType": "JVM",
+            "target": {
+                "alias": "com.MyApp",
+                "annotations": {
+                    "cryostat": {},
+                    "platform": {}
+                },
+                "connectUrl": "service:jmx:rmi:///jndi/rmi://myapp.svc.local:9091/jmxrmi",
+                "labels": {}
+            }
+        }
+    ]
+    ```
+
+    ###### response
+
+    ```json
+    {
+        "data": {
+            "result": null
+        },
+        "meta": {
+            "mimeType": "JSON",
+            "status": "OK"
+        }
+    }
+    ```
+
+    `200` - The result is an empty message in JSON format.
+
+    `400` - The JSON document provided was invalid or the provided `id` was not
+    a valid format.
+
+    `401` - The provided token did not pass authz. This may be because the token
+    has expired. The plugin should re-register with the same token to receive a
+    refreshed token.
+
+    `404` - The plugin `id` could not be found. This likely occurs because the
+    plugin failed a `callback` check and was pruned. The plugin should
+    re-register.
+
+* #### `DiscoveryDeregistrationHandler`
+
+    ###### synopsis
+    When plugins are shutting down they should send a request to this endpoint
+    to clean up. This will immediately remove the plugin's `REALM` subtree from
+    the overall discovery scenario and release its registration.
+
+    ###### request
+    `DELETE /api/v2.2/discovery/:id?token=:token`
+
+    `id` - the plugin registration `id` as provided by the discovery
+    registration handler.
+
+    `token` - the access token as provided by the discovery registration
+    handler.
+
+    ###### response
+    ```json
+    {
+        "data": {
+            "result": "bcc0f3a6-dc48-402e-a3d6-9fbb63beff78"
+        },
+        "meta": {
+            "mimeType": "JSON",
+            "status": "OK"
+        }
+    }
+    ```
+
+    `200` - The result is an empty message in JSON format containing the `id`
+    that was deregistered.
+
+    `400` - The provided ID was not a valid format.
+
+    `401` - The provided token did not pass authz. This may be because the token
+    has expired. The plugin should re-register with the same token to receive a
+    refreshed token.
+
+    `404` - The plugin `id` could not be found. This likely occurs because the
+    plugin failed a `callback` check and was pruned. The plugin has no need to
+    deregister itself in this case.
+
 ### Recordings in Target JVMs
 
 * #### `TargetEventsGetHandler`
@@ -1793,7 +2030,7 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `CredentialsGetHandler`
 
     ##### synopsis
-    List stored credentials. Only the `id`, `matchExpression` and 
+    List stored credentials. Only the `id`, `matchExpression` and
     `numMatchingTargets` are provided here, where `numMatchingTargets` is
     is the number of known targets matching the `matchExpression`.
 

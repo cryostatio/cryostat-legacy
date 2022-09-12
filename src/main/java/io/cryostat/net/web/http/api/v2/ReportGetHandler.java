@@ -67,7 +67,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class ReportGetHandler extends AbstractJwtConsumingHandler {
+class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final ReportService reportService;
     private final long generationTimeoutSeconds;

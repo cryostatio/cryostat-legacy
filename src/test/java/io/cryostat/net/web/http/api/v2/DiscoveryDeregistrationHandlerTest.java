@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -47,11 +45,20 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiData;
+import io.cryostat.net.web.http.api.ApiMeta;
+import io.cryostat.net.web.http.api.ApiResponse;
+import io.cryostat.net.web.http.api.ApiResultData;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
+import com.nimbusds.jwt.JWT;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -62,21 +69,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryDeregistrationHandlerTest {
-    AbstractV2RequestHandler<String> handler;
+    AbstractDiscoveryJwtConsumingHandler<String> handler;
     @Mock AuthManager auth;
+    @Mock DiscoveryJwtHelper jwt;
+    @Mock WebServer webServer;
     @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new DiscoveryDeregistrationHandler(auth, storage, UUID::fromString, gson);
+        this.handler =
+                new DiscoveryDeregistrationHandler(
+                        auth, jwt, () -> webServer, storage, UUID::fromString, gson, logger);
     }
 
     @Nested
@@ -102,36 +114,26 @@ class DiscoveryDeregistrationHandlerTest {
                     handler.resourceActions(),
                     Matchers.equalTo(Set.of(ResourceAction.DELETE_TARGET)));
         }
-
-        @Test
-        void shouldReturnJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
-        }
-
-        @Test
-        void shouldRequireAuthentication() {
-            MatcherAssert.assertThat(handler.requiresAuthentication(), Matchers.is(true));
-        }
     }
 
     @Nested
     class RequestHandling {
 
-        @Mock RequestParameters requestParams;
+        @Mock RoutingContext ctx;
+        @Mock HttpServerResponse resp;
+        @Mock JWT jwt;
 
         @ParameterizedTest
         @NullAndEmptySource
         @ValueSource(strings = {" ", "\n", "\t", "not a uuid", "1234", "abc-123"})
         void shouldThrowIfIdParamInvalid(String id) throws Exception {
-            Map<String, String> map = new HashMap<>();
             if (id != null) {
-                map.put("id", id);
+                Mockito.when(ctx.pathParam("id")).thenReturn(id);
             }
-            Mockito.when(requestParams.getPathParams()).thenReturn(map);
 
             ApiException ex =
                     Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
+                            ApiException.class, () -> handler.handleWithValidJwt(ctx, jwt));
 
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
@@ -141,14 +143,27 @@ class DiscoveryDeregistrationHandlerTest {
             UUID uuid = UUID.randomUUID();
             Mockito.when(storage.deregister(Mockito.any(UUID.class))).thenReturn(null);
 
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", uuid.toString()));
+            Mockito.when(ctx.pathParam("id")).thenReturn(uuid.toString());
 
-            IntermediateResponse<String> resp = handler.handle(requestParams);
+            handler.handleWithValidJwt(ctx, jwt);
 
-            MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(resp.getBody(), Matchers.equalTo(uuid.toString()));
+            ArgumentCaptor<ApiResponse> respCaptor = ArgumentCaptor.forClass(ApiResponse.class);
 
             Mockito.verify(storage).deregister(Mockito.eq(uuid));
+            Mockito.verify(ctx).json(respCaptor.capture());
+
+            ApiResponse resp = respCaptor.getValue();
+            MatcherAssert.assertThat(resp, Matchers.notNullValue());
+
+            ApiMeta meta = resp.getMeta();
+            MatcherAssert.assertThat(meta, Matchers.notNullValue());
+            MatcherAssert.assertThat(meta.getStatus(), Matchers.equalTo("OK"));
+            MatcherAssert.assertThat(meta.getMimeType(), Matchers.equalTo(HttpMimeType.JSON));
+
+            ApiData data = resp.getData();
+            MatcherAssert.assertThat(data, Matchers.isA(ApiResultData.class));
+            MatcherAssert.assertThat(
+                    ((ApiResultData) data).getResult(), Matchers.equalTo(uuid.toString()));
         }
     }
 }

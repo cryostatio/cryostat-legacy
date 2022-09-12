@@ -68,6 +68,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -179,7 +180,14 @@ class DiscoveryStorageTest {
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-            Mockito.when(http.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(
+                            http.request(
+                                    Mockito.any(HttpMethod.class),
+                                    Mockito.anyInt(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
+                    .thenReturn(req);
+            Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
             Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
 
@@ -212,7 +220,14 @@ class DiscoveryStorageTest {
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-            Mockito.when(http.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(
+                            http.request(
+                                    Mockito.any(HttpMethod.class),
+                                    Mockito.anyInt(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
+                    .thenReturn(req);
+            Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
             Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
 
@@ -239,7 +254,14 @@ class DiscoveryStorageTest {
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
-            Mockito.when(http.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(
+                            http.request(
+                                    Mockito.any(HttpMethod.class),
+                                    Mockito.anyInt(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
+                    .thenReturn(req);
+            Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
             Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
 
@@ -269,6 +291,23 @@ class DiscoveryStorageTest {
                                     Mockito.any(URI.class),
                                     Mockito.any(EnvironmentNode.class)))
                     .thenThrow(ConstraintViolationException.class);
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            Mockito.when(
+                            http.request(
+                                    Mockito.any(HttpMethod.class),
+                                    Mockito.anyInt(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
+                    .thenReturn(req);
+            Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+            Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
+
+            HttpResponse<Buffer> res = Mockito.mock(HttpResponse.class);
+            Mockito.when(res.statusCode()).thenReturn(200);
+            Future<HttpResponse<Buffer>> future = Future.succeededFuture(res);
+            Mockito.when(req.send()).thenReturn(future);
 
             Exception ex =
                     Assertions.assertThrows(
@@ -302,6 +341,23 @@ class DiscoveryStorageTest {
                                     return plugin;
                                 }
                             });
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            Mockito.when(
+                            http.request(
+                                    Mockito.any(HttpMethod.class),
+                                    Mockito.anyInt(),
+                                    Mockito.anyString(),
+                                    Mockito.anyString()))
+                    .thenReturn(req);
+            Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+            Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
+
+            HttpResponse<Buffer> res = Mockito.mock(HttpResponse.class);
+            Mockito.when(res.statusCode()).thenReturn(200);
+            Future<HttpResponse<Buffer>> future = Future.succeededFuture(res);
+            Mockito.when(req.send()).thenReturn(future);
 
             UUID id = storage.register("test-realm", URI.create("http://example.com"));
             MatcherAssert.assertThat(id, Matchers.notNullValue());

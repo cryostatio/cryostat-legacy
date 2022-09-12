@@ -46,11 +46,13 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.util.StringUtil;
@@ -58,28 +60,31 @@ import io.cryostat.util.StringUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
+class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler<Void> {
 
     static final String PATH = "discovery/:id";
     private final DiscoveryStorage storage;
     private final Function<String, UUID> uuidFromString;
+    private final Gson gson;
 
     @Inject
     DiscoveryPostHandler(
             AuthManager auth,
+            DiscoveryJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
             DiscoveryStorage storage,
             @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
-            Gson gson) {
-        super(auth, gson);
+            Gson gson,
+            Logger logger) {
+        super(storage, auth, jwtFactory, webServer, uuidFromString, logger);
         this.storage = storage;
         this.uuidFromString = uuidFromString;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
+        this.gson = gson;
     }
 
     @Override
@@ -106,30 +111,26 @@ class DiscoveryPostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
-    }
-
-    @Override
     public boolean isAsync() {
         return false;
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
+    void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         try {
             UUID id =
                     this.uuidFromString.apply(
-                            StringUtil.requireNonBlank(params.getPathParams().get("id"), "id"));
+                            StringUtil.requireNonBlank(ctx.pathParam("id"), "id"));
+            String body = ctx.getBodyAsString();
             Set<AbstractNode> nodes =
                     gson.fromJson(
-                            StringUtil.requireNonBlank(params.getBody(), "body"),
+                            StringUtil.requireNonBlank(body, "body"),
                             new TypeToken<Set<AbstractNode>>() {}.getType());
             // TODO validate the nodes more thoroughly, all branches should terminate in leaves, no
             // fields should be null, etc.
             storage.update(id, nodes);
 
-            return new IntermediateResponse<Void>().body(null);
+            writeResponse(ctx, new IntermediateResponse<Void>());
         } catch (JsonSyntaxException | IllegalArgumentException e) {
             throw new ApiException(400, e);
         } catch (NotFoundException e) {

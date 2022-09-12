@@ -80,9 +80,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AbstractJwtConsumingHandlerTest {
+class AbstractAssetJwtConsumingHandlerTest {
 
-    AbstractJwtConsumingHandler handler;
+    AbstractAssetJwtConsumingHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwtHelper;
@@ -547,7 +547,7 @@ class AbstractJwtConsumingHandlerTest {
         }
     }
 
-    static class JwtConsumingHandler extends AbstractJwtConsumingHandler {
+    static class JwtConsumingHandler extends AbstractAssetJwtConsumingHandler {
         JwtConsumingHandler(
                 AuthManager auth,
                 CredentialsManager credentialsManager,

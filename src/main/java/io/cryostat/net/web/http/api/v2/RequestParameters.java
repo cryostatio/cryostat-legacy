@@ -37,17 +37,26 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import io.cryostat.core.log.Logger;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
 public class RequestParameters {
 
+    static final String X_FORWARDED_FOR = "X-Forwarded-For";
+    private final InetAddress addr;
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
     private final MultiMap headers;
@@ -55,13 +64,19 @@ public class RequestParameters {
     private final Set<FileUpload> fileUploads;
     private final String body;
 
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "InetAddress is mutable but there is no immutable form or copy constructor")
     public RequestParameters(
+            InetAddress addr,
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
             MultiMap formAttributes,
             Set<FileUpload> fileUploads,
             String body) {
+        this.addr = addr;
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
         this.queryParams.addAll(queryParams);
@@ -74,6 +89,14 @@ public class RequestParameters {
     }
 
     public static RequestParameters from(RoutingContext ctx) {
+        InetAddress addr = null;
+        if (ctx != null) {
+            HttpServerRequest req = ctx.request();
+            if (req != null && req.remoteAddress() != null) {
+                addr = tryResolveAddress(addr, req.remoteAddress().host());
+            }
+        }
+
         Map<String, String> pathParams = new HashMap<>();
         if (ctx != null && ctx.pathParams() != null) {
             pathParams.putAll(ctx.pathParams());
@@ -86,7 +109,9 @@ public class RequestParameters {
 
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (ctx != null && ctx.request() != null && ctx.request().headers() != null) {
-            headers.addAll(ctx.request().headers());
+            MultiMap h = ctx.request().headers();
+            headers.addAll(h);
+            addr = tryResolveAddress(addr, h.get(X_FORWARDED_FOR));
         }
 
         MultiMap formAttributes = MultiMap.caseInsensitiveMultiMap();
@@ -105,7 +130,27 @@ public class RequestParameters {
         }
 
         return new RequestParameters(
-                pathParams, queryParams, headers, formAttributes, fileUploads, body);
+                addr, pathParams, queryParams, headers, formAttributes, fileUploads, body);
+    }
+
+    private static InetAddress tryResolveAddress(InetAddress addr, String host) {
+        if (StringUtils.isBlank(host)) {
+            return addr;
+        }
+        try {
+            return InetAddress.getByName(host);
+        } catch (UnknownHostException e) {
+            Logger.INSTANCE.error(e);
+        }
+        return addr;
+    }
+
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP",
+            justification =
+                    "InetAddress is mutable but there is no immutable form or copy constructor")
+    public InetAddress getAddress() {
+        return this.addr;
     }
 
     public Map<String, String> getPathParams() {

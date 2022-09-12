@@ -37,34 +37,61 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.discovery.PluginInfo;
 import io.cryostat.discovery.RegistrationException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jwt.proc.BadJWTException;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonObject;
+import org.apache.commons.lang3.StringUtils;
 
 class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
     static final String PATH = "discovery";
     private final DiscoveryStorage storage;
+    private final Lazy<WebServer> webServer;
+    private final DiscoveryJwtHelper jwtFactory;
+    private final Logger logger;
 
     @Inject
-    DiscoveryRegistrationHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
+    DiscoveryRegistrationHandler(
+            AuthManager auth,
+            DiscoveryStorage storage,
+            Lazy<WebServer> webServer,
+            DiscoveryJwtHelper jwt,
+            Gson gson,
+            Logger logger) {
         super(auth, gson);
         this.storage = storage;
+        this.webServer = webServer;
+        this.jwtFactory = jwt;
+        this.logger = logger;
     }
 
     @Override
@@ -105,26 +132,63 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
             throws Exception {
+        String realm, priorToken;
+        URI callbackUri;
         try {
-            String realm = getNonBlankJsonAttribute(params, "realm");
-            URI callbackUri = new URI(getNonBlankJsonAttribute(params, "callback"));
-
-            String id = storage.register(realm, callbackUri).toString();
-            // TODO generate a JWT auth token
-            // claims:
-            // iss: Cryostat server URL
-            // sub: plugin Realm
-            // aud:
-            //  - Cryostat server URL
-            //  - registation-time plugin request IP (X-Forwarded-For header/request remoteAddress)
-            // exp: ? need to determine refresh time/mechanism
-            // iat: now
-            return new IntermediateResponse<Map<String, String>>()
-                    .statusCode(201)
-                    .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), id))
-                    .body(Map.of("id", id, "token", "placeholder"));
-        } catch (IllegalArgumentException | URISyntaxException | RegistrationException e) {
+            JsonObject body = new JsonObject(params.getBody());
+            realm = StringUtil.requireNonBlank(body.getString("realm"), "realm");
+            callbackUri =
+                    new URI(StringUtil.requireNonBlank(body.getString("callback"), "callback"));
+            priorToken = body.getString("token");
+        } catch (URISyntaxException | IllegalArgumentException | DecodeException e) {
             throw new ApiException(400, e);
         }
+
+        InetAddress address = params.getAddress();
+        String authzHeader =
+                Optional.ofNullable(params.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                        .orElse("None");
+        String pluginId;
+        URL hostUrl = webServer.get().getHostUrl();
+        if (StringUtils.isBlank(priorToken)) {
+            try {
+                pluginId = storage.register(realm, callbackUri).toString();
+            } catch (RegistrationException e) {
+                throw new ApiException(400, e);
+            }
+        } else {
+            PluginInfo plugin = storage.getByRealm(realm).orElseThrow(() -> new ApiException(404));
+            if (!Objects.equals(plugin.getRealm(), realm)) {
+                throw new ApiException(400);
+            }
+            if (!Objects.equals(plugin.getCallback(), callbackUri)) {
+                throw new ApiException(400);
+            }
+
+            pluginId = plugin.getId().toString();
+            try {
+                jwtFactory.parseDiscoveryPluginJwt(
+                        priorToken,
+                        realm,
+                        AbstractDiscoveryJwtConsumingHandler.getResourceUri(hostUrl, pluginId),
+                        address,
+                        false);
+            } catch (JOSEException e) {
+                throw new ApiException(400, e);
+            } catch (BadJWTException e) {
+                throw new ApiException(401, e);
+            }
+        }
+
+        String token =
+                jwtFactory.createDiscoveryPluginJwt(
+                        authzHeader,
+                        realm,
+                        address,
+                        AbstractDiscoveryJwtConsumingHandler.getResourceUri(hostUrl, pluginId));
+        return new IntermediateResponse<Map<String, String>>()
+                .statusCode(201)
+                .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), pluginId))
+                .body(Map.of("id", pluginId, "token", token));
     }
 }

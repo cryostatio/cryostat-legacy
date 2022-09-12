@@ -64,7 +64,7 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
-    static AssetJwtHelper provideJwtFactory(
+    static AssetJwtHelper provideAssetJwtFactory(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,
@@ -81,6 +81,24 @@ public abstract class JwtModule {
                     decrypter,
                     !AuthenticationScheme.NONE.equals(auth.getScheme()),
                     logger);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Singleton
+    static DiscoveryJwtHelper provideDiscoveryJwtFactory(
+            Lazy<WebServer> webServer,
+            JWSSigner signer,
+            JWSVerifier verifier,
+            JWEEncrypter encrypter,
+            JWEDecrypter decrypter,
+            AuthManager auth,
+            Logger logger) {
+        try {
+            return new DiscoveryJwtHelper(
+                    webServer, signer, verifier, encrypter, decrypter, logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

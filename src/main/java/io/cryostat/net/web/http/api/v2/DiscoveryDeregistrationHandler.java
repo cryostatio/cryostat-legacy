@@ -46,18 +46,23 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
+class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandler<String> {
 
     private final DiscoveryStorage storage;
     private final Function<String, UUID> uuidFromString;
@@ -65,17 +70,15 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
     @Inject
     DiscoveryDeregistrationHandler(
             AuthManager auth,
+            DiscoveryJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
             DiscoveryStorage storage,
             @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
-            Gson gson) {
-        super(auth, gson);
+            Gson gson,
+            Logger logger) {
+        super(storage, auth, jwtFactory, webServer, uuidFromString, logger);
         this.storage = storage;
         this.uuidFromString = uuidFromString;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
     }
 
     @Override
@@ -90,7 +93,7 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public String path() {
-        return basePath() + "discovery/:id";
+        return basePath() + DiscoveryPostHandler.PATH;
     }
 
     @Override
@@ -99,24 +102,22 @@ class DiscoveryDeregistrationHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
-    }
-
-    @Override
     public boolean isAsync() {
         return false;
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+    protected boolean checkTokenTimeClaims() {
+        return false; // allow expired but otherwise valid tokens to deregister plugins
+    }
+
+    @Override
+    void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         try {
             String key = "id";
-            UUID id =
-                    uuidFromString.apply(
-                            StringUtil.requireNonBlank(params.getPathParams().get(key), key));
+            UUID id = uuidFromString.apply(StringUtil.requireNonBlank(ctx.pathParam(key), key));
             storage.deregister(id);
-            return new IntermediateResponse<String>().body(id.toString());
+            writeResponse(ctx, new IntermediateResponse<String>().body(id.toString()));
         } catch (IllegalArgumentException iae) {
             throw new ApiException(400, iae);
         } catch (NotFoundException nfe) {

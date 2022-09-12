@@ -46,6 +46,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
@@ -62,6 +63,8 @@ import dagger.Lazy;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hibernate.exception.ConstraintViolationException;
@@ -69,6 +72,8 @@ import org.hibernate.exception.ConstraintViolationException;
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
+    // TODO should this be configurable?
+    public static final Duration PING_PERIOD = Duration.ofMinutes(5);
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
@@ -102,7 +107,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                         .onFailure(t -> future.fail((Throwable) t)))
                 .onFailure(future::fail);
 
-        this.timerId = getVertx().setPeriodic(Duration.ofMinutes(5).toMillis(), i -> pingPrune());
+        this.timerId = getVertx().setPeriodic(PING_PERIOD.toMillis(), i -> pingPrune());
     }
 
     @Override
@@ -117,27 +122,48 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 plugin -> {
                                     UUID key = plugin.getId();
                                     URI uri = plugin.getCallback();
-                                    if (uri == NO_CALLBACK) {
-                                        return (Future) Future.succeededFuture();
-                                    }
                                     return (Future)
-                                            http.postAbs(uri.toString())
-                                                    .timeout(1_000)
-                                                    .followRedirects(true)
-                                                    .send()
+                                            ping(HttpMethod.POST, uri)
                                                     .onSuccess(
                                                             res -> {
-                                                                if (!HttpStatusCodeIdentifier
-                                                                        .isSuccessCode(
-                                                                                res.statusCode())) {
+                                                                if (!Boolean.TRUE.equals(res)) {
                                                                     removePlugin(key, uri);
                                                                 }
-                                                            })
-                                                    .onFailure(t -> removePlugin(key, uri))
-                                                    .recover(t -> Future.succeededFuture());
+                                                            });
                                 })
                         .toList();
         return CompositeFuture.join(futures);
+    }
+
+    private Future<Boolean> ping(HttpMethod mtd, URI uri) {
+        if (Objects.equals(uri, NO_CALLBACK)) {
+            return Future.succeededFuture(true);
+        }
+        return http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
+                .ssl("https".equals(uri.getScheme()))
+                .timeout(1_000)
+                .followRedirects(true)
+                .send()
+                .onComplete(
+                        ar -> {
+                            if (ar.failed()) {
+                                logger.info(
+                                        "{} {} failed: {}",
+                                        mtd,
+                                        uri,
+                                        ExceptionUtils.getStackTrace(ar.cause()));
+                                return;
+                            }
+                            logger.info(
+                                    "{} {} status {}: {}",
+                                    mtd,
+                                    uri,
+                                    ar.result().statusCode(),
+                                    ar.result().statusMessage());
+                        })
+                .map(HttpResponse::statusCode)
+                .map(HttpStatusCodeIdentifier::isSuccessCode)
+                .otherwise(false);
     }
 
     private void removePlugin(UUID uuid, Object label) {
@@ -145,21 +171,31 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         logger.info("Stale discovery service {} removed", label);
     }
 
+    public Optional<PluginInfo> getById(UUID id) {
+        return dao.get(id);
+    }
+
     public Optional<PluginInfo> getByRealm(String realm) {
         return dao.getByRealm(realm);
     }
 
     public UUID register(String realm, URI callback) throws RegistrationException {
+        // FIXME this method should return a Future and be performed async
         try {
+            CompletableFuture<Boolean> cf = new CompletableFuture<>();
+            ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
+            if (!cf.get()) {
+                throw new Exception("callback ping failure");
+            }
             EnvironmentNode subtree = new EnvironmentNode(realm, BaseNodeType.REALM);
             UUID id = dao.save(realm, callback, subtree).getId();
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return id;
         } catch (Exception e) {
             if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
-                throw new RegistrationException(realm, callback, e);
+                throw new RegistrationException(realm, callback, e, "provider already exists");
             }
-            throw e;
+            throw new RegistrationException(realm, callback, e, e.getMessage());
         }
     }
 
