@@ -194,6 +194,7 @@ function createPod() {
     # 9991: Wildfly RJMX
     # 10000: cryostat-reports RJMX
     # 10001: cryostat-reports HTTP
+    # 10010: quarkus-test-plugin HTTP
 }
 
 function destroyPod() {
