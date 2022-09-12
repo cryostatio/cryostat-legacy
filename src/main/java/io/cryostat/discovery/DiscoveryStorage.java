@@ -74,8 +74,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public static final URI NO_CALLBACK = null;
-    // TODO should this be configurable?
-    public static final Duration PING_PERIOD = Duration.ofMinutes(5);
+    private final Duration pingPeriod;
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
@@ -86,12 +85,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     DiscoveryStorage(
             VerticleDeployer deployer,
+            Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
             Gson gson,
             WebClient http,
             Logger logger) {
         this.deployer = deployer;
+        this.pingPeriod = pingPeriod;
         this.builtin = builtin;
         this.dao = dao;
         this.gson = gson;
@@ -109,7 +110,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                         .onFailure(t -> future.fail((Throwable) t)))
                 .onFailure(future::fail);
 
-        this.timerId = getVertx().setPeriodic(PING_PERIOD.toMillis(), i -> pingPrune());
+        this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
     }
 
     @Override

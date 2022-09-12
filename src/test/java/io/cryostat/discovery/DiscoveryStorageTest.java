@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +116,9 @@ class DiscoveryStorageTest {
     void setup() {
         Client client = DaggerDiscoveryStorageTest_Client.builder().build();
         this.gson = client.gson();
-        this.storage = new DiscoveryStorage(deployer, () -> builtin, dao, gson, http, logger);
+        this.storage =
+                new DiscoveryStorage(
+                        deployer, Duration.ofMinutes(5), () -> builtin, dao, gson, http, logger);
         this.storage.init(vertx, null);
     }
 

@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
@@ -52,7 +53,6 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -84,6 +84,7 @@ public class DiscoveryJwtHelper {
     private final JWSVerifier verifier;
     private final JWEEncrypter encrypter;
     private final JWEDecrypter decrypter;
+    private final Duration discoveryPingPeriod;
 
     DiscoveryJwtHelper(
             Lazy<WebServer> webServer,
@@ -91,12 +92,14 @@ public class DiscoveryJwtHelper {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
+            Duration discoveryPingPeriod,
             Logger logger) {
         this.webServer = webServer;
         this.signer = signer;
         this.verifier = verifier;
         this.encrypter = encrypter;
         this.decrypter = decrypter;
+        this.discoveryPingPeriod = discoveryPingPeriod;
     }
 
     public String createDiscoveryPluginJwt(
@@ -106,7 +109,7 @@ public class DiscoveryJwtHelper {
         URL hostUrl = webServer.get().getHostUrl();
         String issuer = hostUrl.toString();
         Date now = Date.from(Instant.now());
-        Date expiry = Date.from(now.toInstant().plus(DiscoveryStorage.PING_PERIOD.multipliedBy(2)));
+        Date expiry = Date.from(now.toInstant().plus(discoveryPingPeriod.multipliedBy(2)));
         JWTClaimsSet claims =
                 new JWTClaimsSet.Builder()
                         .issuer(issuer)
