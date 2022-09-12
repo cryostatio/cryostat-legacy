@@ -68,6 +68,30 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
+    public PluginInfo update(UUID id, EnvironmentNode subtree) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(subtree);
+        EntityTransaction transaction = entityManager.getTransaction();
+        try {
+            PluginInfo plugin =
+                    get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+
+            transaction.begin();
+            plugin.setSubtree(gson.toJson(subtree));
+            entityManager.merge(plugin);
+            transaction.commit();
+            entityManager.detach(plugin);
+
+            return plugin;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            logger.error(e);
+            throw e;
+        }
+    }
+
     public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(children);

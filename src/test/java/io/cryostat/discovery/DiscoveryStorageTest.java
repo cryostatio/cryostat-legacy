@@ -341,6 +341,22 @@ class DiscoveryStorageTest {
                                     return plugin;
                                 }
                             });
+            Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(EnvironmentNode.class)))
+                    .thenAnswer(
+                            new Answer<PluginInfo>() {
+
+                                @Override
+                                public PluginInfo answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    UUID id = invocation.getArgument(0);
+                                    EnvironmentNode subtree = invocation.getArgument(1);
+                                    PluginInfo plugin =
+                                            new PluginInfo(
+                                                    "updated-realm", null, gson.toJson(subtree));
+                                    plugin.setId(id);
+                                    return plugin;
+                                }
+                            });
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             Mockito.when(
