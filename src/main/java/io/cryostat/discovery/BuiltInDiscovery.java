@@ -38,7 +38,6 @@
 package io.cryostat.discovery;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -90,22 +89,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                         "Starting built-in discovery with {}", platform.getClass().getSimpleName());
                 String realmName = platform.getDiscoveryTree().getName();
 
-                UUID id =
-                        storage.getByRealm(realmName)
-                                .map(PluginInfo::getId)
-                                .or(
-                                        () -> {
-                                            try {
-                                                return Optional.of(
-                                                        storage.register(
-                                                                realmName,
-                                                                DiscoveryStorage.NO_CALLBACK));
-                                            } catch (RegistrationException re) {
-                                                logger.error(re);
-                                                return Optional.empty();
-                                            }
-                                        })
-                                .get();
+                UUID id = storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
 
                 platform.addTargetDiscoveryListener(
                         tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));

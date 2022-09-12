@@ -67,7 +67,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.hibernate.exception.ConstraintViolationException;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
@@ -175,10 +174,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return dao.get(id);
     }
 
-    public Optional<PluginInfo> getByRealm(String realm) {
-        return dao.getByRealm(realm);
-    }
-
     public UUID register(String realm, URI callback) throws RegistrationException {
         // FIXME this method should return a Future and be performed async
         try {
@@ -192,9 +187,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return id;
         } catch (Exception e) {
-            if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
-                throw new RegistrationException(realm, callback, e, "provider already exists");
-            }
             throw new RegistrationException(realm, callback, e, e.getMessage());
         }
     }
@@ -244,12 +236,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 
-    public Optional<EnvironmentNode> getSubtree(String realm) {
-        return getByRealm(realm)
-                .map(PluginInfo::getSubtree)
-                .map(s -> gson.fromJson(s, EnvironmentNode.class));
-    }
-
     private Set<TargetNode> getLeafNodes() {
         return findLeavesFrom(getDiscoveryTree());
     }
@@ -260,10 +246,15 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public List<ServiceRef> listDiscoverableServices(String realm) {
-        return getSubtree(realm)
+        return dao.getAll().stream()
+                .filter(plugin -> plugin.getRealm().equals(realm))
+                .map(PluginInfo::getSubtree)
+                .map(s -> gson.fromJson(s, EnvironmentNode.class))
+                .toList()
+                .stream()
                 .map(this::findLeavesFrom)
-                .map(leaves -> leaves.stream().map(TargetNode::getTarget).toList())
-                .orElse(List.of());
+                .flatMap(leaves -> leaves.stream().map(TargetNode::getTarget))
+                .toList();
     }
 
     private Set<TargetNode> findLeavesFrom(AbstractNode node) {

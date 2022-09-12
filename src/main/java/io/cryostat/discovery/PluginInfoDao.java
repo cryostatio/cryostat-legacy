@@ -40,17 +40,11 @@ package io.cryostat.discovery;
 import java.net.URI;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
-import javax.persistence.NoResultException;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -72,26 +66,6 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         Objects.requireNonNull(realm);
         Objects.requireNonNull(subtree);
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
-    }
-
-    public Optional<PluginInfo> getByRealm(String realm) {
-        Objects.requireNonNull(realm);
-
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<PluginInfo> cq = cb.createQuery(klazz);
-        Root<PluginInfo> rootEntry = cq.from(klazz);
-        CriteriaQuery<PluginInfo> all = cq.select(rootEntry);
-        CriteriaQuery<PluginInfo> withRealm = all.where(cb.equal(rootEntry.get("realm"), realm));
-        TypedQuery<PluginInfo> realmQuery = entityManager.createQuery(withRealm);
-
-        try {
-            PluginInfo info = realmQuery.getSingleResult();
-            entityManager.detach(info);
-
-            return Optional.of(info);
-        } catch (NoResultException nre) {
-            return Optional.empty();
-        }
     }
 
     public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {

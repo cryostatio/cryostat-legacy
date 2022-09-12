@@ -46,9 +46,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
@@ -77,6 +81,7 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     private final DiscoveryStorage storage;
     private final Lazy<WebServer> webServer;
     private final DiscoveryJwtHelper jwtFactory;
+    private final Function<String, UUID> uuidFromString;
     private final Logger logger;
 
     @Inject
@@ -85,12 +90,14 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
             DiscoveryStorage storage,
             Lazy<WebServer> webServer,
             DiscoveryJwtHelper jwt,
+            @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
             Gson gson,
             Logger logger) {
         super(auth, gson);
         this.storage = storage;
         this.webServer = webServer;
         this.jwtFactory = jwt;
+        this.uuidFromString = uuidFromString;
         this.logger = logger;
     }
 
@@ -132,10 +139,11 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters params)
             throws Exception {
-        String realm, priorToken;
+        String pluginId, realm, priorToken;
         URI callbackUri;
         try {
             JsonObject body = new JsonObject(params.getBody());
+            pluginId = body.getString("id");
             realm = StringUtil.requireNonBlank(body.getString("realm"), "realm");
             callbackUri =
                     new URI(StringUtil.requireNonBlank(body.getString("callback"), "callback"));
@@ -148,16 +156,17 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
         String authzHeader =
                 Optional.ofNullable(params.getHeaders().get(HttpHeaders.AUTHORIZATION))
                         .orElse("None");
-        String pluginId;
         URL hostUrl = webServer.get().getHostUrl();
-        if (StringUtils.isBlank(priorToken)) {
+        if (StringUtils.isBlank(pluginId) || StringUtils.isBlank(priorToken)) {
             try {
                 pluginId = storage.register(realm, callbackUri).toString();
             } catch (RegistrationException e) {
                 throw new ApiException(400, e);
             }
         } else {
-            PluginInfo plugin = storage.getByRealm(realm).orElseThrow(() -> new ApiException(404));
+            PluginInfo plugin =
+                    storage.getById(uuidFromString.apply(pluginId))
+                            .orElseThrow(() -> new ApiException(404));
             if (!Objects.equals(plugin.getRealm(), realm)) {
                 throw new ApiException(400);
             }
@@ -165,7 +174,6 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
                 throw new ApiException(400);
             }
 
-            pluginId = plugin.getId().toString();
             try {
                 jwtFactory.parseDiscoveryPluginJwt(
                         priorToken,
