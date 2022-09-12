@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,11 +73,14 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -97,6 +101,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final NotificationFactory notificationFactory;
     private final Provider<WebServer> webServer;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
@@ -111,6 +116,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             Gson gson,
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.vertx = httpServer.getVertx();
@@ -119,6 +125,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.gson = gson;
         this.notificationFactory = notificationFactory;
         this.webServer = webServer;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
     }
 
@@ -203,7 +210,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         final String subdirectoryName = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
-        final String uploadedFileName = upload.uploadedFileName();
+        final String uploadedFileName = upload.uploadedFileName();        
         validateRecording(
                 upload.uploadedFileName(),
                 (res) ->
@@ -219,13 +226,23 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     }
 
                                     String fsName = res2.result();
-                                    ctx.response()
-                                            .putHeader(
-                                                    HttpHeaders.CONTENT_TYPE,
-                                                    HttpMimeType.JSON.mime())
-                                            .end(gson.toJson(Map.of("name", fsName)));
-
+                                    Metadata metadata = new Metadata();                                    
                                     try {
+                                        MultiMap attrs = ctx.request().formAttributes();
+                                        if (attrs.contains("metadata")) {                                                                
+                                            Map<String, String> labels =
+                                                recordingMetadataManager
+                                                    .parseRecordingLabels(
+                                                        attrs.get("metadata"));
+                                            metadata = new Metadata(labels);
+                                                                                                
+                                            recordingMetadataManager
+                                                .setRecordingMetadata(                                                
+                                                    fsName,
+                                                    metadata)
+                                                .get();                            
+                                        }
+
                                         notificationFactory
                                                 .createBuilder()
                                                 .metaCategory(NOTIFICATION_CATEGORY)
@@ -243,18 +260,25 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedReportURL(
-                                                                                        fsName)),
+                                                                                        fsName),
+                                                                        metadata),                                                                        
                                                                 "target",
-                                                                ""))
+                                                                subdirectoryName))
                                                 .build()
                                                 .send();
-                                    } catch (UnknownHostException
-                                            | SocketException
-                                            | URISyntaxException e) {
+                                    } catch (URISyntaxException | InterruptedException | ExecutionException | SocketException | UnknownHostException e){
+                                        logger.error(e);
+                                    } catch (IOException e){
                                         logger.error(e);
                                     }
+                                                              
+                                    ctx.response()
+                                        .putHeader(
+                                            HttpHeaders.CONTENT_TYPE,
+                                            HttpMimeType.JSON.mime())
+                                        .end(gson.toJson(Map.of("name", fsName, "metadata", metadata)));
                                 }));
-    }
+                            }
 
     private void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
         vertx.executeBlocking(

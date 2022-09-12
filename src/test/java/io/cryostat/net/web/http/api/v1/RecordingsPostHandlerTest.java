@@ -61,10 +61,13 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -100,6 +103,7 @@ class RecordingsPostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
 
     @BeforeEach
@@ -127,6 +131,7 @@ class RecordingsPostHandlerTest {
                         MainModule.provideGson(logger),
                         notificationFactory,
                         () -> webServer,
+                        recordingMetadataManager,
                         logger);
     }
 
@@ -154,6 +159,8 @@ class RecordingsPostHandlerTest {
         when(authManager.validateHttpHeader(any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        Mockito.when(req.formAttributes()).thenReturn(attrs);
         when(ctx.request()).thenReturn(req);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
@@ -291,7 +298,7 @@ class RecordingsPostHandlerTest {
 
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        inOrder.verify(rep).end("{\"name\":\"" + filename + "\"}");
+        inOrder.verify(rep).end("{\"metadata\":{\"labels\":{}},\"name\":\"" + filename + "\"}");
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
@@ -309,7 +316,7 @@ class RecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", "")));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)));
     }
 
     @Test
