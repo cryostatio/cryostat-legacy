@@ -73,7 +73,7 @@ public abstract class DiscoveryModule {
                 env.getEnv(
                         Variables.DISCOVERY_PING_PERIOD_MS,
                         String.valueOf(Duration.ofMinutes(5).toMillis()));
-        return Duration.ofMillis(Long.valueOf(d));
+        return Duration.ofMillis(Long.parseLong(d));
     }
 
     @Provides
