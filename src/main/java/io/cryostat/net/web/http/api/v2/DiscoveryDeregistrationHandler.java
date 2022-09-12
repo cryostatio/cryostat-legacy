@@ -107,6 +107,11 @@ class DiscoveryDeregistrationHandler extends AbstractDiscoveryJwtConsumingHandle
     }
 
     @Override
+    protected boolean checkTokenTimeClaims() {
+        return false; // allow expired but otherwise valid tokens to deregister plugins
+    }
+
+    @Override
     void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         try {
             String key = "id";

@@ -171,7 +171,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                                     Mockito.anyString(),
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
-                                    Mockito.any(InetAddress.class)))
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.anyBoolean()))
                     .thenThrow(new BadJWTException(""));
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -189,7 +190,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                                     Mockito.anyString(),
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
-                                    Mockito.any(InetAddress.class)))
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.anyBoolean()))
                     .thenReturn(jwt);
 
             ApiException ex =
@@ -209,7 +211,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                                     Mockito.anyString(),
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
-                                    Mockito.any(InetAddress.class)))
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.anyBoolean()))
                     .thenReturn(jwt);
 
             URL hostUrl = new URL("http://cryostat.example.com:8080");
@@ -266,7 +269,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                                     Mockito.anyString(),
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
-                                    Mockito.any(InetAddress.class)))
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.anyBoolean()))
                     .thenReturn(jwt);
         }
 
@@ -390,7 +394,8 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
                                     Mockito.anyString(),
                                     Mockito.anyString(),
                                     Mockito.any(URI.class),
-                                    Mockito.any(InetAddress.class)))
+                                    Mockito.any(InetAddress.class),
+                                    Mockito.anyBoolean()))
                     .thenReturn(jwt);
 
             URL hostUrl = new URL("http://localhost:8181/api/v2.2/discovery/" + id.toString());

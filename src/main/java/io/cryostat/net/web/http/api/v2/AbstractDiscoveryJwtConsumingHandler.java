@@ -102,6 +102,10 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
 
     abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
 
+    protected boolean checkTokenTimeClaims() {
+        return true;
+    }
+
     @Override
     public final void handle(RoutingContext ctx) {
         try {
@@ -151,7 +155,8 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
                             token,
                             plugin.get().getRealm(),
                             getResourceUri(hostUrl, id.toString()),
-                            addr);
+                            addr,
+                            checkTokenTimeClaims());
         } catch (BadJWTException e) {
             throw new ApiException(401, e);
         }
