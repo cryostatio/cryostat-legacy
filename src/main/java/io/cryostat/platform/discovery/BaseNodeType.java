@@ -45,6 +45,9 @@ public enum BaseNodeType implements NodeType {
     REALM("Realm"),
     // represents a plain target JVM, connectable over JMX
     JVM("JVM"),
+    // represents a target JVM using the Cryostat Agent, *not* connectable over JMX. Agent instances
+    // that do publish a JMX Service URL should publish themselves with the JVM NodeType.
+    AGENT("CryostatAgent"),
     ;
 
     private final String kind;
