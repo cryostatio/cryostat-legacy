@@ -107,7 +107,7 @@ function runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
         --env ORG_ACME_JMXPORT="9097" \
-        -d quay.io/andrewazores/quarkus-test:0.0.7
+        -d quay.io/andrewazores/quarkus-test:0.0.8
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
