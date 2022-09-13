@@ -61,8 +61,6 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
-import org.openjdk.jmc.rjmx.ConnectionException;
-
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -412,7 +410,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    // Pre-condition: staleMetadata is Mapping of metadata to its filesystem path, pertaining to any previously active recording
+    // Pre-condition: staleMetadata is Mapping of metadata to its filesystem path, pertaining to any
+    // previously active recording
     // Asynchronous since testing connections to targets takes long, especially for many targets
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
         vertx.executeBlocking(
@@ -434,14 +433,15 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     return;
                                 }
                                 logger.info(
-                                    "Trying to prune stale recording metadata {}, of target"
-                                            + " {}, from path {}",
-                                    recordingName,
-                                    targetId,
-                                    path);
+                                        "Trying to prune stale recording metadata {}, of target"
+                                                + " {}, from path {}",
+                                        recordingName,
+                                        targetId,
+                                        path);
                                 if (!targetRecordingExists(cd, recordingName)) {
                                     // recording was lost
-                                    logger.info("Active recording lost {}, deleting...", recordingName);
+                                    logger.info(
+                                            "Active recording lost {}, deleting...", recordingName);
                                     deleteMetadataPathIfExists(path);
                                 } else {
                                     // target still up
@@ -461,8 +461,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             });
                     future.complete();
                 },
-                result -> logger.info("Successfully pruned all stale metadata")
-        );
+                result -> logger.info("Successfully pruned all stale metadata"));
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -703,17 +702,17 @@ public class RecordingMetadataManager extends AbstractVerticle
                     .map(
                             subdirectory -> {
                                 try {
-                                    for (String file :
-                                            this.fs.listDirectoryChildren(
-                                                    archivedRecordingsPath.resolve(subdirectory))) {
-                                        if (recordingName.equals(file)) {
-                                            return true;
-                                        }
-                                    }
-                                } catch (IOException ioe) {
-                                    logger.error(ioe);
+                                    return fs
+                                            .listDirectoryChildren(
+                                                    archivedRecordingsPath.resolve(subdirectory))
+                                            .stream()
+                                            .anyMatch(
+                                                    filename -> {
+                                                        return filename.equals(recordingName);
+                                                    });
+                                } catch (IOException e) {
+                                    return false;
                                 }
-                                return false;
                             })
                     .filter(v -> v)
                     .findFirst()
@@ -854,13 +853,13 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(TargetDiscoveryEvent tde)
-    throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
         Credentials credentials = credentialsManager.getCredentials(tde.getServiceRef());
         return new ConnectionDescriptor(tde.getServiceRef(), credentials);
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(String targetId)
-        throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
         Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
         return new ConnectionDescriptor(targetId, credentials);
     }
