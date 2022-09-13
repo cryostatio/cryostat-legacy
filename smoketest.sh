@@ -102,11 +102,25 @@ function runDemoApps() {
         --name quarkus-test-plugin \
         --pod cryostat-pod \
         --restart unless-stopped \
+        --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
         --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
         --env ORG_ACME_JMXPORT="9097" \
+        -d quay.io/andrewazores/quarkus-test:0.0.8
+
+    podman run \
+        --name quarkus-test-plugin-2 \
+        --pod cryostat-pod \
+        --restart unless-stopped \
+        --env QUARKUS_HTTP_PORT=10011 \
+        --env JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9197 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false" \
+        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
+        --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
+        --env ORG_ACME_JMXHOST="cryostat" \
+        --env ORG_ACME_JMXPORT="9197" \
         -d quay.io/andrewazores/quarkus-test:0.0.8
 
     # copy a jboss-client.jar into /clientlib first
@@ -188,6 +202,9 @@ function createPod() {
     # 9094: vertx-fib-demo-2 RJMX
     # 9095: vertx-fib-demo-3 RJMX
     # 9096: quarkus-test RJMX
+    # 9096: quarkus-test-plugin RJMX
+    # 9097: quarkus-test-plugin-2 RJMX
+    # 9197: quarkus-test-plugin-2 RJMX
     # 9999: quarkus-test HTTP
     # 8082: Wildfly HTTP
     # 9990: Wildfly Admin Console
@@ -195,6 +212,7 @@ function createPod() {
     # 10000: cryostat-reports RJMX
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-plugin HTTP
+    # 10011: quarkus-test-plugin-2 HTTP
 }
 
 function destroyPod() {
