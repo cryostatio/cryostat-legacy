@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -60,6 +61,8 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -73,6 +76,7 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.AbstractVerticle;
@@ -87,8 +91,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
-    private static final int STALE_METADATA_TIMEOUT_SECONDS = 1;
-    private static final int TARGET_CONNECTION_TIMEOUT_SECONDS = 5;
+    private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
+    private static final int TARGET_CONNECTION_TIMEOUT_SECONDS = 1;
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
     private final Path recordingMetadataDir;
@@ -138,91 +142,141 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     @Override
-    public void start(Promise<Void> future) throws IOException {
+    public void start(Promise<Void> future) {
         this.platformClient.addTargetDiscoveryListener(this);
         RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
-        future.complete();
-        // async
-        this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                .peek(n -> logger.info("Recording Metadata subdirectory: {}", n))
-                .map(recordingMetadataDir::resolve)
-                .forEach(
-                        subdirectory -> {
-                            try {
+        Map<StoredRecordingMetadata, Path> staleMetadata =
+                new HashMap<StoredRecordingMetadata, Path>();
+        try {
+            this.fs.listDirectoryChildren(recordingMetadataDir).stream()
+                    .peek(
+                            n ->
+                                    logger.info(
+                                            "Peeking contents of recordingMetadata directory: {}",
+                                            n))
+                    .map(recordingMetadataDir::resolve)
+                    .forEach(
+                            subdirectory -> {
                                 if (fs.isDirectory(subdirectory)) {
-                                    this.fs.listDirectoryChildren(subdirectory).stream()
-                                            .peek(
-                                                    n ->
-                                                            logger.info(
-                                                                    "Recording Metadata file: {}",
-                                                                    n))
-                                            .map(subdirectory::resolve)
-                                            .filter(fs::isRegularFile)
-                                            .map(
-                                                    path -> {
-                                                        try {
-                                                            return Pair.of(fs.readFile(path), path);
-                                                        } catch (IOException ioe) {
-                                                            logger.error(ioe);
+                                    try {
+                                        this.fs.listDirectoryChildren(subdirectory).stream()
+                                                .peek(
+                                                        n ->
+                                                                logger.info(
+                                                                        "Recording"
+                                                                                + " Metadata"
+                                                                                + " file:"
+                                                                                + " {}",
+                                                                        n))
+                                                .map(subdirectory::resolve)
+                                                .filter(fs::isRegularFile)
+                                                .map(
+                                                        path -> {
                                                             try {
-                                                                fs.deleteIfExists(path);
-                                                                logger.info("deleted unreadable metadata {}", path);
-                                                            } catch (IOException e) {
-                                                                logger.error(e);
+                                                                return Pair.of(
+                                                                        fs.readFile(path), path);
+                                                            } catch (IOException ioe) {
+                                                                logger.error(
+                                                                        "Could not read"
+                                                                                + " metadata"
+                                                                                + " file"
+                                                                                + " {}, msg:"
+                                                                                + " {}",
+                                                                        path,
+                                                                        ioe.getMessage());
+                                                                deleteMetadataPathIfExists(path);
+                                                                return null;
                                                             }
-                                                            return null;
-                                                        }
-                                                    })
-                                            .filter(Objects::nonNull)
-                                            .forEach(
-                                                    pair -> {
-                                                        StoredRecordingMetadata srm = gson.fromJson(pair.getLeft(), StoredRecordingMetadata.class);                                          
-                                                        Path file = pair.getRight();
-                                                        String targetId = srm.getTargetId();
-                                                        String recordingName = srm.getRecordingName();
-                                                        // jvmId should always exist since we are using directory structure
-                                                        if (srm.getJvmId() != null) {
-                                                            try {
-                                                                if (!isArchivedRecording(recordingName)) {
-                                                                    if (!targetRecordingExists(new ConnectionDescriptor(targetId), recordingName)) {
-                                                                        // recording was lost, delete stale active recording metadata
-                                                                        fs.deleteIfExists(file);
-                                                                        logger.info("deleted stale active recording metadata {}", file);
+                                                        })
+                                                .filter(Objects::nonNull)
+                                                .forEach(
+                                                        pair -> {
+                                                            StoredRecordingMetadata srm =
+                                                                    gson.fromJson(
+                                                                            pair.getLeft(),
+                                                                            StoredRecordingMetadata
+                                                                                    .class);
+                                                            Path file = pair.getRight();
+                                                            String targetId = srm.getTargetId();
+                                                            String recordingName =
+                                                                    srm.getRecordingName();
+                                                            // jvmId should always exist
+                                                            // since we are
+                                                            // using directory structure
+                                                            if (srm.getJvmId() != null) {
+                                                                try {
+                                                                    if (!isArchivedRecording(
+                                                                            recordingName)) {
+                                                                        logger.info(
+                                                                                "Potentially stale"
+                                                                                    + " metadata"
+                                                                                    + " file: {},"
+                                                                                    + " for target:"
+                                                                                    + " {}",
+                                                                                recordingName,
+                                                                                targetId);
+                                                                        staleMetadata.put(
+                                                                                srm, file);
                                                                         return;
                                                                     }
+                                                                } catch (IOException e) {
+                                                                    logger.error(
+                                                                            "Could not check if"
+                                                                                + " recording {}"
+                                                                                + " exists on"
+                                                                                + " target {}, msg:"
+                                                                                + " {}",
+                                                                            recordingName,
+                                                                            targetId,
+                                                                            e.getMessage());
                                                                 }
+                                                                // archived recording
+                                                                // metadata
                                                                 jvmIdMap.putIfAbsent(
                                                                         targetId, srm.getJvmId());
                                                                 recordingMetadataMap.put(
                                                                         Pair.of(
                                                                                 srm.getJvmId(),
-                                                                                srm.getRecordingName()),
-                                                                    srm);
-                                                            } catch (IOException ioe) {
-                                                                logger.error(ioe);
+                                                                                recordingName),
+                                                                        srm);
+                                                            } else {
+                                                                logger.warn(
+                                                                        "Invalid metadata with"
+                                                                                + " no jvmId"
+                                                                                + " originating"
+                                                                                + " from"
+                                                                                + " {}",
+                                                                        targetId);
+                                                                deleteMetadataPathIfExists(file);
                                                             }
-                                                        } else {
-                                                            logger.warn(
-                                                                    "Metadata with no jvmId"
-                                                                        + " originating from {}",
-                                                                    targetId);
-                                                            try {
-                                                                fs.deleteIfExists(file);
-                                                                logger.info("deleted invalid metadata {}", file);
-                                                            } catch (IOException ioe) {
-                                                                logger.error(ioe);
-                                                            }
-                                                        }
-                                                    });
+                                                        });
+                                    } catch (IOException e) {
+                                        logger.error(
+                                                "Could not read metadata subdirectory"
+                                                        + " {}, msg: {}",
+                                                subdirectory,
+                                                e.getMessage());
+                                    }
                                 }
                                 /* TODO: This is a ONE-TIME migration check for the old metadata files that were stored without a directory
-                                (remove in future version with and replace with subdirectory::fs.isDirectory (ignore files))? */
+                                (remove after 2.2.0 release and replace with subdirectory::fs.isDirectory (ignore files))? */
                                 else if (fs.isRegularFile(subdirectory)) {
+                                    StoredRecordingMetadata srm;
+                                    try {
+                                        srm =
+                                                gson.fromJson(
+                                                        fs.readFile(subdirectory),
+                                                        StoredRecordingMetadata.class);
+                                    } catch (Exception e) {
+                                        logger.error(
+                                                "Could not read file {} in recordingMetadata"
+                                                        + " directory, msg: {}",
+                                                subdirectory,
+                                                e.getMessage());
+                                        deleteMetadataPathIfExists(subdirectory);
+                                        return;
+                                    }
                                     logger.info("Found old metadata file: {}", subdirectory);
-                                    StoredRecordingMetadata srm =
-                                            gson.fromJson(
-                                                    fs.readFile(subdirectory),
-                                                    StoredRecordingMetadata.class);
                                     String targetId = srm.getTargetId();
                                     String recordingName = srm.getRecordingName();
                                     if (targetId.equals("archives")) {
@@ -243,8 +297,9 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                 base32.decode(subdirectoryName),
                                                                 StandardCharsets.UTF_8);
                                                 logger.info(
-                                                        "Found metadata corresponding to archived"
-                                                                + " recording: {}",
+                                                        "Found metadata corresponding"
+                                                                + " to archived recording:"
+                                                                + " {}",
                                                         recordingName);
                                                 setRecordingMetadata(
                                                         new ConnectionDescriptor(newTargetId),
@@ -252,46 +307,61 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                         new Metadata(srm.getLabels()));
                                             } else {
                                                 logger.warn(
-                                                        "Found metadata for lost archived"
-                                                                + " recording: {}",
-                                                        recordingName);
+                                                        "Found metadata for lost"
+                                                                + " archived recording: {}",
+                                                        recordingName,
+                                                        subdirectory);
+                                                deleteMetadataPathIfExists(subdirectory);
                                             }
                                         } catch (InterruptedException | ExecutionException e) {
-                                            logger.error(e);
+                                            logger.error(
+                                                    "Couldn't get recording path {}",
+                                                    recordingName);
+                                        } catch (IOException e) {
+                                            logger.error(
+                                                    "Couldn't check if recording was"
+                                                            + " archived {}",
+                                                    recordingName);
                                         }
 
                                     } else {
-                                        ConnectionDescriptor cd =
-                                                    new ConnectionDescriptor(targetId);
-                                            if (targetRecordingExists(cd, recordingName)) {
-                                                logger.info(
-                                                        "Found metadata corresponding to recording:"
-                                                                + " {}",
-                                                        recordingName);
-                                                setRecordingMetadata(
-                                                        new ConnectionDescriptor(targetId),
-                                                        recordingName,
-                                                        new Metadata(srm.getLabels()));
-                                            } else {
-                                                logger.warn(
-                                                        "Found metadata for lost active recording:"
-                                                                + " {}",
-                                                        recordingName);
-                                            }
+                                        logger.info(
+                                                "Potentially stale metadata file: {}, for target:"
+                                                        + " {}",
+                                                recordingName,
+                                                targetId);
+                                        staleMetadata.put(srm, subdirectory);
+                                        return;
                                     }
                                     // delete old metadata file after migration
-                                    fs.deleteIfExists(subdirectory);
+                                    try {
+                                        fs.deleteIfExists(subdirectory);
+                                        logger.info("Removed old metadata file: {}", subdirectory);
+                                    } catch (IOException e) {
+                                        logger.error(
+                                                "Failed to delete metadata file {}," + " msg: {}",
+                                                subdirectory,
+                                                e.getCause());
+                                    }
                                 } else {
                                     logger.warn(
-                                            "Recording Metadata subdirectory {} is neither a"
-                                                    + " directory nor a file",
+                                            "Recording Metadata subdirectory {} is"
+                                                    + " neither a directory nor a file",
                                             subdirectory);
+                                    // invalid
+                                    throw new IllegalStateException(
+                                            subdirectory + " is neither a directory nor a file");
                                 }
-
-                            } catch (IOException ioe) {
-                                logger.error(ioe);
-                            }
-                        });
+                            });
+            future.complete();
+        } catch (IOException e) {
+            logger.error(
+                    "Could not read recordingMetadataDirectory! {}, msg: {}",
+                    recordingMetadataDir,
+                    e.getMessage());
+            future.fail(e.getCause());
+        }
+        pruneStaleMetadata(staleMetadata);
     }
 
     @Override
@@ -304,19 +374,29 @@ public class RecordingMetadataManager extends AbstractVerticle
         String targetId = tde.getServiceRef().getServiceUri().toString();
         String oldJvmId = jvmIdMap.get(targetId);
 
-        if (oldJvmId == null) {
-            logger.info("Target {} did not have a jvmId", targetId);
-            return;
-        }
-
-        Credentials credentials;
         ConnectionDescriptor cd;
 
         try {
-            credentials = credentialsManager.getCredentials(tde.getServiceRef());
-            cd = new ConnectionDescriptor(tde.getServiceRef(), credentials);
+            cd = getConnectionDescriptorWithCredentials(tde);
         } catch (IOException | ScriptException e) {
-            logger.error(e);
+            logger.error(
+                    "Could not get credentials on FOUND target {}, msg: {}",
+                    targetId,
+                    e.getMessage());
+            return;
+        }
+
+        if (oldJvmId == null) {
+            logger.info("Target {} did not have a jvmId", targetId);
+            try {
+                String newJvmId = getJvmId(cd);
+                logger.info("Created jvmId {} for target {}", newJvmId, targetId);
+            } catch (IOException e) {
+                logger.error(
+                        "Could not compute jvmId on FOUND target {}, msg: {}",
+                        targetId,
+                        e.getMessage());
+            }
             return;
         }
 
@@ -330,6 +410,59 @@ public class RecordingMetadataManager extends AbstractVerticle
             default:
                 throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
+    }
+
+    // Pre-condition: staleMetadata is Mapping of metadata to its filesystem path, pertaining to any previously active recording
+    // Asynchronous since testing connections to targets takes long, especially for many targets
+    private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
+        vertx.executeBlocking(
+                future -> {
+                    logger.info("Trying to prune stale metadata");
+                    staleMetadata.forEach(
+                            (srm, path) -> {
+                                String targetId = srm.getTargetId();
+                                String recordingName = srm.getRecordingName();
+                                ConnectionDescriptor cd;
+                                try {
+                                    cd = getConnectionDescriptorWithCredentials(targetId);
+                                } catch (Exception e) {
+                                    logger.error(
+                                            "Could not get credentials for"
+                                                    + " targetId {}, msg: {}",
+                                            targetId,
+                                            e.getMessage());
+                                    return;
+                                }
+                                logger.info(
+                                    "Trying to prune stale recording metadata {}, of target"
+                                            + " {}, from path {}",
+                                    recordingName,
+                                    targetId,
+                                    path);
+                                if (!targetRecordingExists(cd, recordingName)) {
+                                    // recording was lost
+                                    logger.info("Active recording lost {}, deleting...", recordingName);
+                                    deleteMetadataPathIfExists(path);
+                                } else {
+                                    // target still up
+                                    logger.info(
+                                            "Found metadata corresponding to active recording: {}",
+                                            recordingName);
+                                    try {
+                                        setRecordingMetadata(
+                                                cd, recordingName, new Metadata(srm.getLabels()));
+                                    } catch (IOException e) {
+                                        logger.error(
+                                                "Could not set metadata for recording: {}, msg: {}",
+                                                recordingName,
+                                                e.getMessage());
+                                    }
+                                }
+                            });
+                    future.complete();
+                },
+                result -> logger.info("Successfully pruned all stale metadata")
+        );
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -416,8 +549,10 @@ public class RecordingMetadataManager extends AbstractVerticle
         String jvmId = this.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
-        fs.deleteIfExists(this.getMetadataPath(jvmId, recordingName));
-        deleteSubdirectoryIfEmpty(jvmId);
+        Path metadataPath = this.getMetadataPath(jvmId, recordingName);
+        if (fs.deleteIfExists(metadataPath)) {
+            deleteSubdirectoryIfEmpty(metadataPath.getParent());
+        }
         return deleted;
     }
 
@@ -593,33 +728,29 @@ public class RecordingMetadataManager extends AbstractVerticle
         CompletableFuture<Boolean> connectFuture = new CompletableFuture<>();
         try {
             this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                        return connectFuture.complete(connection.isConnected());
-                    },
-                    false);
+                    cd, connection -> connectFuture.complete(connection.isConnected()), false);
             return connectFuture.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("Target unreachable {}", cd.getTargetId());
+            logger.warn("Target unreachable {}", cd.getTargetId());
             return false;
         }
     }
 
-    private boolean targetRecordingExists(
-            ConnectionDescriptor cd, String recordingName) {
+    private boolean targetRecordingExists(ConnectionDescriptor cd, String recordingName) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            targetConnectionManager.executeConnectedTask(
-                            cd,
-                            conn ->
-                                    conn.getService().getAvailableRecordings().stream()
-                                            .anyMatch(
-                                                    r ->
-                                                            future.complete(Objects.equals(
+            this.targetConnectionManager.executeConnectedTask(
+                    cd,
+                    conn ->
+                            conn.getService().getAvailableRecordings().stream()
+                                    .anyMatch(
+                                            r ->
+                                                    future.complete(
+                                                            Objects.equals(
                                                                     recordingName, r.getName()))));
             return future.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            logger.error("Target unreachable {}", cd.getTargetId());
+        } catch (TimeoutException te) {
+            logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
             return false;
         } catch (Exception e) {
             logger.error(e);
@@ -640,22 +771,45 @@ public class RecordingMetadataManager extends AbstractVerticle
         return recordingMetadataDir.resolve(subdirectory).resolve(filename);
     }
 
-    private boolean deleteSubdirectoryIfEmpty(String jvmId) {
-        String subdirectory = base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
-        Path dirPath = recordingMetadataDir.resolve(subdirectory);
-        if (fs.exists(recordingMetadataDir.resolve(dirPath))) {
+    private boolean deleteMetadataPathIfExists(Path path) {
+        if (fs.exists(path)) {
             try {
-                if (fs.listDirectoryChildren(recordingMetadataDir.resolve(dirPath)).isEmpty()) {
-                    return fs.deleteIfExists(dirPath);
+                if (fs.deleteIfExists(path)) {
+                    logger.info("Deleted metadata file {}", path);
+                    deleteSubdirectoryIfEmpty(path.getParent());
+                    return true;
+                } else {
+                    logger.error("Failed to delete metadata file {}", path);
                 }
             } catch (IOException e) {
-                logger.error(e);
+                logger.error("Failed to delete metadata file {}, {}", path, e.getCause());
             }
+        } else {
+            logger.error("Try to delete path that doesn't exist {}", path);
+        }
+        return false;
+    }
+
+    private boolean deleteSubdirectoryIfEmpty(Path path) {
+        if (path.equals(recordingMetadataDir)) {
+            return false;
+        }
+        if (fs.exists(path)) {
+            try {
+                if (fs.listDirectoryChildren(path).isEmpty()) {
+                    return fs.deleteIfExists(path);
+                }
+            } catch (IOException e) {
+                logger.error("Couldn't delete path {}, msg: {}", path, e.getCause());
+            }
+        } else {
+            logger.error("Try to delete path that doesn't exist {}", path);
         }
         return false;
     }
 
     private String computeJvmId(ConnectionDescriptor cd) {
+        // FIXME: this should be fixed after the 2.2.0 release
         if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
                 || cd.getTargetId().equals(UPLOADS)) {
             return UPLOADS;
@@ -697,6 +851,18 @@ public class RecordingMetadataManager extends AbstractVerticle
             throw new IOException(String.format("Error connecting to target %s", targetId));
         }
         return jvmId;
+    }
+
+    private ConnectionDescriptor getConnectionDescriptorWithCredentials(TargetDiscoveryEvent tde)
+    throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        Credentials credentials = credentialsManager.getCredentials(tde.getServiceRef());
+        return new ConnectionDescriptor(tde.getServiceRef(), credentials);
+    }
+
+    private ConnectionDescriptor getConnectionDescriptorWithCredentials(String targetId)
+        throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+        Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
+        return new ConnectionDescriptor(targetId, credentials);
     }
 
     private static class StoredRecordingMetadata extends Metadata {
