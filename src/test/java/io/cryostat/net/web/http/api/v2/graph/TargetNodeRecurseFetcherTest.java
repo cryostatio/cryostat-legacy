@@ -55,7 +55,6 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.CustomTargetPlatformClient.CustomTargetNodeType;
-import io.cryostat.platform.internal.DefaultPlatformClient.JDPNodeType;
 import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 
 import graphql.GraphQLContext;
@@ -151,7 +150,7 @@ class TargetNodeRecurseFetcherTest {
 
             ServiceRef sharedTarget = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
 
-            TargetNode jdpJvmNode = new TargetNode(JDPNodeType.JVM, sharedTarget);
+            TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
             TargetNode customTargetNode =
                     new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, sharedTarget);
             TargetNode orphanNode = new TargetNode(KubernetesNodeType.DEPLOYMENT, sharedTarget);
@@ -227,7 +226,7 @@ class TargetNodeRecurseFetcherTest {
 
                 ServiceRef sharedTarget = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
 
-                TargetNode jdpJvmNode = new TargetNode(JDPNodeType.JVM, sharedTarget);
+                TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
                 TargetNode customTargetNode =
                         new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, sharedTarget);
                 TargetNode orphanNode =
