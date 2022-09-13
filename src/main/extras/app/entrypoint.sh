@@ -105,6 +105,7 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
 fi
 
 FLAGS=(
+    "-javaagent:/opt/cryostat.d/clientlib.d/agent.jar"
     "-XX:+CrashOnOutOfMemoryError"
     "-Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT"
     "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
