@@ -38,9 +38,9 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
@@ -92,7 +92,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         }
     }
 
-    public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
+    public PluginInfo update(UUID id, Collection<? extends AbstractNode> children) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(children);
         EntityTransaction transaction = entityManager.getTransaction();

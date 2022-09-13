@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -215,7 +216,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
-    public Set<? extends AbstractNode> update(UUID id, Set<? extends AbstractNode> children) {
+    public List<? extends AbstractNode> update(
+            UUID id, Collection<? extends AbstractNode> children) {
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);

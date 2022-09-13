@@ -398,7 +398,7 @@ class KubeApiPlatformClientTest {
         MatcherAssert.assertThat(realmNode.getLabels().size(), Matchers.equalTo(0));
         MatcherAssert.assertThat(realmNode.getChildren(), Matchers.hasSize(1));
 
-        AbstractNode realmChild = realmNode.getChildren().first();
+        AbstractNode realmChild = realmNode.getChildren().get(0);
         MatcherAssert.assertThat(realmChild, Matchers.instanceOf(EnvironmentNode.class));
         EnvironmentNode namespaceNode = (EnvironmentNode) realmChild;
         MatcherAssert.assertThat(namespaceNode.getName(), Matchers.equalTo(NAMESPACE));

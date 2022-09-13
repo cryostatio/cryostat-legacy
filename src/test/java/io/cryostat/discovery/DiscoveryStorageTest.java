@@ -451,14 +451,14 @@ class DiscoveryStorageTest {
                     new PluginInfo(
                             "test-realm", URI.create("http://example.com"), gson.toJson(next));
             Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-            Mockito.when(dao.update(id, Set.of(nextTarget))).thenReturn(nextPlugin);
+            Mockito.when(dao.update(id, List.of(nextTarget))).thenReturn(nextPlugin);
 
             List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
             storage.addTargetDiscoveryListener(discoveryEvents::add);
 
-            Set<? extends AbstractNode> updatedChildren = storage.update(id, Set.of(nextTarget));
+            List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
-            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(Set.of(prevTarget)));
+            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(prevTarget)));
             MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
 
             TargetDiscoveryEvent foundEvent =
@@ -534,7 +534,7 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
             MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
             MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
-            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(Set.of()));
+            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(List.of()));
         }
 
         @Test
@@ -582,7 +582,7 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
             MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
             MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
-            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(Set.of(realm1, realm2)));
+            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(List.of(realm1, realm2)));
         }
     }
 
