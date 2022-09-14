@@ -41,6 +41,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
@@ -48,25 +50,36 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
+class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
 
     static final String PATH = "targets/:targetId";
+
     private final TargetConnectionManager targetConnectionManager;
+    private final CredentialsManager credentialsManager;
 
     @Inject
     JvmIdGetHandler(
             AuthManager auth,
+            Gson gson,
             CredentialsManager credentialsManager,
-            Logger logger,
             TargetConnectionManager targetConnectionManager) {
-        super(auth, credentialsManager, logger);
+        super(auth, gson);
+        this.credentialsManager = credentialsManager;
         this.targetConnectionManager = targetConnectionManager;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -81,7 +94,7 @@ class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
+        return Set.of(ResourceAction.READ_TARGET);
     }
 
     @Override
@@ -89,29 +102,27 @@ class JvmIdGetHandler extends AbstractAuthenticatedRequestHandler {
         return basePath() + JvmIdGetHandler.PATH;
     }
 
+
     @Override
-    public void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
         try {
-            ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
             if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                cd.getTargetId(),
-                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
+                cd = new ConnectionDescriptor(cd.getTargetId(), credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
-
-            String jvmId =
-                    this.targetConnectionManager.executeConnectedTask(
-                            cd,
-                            connection -> {
-                                return (String) connection.getJvmId();
-                            });
-
-            ctx.response().setStatusCode(200).end(jvmId);
+            String jvmId = this.targetConnectionManager.executeConnectedTask(
+                cd,
+                connection -> {
+                    return connection.getJvmId();
+            });
+            return new IntermediateResponse<String>().body(jvmId);
         } catch (Exception e) {
-            logger.error("Couldn't get the jvmId from {}", targetId);
-            throw new ApiException(500);
+            throw new ApiException(500, String.format("Couldn't connect to the requested target: %s", cd.getTargetId()), e.getCause());
         }
     }
 }
