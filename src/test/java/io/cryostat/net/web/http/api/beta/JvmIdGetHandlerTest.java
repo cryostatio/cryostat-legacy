@@ -39,39 +39,23 @@ package io.cryostat.net.web.http.api.beta;
 
 import static org.mockito.Mockito.when;
 
-import java.net.URI;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
-import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -117,10 +101,10 @@ class JvmIdGetHandlerTest {
                     Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
         }
 
-
         @Test
         void shouldHaveExpectedApiPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/beta/targets/:targetId"));
+            MatcherAssert.assertThat(
+                    handler.path(), Matchers.equalTo("/api/beta/targets/:targetId"));
         }
     }
 
@@ -135,9 +119,9 @@ class JvmIdGetHandlerTest {
             Mockito.when(params.getPathParams()).thenReturn(Map.of("targetId", "foo"));
 
             Mockito.when(
-                targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenThrow(new Exception("dummy exception"));
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenThrow(new Exception("dummy exception"));
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -150,10 +134,11 @@ class JvmIdGetHandlerTest {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             Mockito.when(params.getPathParams()).thenReturn(Map.of("targetId", jvmId));
-            when(credentialsManager.getCredentialsByTargetId(jvmId)).thenReturn(Mockito.mock(Credentials.class));
+            when(credentialsManager.getCredentialsByTargetId(jvmId))
+                    .thenReturn(Mockito.mock(Credentials.class));
 
             Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenReturn(jvmId);
+                    .thenReturn(jvmId);
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(jvmId));

@@ -41,23 +41,20 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
 class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
 
@@ -102,7 +99,6 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
         return basePath() + JvmIdGetHandler.PATH;
     }
 
-
     @Override
     public HttpMimeType mimeType() {
         return HttpMimeType.PLAINTEXT;
@@ -113,16 +109,23 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
         ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
         try {
             if (cd.getCredentials().isEmpty()) {
-                cd = new ConnectionDescriptor(cd.getTargetId(), credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
+                cd =
+                        new ConnectionDescriptor(
+                                cd.getTargetId(),
+                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
-            String jvmId = this.targetConnectionManager.executeConnectedTask(
-                cd,
-                connection -> {
-                    return connection.getJvmId();
-            });
+            String jvmId =
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                return connection.getJvmId();
+                            });
             return new IntermediateResponse<String>().body(jvmId);
         } catch (Exception e) {
-            throw new ApiException(500, String.format("Couldn't connect to the requested target: %s", cd.getTargetId()), e.getCause());
+            throw new ApiException(
+                    500,
+                    String.format("Couldn't connect to the requested target: %s", cd.getTargetId()),
+                    e.getCause());
         }
     }
 }
