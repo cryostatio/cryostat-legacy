@@ -202,8 +202,7 @@ function createPod() {
     # 9094: vertx-fib-demo-2 RJMX
     # 9095: vertx-fib-demo-3 RJMX
     # 9096: quarkus-test RJMX
-    # 9096: quarkus-test-plugin RJMX
-    # 9097: quarkus-test-plugin-2 RJMX
+    # 9097: quarkus-test-plugin RJMX
     # 9197: quarkus-test-plugin-2 RJMX
     # 9999: quarkus-test HTTP
     # 8082: Wildfly HTTP
