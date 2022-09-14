@@ -416,50 +416,58 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
         vertx.executeBlocking(
                 future -> {
-                    logger.info("Trying to prune stale metadata");
-                    staleMetadata.forEach(
-                            (srm, path) -> {
-                                String targetId = srm.getTargetId();
-                                String recordingName = srm.getRecordingName();
-                                ConnectionDescriptor cd;
-                                try {
-                                    cd = getConnectionDescriptorWithCredentials(targetId);
-                                } catch (Exception e) {
-                                    logger.error(
-                                            "Could not get credentials for"
-                                                    + " targetId {}, msg: {}",
-                                            targetId,
-                                            e.getMessage());
-                                    return;
-                                }
-                                logger.info(
-                                        "Trying to prune stale recording metadata {}, of target"
-                                                + " {}, from path {}",
-                                        recordingName,
-                                        targetId,
-                                        path);
-                                if (!targetRecordingExists(cd, recordingName)) {
-                                    // recording was lost
-                                    logger.info(
-                                            "Active recording lost {}, deleting...", recordingName);
-                                    deleteMetadataPathIfExists(path);
-                                } else {
-                                    // target still up
-                                    logger.info(
-                                            "Found metadata corresponding to active recording: {}",
-                                            recordingName);
+                    try {
+                        logger.info("Trying to prune stale metadata");
+                        staleMetadata.forEach(
+                                (srm, path) -> {
+                                    String targetId = srm.getTargetId();
+                                    String recordingName = srm.getRecordingName();
+                                    ConnectionDescriptor cd;
                                     try {
-                                        setRecordingMetadata(
-                                                cd, recordingName, new Metadata(srm.getLabels()));
-                                    } catch (IOException e) {
+                                        cd = getConnectionDescriptorWithCredentials(targetId);
+                                    } catch (Exception e) {
                                         logger.error(
-                                                "Could not set metadata for recording: {}, msg: {}",
-                                                recordingName,
+                                                "Could not get credentials for"
+                                                        + " targetId {}, msg: {}",
+                                                targetId,
                                                 e.getMessage());
+                                        return;
                                     }
-                                }
-                            });
-                    future.complete();
+                                    logger.info(
+                                            "Trying to prune stale recording metadata {}, of target"
+                                                    + " {}, from path {}",
+                                            recordingName,
+                                            targetId,
+                                            path);
+                                    if (!targetRecordingExists(cd, recordingName)) {
+                                        // recording was lost
+                                        logger.info(
+                                                "Active recording lost {}, deleting...",
+                                                recordingName);
+                                        deleteMetadataPathIfExists(path);
+                                    } else {
+                                        // target still up
+                                        logger.info(
+                                                "Found metadata corresponding to active recording:"
+                                                        + " {}",
+                                                recordingName);
+                                        try {
+                                            setRecordingMetadata(
+                                                    cd,
+                                                    recordingName,
+                                                    new Metadata(srm.getLabels()));
+                                        } catch (IOException e) {
+                                            logger.error(
+                                                    "Could not set metadata for recording: {}, msg:"
+                                                            + " {}",
+                                                    recordingName,
+                                                    e.getMessage());
+                                        }
+                                    }
+                                });
+                    } finally {
+                        future.complete();
+                    }
                 },
                 result -> logger.info("Successfully pruned all stale metadata"));
     }
@@ -697,7 +705,6 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private boolean isArchivedRecording(String recordingName) throws IOException {
         try {
-            // FIXME: this should be improved when we store recording data in the postgres db
             return this.fs.listDirectoryChildren(archivedRecordingsPath).stream()
                     .map(
                             subdirectory -> {
@@ -711,6 +718,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                         return filename.equals(recordingName);
                                                     });
                                 } catch (IOException e) {
+                                    // java streams doesn't allow checked exceptions to propagate
+                                    // can assume won't throw b/c previous calls to other io methods
+                                    // were successful
+                                    logger.error(e);
                                     return false;
                                 }
                             })
