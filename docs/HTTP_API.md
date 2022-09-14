@@ -2136,11 +2136,32 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| Get the unique jvmId for a target JVM                                     | [`JvmIdGetHandler`](#JvmIdGetHandler)                                           |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
 | **Recordings in archive**                                                 |                                                                                 |
 | Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
+### Miscellaneous
+* #### `JvmIdGetHandler`
+
+    ##### synopsis
+    Get the unique jvmId for a target JVM. This is a unique identifier for the JVM, and is used to map targetIds their corresponding JVMs.
+
+    ##### request
+    `GET /api/beta/targets/:targetId`
+
+    ##### response
+    `200` - The result is the jvmId.
+
+    `500` - The requested target JVM cannot be reached.
+
+    ##### example
+    ```
+    $ curl http://localhost:8181/api/beta/targets/localhost:0
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"bIeUvB77jlm7MpIAPVhDtqesTNX9a63zLW8IUZFfUug="}}
+    ```
 ### Recordings in Target JVMs
 * #### `TargetRecordingMetadataLabelsPostHandler`
 
