@@ -45,6 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -63,8 +64,10 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
+import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -105,6 +108,7 @@ class RecordingsPostHandlerTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
@@ -128,7 +132,7 @@ class RecordingsPostHandlerTest {
                         httpServer,
                         cryoFs,
                         recordingsPath,
-                        MainModule.provideGson(logger),
+                        gson,
                         notificationFactory,
                         () -> webServer,
                         recordingMetadataManager,
@@ -153,6 +157,8 @@ class RecordingsPostHandlerTest {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
         String savePath = "/some/path/";
+        Map<String, String> labels = new HashMap<>();
+        Metadata metadata = new Metadata(labels);
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -298,7 +304,7 @@ class RecordingsPostHandlerTest {
 
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        inOrder.verify(rep).end("{\"metadata\":{\"labels\":{}},\"name\":\"" + filename + "\"}");
+        inOrder.verify(rep).end(gson.toJson(Map.of("name", filename, "metadata", metadata)));
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
@@ -316,7 +322,12 @@ class RecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(Map.of("recording", recordingInfo, "target", RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)));
+                Matchers.equalTo(
+                        Map.of(
+                                "recording",
+                                recordingInfo,
+                                "target",
+                                RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)));
     }
 
     @Test
