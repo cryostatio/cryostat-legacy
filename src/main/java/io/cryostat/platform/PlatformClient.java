@@ -38,6 +38,7 @@
 package io.cryostat.platform;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -47,7 +48,7 @@ import io.vertx.core.Promise;
 public interface PlatformClient {
     default void start() throws Exception {}
 
-    default void load(Promise<EnvironmentNode> promise) {
+    default void load(UUID id, Promise<EnvironmentNode> promise) {
         promise.complete(getDiscoveryTree());
     }
 
