@@ -801,7 +801,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private boolean deleteSubdirectoryIfEmpty(Path path) {
-        if (path.equals(recordingMetadataDir)) {
+        if (path == null || path.equals(recordingMetadataDir)) {
             return false;
         }
         if (fs.exists(path)) {
@@ -844,7 +844,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
+    private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
         String targetId = connectionDescriptor.getTargetId();
         if (targetId.equals(RecordingArchiveHelper.ARCHIVES) || targetId.equals(UPLOADS)) {
             return UPLOADS;
