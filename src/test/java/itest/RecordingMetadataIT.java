@@ -342,7 +342,7 @@ public class RecordingMetadataIT extends StandardSelfTest {
                 deleteArchiveFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new ITestCleanupFailedException(
-                        String.format("Failed to delete target recording %s", RECORDING_NAME), e);
+                        String.format("Failed to delete recording %s", RECORDING_NAME), e);
             }
         }
     }

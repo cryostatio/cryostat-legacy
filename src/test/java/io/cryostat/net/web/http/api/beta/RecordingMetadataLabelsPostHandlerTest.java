@@ -141,7 +141,8 @@ public class RecordingMetadataLabelsPostHandlerTest {
         void shouldHaveTargetsPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/recordings/:recordingName/metadata/labels"));
+                    Matchers.equalTo(
+                            "/api/beta/recordings/:sourceTarget/:recordingName/metadata/labels"));
         }
 
         @Test

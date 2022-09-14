@@ -62,7 +62,7 @@ import io.vertx.core.http.HttpMethod;
 
 public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler<Metadata> {
 
-    static final String PATH = "recordings/:recordingName/metadata/labels";
+    static final String PATH = "recordings/:sourceTarget/:recordingName/metadata/labels";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
@@ -119,6 +119,7 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
     @Override
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
+        String sourceTarget = params.getPathParams().get("sourceTarget");
 
         try {
             Metadata metadata =
@@ -127,13 +128,22 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
             Metadata updatedMetadata =
-                    recordingMetadataManager.setRecordingMetadata(recordingName, metadata).get();
+                    recordingMetadataManager
+                            .setRecordingMetadata(sourceTarget, recordingName, metadata)
+                            .get();
 
             notificationFactory
                     .createBuilder()
                     .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recordingName", recordingName, "metadata", updatedMetadata))
+                    .message(
+                            Map.of(
+                                    "recordingName",
+                                    recordingName,
+                                    "sourceTarget",
+                                    sourceTarget,
+                                    "metadata",
+                                    updatedMetadata))
                     .build()
                     .send();
 

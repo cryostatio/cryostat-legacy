@@ -211,13 +211,13 @@ public class RecordingMetadataManager {
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
                         k -> {
-                            if (targetId.equals(RecordingArchiveHelper.UNLABELLED)) {
+                            if (targetId.equals(RecordingArchiveHelper.ARCHIVES)) {
                                 return UNLABELLED_ARCHIVES_ID;
                             }
 
                             try {
                                 Credentials credentials =
-                                        credentialsManager.getCredentials(targetId);
+                                        credentialsManager.getCredentialsByTargetId(targetId);
                                 return this.targetConnectionManager.executeConnectedTask(
                                         new ConnectionDescriptor(targetId, credentials),
                                         connection -> {

@@ -208,6 +208,12 @@ public class RecordingArchiveHelper {
             Path parentPath = archivedRecording.getParent();
             Path filenamePath = archivedRecording.getFileName();
             String filename = filenamePath.toString();
+            String subdirectoryName = parentPath.getFileName().toString();
+            String targetId =
+                    (subdirectoryName.equals(ARCHIVES))
+                            ? ""
+                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+            String metadataSourceTarget = targetId.equals("") ? ARCHIVES : targetId;
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             parentPath.toString(),
@@ -215,12 +221,7 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                    ARCHIVES, recordingName));
-            String subdirectoryName = parentPath.getFileName().toString();
-            String targetId =
-                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
-                            ? ""
-                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                                metadataSourceTarget, recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -313,7 +314,7 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getMetadata(ARCHIVES, file));
+                                            recordingMetadataManager.getMetadata(targetId, file));
                                 } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
@@ -351,6 +352,10 @@ public class RecordingArchiveHelper {
             for (String subdirectory : subdirectories) {
                 List<String> files =
                         this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory));
+                String metadataSourceTarget =
+                        (subdirectory.equals(ARCHIVES))
+                                ? ARCHIVES
+                                : new String(base32.decode(subdirectory), StandardCharsets.UTF_8);
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
                                 .map(
@@ -362,7 +367,7 @@ public class RecordingArchiveHelper {
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
                                                         recordingMetadataManager.getMetadata(
-                                                                ARCHIVES, file));
+                                                                metadataSourceTarget, file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
