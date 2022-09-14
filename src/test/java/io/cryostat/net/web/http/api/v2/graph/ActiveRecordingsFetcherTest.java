@@ -48,6 +48,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ActiveRecordingsFetcher.Active;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 
 import graphql.GraphQLContext;
@@ -88,7 +89,7 @@ class ActiveRecordingsFetcherTest {
     }
 
     @Test
-    void shouldReturnEmptyList() throws Exception {
+    void shouldReturnEmpty() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -98,11 +99,11 @@ class ActiveRecordingsFetcherTest {
 
         when(env.getSource()).thenReturn(source);
 
-        List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+        Active active = fetcher.get(env);
 
-        MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-        MatcherAssert.assertThat(recordings, Matchers.empty());
-        MatcherAssert.assertThat(recordings, Matchers.instanceOf(List.class));
+        MatcherAssert.assertThat(active, Matchers.notNullValue());
+        MatcherAssert.assertThat(active.data, Matchers.empty());
+        MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(0L));
     }
 
     @Test
@@ -117,10 +118,11 @@ class ActiveRecordingsFetcherTest {
 
         when(env.getSource()).thenReturn(source);
 
-        List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+        Active active = fetcher.get(env);
 
-        MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-        MatcherAssert.assertThat(recordings, Matchers.contains(recording));
+        MatcherAssert.assertThat(active, Matchers.notNullValue());
+        MatcherAssert.assertThat(active.data, Matchers.contains(recording));
+        MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(1L));
     }
 
     @Test
@@ -131,19 +133,19 @@ class ActiveRecordingsFetcherTest {
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
+            GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
+            GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
+
             Recordings source = Mockito.mock(Recordings.class);
-            List<GraphRecordingDescriptor> mockList =
-                    List.of(
-                            Mockito.mock(GraphRecordingDescriptor.class),
-                            Mockito.mock(GraphRecordingDescriptor.class));
-            source.active = mockList;
+            source.active = List.of(recording1, recording2);
 
             when(env.getSource()).thenReturn(source);
 
-            List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+            Active active = fetcher.get(env);
 
-            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.equalTo(mockList));
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.contains(recording1, recording2));
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(2L));
         }
     }
 
@@ -171,10 +173,11 @@ class ActiveRecordingsFetcherTest {
 
             when(env.getSource()).thenReturn(source);
 
-            List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+            Active active = fetcher.get(env);
 
-            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording1, recording3));
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.contains(recording1, recording3));
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(2L));
         }
     }
 
@@ -202,10 +205,11 @@ class ActiveRecordingsFetcherTest {
 
             when(env.getSource()).thenReturn(source);
 
-            List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+            Active active = fetcher.get(env);
 
-            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.empty());
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.empty());
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(0L));
         }
     }
 
@@ -233,11 +237,11 @@ class ActiveRecordingsFetcherTest {
 
             when(env.getSource()).thenReturn(source);
 
-            List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+            Active active = fetcher.get(env);
 
-            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(
-                    recordings, Matchers.contains(recording1, recording2, recording3));
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.contains(recording1, recording2, recording3));
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(3L));
         }
     }
 
@@ -272,10 +276,11 @@ class ActiveRecordingsFetcherTest {
 
             when(env.getSource()).thenReturn(source);
 
-            List<GraphRecordingDescriptor> recordings = fetcher.get(env);
+            Active active = fetcher.get(env);
 
-            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording2));
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.contains(recording2));
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(1L)); 
         }
     }
 }
