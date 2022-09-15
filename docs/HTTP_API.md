@@ -1449,31 +1449,33 @@ The handler-specific descriptions below describe how each handler populates the
     ###### synopsis
     Registers a discovery plugin. Plugins must be registered before they can
     publish updates. Request must include a JSON body with a `realm` and a
-    `callback`. The `realm` is a unique name label for the subtree that this
+    `callback`. The `realm` is a display name label for the subtree that this
     plugin will publish and may not be blank. The `callback` is a URI to an
     endpoint where Cryostat can reach the discovery plugin to perform health
-    checks. The plugin may optionally include a `token` in the JSON body. This
-    `token` is expected to be the `token` that the plugin previously received
-    from Cryostat after an earlier registration. This token is opaque to the
-    client but contains an expiry time known to Cryostat, as well as
-    authorization information. If the request includes a prior `token` then
-    rather than processing the request as a new plugin registration (with a
-    unique `realm`), Cryostat will reuse the same registration and issue a
-    refreshed token.
+    checks. The plugin may optionally include an `id` and a `token` in the JSON
+    body. This fields are expected to be the `id` and `token` that the plugin
+    previously received from Cryostat after an earlier registration. This token
+    is opaque to the client but contains an expiry time known to Cryostat, a
+    well as authorization information. If the request includes a prior `id` and
+    `token` then rather than processing the request as a new plugin registration
+    , Cryostat will reuse the same registration and issue a refreshed token. If
+    a request contains only one of the `id`/`token` and not both, then it will
+    be treated as an attempt to register a new plugin instance with the same
+    reused `realm` name.
 
     Cryostat will perform a `POST` to the supplied `callback` when
     Cryostat restarts to ensure that the previously-registered discovery plugins
     are still present. This `POST` will have an empty body. It is recommended
     that plugins respond to this callback `POST` by attempting to re-register
     themselves by sending a request to this endpoint containing a repeated
-    `realm` and `callback`, and the previously held `token`. Cryostat will then
-    issue a refreshed `token`. Cryostat may issue a `callback` request to
-    plugins at any time, in particular before token expiration to ensure plugins
-    have fresh tokens. Cryostat will also send a `GET` request to the same
-    `callback` at plugin registration time in order to validate the URI. The
-    plugin should respond to this `GET` with a `2xx` response, but is not
-    expected to attempt re-registration (since initial registration is still in
-    progress).
+    `realm` and `callback`, and the previously held `id` and `token`. Cryostat
+    will then issue a refreshed `token` for the same `id`. Cryostat may issue a
+    `callback` request to plugins at any time, in particular before token
+    expiration to ensure plugins have fresh tokens. Cryostat will also send a
+    `GET` request to the same `callback` at plugin registration time in order to
+    validate the URI. The plugin should respond to this `GET` with a `2xx`
+    response, but is not expected to attempt re-registration (since initial
+    registration is still in progress).
 
     This initial registration request requires the plugin to provide a request
     `Authorization` header and pass authz checks. The authz here will be
