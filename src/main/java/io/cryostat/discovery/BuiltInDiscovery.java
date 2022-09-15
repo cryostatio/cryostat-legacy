@@ -37,7 +37,6 @@
  */
 package io.cryostat.discovery;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -61,7 +60,6 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     private final DiscoveryStorage storage;
     private final Set<PlatformClient> platformClients;
-    private final Set<UUID> ids;
     private final Environment env;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
@@ -74,7 +72,6 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
             Logger logger) {
         this.storage = storage;
         this.platformClients = platformClients;
-        this.ids = new HashSet<>();
         this.env = env;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -110,7 +107,6 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                         })
                                 .get();
 
-                ids.add(id);
                 platform.addTargetDiscoveryListener(
                         tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
                 Promise<EnvironmentNode> promise = Promise.promise();

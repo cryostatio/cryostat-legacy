@@ -19,7 +19,7 @@ function runCryostat() {
         JDBC_PASSWORD="abcd1234"
         HBM2DDL="update"
     elif [ "$1" = "h2file" ]; then
-        JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other"
+        JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"
         HBM2DDL="update"
     fi
 

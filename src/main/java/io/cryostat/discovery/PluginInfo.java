@@ -59,6 +59,8 @@ public class PluginInfo {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(columnDefinition = "uuid", updatable = false)
+    @Type(type = "org.hibernate.type.UUIDCharType")
     private UUID id;
 
     @Column(unique = true, nullable = false)
@@ -75,9 +77,9 @@ public class PluginInfo {
     PluginInfo() {}
 
     PluginInfo(String realm, URI callback, String subtree) {
-        this.realm = realm;
+        this.realm = Objects.requireNonNull(realm, "realm");
         this.callback = callback;
-        this.subtree = subtree;
+        this.subtree = Objects.requireNonNull(subtree, "subtree");
     }
 
     public UUID getId() {
@@ -97,11 +99,11 @@ public class PluginInfo {
     }
 
     public void setId(UUID id) {
-        this.id = id;
+        this.id = Objects.requireNonNull(id);
     }
 
     public void setRealm(String realm) {
-        this.realm = realm;
+        this.realm = Objects.requireNonNull(realm);
     }
 
     public void setCallback(URI callback) {
@@ -109,7 +111,7 @@ public class PluginInfo {
     }
 
     public void setSubtree(String subtree) {
-        this.subtree = subtree;
+        this.subtree = Objects.requireNonNull(subtree);
     }
 
     @Override
