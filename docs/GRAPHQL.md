@@ -1,6 +1,4 @@
-# GraphQL notes
-
-This is a temporary notes dump while GraphQL work is ongoing.
+# GraphQL
 
 ## API Endpoints
 
