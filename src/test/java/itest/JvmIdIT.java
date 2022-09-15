@@ -49,17 +49,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
-import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,12 +61,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class JvmIdIT extends ExternalTargetsTest {
-    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
     static final int NUM_EXT_CONTAINERS = 3;
     static final List<String> CONTAINERS = new ArrayList<>();
     static final MultiMap credentialsForm = MultiMap.caseInsensitiveMultiMap();
-    ;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -93,26 +84,6 @@ public class JvmIdIT extends ExternalTargetsTest {
                                 .toArray(new CompletableFuture[0]))
                 .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
-
-        // store credentials for the targets
-        CompletableFuture<Void> credentialsFuture = new CompletableFuture<>();
-
-        credentialsForm.add("matchExpression", "true");
-        credentialsForm.add("username", "admin");
-        credentialsForm.add("password", "adminpass123");
-
-        webClient
-                .post("/api/v2.2/credentials")
-                .sendForm(
-                        credentialsForm,
-                        ar -> {
-                            if (assertRequestStatus(ar, credentialsFuture)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(201));
-                                credentialsFuture.complete(null);
-                            }
-                        });
-        credentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @AfterAll
@@ -124,45 +95,6 @@ public class JvmIdIT extends ExternalTargetsTest {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to kill container instance with ID %s", id), e);
             }
-        }
-        try {
-            CompletableFuture<JsonObject> getCredentialsFuture = new CompletableFuture<>();
-            webClient
-                    .get("/api/v2.2/credentials")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, getCredentialsFuture)) {
-                                    getCredentialsFuture.complete(ar.result().bodyAsJsonObject());
-                                }
-                            });
-
-            JsonObject response =
-                    getCredentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            List<StoredCredential> actualList =
-                    gson.fromJson(
-                            response.getJsonObject("data").getValue("result").toString(),
-                            new TypeToken<List<StoredCredential>>() {}.getType());
-
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            StoredCredential storedCredential = actualList.get(0);
-
-            // delete credentials to clean up
-            CompletableFuture<JsonObject> deleteCredentialsResponse = new CompletableFuture<>();
-            webClient
-                    .delete("/api/v2.2/credentials" + "/" + storedCredential.id)
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, deleteCredentialsResponse)) {
-                                    deleteCredentialsResponse.complete(null);
-                                }
-                            });
-
-            deleteCredentialsResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException | AssertionError e) {
-            throw new ITestCleanupFailedException(
-                    String.format(
-                            "Failed to delete credentials because of exception: %s", e.getCause()));
         }
     }
 
