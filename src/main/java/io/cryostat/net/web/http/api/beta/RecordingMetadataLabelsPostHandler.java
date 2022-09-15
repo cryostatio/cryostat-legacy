@@ -37,14 +37,13 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -62,23 +61,20 @@ import io.vertx.core.http.HttpMethod;
 
 public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler<Metadata> {
 
-    static final String PATH = "recordings/:recordingName/metadata/labels";
+    static final String PATH = "recordings/:sourceTarget/:recordingName/metadata/labels";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
     RecordingMetadataLabelsPostHandler(
             AuthManager auth,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            NotificationFactory notificationFactory) {
+            RecordingMetadataManager recordingMetadataManager) {
         super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -119,6 +115,7 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
     @Override
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
+        String sourceTarget = params.getPathParams().get("sourceTarget");
 
         try {
             Metadata metadata =
@@ -127,15 +124,13 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
             Metadata updatedMetadata =
-                    recordingMetadataManager.setRecordingMetadata(recordingName, metadata).get();
-
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recordingName", recordingName, "metadata", updatedMetadata))
-                    .build()
-                    .send();
+                    recordingMetadataManager
+                            .setRecordingMetadata(
+                                    new ConnectionDescriptor(sourceTarget),
+                                    recordingName,
+                                    metadata,
+                                    true)
+                            .get();
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (ExecutionException e) {

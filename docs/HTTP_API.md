@@ -2136,11 +2136,32 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| Get the unique jvmId for a target JVM                                     | [`JvmIdGetHandler`](#JvmIdGetHandler)                                           |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
 | **Recordings in archive**                                                 |                                                                                 |
 | Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
 
+### Miscellaneous
+* #### `JvmIdGetHandler`
+
+    ##### synopsis
+    Get the unique jvmId for a target JVM. This is a unique identifier for the JVM, and is used to map targetIds their corresponding JVMs.
+
+    ##### request
+    `GET /api/beta/targets/:targetId`
+
+    ##### response
+    `200` - The result is the jvmId.
+
+    `500` - The requested target JVM cannot be reached.
+
+    ##### example
+    ```
+    $ curl http://localhost:8181/api/beta/targets/localhost:0
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"bIeUvB77jlm7MpIAPVhDtqesTNX9a63zLW8IUZFfUug="}}
+    ```
 ### Recordings in Target JVMs
 * #### `TargetRecordingMetadataLabelsPostHandler`
 
@@ -2148,7 +2169,7 @@ The handler-specific descriptions below describe how each handler populates the
     Add metadata labels for a recording in a target JVM. Overwrites any existing labels for that recording.
 
     ##### request
-    `POST /api/v2/targets/:targetId/recordings/:recordingName/metadata/labels`
+    `POST /api/beta/targets/:targetId/recordings/:recordingName/metadata/labels`
 
     The request should be a JSON document with the `labels` specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
 
@@ -2182,9 +2203,14 @@ The handler-specific descriptions below describe how each handler populates the
     Create metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording.
 
     ##### request
-    `POST /api/v2/recordings/:recordingName/metadata/labels`
+    `POST /api/beta/recordings/:sourceTarget/:recordingName/metadata/labels`
 
     The request should be a JSON document with the labels specified as `"key": "value"` string pairs. Keys must be unique. Letters, numbers, `-`, and `.` are accepted.
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording.
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding. If a recording was re-uploaded to archives, this field should be
+    set to `unlabelled`.
 
     `recordingName` - The name of the recording to attach labels to.
 
@@ -2201,6 +2227,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### example
     ```
-    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
+    $ curl -v --data "{\"myKey\":\"updatedValue\",\"another-key\":\"another-updated-value\",\"new-key\":\"new-value\"}" http://localhost:8181/api/beta/recordings/localhost%3A0/localhost_myRecording_20220309T203725Z.jfr/metadata/labels
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"myKey":"updatedValue","another-key":"another-updated-value","new-key":"new-value"}}}
     ```

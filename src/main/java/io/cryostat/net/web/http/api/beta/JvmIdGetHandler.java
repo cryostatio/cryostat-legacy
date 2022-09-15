@@ -35,85 +35,97 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2.graph;
+package io.cryostat.net.web.http.api.beta;
 
-import java.util.EnumSet;
 import java.util.Set;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
-
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 
-import graphql.schema.DataFetchingEnvironment;
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpMethod;
 
-class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
+class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
+
+    static final String PATH = "targets/:targetId";
 
     private final TargetConnectionManager targetConnectionManager;
-    private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
-    private final RecordingMetadataManager metadataManager;
-    private final Provider<WebServer> webServer;
 
     @Inject
-    StopRecordingMutator(
+    JvmIdGetHandler(
             AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
+            Gson gson,
             CredentialsManager credentialsManager,
-            RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer) {
-        super(auth);
-        this.targetConnectionManager = targetConnectionManager;
-        this.recordingTargetHelper = recordingTargetHelper;
+            TargetConnectionManager targetConnectionManager) {
+        super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.metadataManager = metadataManager;
-        this.webServer = webServer;
+        this.targetConnectionManager = targetConnectionManager;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_RECORDING,
-                ResourceAction.UPDATE_RECORDING,
-                ResourceAction.READ_TARGET,
-                ResourceAction.READ_CREDENTIALS);
+        return Set.of(ResourceAction.READ_TARGET);
     }
 
     @Override
-    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        GraphRecordingDescriptor source = environment.getSource();
-        ServiceRef target = source.target;
-        String uri = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+    public String path() {
+        return basePath() + JvmIdGetHandler.PATH;
+    }
 
-        return targetConnectionManager.executeConnectedTask(
-                cd,
-                conn -> {
-                    IRecordingDescriptor desc =
-                            recordingTargetHelper.stopRecording(cd, source.getName(), true);
-                    WebServer ws = webServer.get();
-                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
-                    return new GraphRecordingDescriptor(
-                            target,
-                            desc,
-                            ws.getDownloadURL(conn, desc.getName()),
-                            ws.getReportURL(conn, desc.getName()),
-                            metadata);
-                },
-                true);
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        try {
+            if (cd.getCredentials().isEmpty()) {
+                cd =
+                        new ConnectionDescriptor(
+                                cd.getTargetId(),
+                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
+            }
+            String jvmId =
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                return connection.getJvmId();
+                            });
+            return new IntermediateResponse<String>().body(jvmId);
+        } catch (Exception e) {
+            throw new ApiException(
+                    500,
+                    String.format("Couldn't connect to the requested target: %s", cd.getTargetId()),
+                    e.getCause());
+        }
     }
 }

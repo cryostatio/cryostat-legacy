@@ -41,11 +41,22 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Map;
 
+import javax.inject.Provider;
+
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import com.google.gson.Gson;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -64,32 +75,77 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RecordingMetadataManagerTest {
 
     RecordingMetadataManager recordingMetadataManager;
+    Vertx vertx;
+
     @Mock Path recordingMetadataDir;
+    @Mock Path archivedRecordingsPath;
     @Mock FileSystem fs;
+    @Mock Provider<RecordingArchiveHelper> archiveHelperProvider;
     @Mock Base32 base32;
     @Mock Logger logger;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock CredentialsManager credentialsManager;
+    @Mock PlatformClient platformClient;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
+    @Mock JFRConnection connection;
+    @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
     void setup() {
         Gson gson = new Gson();
         Base32 base32 = new Base32();
 
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+
         this.recordingMetadataManager =
-                new RecordingMetadataManager(recordingMetadataDir, fs, gson, base32, logger);
+                new RecordingMetadataManager(
+                        vertx,
+                        recordingMetadataDir,
+                        archivedRecordingsPath,
+                        fs,
+                        archiveHelperProvider,
+                        targetConnectionManager,
+                        credentialsManager,
+                        platformClient,
+                        notificationFactory,
+                        gson,
+                        base32,
+                        logger);
     }
 
     @Test
     void shouldParseAndStoreLabelsInRecordingLabelsMap() throws Exception {
-        String targetId = "someTarget";
         String recordingName = "someRecording";
+        String jvmId = "id";
+
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
 
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenReturn(jvmId);
+
+        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
-                .setRecordingMetadata(targetId, recordingName, new Metadata(labels))
+                .setRecordingMetadata(connectionDescriptor, recordingName, new Metadata(labels))
                 .get();
 
         Mockito.verify(fs)
@@ -100,10 +156,11 @@ public class RecordingMetadataManagerTest {
                         Mockito.any(OpenOption.class),
                         Mockito.any(OpenOption.class));
 
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
-
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
+        MatcherAssert.assertThat(
+                recordingMetadataManager
+                        .getMetadata(connectionDescriptor, recordingName)
+                        .getLabels(),
+                Matchers.equalTo(labels));
     }
 
     @ParameterizedTest
@@ -128,67 +185,95 @@ public class RecordingMetadataManagerTest {
 
     @Test
     void shouldDeleteLabels() throws Exception {
-        String targetId = "someTarget";
         String recordingName = "someRecording";
+        String jvmId = "id";
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
 
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenReturn(jvmId);
+        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        Map<String, String> actualLabelsMap =
-                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels();
-        MatcherAssert.assertThat(actualLabelsMap, Matchers.equalTo(labels));
-
-        recordingMetadataManager.deleteRecordingMetadataIfExists(targetId, recordingName);
+        recordingMetadataManager
+                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                .get();
 
         MatcherAssert.assertThat(
-                recordingMetadataManager.getMetadata(targetId, recordingName).getLabels(),
+                recordingMetadataManager
+                        .getMetadata(connectionDescriptor, recordingName)
+                        .getLabels(),
+                Matchers.equalTo(labels));
+
+        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                connectionDescriptor, recordingName);
+
+        MatcherAssert.assertThat(
+                recordingMetadataManager
+                        .getMetadata(connectionDescriptor, recordingName)
+                        .getLabels(),
                 Matchers.equalTo(Map.of()));
         Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
 
     @Test
     void shouldOverwriteLabelsForExistingLabelEntries() throws Exception {
-        String targetId = "someTarget";
         String recordingName = "someRecording";
+        String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
         Map<String, String> updatedLabels =
                 Map.of("KEY", "UPDATED_VALUE", "key.2", "some.value", "key3", "1234");
         Metadata updatedMetadata = new Metadata(updatedLabels);
 
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenReturn(jvmId);
+        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
         Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-
-        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
-                .setRecordingMetadata(targetId, recordingName, updatedMetadata)
+                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
                 .get();
 
-        Metadata actualMetadata = recordingMetadataManager.getMetadata(targetId, recordingName);
+        recordingMetadataManager
+                .setRecordingMetadata(connectionDescriptor, recordingName, updatedMetadata)
+                .get();
 
-        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(updatedMetadata));
+        Metadata actualMetadata =
+                recordingMetadataManager.getMetadata(connectionDescriptor, recordingName);
+
+        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(updatedLabels));
     }
 
     @Test
     void shouldCopyLabelsToArchivedRecordings() throws Exception {
-        String targetId = "someTarget";
         String recordingName = "someRecording";
+        String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
-        String filename = "";
+        String filename = "archivedRecording";
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenReturn(jvmId);
+        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        Path mockPath = Mockito.mock(Path.class);
+        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
-        recordingMetadataManager.setRecordingMetadata(targetId, recordingName, metadata).get();
+        recordingMetadataManager
+                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                .get();
 
-        recordingMetadataManager.copyMetadataToArchives(targetId, recordingName, filename);
+        recordingMetadataManager.copyMetadataToArchives(
+                connectionDescriptor, recordingName, filename);
 
         Metadata actualMetadata =
-                recordingMetadataManager.getMetadata(RecordingArchiveHelper.ARCHIVES, filename);
+                recordingMetadataManager.getMetadata(connectionDescriptor, filename);
 
-        MatcherAssert.assertThat(actualMetadata, Matchers.equalTo(metadata));
+        MatcherAssert.assertThat(actualMetadata.getLabels(), Matchers.equalTo(labels));
     }
 }

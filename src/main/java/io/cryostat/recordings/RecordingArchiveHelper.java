@@ -39,11 +39,9 @@ package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -163,8 +161,7 @@ public class RecordingArchiveHelper {
             String filename = filenamePath.toString();
             Metadata metadata =
                     recordingMetadataManager
-                            .copyMetadataToArchives(
-                                    connectionDescriptor.getTargetId(), recordingName, filename)
+                            .copyMetadataToArchives(connectionDescriptor, recordingName, filename)
                             .get();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -210,6 +207,11 @@ public class RecordingArchiveHelper {
             Path parentPath = archivedRecording.getParent();
             Path filenamePath = archivedRecording.getFileName();
             String filename = filenamePath.toString();
+            String subdirectoryName = parentPath.getFileName().toString();
+            String targetId =
+                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                            ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             parentPath.toString(),
@@ -217,12 +219,7 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                    ARCHIVES, recordingName));
-            String subdirectoryName = parentPath.getFileName().toString();
-            String targetId =
-                    (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
-                            ? ""
-                            : new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                                    new ConnectionDescriptor(targetId), recordingName));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -315,10 +312,9 @@ public class RecordingArchiveHelper {
                                             file,
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
-                                            recordingMetadataManager.getMetadata(ARCHIVES, file));
-                                } catch (SocketException
-                                        | UnknownHostException
-                                        | URISyntaxException e) {
+                                            recordingMetadataManager.getMetadata(
+                                                    new ConnectionDescriptor(targetId), file));
+                                } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
                                 }
@@ -355,6 +351,11 @@ public class RecordingArchiveHelper {
             for (String subdirectory : subdirectories) {
                 List<String> files =
                         this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory));
+                String metadataSourceTarget =
+                        (subdirectory.equals(ARCHIVES)
+                                        || subdirectory.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
+                                ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                                : new String(base32.decode(subdirectory), StandardCharsets.UTF_8);
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
                                 .map(
@@ -366,10 +367,10 @@ public class RecordingArchiveHelper {
                                                         webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file),
                                                         recordingMetadataManager.getMetadata(
-                                                                ARCHIVES, file));
-                                            } catch (SocketException
-                                                    | UnknownHostException
-                                                    | URISyntaxException e) {
+                                                                new ConnectionDescriptor(
+                                                                        metadataSourceTarget),
+                                                                file));
+                                            } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
                                             }

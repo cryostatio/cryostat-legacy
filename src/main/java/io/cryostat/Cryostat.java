@@ -39,7 +39,6 @@ package io.cryostat;
 
 import java.io.IOException;
 import java.security.Security;
-import java.util.List;
 
 import javax.inject.Singleton;
 
@@ -58,8 +57,6 @@ import io.cryostat.rules.RuleRegistry;
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
@@ -81,7 +78,6 @@ class Cryostat extends AbstractVerticle {
             client.credentialsManager().migrate();
             client.credentialsManager().load();
             client.ruleRegistry().loadRules();
-            client.recordingMetadataManager().load();
         } catch (Exception e) {
             logger.error(e);
             future.fail(e);
@@ -93,19 +89,34 @@ class Cryostat extends AbstractVerticle {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null)));
 
-        List<Future> futures =
-                List.of(
-                        client.deployer().deploy(client.discoveryStorage(), true),
-                        client.deployer().deploy(client.httpServer(), false),
-                        client.deployer().deploy(client.webServer(), false),
-                        client.deployer().deploy(client.messagingServer(), false),
-                        client.deployer().deploy(client.ruleProcessor(), true));
-        CompositeFuture.join(futures)
+        client.deployer()
+                .deploy(client.httpServer(), false)
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.webServer(), false);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.messagingServer(), false);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.ruleProcessor(), true);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer()
+                                    .deploy(client.recordingMetadataManager(), true);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.discoveryStorage(), true);
+                        })
                 .onSuccess(cf -> future.complete())
                 .onFailure(
                         t -> {
-                            future.fail(t);
-                            shutdown(t);
+                            future.fail((Throwable) t);
+                            shutdown((Throwable) t);
                         });
     }
 

@@ -138,7 +138,8 @@ public class RecordingTargetHelper {
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
-            TemplateType templateType)
+            TemplateType templateType,
+            Metadata metadata)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
         return targetConnectionManager.executeConnectedTask(
@@ -168,15 +169,15 @@ public class RecordingTargetHelper {
                                                     templateName,
                                                     preferredTemplateType));
                     String targetId = connectionDescriptor.getTargetId();
-                    Metadata metadata =
-                            recordingMetadataManager.getMetadata(targetId, recordingName);
+
                     Map<String, String> labels = metadata.getLabels();
                     labels.put("template.name", templateName);
                     labels.put("template.type", preferredTemplateType.name());
-                    metadata = new Metadata(labels);
-                    metadata =
+                    Metadata updatedMetadata = new Metadata(labels);
+                    updatedMetadata =
                             recordingMetadataManager
-                                    .setRecordingMetadata(targetId, recordingName, metadata)
+                                    .setRecordingMetadata(
+                                            connectionDescriptor, recordingName, updatedMetadata)
                                     .get();
                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                             new HyperlinkedSerializableRecordingDescriptor(
@@ -205,10 +206,16 @@ public class RecordingTargetHelper {
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
-            TemplateType templateType)
+            TemplateType templateType,
+            Metadata metadata)
             throws Exception {
         return startRecording(
-                false, connectionDescriptor, recordingOptions, templateName, templateType);
+                false,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata);
     }
 
     /**
@@ -328,7 +335,7 @@ public class RecordingTargetHelper {
 
                                 Metadata metadata =
                                         recordingMetadataManager.getMetadata(
-                                                connectionDescriptor.getTargetId(), rename);
+                                                connectionDescriptor, rename);
 
                                 return new HyperlinkedSerializableRecordingDescriptor(
                                         updatedDescriptor.get(),
@@ -435,11 +442,10 @@ public class RecordingTargetHelper {
                                                     webServer
                                                             .get()
                                                             .getReportURL(connection, d.getName()),
-                                                    recordingMetadataManager.getMetadata(
-                                                            connectionDescriptor.getTargetId(),
-                                                            recordingName));
-                                    recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                            connectionDescriptor.getTargetId(), recordingName);
+                                                    recordingMetadataManager
+                                                            .deleteRecordingMetadataIfExists(
+                                                                    connectionDescriptor,
+                                                                    recordingName));
                                     if (issueNotification) {
                                         Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
                                         String notificationCategory =

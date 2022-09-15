@@ -37,124 +37,93 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
-import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class StartRecordingOnTargetMutator
-        extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
+class PutActiveRecordingMetadataMutator
+        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final RecordingTargetHelper recordingTargetHelper;
-    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final CredentialsManager credentialsManager;
+    private final TargetConnectionManager targetConnectionManager;
     private final RecordingMetadataManager metadataManager;
+    private final RecordingTargetHelper recordingTargetHelper;
     private final Provider<WebServer> webServer;
     private final Gson gson;
 
     @Inject
-    StartRecordingOnTargetMutator(
-            AuthManager auth,
+    PutActiveRecordingMetadataMutator(
+            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
-        super(auth);
+        this.credentialsManager = credentialsManager;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
-        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
-        this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.gson = gson;
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_RECORDING,
-                ResourceAction.CREATE_RECORDING,
-                ResourceAction.READ_TARGET,
-                ResourceAction.UPDATE_TARGET,
-                ResourceAction.READ_CREDENTIALS);
-    }
+    public HyperlinkedSerializableRecordingDescriptor get(DataFetchingEnvironment environment)
+            throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
+        String recordingName = source.getName();
+        Map<String, Object> settings = environment.getArgument("metadata");
+        Map<String, String> labels = new HashMap<>();
 
-    @Override
-    public HyperlinkedSerializableRecordingDescriptor getAuthenticated(
-            DataFetchingEnvironment environment) throws Exception {
-        TargetNode node = environment.getSource();
-        Map<String, Object> settings = environment.getArgument("recording");
+        if (settings.containsKey("labels")) {
+            List<InputRecordingLabel> inputLabels =
+                    gson.fromJson(
+                            settings.get("labels").toString(),
+                            new TypeToken<List<InputRecordingLabel>>() {}.getType());
+            for (InputRecordingLabel l : inputLabels) {
+                labels.put(l.getKey(), l.getValue());
+            }
+        }
 
-        String uri = node.getTarget().getServiceUri().toString();
         ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    RecordingOptionsBuilder builder =
-                            recordingOptionsBuilderFactory
-                                    .create(conn.getService())
-                                    .name((String) settings.get("name"));
-                    if (settings.containsKey("duration")) {
-                        builder =
-                                builder.duration(
-                                        TimeUnit.SECONDS.toMillis((Long) settings.get("duration")));
-                    }
-                    if (settings.containsKey("toDisk")) {
-                        builder = builder.toDisk((Boolean) settings.get("toDisk"));
-                    }
-                    if (settings.containsKey("maxAge")) {
-                        builder = builder.maxAge((Long) settings.get("maxAge"));
-                    }
-                    if (settings.containsKey("maxSize")) {
-                        builder = builder.maxSize((Long) settings.get("maxSize"));
-                    }
-                    Metadata m = new Metadata();
-                    if (settings.containsKey("metadata")) {
-                        m =
-                                (Metadata)
-                                        gson.fromJson(
-                                                settings.get("metadata").toString(),
-                                                new TypeToken<Metadata>() {}.getType());
-                    }
                     IRecordingDescriptor desc =
-                            recordingTargetHelper.startRecording(
-                                    cd,
-                                    builder.build(),
-                                    (String) settings.get("template"),
-                                    TemplateType.valueOf(
-                                            ((String) settings.get("templateType")).toUpperCase()),
-                                    m);
+                            recordingTargetHelper.getDescriptorByName(conn, recordingName).get();
+
                     WebServer ws = webServer.get();
-                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
+
+                    Metadata metadata =
+                            metadataManager
+                                    .setRecordingMetadata(
+                                            cd, recordingName, new Metadata(labels), true)
+                                    .get();
+
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
@@ -162,5 +131,23 @@ class StartRecordingOnTargetMutator
                             metadata);
                 },
                 true);
+    }
+
+    public static class InputRecordingLabel {
+        private String key;
+        private String value;
+
+        public InputRecordingLabel(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
+            return this.key;
+        }
+
+        public String getValue() {
+            return this.value;
+        }
     }
 }

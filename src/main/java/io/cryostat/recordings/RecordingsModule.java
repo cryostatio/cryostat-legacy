@@ -52,6 +52,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
@@ -148,10 +149,17 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
+            Vertx vertx,
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             FileSystem fs,
+            Provider<RecordingArchiveHelper> archiveHelperProvider,
+            TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
+            DiscoveryStorage storage,
+            NotificationFactory notificationFactory,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -166,7 +174,19 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(metadataDir, fs, gson, base32, logger);
+            return new RecordingMetadataManager(
+                    vertx,
+                    metadataDir,
+                    archivedRecordingsPath,
+                    fs,
+                    archiveHelperProvider,
+                    targetConnectionManager,
+                    credentialsManager,
+                    storage,
+                    notificationFactory,
+                    gson,
+                    base32,
+                    logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

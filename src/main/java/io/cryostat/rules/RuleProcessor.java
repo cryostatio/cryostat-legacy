@@ -339,11 +339,16 @@ public class RuleProcessor extends AbstractVerticle
                                                     connectionDescriptor,
                                                     builder.build(),
                                                     template.getLeft(),
-                                                    template.getRight());
+                                                    template.getRight(),
+                                                    new Metadata());
                                         },
                                         false);
                         promise.complete(recording);
                     } catch (Exception e) {
+                        logger.error(
+                                "Failed to start rule {} recording on {}",
+                                rule.getName(),
+                                connectionDescriptor.getTargetId());
                         promise.fail(e);
                     }
                 },
@@ -354,19 +359,16 @@ public class RuleProcessor extends AbstractVerticle
                         return;
                     }
                     IRecordingDescriptor recording = result.result();
-                    Map<String, String> labels =
-                            new HashMap<>(
-                                    metadataManager
-                                            .getMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recording.getName())
-                                            .getLabels());
-                    labels.put("rule", rule.getName());
                     try {
+                        Map<String, String> labels =
+                                new HashMap<>(
+                                        metadataManager
+                                                .getMetadata(
+                                                        connectionDescriptor, recording.getName())
+                                                .getLabels());
+                        labels.put("rule", rule.getName());
                         metadataManager.setRecordingMetadata(
-                                connectionDescriptor.getTargetId(),
-                                recording.getName(),
-                                new Metadata(labels));
+                                connectionDescriptor, recording.getName(), new Metadata(labels));
                     } catch (IOException ioe) {
                         logger.error(ioe);
                     }

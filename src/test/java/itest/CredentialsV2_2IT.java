@@ -64,6 +64,7 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
@@ -570,12 +571,6 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                                             port));
                         })
                 .collect(Collectors.toList());
-    }
-
-    private static class StoredCredential {
-        int id;
-        String matchExpression;
-        int numMatchingTargets;
     }
 
     private static class MatchedCredential {

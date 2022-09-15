@@ -37,83 +37,81 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.util.EnumSet;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.ServiceRef;
+import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import org.apache.commons.codec.binary.Base32;
 
-class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
+class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordingInfo> {
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final RecordingTargetHelper recordingTargetHelper;
-    private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
+    private final Gson gson;
+    private final Base32 base32;
 
     @Inject
-    StopRecordingMutator(
-            AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager,
+    PutArchivedRecordingMetadataMutator(
             RecordingMetadataManager metadataManager,
-            Provider<WebServer> webServer) {
-        super(auth);
-        this.targetConnectionManager = targetConnectionManager;
-        this.recordingTargetHelper = recordingTargetHelper;
-        this.credentialsManager = credentialsManager;
+            Provider<WebServer> webServer,
+            Gson gson,
+            Base32 base32) {
         this.metadataManager = metadataManager;
         this.webServer = webServer;
+        this.gson = gson;
+        this.base32 = base32;
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_RECORDING,
-                ResourceAction.UPDATE_RECORDING,
-                ResourceAction.READ_TARGET,
-                ResourceAction.READ_CREDENTIALS);
-    }
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        ArchivedRecordingInfo source = environment.getSource();
+        String uri =
+                new String(base32.decode(source.getEncodedServiceUri()), StandardCharsets.UTF_8);
+        String recordingName = source.getName();
+        Map<String, Object> settings = environment.getArgument("metadata");
+        Map<String, String> labels = new HashMap<>();
 
-    @Override
-    public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        GraphRecordingDescriptor source = environment.getSource();
-        ServiceRef target = source.target;
-        String uri = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+        if (settings.containsKey("labels")) {
+            List<InputRecordingLabel> inputLabels =
+                    gson.fromJson(
+                            settings.get("labels").toString(),
+                            new TypeToken<List<InputRecordingLabel>>() {}.getType());
+            for (InputRecordingLabel l : inputLabels) {
+                labels.put(l.getKey(), l.getValue());
+            }
+        }
 
-        return targetConnectionManager.executeConnectedTask(
-                cd,
-                conn -> {
-                    IRecordingDescriptor desc =
-                            recordingTargetHelper.stopRecording(cd, source.getName(), true);
-                    WebServer ws = webServer.get();
-                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
-                    return new GraphRecordingDescriptor(
-                            target,
-                            desc,
-                            ws.getDownloadURL(conn, desc.getName()),
-                            ws.getReportURL(conn, desc.getName()),
-                            metadata);
-                },
-                true);
+        Metadata metadata =
+                metadataManager
+                        .setRecordingMetadata(
+                                new ConnectionDescriptor(uri),
+                                recordingName,
+                                new Metadata(labels),
+                                true)
+                        .get();
+
+        WebServer ws = webServer.get();
+
+        return new ArchivedRecordingInfo(
+                uri,
+                recordingName,
+                ws.getArchivedDownloadURL(recordingName),
+                ws.getArchivedReportURL(recordingName),
+                metadata);
     }
 }

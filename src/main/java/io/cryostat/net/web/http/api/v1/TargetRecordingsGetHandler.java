@@ -131,8 +131,7 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                         connection, desc.getName()),
                                                 webServer.getReportURL(connection, desc.getName()),
                                                 recordingMetadataManager.getMetadata(
-                                                        getConnectionDescriptorFromContext(ctx)
-                                                                .getTargetId(),
+                                                        getConnectionDescriptorFromContext(ctx),
                                                         desc.getName())));
                             }
                             return list;

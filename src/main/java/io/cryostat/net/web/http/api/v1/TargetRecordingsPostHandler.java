@@ -183,19 +183,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
-
+                                Metadata metadata = new Metadata();
                                 if (attrs.contains("metadata")) {
-                                    Metadata metadata =
+                                    metadata =
                                             gson.fromJson(
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
-                                    recordingMetadataManager
-                                            .setRecordingMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName,
-                                                    metadata)
-                                            .get();
                                 }
+
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);
@@ -204,7 +199,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),
-                                                template.getRight());
+                                                template.getRight(),
+                                                metadata);
 
                                 try {
                                     WebServer webServer = webServerProvider.get();
@@ -215,8 +211,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
                                             recordingMetadataManager.getMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName));
+                                                    connectionDescriptor, recordingName));
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {

@@ -104,6 +104,7 @@ type ActiveRecording implements Recording {
     doArchive: ArchivedRecording!
     doStop: ActiveRecording!
     doDelete: ActiveRecording!
+    doPutMetadata(metadata: Object): ActiveRecording!
 }
 
 type ArchivedRecording implements Recording {
@@ -113,6 +114,7 @@ type ArchivedRecording implements Recording {
     metadata: RecordingMetadata!
 
     doDelete: ArchivedRecording!
+    doPutMetadata(metadata: Object): ArchivedRecording!
 }
 
 type Archived {
@@ -144,4 +146,5 @@ input RecordingSettings {
     toDisk: Boolean
     maxSize: Long
     maxAge: Long
+    metadata: Object
 }

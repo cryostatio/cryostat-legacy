@@ -202,10 +202,14 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenReturn(descriptor);
 
-        Mockito.when(recordingMetadataManager.getMetadata(Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         handler.handle(ctx);
@@ -227,12 +231,15 @@ class TargetRecordingsPostHandlerTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
-                        templateTypeCaptor.capture());
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture());
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -247,6 +254,8 @@ class TargetRecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(
                 templateTypeCaptor.getValue(), Matchers.equalTo(TemplateType.CUSTOM));
+
+        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
 
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "/someRecording");
@@ -278,7 +287,11 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenThrow(IllegalArgumentException.class);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");

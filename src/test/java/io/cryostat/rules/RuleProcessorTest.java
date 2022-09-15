@@ -61,6 +61,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -216,13 +217,16 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
-                        templateTypeCaptor.capture());
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
 
@@ -239,6 +243,8 @@ class RuleProcessorTest {
         MatcherAssert.assertThat(templateNameCaptor.getValue(), Matchers.equalTo("Continuous"));
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
+
+        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
 
         ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
         Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());

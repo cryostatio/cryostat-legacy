@@ -35,37 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package itest.util.http;
 
-import io.cryostat.net.web.http.RequestHandler;
-
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
-
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
-            RecordingMetadataLabelsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
-            TargetRecordingMetadataLabelsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
-            RecordingMetadataLabelsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
-            TargetRecordingMetadataLabelsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindJvmIdGetHandler(JvmIdGetHandler handler);
+public class StoredCredential {
+    public int id;
+    public String matchExpression;
+    public int numMatchingTargets;
 }
