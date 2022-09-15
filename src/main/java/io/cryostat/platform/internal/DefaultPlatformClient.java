@@ -67,7 +67,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
 
     private static final String REALM = "JDP";
 
-    public static final JDPNodeType NODE_TYPE = JDPNodeType.JVM;
+    public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
@@ -140,20 +140,5 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                         .map(sr -> new TargetNode(NODE_TYPE, sr))
                         .toList();
         return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), targets);
-    }
-
-    public enum JDPNodeType implements NodeType {
-        JVM,
-        ;
-
-        @Override
-        public String getKind() {
-            return "JVM";
-        }
-
-        @Override
-        public String toString() {
-            return getKind();
-        }
     }
 }

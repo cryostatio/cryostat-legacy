@@ -75,7 +75,10 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
     @Override
     public void load(Promise<EnvironmentNode> promise) {
-        targets.addAll(storage.get().listDiscoverableServices(REALM));
+        storage.get()
+                .getBuiltInPluginByRealm(REALM)
+                .ifPresent(
+                        plugin -> targets.addAll(storage.get().listDiscoverableServices(plugin)));
         super.load(promise);
     }
 

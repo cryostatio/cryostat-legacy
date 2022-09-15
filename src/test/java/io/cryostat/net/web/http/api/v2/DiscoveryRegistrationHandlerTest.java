@@ -86,7 +86,8 @@ class DiscoveryRegistrationHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new DiscoveryRegistrationHandler(auth, storage, () -> webServer, jwt, gson, logger);
+                new DiscoveryRegistrationHandler(
+                        auth, storage, () -> webServer, jwt, UUID::fromString, gson, logger);
     }
 
     @Nested

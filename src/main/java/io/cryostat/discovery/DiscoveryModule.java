@@ -37,12 +37,15 @@
  */
 package io.cryostat.discovery;
 
+import java.time.Duration;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -60,6 +63,19 @@ import io.vertx.ext.web.client.WebClient;
 @Module
 public abstract class DiscoveryModule {
 
+    public static final String DISCOVERY_PING_DURATION = "DISCOVERY_PING_DURATION";
+
+    @Provides
+    @Singleton
+    @Named(DISCOVERY_PING_DURATION)
+    static Duration provideDiscoveryPingDuration(Environment env) {
+        String d =
+                env.getEnv(
+                        Variables.DISCOVERY_PING_PERIOD_MS,
+                        String.valueOf(Duration.ofMinutes(5).toMillis()));
+        return Duration.ofMillis(Long.parseLong(d));
+    }
+
     @Provides
     @Singleton
     static PluginInfoDao providePluginInfoDao(EntityManager em, Gson gson, Logger logger) {
@@ -70,12 +86,13 @@ public abstract class DiscoveryModule {
     @Singleton
     static DiscoveryStorage provideDiscoveryStorage(
             VerticleDeployer deployer,
+            @Named(DISCOVERY_PING_DURATION) Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
             Gson gson,
             WebClient http,
             Logger logger) {
-        return new DiscoveryStorage(deployer, builtin, dao, gson, http, logger);
+        return new DiscoveryStorage(deployer, pingPeriod, builtin, dao, gson, http, logger);
     }
 
     @Provides

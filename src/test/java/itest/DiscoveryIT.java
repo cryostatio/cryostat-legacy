@@ -143,11 +143,11 @@ class DiscoveryIT extends ExternalTargetsTest {
         // Custom Targets should have no children or labels, and should not be a target
         // TODO define a custom target and ensure it appears in this part of the response
         MatcherAssert.assertThat(customTargets.children, Matchers.empty());
-        MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.empty());
+        MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(customTargets.target, Matchers.nullValue());
 
         // JDP should have no labels and should not be a target, but it should have children
-        MatcherAssert.assertThat(jdp.labels.keySet(), Matchers.empty());
+        MatcherAssert.assertThat(jdp.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(jdp.target, Matchers.nullValue());
         MatcherAssert.assertThat(
                 jdp.children,

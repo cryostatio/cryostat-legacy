@@ -38,6 +38,7 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,6 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.DefaultPlatformClient.JDPNodeType;
 
 import com.google.gson.Gson;
 import dagger.Component;
@@ -115,7 +115,9 @@ class DiscoveryStorageTest {
     void setup() {
         Client client = DaggerDiscoveryStorageTest_Client.builder().build();
         this.gson = client.gson();
-        this.storage = new DiscoveryStorage(deployer, () -> builtin, dao, gson, http, logger);
+        this.storage =
+                new DiscoveryStorage(
+                        deployer, Duration.ofMinutes(5), () -> builtin, dao, gson, http, logger);
         this.storage.init(vertx, null);
     }
 
@@ -341,6 +343,22 @@ class DiscoveryStorageTest {
                                     return plugin;
                                 }
                             });
+            Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(EnvironmentNode.class)))
+                    .thenAnswer(
+                            new Answer<PluginInfo>() {
+
+                                @Override
+                                public PluginInfo answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    UUID id = invocation.getArgument(0);
+                                    EnvironmentNode subtree = invocation.getArgument(1);
+                                    PluginInfo plugin =
+                                            new PluginInfo(
+                                                    "updated-realm", null, gson.toJson(subtree));
+                                    plugin.setId(id);
+                                    return plugin;
+                                }
+                            });
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             Mockito.when(
@@ -412,7 +430,7 @@ class DiscoveryStorageTest {
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "prevServiceRef");
-            TargetNode prevTarget = new TargetNode(JDPNodeType.JVM, prevServiceRef);
+            TargetNode prevTarget = new TargetNode(BaseNodeType.JVM, prevServiceRef);
             EnvironmentNode prev =
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
 
@@ -420,7 +438,7 @@ class DiscoveryStorageTest {
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "nextServiceRef");
-            TargetNode nextTarget = new TargetNode(JDPNodeType.JVM, nextServiceRef);
+            TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
 
@@ -432,14 +450,14 @@ class DiscoveryStorageTest {
                     new PluginInfo(
                             "test-realm", URI.create("http://example.com"), gson.toJson(next));
             Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-            Mockito.when(dao.update(id, Set.of(nextTarget))).thenReturn(nextPlugin);
+            Mockito.when(dao.update(id, List.of(nextTarget))).thenReturn(nextPlugin);
 
             List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
             storage.addTargetDiscoveryListener(discoveryEvents::add);
 
-            Set<? extends AbstractNode> updatedChildren = storage.update(id, Set.of(nextTarget));
+            List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
-            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(Set.of(prevTarget)));
+            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(prevTarget)));
             MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
 
             TargetDiscoveryEvent foundEvent =
@@ -479,8 +497,8 @@ class DiscoveryStorageTest {
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
                             "serviceRef2");
-            TargetNode target1 = new TargetNode(JDPNodeType.JVM, serviceRef1);
-            TargetNode target2 = new TargetNode(JDPNodeType.JVM, serviceRef2);
+            TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
+            TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
             EnvironmentNode subtree =
                     new EnvironmentNode(
                             "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
@@ -515,7 +533,7 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
             MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
             MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
-            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(Set.of()));
+            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(List.of()));
         }
 
         @Test
@@ -523,13 +541,13 @@ class DiscoveryStorageTest {
             PluginInfo plugin1 = new PluginInfo();
             TargetNode leaf1 =
                     new TargetNode(
-                            JDPNodeType.JVM,
+                            BaseNodeType.JVM,
                             new ServiceRef(
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"),
                                     "leaf1"));
             TargetNode leaf2 =
                     new TargetNode(
-                            JDPNodeType.JVM,
+                            BaseNodeType.JVM,
                             new ServiceRef(
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
                                     "leaf2"));
@@ -541,13 +559,13 @@ class DiscoveryStorageTest {
             PluginInfo plugin2 = new PluginInfo();
             TargetNode leaf3 =
                     new TargetNode(
-                            JDPNodeType.JVM,
+                            BaseNodeType.JVM,
                             new ServiceRef(
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
                                     "leaf3"));
             TargetNode leaf4 =
                     new TargetNode(
-                            JDPNodeType.JVM,
+                            BaseNodeType.JVM,
                             new ServiceRef(
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
                                     "leaf4"));
@@ -563,7 +581,7 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
             MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
             MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
-            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(Set.of(realm1, realm2)));
+            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(List.of(realm1, realm2)));
         }
     }
 
@@ -584,11 +602,11 @@ class DiscoveryStorageTest {
             ServiceRef sr1 =
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"), "sr1");
-            TargetNode leaf1 = new TargetNode(JDPNodeType.JVM, sr1);
+            TargetNode leaf1 = new TargetNode(BaseNodeType.JVM, sr1);
             ServiceRef sr2 =
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"), "sr2");
-            TargetNode leaf2 = new TargetNode(JDPNodeType.JVM, sr2);
+            TargetNode leaf2 = new TargetNode(BaseNodeType.JVM, sr2);
             EnvironmentNode realm1 =
                     new EnvironmentNode(
                             "realm1", BaseNodeType.REALM, Map.of(), Set.of(leaf1, leaf2));
@@ -598,11 +616,11 @@ class DiscoveryStorageTest {
             ServiceRef sr3 =
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"), "sr3");
-            TargetNode leaf3 = new TargetNode(JDPNodeType.JVM, sr3);
+            TargetNode leaf3 = new TargetNode(BaseNodeType.JVM, sr3);
             ServiceRef sr4 =
                     new ServiceRef(
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"), "sr4");
-            TargetNode leaf4 = new TargetNode(JDPNodeType.JVM, sr4);
+            TargetNode leaf4 = new TargetNode(BaseNodeType.JVM, sr4);
             EnvironmentNode realm2 =
                     new EnvironmentNode(
                             "realm2", BaseNodeType.REALM, Map.of(), Set.of(leaf3, leaf4));

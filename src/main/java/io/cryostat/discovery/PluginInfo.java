@@ -63,7 +63,7 @@ public class PluginInfo {
     @Type(type = "org.hibernate.type.UUIDCharType")
     private UUID id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = false, nullable = false)
     private String realm;
 
     @Column(unique = true)

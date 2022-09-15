@@ -184,7 +184,8 @@ class DiscoveryPluginIT extends StandardSelfTest {
     @Order(6)
     void shouldBeAbleToRefreshToken() throws InterruptedException, ExecutionException {
         JsonObject body =
-                new JsonObject(Map.of("realm", realm, "callback", callback, "token", token));
+                new JsonObject(
+                        Map.of("id", id, "realm", realm, "callback", callback, "token", token));
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient

@@ -39,11 +39,10 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
@@ -93,7 +92,7 @@ class EnvironmentNodeChildrenFetcherTest {
         EnvironmentNode source = Mockito.mock(EnvironmentNode.class);
 
         when(env.getSource()).thenReturn(source);
-        when(source.getChildren()).thenReturn(Collections.emptySortedSet());
+        when(source.getChildren()).thenReturn(Collections.emptyList());
 
         List<AbstractNode> nodes = fetcher.get(env);
 
@@ -112,8 +111,8 @@ class EnvironmentNodeChildrenFetcherTest {
         EnvironmentNode leftChildNode = Mockito.mock(EnvironmentNode.class);
         EnvironmentNode rightChildNode = Mockito.mock(EnvironmentNode.class);
 
-        SortedSet<AbstractNode> children =
-                new TreeSet<AbstractNode>(Set.of(leftChildNode, rightChildNode));
+        List<AbstractNode> children =
+                new ArrayList<AbstractNode>(List.of(leftChildNode, rightChildNode));
 
         when(env.getSource()).thenReturn(source);
         when(source.getChildren()).thenReturn(children);

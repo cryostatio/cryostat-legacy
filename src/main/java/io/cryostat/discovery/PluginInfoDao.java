@@ -38,15 +38,14 @@
 package io.cryostat.discovery;
 
 import java.net.URI;
+import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
-import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -74,7 +73,7 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
     }
 
-    public Optional<PluginInfo> getByRealm(String realm) {
+    public List<PluginInfo> getByRealm(String realm) {
         Objects.requireNonNull(realm);
 
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -84,17 +83,34 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         CriteriaQuery<PluginInfo> withRealm = all.where(cb.equal(rootEntry.get("realm"), realm));
         TypedQuery<PluginInfo> realmQuery = entityManager.createQuery(withRealm);
 
-        try {
-            PluginInfo info = realmQuery.getSingleResult();
-            entityManager.detach(info);
+        return realmQuery.getResultList();
+    }
 
-            return Optional.of(info);
-        } catch (NoResultException nre) {
-            return Optional.empty();
+    public PluginInfo update(UUID id, EnvironmentNode subtree) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(subtree);
+        EntityTransaction transaction = entityManager.getTransaction();
+        try {
+            PluginInfo plugin =
+                    get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+
+            transaction.begin();
+            plugin.setSubtree(gson.toJson(subtree));
+            entityManager.merge(plugin);
+            transaction.commit();
+            entityManager.detach(plugin);
+
+            return plugin;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            logger.error(e);
+            throw e;
         }
     }
 
-    public PluginInfo update(UUID id, Set<? extends AbstractNode> children) {
+    public PluginInfo update(UUID id, Collection<? extends AbstractNode> children) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(children);
         EntityTransaction transaction = entityManager.getTransaction();

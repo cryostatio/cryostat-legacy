@@ -64,12 +64,6 @@ public abstract class PlatformDiscoveryModule {
 
     @Provides
     @IntoSet
-    static PluggableTypeAdapter<?> provideJDPNodeTypeAdapter() {
-        return new JDPNodeTypeAdapter();
-    }
-
-    @Provides
-    @IntoSet
     static PluggableTypeAdapter<?> provideKubernetesNodeTypeAdapter() {
         return new KubernetesNodeTypeAdapter();
     }

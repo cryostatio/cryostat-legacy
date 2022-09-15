@@ -40,10 +40,9 @@ package io.cryostat.net.web.http.api.v2.graph;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.UnknownNode;
@@ -156,8 +155,8 @@ class EnvironmentNodeRecurseFetcherTest {
             DataFetchingEnvironment leftChildEnv = Mockito.mock(DataFetchingEnvironment.class);
             DataFetchingEnvironment rightChildEnv = Mockito.mock(DataFetchingEnvironment.class);
 
-            SortedSet<AbstractNode> children =
-                    new TreeSet<AbstractNode>(Set.of(leftChildNode, rightChildNode));
+            List<AbstractNode> children =
+                    new ArrayList<AbstractNode>(List.of(leftChildNode, rightChildNode));
 
             when(builder.build()).thenReturn(leftChildEnv, rightChildEnv);
             when(leftChildEnv.getGraphQlContext()).thenReturn(graphCtx);
