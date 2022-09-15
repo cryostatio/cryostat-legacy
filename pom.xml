@@ -95,7 +95,7 @@
   <org.mockito.version>4.6.1</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.22.7</com.diffplug.spotless.maven.plugin.version>
-  <org.jsoup.version>1.14.2</org.jsoup.version>
+  <org.jsoup.version>1.15.3</org.jsoup.version>
 </properties>
 
 <dependencies>
