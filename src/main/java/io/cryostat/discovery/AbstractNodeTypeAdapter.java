@@ -247,6 +247,9 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
 
             writer.name("target").beginObject();
 
+            if (sr.getId().isPresent()) {
+                writer.name("id").value(sr.getId().get().toString());
+            }
             writer.name("connectUrl").value(sr.getServiceUri().toString());
             writer.name("alias").value(sr.getAlias().orElse(sr.getServiceUri().toString()));
             writeMap(writer, "labels", sr.getLabels());
