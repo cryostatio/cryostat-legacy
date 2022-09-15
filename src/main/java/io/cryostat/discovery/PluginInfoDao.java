@@ -39,19 +39,26 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.NoResultException;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+
+import com.google.gson.Gson;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.storage.AbstractDao;
-
-import com.google.gson.Gson;
 
 class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
 
@@ -66,6 +73,19 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         Objects.requireNonNull(realm);
         Objects.requireNonNull(subtree);
         return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
+    }
+
+    public List<PluginInfo> getByRealm(String realm) {
+        Objects.requireNonNull(realm);
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<PluginInfo> cq = cb.createQuery(klazz);
+        Root<PluginInfo> rootEntry = cq.from(klazz);
+        CriteriaQuery<PluginInfo> all = cq.select(rootEntry);
+        CriteriaQuery<PluginInfo> withRealm = all.where(cb.equal(rootEntry.get("realm"), realm));
+        TypedQuery<PluginInfo> realmQuery = entityManager.createQuery(withRealm);
+
+        return realmQuery.getResultList();
     }
 
     public PluginInfo update(UUID id, EnvironmentNode subtree) {
