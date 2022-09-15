@@ -89,14 +89,19 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                         "Starting built-in discovery with {}", platform.getClass().getSimpleName());
                 String realmName = platform.getDiscoveryTree().getName();
 
-                UUID id = storage.getBuiltInPluginByRealm(realmName).map(PluginInfo::getId).orElseGet(() -> {
-                    try {
-                        return storage.register(realmName, DiscoveryStorage.NO_CALLBACK);
-                    } catch (RegistrationException e) {
-                        start.fail(e);
-                        return null;
-                    }
-                });
+                UUID id =
+                        storage.getBuiltInPluginByRealm(realmName)
+                                .map(PluginInfo::getId)
+                                .orElseGet(
+                                        () -> {
+                                            try {
+                                                return storage.register(
+                                                        realmName, DiscoveryStorage.NO_CALLBACK);
+                                            } catch (RegistrationException e) {
+                                                start.fail(e);
+                                                return null;
+                                            }
+                                        });
 
                 platform.addTargetDiscoveryListener(
                         tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
