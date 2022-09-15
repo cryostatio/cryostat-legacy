@@ -4,7 +4,7 @@ As of Cryostat v2.2, the `/api/v2.2/discovery` and related API endpoints can be
 used to register new external plugins which provide Cryostat with information
 about discoverable targets known to the plugin. For more details on the API
 request specifics, see HTTP_API.md. This document serves as a high-level
-description and explains the motiviations for this API.
+description and explains the motivations for this API.
 
 ## Server-side API
 
