@@ -340,9 +340,9 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
 
-        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
 
         MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
 
@@ -461,10 +461,14 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
-                    + " active { name doDelete { name } } archived { data { name doDelete { name }"
-                    + " } aggregate { count size } } } } }");
+                    + " active { data { name doDelete { name }"
+                    + " } aggregate { count } }"  
+                    + " archived { data { name doDelete { name }"
+                    + " } aggregate { count size } }"
+                    + " } } }");
         webClient
                 .post("/api/v2.2/graphql")
+                
                 .sendJson(
                         query,
                         ar -> {
@@ -481,12 +485,12 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.aggregate.count, Matchers.equalTo(1L));
         MatcherAssert.assertThat(node.recordings.archived.aggregate.size, Matchers.greaterThan(0L));
 
-        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
 
         MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
@@ -661,7 +665,7 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     static class Recordings {
-        List<ActiveRecording> active;
+        Active active;
         Archived archived;
 
         @Override
@@ -791,6 +795,35 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             TargetNodesQueryResponse other = (TargetNodesQueryResponse) obj;
             return Objects.equals(data, other.data);
+        }
+    }
+    static class Active {
+        List<ActiveRecording> data;
+        AggregateInfo aggregate;
+
+        @Override
+        public String toString() {
+            return "Active [data=" + data + ", aggregate=" + aggregate + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(data, aggregate);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Active other = (Active) obj;
+            return Objects.equals(data, other.data) && Objects.equals(aggregate, other.aggregate);
         }
     }
 
