@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.UUID;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -75,9 +74,9 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     }
 
     @Override
-    public void load(UUID id, Promise<EnvironmentNode> promise) {
-        targets.addAll(storage.get().listDiscoverableServices(id));
-        super.load(id, promise);
+    public void load(Promise<EnvironmentNode> promise) {
+        targets.addAll(storage.get().listDiscoverableServices(REALM));
+        super.load(promise);
     }
 
     public boolean addTarget(ServiceRef serviceRef) throws IOException {

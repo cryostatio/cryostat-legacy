@@ -96,7 +96,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                 Promise<EnvironmentNode> promise = Promise.promise();
                 promise.future().onSuccess(subtree -> storage.update(id, subtree.getChildren()));
                 platform.start();
-                platform.load(id, promise);
+                platform.load(promise);
             }
             start.complete();
         } catch (Exception e) {

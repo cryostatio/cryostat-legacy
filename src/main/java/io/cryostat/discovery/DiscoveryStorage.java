@@ -271,8 +271,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return getLeafNodes().stream().map(TargetNode::getTarget).toList();
     }
 
-    public List<ServiceRef> listDiscoverableServices(UUID id) {
-        return getById(id).stream()
+    public List<ServiceRef> listDiscoverableServices(String realm) {
+        return dao.getAll().stream()
+                .filter(plugin -> plugin.getRealm().equals(realm))
                 .map(PluginInfo::getSubtree)
                 .map(s -> gson.fromJson(s, EnvironmentNode.class))
                 .toList()
