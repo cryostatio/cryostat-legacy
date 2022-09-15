@@ -186,14 +186,12 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
                                                     arg0.getArgument(1))
                                             .execute(connection));
 
-            when(recordingMetadataManager.parseRecordingLabels(requestLabels))
-                    .thenReturn(labels);
-            when(
-                            recordingMetadataManager.setRecordingMetadata(
-                                    Mockito.any(),
-                                    Mockito.anyString(),
-                                    Mockito.any(),
-                                    Mockito.anyBoolean()))
+            when(recordingMetadataManager.parseRecordingLabels(requestLabels)).thenReturn(labels);
+            when(recordingMetadataManager.setRecordingMetadata(
+                            Mockito.any(),
+                            Mockito.anyString(),
+                            Mockito.any(),
+                            Mockito.anyBoolean()))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);
