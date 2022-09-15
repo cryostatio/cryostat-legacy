@@ -27,9 +27,9 @@ Cryostat's built-in discovery mechanisms.
 ## Client-side API
 
 On the client (Plugin) side, the discovery API requirements are a relatively low
-barrier. The client must be able to send HTTP requests to the Cryostat server,
-must be able to pass an `Authorization` header with acceptable Cryostat
-credentials, must be able to accept JSON formatted responses, and must be able
-to publish information about discoverable target applications in JSON format.
-The plugin must also be able to receive `GET` and `POST` requests initiated by
-Cryostat on a single endpoint URL as specified by the plugin itself.
+barrier. The client must be able to: send HTTP requests to the Cryostat server;
+pass an `Authorization` header with acceptable Cryostat credentials; accept JSON
+formatted responses; and publish information about discoverable target
+applications in JSON format. The plugin must also be able to receive `GET` and
+`POST` requests initiated by Cryostat on a single endpoint URL as specified by
+the plugin itself.
