@@ -48,11 +48,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-<<<<<<< HEAD
-import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
-=======
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
->>>>>>> a053b15f (Add beta JWT and non-JWT version of the RecordingGetHandler and ReportGetHandler)
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;

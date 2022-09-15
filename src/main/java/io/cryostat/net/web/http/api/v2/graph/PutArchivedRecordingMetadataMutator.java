@@ -111,8 +111,8 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
         return new ArchivedRecordingInfo(
                 uri,
                 recordingName,
-                ws.getArchivedDownloadURL(recordingName),
-                ws.getArchivedReportURL(recordingName),
+                ws.getArchivedDownloadURL(uri, recordingName),
+                ws.getArchivedReportURL(uri, recordingName),
                 metadata,
                 size);
     }
