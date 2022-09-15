@@ -47,9 +47,12 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
 
     protected static final String FIB_DEMO_IMAGESPEC = "quay.io/andrewazores/vertx-fib-demo:0.8.0";
 
-    static final int DISCOVERY_POLL_PERIOD_MS = 7_500;
-    static final int STABILITY_COUNT = 3;
-    static final int DISCOVERY_BASE_MS = 30_000;
+    static final int DISCOVERY_POLL_PERIOD_MS =
+            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.period", "7500"));
+    static final int STABILITY_COUNT =
+            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.count", "3"));
+    static final int DISCOVERY_BASE_MS =
+            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.timeout", "30000"));
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
 
