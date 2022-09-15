@@ -45,6 +45,8 @@ import org.junit.jupiter.api.AfterAll;
 
 public abstract class ExternalTargetsTest extends StandardSelfTest {
 
+    protected static final String FIB_DEMO_IMAGESPEC = "quay.io/andrewazores/vertx-fib-demo:0.8.0";
+
     static final int DISCOVERY_POLL_PERIOD_MS = 7_500;
     static final int STABILITY_COUNT = 3;
     static final int DISCOVERY_BASE_MS = 30_000;

@@ -261,7 +261,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         CONTAINERS.add(
                 Podman.run(
                         new Podman.ImageSpec(
-                                "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                                FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
         CompletableFuture.allOf(
                         CONTAINERS.stream()

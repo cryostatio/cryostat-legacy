@@ -81,8 +81,7 @@ public class JvmIdIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            "quay.io/andrewazores/vertx-fib-demo:0.6.0",
-                            Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));

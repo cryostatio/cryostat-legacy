@@ -388,7 +388,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             String containerId =
                     Podman.run(
                             new Podman.ImageSpec(
-                                    "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                                    FIB_DEMO_IMAGESPEC,
                                     Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
             // add a new target
             CONTAINERS.add(containerId);
@@ -474,7 +474,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             containerId =
                     Podman.run(
                             new Podman.ImageSpec(
-                                    "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                                    FIB_DEMO_IMAGESPEC,
                                     Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
             CONTAINERS.add(containerId);
 

@@ -84,7 +84,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            "quay.io/andrewazores/vertx-fib-demo:0.6.0",
+                            FIB_DEMO_IMAGESPEC,
                             Map.of("JMX_PORT", String.valueOf(9093 + i), "USE_AUTH", "true")));
         }
         for (Podman.ImageSpec spec : specs) {

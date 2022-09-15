@@ -544,11 +544,11 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         List<Podman.ImageSpec> specs = new ArrayList<>();
         specs.add(
                 new Podman.ImageSpec(
-                        "quay.io/andrewazores/vertx-fib-demo:0.7.0",
+                        FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9094), "USE_AUTH", "true")));
         specs.add(
                 new Podman.ImageSpec(
-                        "quay.io/andrewazores/vertx-fib-demo:0.7.0",
+                        FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9095), "USE_AUTH", "true")));
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
