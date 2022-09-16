@@ -64,13 +64,16 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.MatchExpressionValidator;
+import io.cryostat.util.events.AbstractEventEmitter;
+import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringUtils;
 
-public class CredentialsManager {
+public class CredentialsManager
+        extends AbstractEventEmitter<CredentialsManager.CredentialsEvent, String> {
 
     private final Path credentialsDir;
     private final MatchExpressionValidator matchExpressionValidator;
@@ -168,6 +171,7 @@ public class CredentialsManager {
         fs.setPosixFilePermissions(
                 destination,
                 Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        emit(CredentialsEvent.ADDED, matchExpression);
         return nextId++;
     }
 
@@ -241,6 +245,21 @@ public class CredentialsManager {
 
     public Set<ServiceRef> resolveMatchingTargets(int id) throws IOException {
         String matchExpression = get(id);
+        Set<ServiceRef> matchedTargets = new HashSet<>();
+        for (ServiceRef target : platformClient.listDiscoverableServices()) {
+            try {
+                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                    matchedTargets.add(target);
+                }
+            } catch (ScriptException e) {
+                logger.error(e);
+                break;
+            }
+        }
+        return matchedTargets;
+    }
+
+    public Set<ServiceRef> resolveMatchingTargets(String matchExpression) throws IOException {
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
@@ -402,5 +421,11 @@ public class CredentialsManager {
             return Objects.equals(credentials, other.credentials)
                     && Objects.equals(targetId, other.targetId);
         }
+    }
+
+    public enum CredentialsEvent implements EventType {
+        ADDED,
+        REMOVED,
+        ;
     }
 }

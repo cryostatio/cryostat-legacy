@@ -54,6 +54,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.templates.TemplateType;
@@ -76,8 +77,7 @@ import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RuleProcessor extends AbstractVerticle
-        implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
+public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
@@ -120,7 +120,8 @@ public class RuleProcessor extends AbstractVerticle
         this.base32 = base32;
         this.tasks = new HashMap<>();
 
-        this.registry.addListener(this);
+        this.registry.addListener(this.ruleListener());
+        this.credentialsManager.addListener(this.credentialsListener());
     }
 
     @Override
@@ -135,29 +136,63 @@ public class RuleProcessor extends AbstractVerticle
         this.tasks.clear();
     }
 
-    @Override
-    public synchronized void onEvent(Event<RuleEvent, Rule> event) {
-        switch (event.getEventType()) {
-            case ADDED:
-                vertx.<List<ServiceRef>>executeBlocking(
-                        promise -> promise.complete(platformClient.listDiscoverableServices()),
-                        false,
-                        result ->
-                                result.result().stream()
-                                        .filter(
-                                                serviceRef ->
-                                                        registry.applies(
-                                                                event.getPayload(), serviceRef))
-                                        .forEach(
-                                                serviceRef ->
-                                                        activate(event.getPayload(), serviceRef)));
-                break;
-            case REMOVED:
-                deactivate(event.getPayload(), null);
-                break;
-            default:
-                throw new UnsupportedOperationException(event.getEventType().toString());
-        }
+    public EventListener<RuleRegistry.RuleEvent, Rule> ruleListener() {
+        return new EventListener<RuleRegistry.RuleEvent, Rule>() {
+
+            @Override
+            public void onEvent(Event<RuleEvent, Rule> event) {
+                switch (event.getEventType()) {
+                    case ADDED:
+                        vertx.<List<ServiceRef>>executeBlocking(
+                                promise ->
+                                        promise.complete(platformClient.listDiscoverableServices()),
+                                false,
+                                result ->
+                                        result.result().stream()
+                                                .filter(
+                                                        serviceRef ->
+                                                                registry.applies(
+                                                                        event.getPayload(),
+                                                                        serviceRef))
+                                                .forEach(
+                                                        serviceRef ->
+                                                                activate(
+                                                                        event.getPayload(),
+                                                                        serviceRef)));
+                        break;
+                    case REMOVED:
+                        deactivate(event.getPayload(), null);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(event.getEventType().toString());
+                }
+            }
+        };
+    }
+
+    public EventListener<CredentialsManager.CredentialsEvent, String> credentialsListener() {
+        return new EventListener<CredentialsManager.CredentialsEvent, String>() {
+
+            @Override
+            public void onEvent(Event<CredentialsEvent, String> event) {
+                switch (event.getEventType()) {
+                    case ADDED:
+                        try {
+                            Set<ServiceRef> servicesSet =
+                                    credentialsManager.resolveMatchingTargets(event.getPayload());
+                            for (ServiceRef servicesRef : servicesSet) {
+                                registry.getRules(servicesRef)
+                                        .forEach(rule -> activate(rule, servicesRef));
+                            }
+                        } catch (IOException e) {
+                            logger.error(e);
+                        }
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(event.getEventType().toString());
+                }
+            }
+        };
     }
 
     @Override
