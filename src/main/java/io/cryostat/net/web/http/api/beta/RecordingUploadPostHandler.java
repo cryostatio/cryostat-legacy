@@ -62,6 +62,7 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
@@ -168,12 +169,15 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
             throws Exception {
         Path recordingPath = null;
         try {
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
             recordingPath =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
+            } catch (RecordingSourceTargetNotFoundException e) {
                 throw new ApiException(404, e.getMessage(), e);
-            }
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RecordingNotFoundException || e.getCause() instanceof RecordingSourceTargetNotFoundException) {
+                    throw new ApiException(404, e.getMessage(), e);
+                }
             throw e;
         }
 

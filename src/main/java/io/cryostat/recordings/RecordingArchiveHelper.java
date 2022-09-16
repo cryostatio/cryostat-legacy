@@ -99,6 +99,7 @@ public class RecordingArchiveHelper {
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
+    // FIXME: remove ARCHIVES after 2.2.0 release since we either use "uploads" or sourceTarget
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
     public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
@@ -499,6 +500,16 @@ public class RecordingArchiveHelper {
                         })
                 .filter(Objects::nonNull)
                 .findFirst();
+    }
+
+    public void validateSourceTarget(String sourceTarget) throws RecordingSourceTargetNotFoundException {
+        logger.info("sourceTarget: " + sourceTarget);
+        boolean exists = this.platformClient.listDiscoverableServices().stream()
+            .peek(target -> logger.info("target service uri: "  + target.getServiceUri().toString()))
+            .anyMatch(target -> target.getServiceUri().toString().equals(sourceTarget));
+        if (!exists) {
+            throw new RecordingSourceTargetNotFoundException(sourceTarget);
+        }
     }
 
     private void validateRecordingPath(Optional<Path> optional, String recordingName)

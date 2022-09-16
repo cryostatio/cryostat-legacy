@@ -60,7 +60,9 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -74,6 +76,7 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     static final String PATH = "reports/:sourceTarget/:recordingName/jwt";
 
     private final ReportService reportService;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final long generationTimeoutSeconds;
 
     @Inject
@@ -83,10 +86,12 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
+            RecordingArchiveHelper recordingArchiveHelper,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.reportService = reportService;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
@@ -127,9 +132,10 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
-        List<String> queriedFilter = ctx.queryParam("filter");
-        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
         try {
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            List<String> queriedFilter = ctx.queryParam("filter");
+            String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
                             .get(sourceTarget, recordingName, rawFilter)
@@ -139,9 +145,11 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException | CompletionException ee) {
             if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-                throw new ApiException(404, ee);
+                throw new ApiException(404, ee.getMessage(), ee);
             }
             throw ee;
         }

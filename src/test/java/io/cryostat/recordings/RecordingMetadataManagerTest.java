@@ -87,6 +87,7 @@ public class RecordingMetadataManagerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
+    @Mock Map<String, String> jvmIdMap;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
@@ -123,6 +124,7 @@ public class RecordingMetadataManagerTest {
                         credentialsManager,
                         platformClient,
                         notificationFactory,
+                        jvmIdMap,
                         gson,
                         base32,
                         logger);

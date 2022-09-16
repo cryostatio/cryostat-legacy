@@ -56,6 +56,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -84,13 +85,14 @@ class ReportGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock ReportService reports;
+    @Mock RecordingArchiveHelper archiveHelper;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new ReportGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, reports, 30, logger);
+                        auth, credentialsManager, jwt, () -> webServer, reports, archiveHelper, 30, logger);
     }
 
     @Nested

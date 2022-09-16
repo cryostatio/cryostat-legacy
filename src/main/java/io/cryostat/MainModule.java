@@ -39,8 +39,10 @@ package io.cryostat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -98,6 +100,7 @@ public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
     public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
+    public static final String JVM_ID_MAP = "jvmIdMap";
 
     @Provides
     @Singleton
@@ -190,5 +193,12 @@ public abstract class MainModule {
     @Singleton
     public static VerticleDeployer provideVerticleDeployer(Vertx vertx, Logger logger) {
         return new VerticleDeployer(vertx, logger);
+    }
+
+    @Provides 
+    @Singleton
+    @Named(JVM_ID_MAP)
+    public static Map<String, String> provideJvmIdMap() {
+        return new ConcurrentHashMap<String, String>();
     }
 }

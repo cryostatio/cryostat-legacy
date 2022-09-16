@@ -101,12 +101,12 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final CredentialsManager credentialsManager;
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
+    private final Map<String, String> jvmIdMap;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
 
     private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
-    private final Map<String, String> jvmIdMap;
     private final Map<String, Long> staleMetadataTimers;
 
     RecordingMetadataManager(
@@ -119,6 +119,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
+            @Named(MainModule.JVM_ID_MAP) Map<String, String> jvmIdMap,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -131,11 +132,11 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.credentialsManager = credentialsManager;
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
+        this.jvmIdMap = jvmIdMap;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
         this.recordingMetadataMap = new ConcurrentHashMap<>();
-        this.jvmIdMap = new ConcurrentHashMap<>();
         this.staleMetadataTimers = new ConcurrentHashMap<>();
     }
 

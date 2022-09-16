@@ -53,10 +53,10 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
 
@@ -114,7 +114,7 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
             recordingArchiveHelper.deleteRecording(sourceTarget, recordingName).get();
             return new IntermediateResponse<Void>().body(null);
         } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;

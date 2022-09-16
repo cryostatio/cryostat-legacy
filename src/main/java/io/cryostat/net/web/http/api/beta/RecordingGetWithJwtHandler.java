@@ -56,6 +56,7 @@ import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -111,6 +112,7 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
         try {
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
             Path archivedRecording =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             ctx.response()
@@ -123,6 +125,8 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                             HttpHeaders.CONTENT_LENGTH,
                             Long.toString(archivedRecording.toFile().length()));
             ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);

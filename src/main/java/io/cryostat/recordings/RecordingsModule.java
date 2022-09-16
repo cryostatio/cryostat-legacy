@@ -42,7 +42,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -160,6 +162,7 @@ public abstract class RecordingsModule {
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
+            @Named(MainModule.JVM_ID_MAP) Map<String, String> jvmIdMap,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -184,6 +187,7 @@ public abstract class RecordingsModule {
                     credentialsManager,
                     storage,
                     notificationFactory,
+                    jvmIdMap,
                     gson,
                     base32,
                     logger);

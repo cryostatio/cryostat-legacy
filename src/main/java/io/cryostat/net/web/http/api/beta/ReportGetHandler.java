@@ -59,7 +59,9 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -71,6 +73,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
     static final String PATH = "reports/:sourceTarget/:recordingName";
 
     private final ReportService reportService;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final long reportGenerationTimeoutSeconds;
 
     @Inject
@@ -78,10 +81,12 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
             AuthManager auth,
             Gson gson,
             ReportService reportService,
+            RecordingArchiveHelper recordingArchiveHelper,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds) {
         super(auth, gson);
         this.reportService = reportService;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
@@ -127,10 +132,10 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
     public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
-        List<String> queriedFilter = params.getQueryParams().getAll("filter");
-        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-
         try {
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            List<String> queriedFilter = params.getQueryParams().getAll("filter");
+            String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
                             .get(sourceTarget, recordingName, rawFilter)
@@ -138,6 +143,8 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
             return new IntermediateResponse<Path>()
                     .addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()))
                     .body(report);
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException | CompletionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof ReportGenerationException) {
                 ReportGenerationException rge =
@@ -145,7 +152,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
                 throw new ApiException(rge.getStatusCode(), e.getMessage());
             }
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e);
+                throw new ApiException(404, e.getMessage(), e);
             }
             throw e;
         }
