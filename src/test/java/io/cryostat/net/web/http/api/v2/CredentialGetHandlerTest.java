@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.FileNotFoundException;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -104,8 +105,9 @@ class CredentialGetHandlerTest {
         }
 
         @Test
-        void shouldReturnJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -110,8 +111,9 @@ class DiscoveryGetHandlerTest {
         }
 
         @Test
-        void shouldHavePlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProducePlaintext() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

@@ -38,6 +38,7 @@
 
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -138,8 +139,9 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
         }
 
         @Test
-        void shouldHaveJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

@@ -42,6 +42,7 @@ import static org.mockito.Mockito.lenient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -129,8 +130,9 @@ public class ProbeTemplateUploadHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProducePlaintext() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
         }
 
         @Test

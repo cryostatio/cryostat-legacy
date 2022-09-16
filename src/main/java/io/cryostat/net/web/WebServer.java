@@ -210,6 +210,12 @@ public class WebServer extends AbstractVerticle {
                         route = router.route(handler.httpMethod(), handler.path());
                     }
                     route = route.order(handler.getPriority());
+                    for (HttpMimeType mime : handler.produces()) {
+                        route = route.produces(mime.mime());
+                    }
+                    for (HttpMimeType mime : handler.consumes()) {
+                        route = route.consumes(mime.mime());
+                    }
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {

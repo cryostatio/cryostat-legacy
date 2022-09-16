@@ -92,8 +92,8 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

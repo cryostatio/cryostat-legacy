@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -104,8 +105,8 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

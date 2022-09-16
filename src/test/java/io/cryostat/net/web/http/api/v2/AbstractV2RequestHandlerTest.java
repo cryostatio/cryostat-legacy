@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.rmi.ConnectIOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -250,7 +251,8 @@ class AbstractV2RequestHandlerTest {
 
             handler.handle(ctx);
 
-            Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, handler.mimeType().mime());
+            Mockito.verify(resp)
+                    .putHeader(HttpHeaders.CONTENT_TYPE, handler.produces().get(0).mime());
         }
 
         @Test
@@ -386,8 +388,8 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public HttpMimeType mimeType() {
-            return HttpMimeType.PLAINTEXT;
+        public List<HttpMimeType> produces() {
+            return List.of(HttpMimeType.PLAINTEXT);
         }
 
         @Override
@@ -455,8 +457,8 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public HttpMimeType mimeType() {
-            return HttpMimeType.HTML;
+        public List<HttpMimeType> produces() {
+            return List.of(HttpMimeType.HTML);
         }
 
         @Override
@@ -496,8 +498,8 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public HttpMimeType mimeType() {
-            return HttpMimeType.JFC;
+        public List<HttpMimeType> produces() {
+            return List.of(HttpMimeType.JFC);
         }
 
         @Override

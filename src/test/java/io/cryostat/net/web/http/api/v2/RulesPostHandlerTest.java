@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -150,8 +151,9 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void shouldHavePlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProducePlaintext() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
         }
 
         @Test

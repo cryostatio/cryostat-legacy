@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -112,8 +113,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 
     @Override

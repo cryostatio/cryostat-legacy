@@ -41,6 +41,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -115,8 +116,9 @@ class DiscoveryRegistrationHandlerTest {
         }
 
         @Test
-        void shouldReturnJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

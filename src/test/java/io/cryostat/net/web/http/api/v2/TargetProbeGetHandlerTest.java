@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.management.MBeanServerConnection;
@@ -134,8 +135,9 @@ public class TargetProbeGetHandlerTest {
         }
 
         @Test
-        void shouldReturnJSONMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

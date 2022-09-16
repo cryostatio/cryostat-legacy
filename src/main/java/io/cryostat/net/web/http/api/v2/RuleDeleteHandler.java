@@ -121,8 +121,8 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 
     @Override

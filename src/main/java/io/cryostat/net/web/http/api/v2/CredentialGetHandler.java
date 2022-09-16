@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -91,8 +92,8 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
