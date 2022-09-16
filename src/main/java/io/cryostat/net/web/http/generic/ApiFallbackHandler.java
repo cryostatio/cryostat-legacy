@@ -37,40 +37,59 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 
-@Module
-public abstract class HttpGenericModule {
+class ApiFallbackHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+    @Inject
+    ApiFallbackHandler() {}
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindApiFallbackHandler(ApiFallbackHandler handler);
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY + 5;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthLivenessGetHandler(HealthLivenessGetHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Override
+    public String path() {
+        return "/api/*";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+    @Override
+    public void handle(RoutingContext ctx) {
+        if (ctx.request().headers().contains(HttpHeaders.ACCEPT)
+                && !ctx.request().getHeader(HttpHeaders.ACCEPT).equals("*/*")
+                && StringUtils.isBlank(ctx.getAcceptableContentType())) {
+            // FIXME this will respond 406 if the Accept header is specified with some particular
+            // mime type(s), regardless of whether the request path matches any of our routes.
+            throw new HttpException(406);
+        }
+        throw new HttpException(404);
+    }
 }
