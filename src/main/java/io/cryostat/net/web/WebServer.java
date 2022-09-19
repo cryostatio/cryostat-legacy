@@ -206,6 +206,8 @@ public class WebServer extends AbstractVerticle {
                     Route route;
                     if (RequestHandler.ALL_PATHS.equals(handler.path())) {
                         route = router.route();
+                    } else if (handler.pathRegex() != null) {
+                        route = router.routeWithRegex(handler.httpMethod(), handler.pathRegex());
                     } else {
                         route = router.route(handler.httpMethod(), handler.path());
                     }
