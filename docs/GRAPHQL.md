@@ -13,7 +13,7 @@ src/main/java/io/cryostat/net/web/http/api/v2/graph/GraphModule.java
 contains the bindings for the GraphQL engine to query custom targets.
 
 `graphql/` contains some sample queries which can be used as in the following
-example queries. The first query is a standard API v2 requst to create a custom
+example queries. The first query is a standard API v2 request to create a custom
 target. The second query is a standard API v1 request to list all known targets.
 The third query is a GraphQL query listing all known targets and all fields of
 those targets, except without querying for the recordings belonging to the
