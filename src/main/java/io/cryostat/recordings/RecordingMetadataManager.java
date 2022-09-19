@@ -144,9 +144,9 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public void start(Promise<Void> future) {
         this.platformClient.addTargetDiscoveryListener(this);
-        RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
+        RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         try {
             this.fs.listDirectoryChildren(recordingMetadataDir).stream()
                     .peek(
@@ -353,6 +353,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             subdirectory + " is neither a directory nor a file");
                                 }
                             });
+            archiveHelper.migrate();
             future.complete();
         } catch (IOException e) {
             logger.error(
@@ -393,7 +394,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 String newJvmId = jvmIdHelper.getJvmId(cd);
                 logger.info("Created jvmId {} for target {}", newJvmId, targetId);
                 return;
-            } catch (ConnectionException e) {
+            } catch (IOException e) {
                 logger.error("Could not compute jvmId on FOUND target {}, msg: {}", targetId);
                 e.printStackTrace();
             }
@@ -401,7 +402,10 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         switch (tde.getEventKind()) {
             case FOUND:
+                var archiveHelper = archiveHelperProvider.get();
+                Path subdirectoryPath = archiveHelper.getRecordingSubdirectoryPath(oldJvmId);
                 this.transferMetadataIfRestarted(cd, oldJvmId, targetId);
+                archiveHelper.transferArchives(subdirectoryPath, oldJvmId);
                 break;
             case LOST:
                 this.removeLostTargetMetadata(cd, oldJvmId);

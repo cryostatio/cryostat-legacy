@@ -77,7 +77,11 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
         List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
             String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
-            recordings = archiveHelper.getRecordings(targetId).get();
+            try {
+                recordings = archiveHelper.getRecordings(targetId).get();
+            } catch (Exception e) {
+                recordings = List.of();
+            }
         } else {
             recordings = archiveHelper.getRecordings().get();
         }

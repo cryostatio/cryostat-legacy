@@ -96,7 +96,7 @@ import io.vertx.core.Promise;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
 
-public class RecordingArchiveHelper extends AbstractVerticle implements Consumer<TargetDiscoveryEvent>   {
+public class RecordingArchiveHelper {
 
     private final TargetConnectionManager targetConnectionManager;
     private final FileSystem fs;
@@ -148,99 +148,71 @@ public class RecordingArchiveHelper extends AbstractVerticle implements Consumer
         this.base32 = base32;
     }
 
-    @Override
-    public void start(Promise<Void> future) {
-        this.platformClient.addTargetDiscoveryListener(this);
+    protected void migrate() {
         try {
-            // List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
-            // for (String subdirectoryName : subdirectories) {
-            //     logger.info("Found archived recordings directory: {}", subdirectoryName);
-            //     // FIXME: refactor structure to remove file-uploads (v1 RecordingsPostBodyHandler)
-            //     if (subdirectoryName.equals("file-uploads") || subdirectoryName.equals("uploads")) {
-            //         continue;
-            //     }
-            //     Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-            //     String connectUrl = getConnectUrlFromPath(subdirectoryPath).get(TIMEOUT, TimeUnit.SECONDS);
-            //     logger.info("connectUrl: {}", connectUrl);
-            //     if (connectUrl == null) {
-            //         // try to migrate the recording to the new structure
-            //         logger.warn("No connectUrl file found in {}", subdirectoryPath);
-            //         connectUrl = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-            //     }
-            //     String jvmId = jvmIdHelper.getJvmId(connectUrl);
-            //     if (jvmId == null) {
-            //         logger.warn(
-            //                  "Could not find jvmId for targetId {}, skipping migration of recordings",
-            //                  connectUrl);
-            //          continue;
-            //     }
-            //     Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
-            //     logger.info("oldJvmId, {}", new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8));
-            //     logger.info("Migrating recordings from {} to {}, {}, {}", subdirectoryPath, encodedJvmIdPath,  jvmId, connectUrl);
-            //     fs.writeString(subdirectoryPath.resolve("connectUrl"), connectUrl, StandardOpenOption.CREATE);
-            //     // rename subdirectory to jvmId 
-            //     if (!fs.exists(encodedJvmIdPath)) {
-            //         logger.info("okay renaming????");
-            //         Path fd = Files.move(subdirectoryPath, encodedJvmIdPath);
-            //         System.out.println("fd: " + fd);
-            //     }
-            //     logger.info("success!");
-            // }
-            future.complete();
+            List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
+            for (String subdirectoryName : subdirectories) {
+                logger.info("Found archived recordings directory: {}", subdirectoryName);
+                // FIXME: refactor structure to remove file-uploads (v1 RecordingsPostBodyHandler)
+                if (subdirectoryName.equals("file-uploads") || subdirectoryName.equals("uploads")) {
+                    continue;
+                }
+                Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+                String connectUrl = getConnectUrlFromPath(subdirectoryPath).get(TIMEOUT, TimeUnit.SECONDS);
+                logger.info("connectUrl: {}", connectUrl);
+                if (connectUrl == null) {
+                    // try to migrate the recording to the new structure
+                    logger.warn("No connectUrl file found in {}", subdirectoryPath);
+                    connectUrl = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                }
+                String jvmId = jvmIdHelper.getJvmId(connectUrl);
+                if (jvmId == null) {
+                    logger.warn(
+                             "Could not find jvmId for targetId {}, skipping migration of recordings",
+                             connectUrl);
+                     continue;
+                }
+                Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
+                logger.info("oldJvmId, {}", new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8));
+                logger.info("Migrating recordings from {} to {}, {}, {}", subdirectoryPath, encodedJvmIdPath,  jvmId, connectUrl);
+                fs.writeString(subdirectoryPath.resolve("connectUrl"), connectUrl, StandardOpenOption.CREATE);
+                // rename subdirectory to jvmId 
+                if (!fs.exists(encodedJvmIdPath)) {
+                    logger.info("okay renaming????");
+                    Path fd = Files.move(subdirectoryPath, encodedJvmIdPath);
+                    System.out.println("fd: " + fd);
+                }
+                logger.info("success!");
+            }
         } catch (Exception e) {
             logger.error(e);
-            future.fail(e);
         }      
     }
 
     private Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future = new CompletableFuture<>();
-        if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+        if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY) || subdirectory.getFileName().toString().equals("file-uploads")) {
             future.complete(UPLOADED_RECORDINGS_SUBDIRECTORY);
-            return future;
         }
-        Optional<String> connectUrl = Optional.empty();
-        try {
-            for (String file : fs.listDirectoryChildren(subdirectory)) {
-                // use metadata file to determine connectUrl to probe for jvmId
-                if (file.equals("connectUrl")) {
-                    connectUrl = Optional.of(fs.readFile(subdirectory.resolve(file)).readLine());
+        else {
+            Optional<String> connectUrl = Optional.empty();
+            try {
+                for (String file : fs.listDirectoryChildren(subdirectory)) {
+                    // use metadata file to determine connectUrl to probe for jvmId
+                    if (file.equals("connectUrl")) {
+                        connectUrl = Optional.of(fs.readFile(subdirectory.resolve(file)).readLine());
+                    }
                 }
+                future.complete(connectUrl.orElseThrow(IOException::new));
+            } catch (IOException e) {
+                logger.warn("Couldn't get connectUrl from file system", e);
+                future.completeExceptionally(e);
             }
-            future.complete(connectUrl.orElseThrow(IOException::new));
-        } catch (IOException e) {
-            logger.warn("Couldn't get connectUrl from file system", e);
-            future.completeExceptionally(e);
         }
         return future;
     }
 
-    @Override
-    public void accept(TargetDiscoveryEvent tde) {
-        // String targetId = tde.getServiceRef().getServiceUri().toString();
-        // String oldJvmId = jvmIdHelper.get(targetId);
-        // logger.info("RECORDING ARCHIVE HELPER {}", targetId, oldJvmId);
-
-        // if (oldJvmId == null) {
-        //     logger.error("Could not find jvmId for targetId {}, skipping migration of recordings", targetId);
-        //     return;
-        // }
-
-        // Path subdirectoryPath = getRecordingSubdirectoryPath(oldJvmId);
-
-        // switch (tde.getEventKind()) {
-        //     case FOUND:
-        //         this.transferArchives(subdirectoryPath, targetId);
-        //         break;
-        //     case LOST:
-        //         // don't do anything
-        //         break;
-        //     default:
-        //         throw new UnsupportedOperationException(tde.getEventKind().toString());
-        // }
-    }
-
-    private Path getRecordingSubdirectoryPath(String jvmId) {
+    Path getRecordingSubdirectoryPath(String jvmId) {
         String subdirectory =
         jvmId.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                     ? UPLOADED_RECORDINGS_SUBDIRECTORY
@@ -248,7 +220,7 @@ public class RecordingArchiveHelper extends AbstractVerticle implements Consumer
         return archivedRecordingsPath.resolve(subdirectory);
     }
 
-    private void transferArchives(Path subdirectoryPath, String oldJvmId) {
+    protected void transferArchives(Path subdirectoryPath, String oldJvmId) {
         try {
             String connectUrl = null;
             for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
@@ -512,7 +484,7 @@ public class RecordingArchiveHelper extends AbstractVerticle implements Consumer
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings() {
-
+        logger.info("GET RECORDINGS!!!!!!!!!!!!!!!");
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
         try {

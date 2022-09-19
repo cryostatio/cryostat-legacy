@@ -113,11 +113,6 @@ class Cryostat extends AbstractVerticle {
                         (m) -> {
                             return client.deployer().deploy(client.discoveryStorage(), true);
                         })
-                .compose(
-                        (m) -> {
-                            return client.deployer()
-                                    .deploy(client.recordingArchiveHelper(), true);
-                     })
                 .onSuccess(cf -> future.complete())
                 .onFailure(
                         t -> {
@@ -179,8 +174,6 @@ class Cryostat extends AbstractVerticle {
         MessagingServer messagingServer();
 
         RecordingMetadataManager recordingMetadataManager();
-
-        RecordingArchiveHelper recordingArchiveHelper();
 
         @Component.Builder
         interface Builder {

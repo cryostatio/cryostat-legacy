@@ -39,7 +39,9 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.script.ScriptException;
 
@@ -62,6 +64,8 @@ public class JvmIdHelper {
 
     private final Map<String, String> jvmIdMap;
 
+    public static final int CONNECT_TIMEOUT_SECONDS = 1;
+
     JvmIdHelper(
         TargetConnectionManager targetConnectionManager,
         CredentialsManager credentialsManager,
@@ -75,11 +79,13 @@ public class JvmIdHelper {
 
     private String computeJvmId(ConnectionDescriptor cd) {
         logger.info("COMPUTING {}", cd.getTargetId());
+        CompletableFuture<String> future = new CompletableFuture<>();
         if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
                 || cd.getTargetId().equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
         try {
+
             if (cd.getCredentials().isEmpty()) {
                 cd =
                         new ConnectionDescriptor(
@@ -87,13 +93,21 @@ public class JvmIdHelper {
                                 credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
             logger.info("HERE?: {}", cd.getTargetId());
-            return this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                        logger.info("anything?");
-                        logger.info("CONNECTED! {}, {}", connection.getJvmId(), connection.getJMXURL());
-                        return (String) connection.getJvmId();
-                    }, false);
+            final ConnectionDescriptor desc = cd;
+            CompletableFuture.runAsync(() -> {
+                try {
+                    this.targetConnectionManager.executeConnectedTask(
+                        desc,
+                        connection -> {
+                            logger.info("anything?");
+                            logger.info("CONNECTED! {}, {}", connection.getJvmId(), connection.getJMXURL());
+                            return future.complete(connection.getJvmId());
+                        });
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            });
+            return future.get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);            
         } catch (Exception e) {
             logger.info("SOME COMPUTE ERROR!");
             logger.error(e);
@@ -101,7 +115,7 @@ public class JvmIdHelper {
         }
     }
 
-    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws ConnectionException {
+    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
         String targetId = connectionDescriptor.getTargetId();
         logger.info("GETTING JVM ID! PART 2: {}", targetId);
         // FIXME: this should be fixed after the 2.2.0 release
@@ -115,14 +129,13 @@ public class JvmIdHelper {
                             return computeJvmId(connectionDescriptor);
                         });
         if (jvmId == null) {
-            System.out.println("WAS NULL");
-            throw new ConnectionException(String.format("Error connecting to target %s", targetId));
+            throw new IOException(String.format("Error connecting to target %s", targetId));
         }
         logger.info("NOT NULL: {}", jvmId);
         return jvmId;
     }
 
-    public String getJvmId(String targetId) throws ConnectionException {
+    public String getJvmId(String targetId) throws IOException {
         logger.info("GETTING JVM ID!: {}", targetId);
         return getJvmId(new ConnectionDescriptor(targetId));
     }
