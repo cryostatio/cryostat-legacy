@@ -75,7 +75,12 @@ class StaticAssetsGetHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "*";
+        return pathRegex();
+    }
+
+    @Override
+    public String pathRegex() {
+        return HttpGenericModule.NON_API_PATH;
     }
 
     @Override
