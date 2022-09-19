@@ -1199,6 +1199,7 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
+| Generate JWT for interactive asset download                               | [`AuthTokenPostHandler`](#AuthTokenPostHandler)                                 |
 | Perform batched start/stop/delete operations across target JVMs           | [`GraphQLHandler`](#GraphQLHandler)                                             |
 | Check the status of Cryostat itself                                       | [`HealthLivenessGetHandler`](#HealthLivenessGetHandler)                         |
 | **Target JVMs**                                                           |                                                                                 |
@@ -1209,10 +1210,17 @@ The handler-specific descriptions below describe how each handler populates the
 | Register a discovery plugin                                               | [`DiscoveryRegistrationHandler`](#DiscoveryRegistrationHandler)                 |
 | Update discovered scenario                                                | [`DiscoveryPostHandler`](#DiscoveryPostHandler)                                 |
 | Deregister a discovery plugin                                             | [`DiscoveryDeregistrationHandler`](#DiscoveryDeregistrationHandler)             |
+| **Events and event templates**                                            |                                                                                 |
+| Download a template from a target JVM                                     | [`TargetTemplateGetHandler`](#TargetTemplateGetHandler-1)                       |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
+| Download a recording in a target JVM                                      | [`TargetRecordingGetHandler`](#TargetRecordingGetHandler-1)                     |
+| Download a report of a recording in a target JVM                          | [`TargetReportGetHandler`](#TargetReportGetHandler-1)                           |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
+| **Recordings in archive**                                                 |                                                                                 |
+| Download a recording in archive                                           | [`RecordingGetHandler`](#RecordingGetHandler-1)                                 |
+| Download a report of a recording in archive                               | [`ReportGetHandler`](#ReportGetHandler-1)                                       |
 | **Automated Rules**                                                       |                                                                                 |
 | Create an automated rule definition                                       | [`RulesPostHandler`](#RulesPostHandler)                                         |
 | Delete an automated rule definition                                       | [`RuleDeleteHandler`](#RuleDeleteHandler)                                       |
@@ -1262,6 +1270,38 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
+    ```
+
+* #### `AuthTokenPostHandler`
+
+    #### synopsis
+    Generates JSON Web Tokens (JWTs) to be consumed by other asset-downloading
+    V2+ API endpoints such as the `TargetTemplateGetHandler`. These endpoints
+    are only intended for use by interactive clients such as web browsers, where
+    separating the authorization check from the actual asset transfer may be
+    beneficial. For programmatic and automated endpoints the non-JWT endpoints
+    may be used and are likely preferable.
+
+    #### request
+    `POST /api/v2.1/auth/token`
+
+    The request is an HTTP POST form. The form attribute `resource` is required.
+    This attribute specifies the URL path of the desired final resource to be
+    retrieved, ex. `/api/v2.1/targets/localhost:0/recordings/myrecording`.
+
+    #### response
+    `200` - The request was accepted and the response contains a relative
+    request URL. The client should use this URL in a new request to obtain the
+    desired final resource. The URL is already formatted to include the JWT.
+
+    `400` - The final resource URL was invalid.
+
+    `401` - The user does not have sufficient permissions.
+
+    #### example
+    ```
+    $ curl -k 'https://localhost:8181/api/v2.1/auth/token' -X POST -H 'authorization: Basic dXNlcjpwYXNz' --data resource="/api/v2.1/targets/localhost:0/templates/Continuous/type/TARGET"
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"resourceUrl":"/api/v2.1/targets/localhost:0/templates/Continuous/type/TARGET?token=(trimmed)"}}}
     ```
 
 * #### `GraphQLHandler`
@@ -1620,6 +1660,53 @@ The handler-specific descriptions below describe how each handler populates the
     plugin failed a `callback` check and was pruned. The plugin has no need to
     deregister itself in this case.
 
+### Events and Event Templates
+
+* #### `TargetTemplateGetHandler`
+
+    ###### synopsis
+    Returns an event template from a target JVM, using a previously-generated
+    JWT for authz rather than the Authorization header.
+
+    ###### request
+    `GET /api/v2.1/targets/:targetId/templates/:templateName/type/:templateType?token=:jwt`
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    `templateName` - The name of the template to get.
+
+    `templateType` - The type of the template to get.
+
+    `jwt` - The JSON Web Token providing authorization for this request. See
+    `AuthTokenPostHandler`.
+
+    ###### response
+    `200` - The body is the requested event template, as an XML document.
+
+    `401` - Token authentication failed. The body is an error message.
+
+    `404` - The target or the template or the template type could not be found.
+    The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but Cryostat does not trust the
+    certificate.
+
+    ###### example
+    ```
+    $ curl https://localhost:8181/api/v2.1/targets/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9094%2Fjmxrmi/templates/Continuous/type/TARGET?token=(trimmed) --output Continuous.jfc
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                     Dload  Upload   Total   Spent    Left  Speed
+    100 30133  100 30133    0     0   239k      0 --:--:-- --:--:-- --:--:--  239k
+    ```
+
+
 ### Recordings in Target JVMs
 
 * #### `TargetEventsGetHandler`
@@ -1704,6 +1791,91 @@ The handler-specific descriptions below describe how each handler populates the
     {"meta":{"status":"OK","type":"application/json"},"data":{result:[{"name":"Name","description":"Recording name","defaultValue":"Recording"},{"name":"Duration","description":"Duration of recording","defaultValue":"30s[s]"},{"name":"Max Size","description":"Maximum size of recording","defaultValue":"0B[B]"},{"name":"Max Age","description":"Maximum age of the events in the recording","defaultValue":"0s[s]"},{"name":"To disk","description":"Record to disk","defaultValue":"false"},{"name":"Dump on Exit","description":"Dump recording data to disk on JVM exit","defaultValue":"false"}]}}
     ```
 
+* #### `TargetRecordingGetHandler`
+
+    ###### synopsis
+    Returns a recording of a target JVM as an octet stream, using a JWT for
+    authorization. See `AuthTokenPostHandler`.
+
+    ###### request
+    `GET /api/v2.1/targets/:targetId/recordings/:recordingName?token=:jwt`
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    `recordingName` - The name of the recording to get.
+    Should use percent-encoding.
+
+    `jwt` - The JSON Web Token providing authorization for this request. See
+    `AuthTokenPostHandler`.
+
+    ###### response
+    `200` - The body is an octet stream consisting of the requested recording.
+
+    `401` - User authentication failed. The body is an error message.
+
+    `404` - The target or the recording could not be found.
+    The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but Cryostat does not trust the
+    certificate.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2.1/targets/localhost/recordings/foo?token=(trimmed) --output foo.jfr
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                     Dload  Upload   Total   Spent    Left  Speed
+    100  530k    0  530k    0     0  9303k      0 --:--:-- --:--:-- --:--:-- 9303k
+    ```
+
+* #### `TargetReportGetHandler`
+
+    ###### synopsis
+    Returns a report of a recording of a target JVM.
+
+    ###### request
+    `GET /api/v2.1/targets/:targetId/reports/:recordingName?token=:jwt`
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    `recordingName` - The name of the recording to get the report for.
+    Should use percent-encoding.
+
+    `jwt` - The JSON Web Token providing authorization for this request. See
+    `AuthTokenPostHandler`.
+
+    ###### response
+    `200` - The body is the requested report as an HTML document.
+
+    `401` - User authentication failed. The body is an error message.
+
+    `404` - The report could not be found, or the target could not be found.
+    The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but Cryostat does not trust the
+    certificate.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2.1/targets/localhost/reports/foo?token=(trimmed) --output report.html
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                     Dload  Upload   Total   Spent    Left  Speed
+    100  118k  100  118k    0     0   109k      0  0:00:01  0:00:01 --:--:--  109k
+    ```
+
 * #### `TargetSnapshotPostHandler`
 
     ###### synopsis
@@ -1745,6 +1917,67 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -X POST localhost:8181/api/v2/targets/localhost/snapshot
     {"meta":{"status":"Created","type":"application/json"},"data":{"result":{"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}}}
+    ```
+
+### Recordings in Archive
+
+* #### `RecordingGetHandler`
+
+    ###### synopsis
+    Returns a recording that was saved to archive as an octet stream, using a
+    JSON Web Token for authorization.
+
+    ###### request
+    `GET /api/v2.1/recordings/:recordingName?token=:jwt`
+
+    `recordingName` - The name of the saved recording to get.
+    Should use percent-encoding.
+
+    `jwt` - The JSON Web Token providing authorization for this request. See
+    `AuthTokenPostHandler`.
+
+    ###### response
+    `200` - The body is an octet stream consisting of the requested recording.
+
+    `401` - User authentication failed. The body is an error message.
+
+    `404` - The recording could not be found. The body is an error message.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2.1/recordings/localhost_foo_20200910T214559Z.jfr?token=(trimmed) --output foo.jfr
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                     Dload  Upload   Total   Spent    Left  Speed
+    100  942k  100  942k    0     0  61.3M      0 --:--:-- --:--:-- --:--:-- 61.3M
+    ```
+
+* #### `ReportGetHandler`
+
+    ###### synopsis
+    Returns the report of a recording that was saved to archive.
+
+    ###### request
+    `GET /api/v2.1/reports/:recordingName?token=:jwt`
+
+    `recordingName` - The name of the recording to get the report for.
+    Should use percent-encoding.
+
+    `jwt` - The JSON Web Token providing authorization for this request. See
+    `AuthTokenPostHandler`.
+
+    ###### response
+    `200` - The body is the requested report as an HTML document.
+
+    `401` - User authentication failed. The body is an error message.
+
+    `404` - The report could not be found. The body is an error message.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2.1/reports/localhost_foo_20200911T144545Z.jfr?token=(trimmed) --output report.html
+      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                     Dload  Upload   Total   Spent    Left  Speed
+    100  116k  100  116k    0     0   134k      0 --:--:-- --:--:-- --:--:--  134k
     ```
 
 ### Automated Rules
@@ -2135,14 +2368,14 @@ The handler-specific descriptions below describe how each handler populates the
 
 ### Quick Reference
 
-| What you want to do                                                       | Which handler you should use                                                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Miscellaneous**                                                         |                                                                                 |
-| Get the unique jvmId for a target JVM                                     | [`JvmIdGetHandler`](#JvmIdGetHandler)                                           |
-| **Recordings in Target JVMs**                                             |                                                                                 |
+| What you want to do                                                       | Which handler you should use                                                            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                         |
+| Get the unique jvmId for a target JVM                                     | [`JvmIdGetHandler`](#JvmIdGetHandler)                                                   |
+| **Recordings in Target JVMs**                                             |                                                                                         |
 | Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
-| **Recordings in archive**                                                 |                                                                                 |
-| Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)     |
+| **Recordings in archive**                                                 |                                                                                         |
+| Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)             |
 
 ### Miscellaneous
 * #### `JvmIdGetHandler`
