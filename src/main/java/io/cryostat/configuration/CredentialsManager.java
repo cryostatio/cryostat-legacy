@@ -424,8 +424,6 @@ public class CredentialsManager
     }
 
     public enum CredentialsEvent implements EventType {
-        ADDED,
-        REMOVED,
-        ;
+        ADDED;
     }
 }

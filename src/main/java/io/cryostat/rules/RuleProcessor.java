@@ -178,9 +178,8 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                 switch (event.getEventType()) {
                     case ADDED:
                         try {
-                            Set<ServiceRef> servicesSet =
-                                    credentialsManager.resolveMatchingTargets(event.getPayload());
-                            for (ServiceRef servicesRef : servicesSet) {
+                            for (ServiceRef servicesRef :
+                                    credentialsManager.resolveMatchingTargets(event.getPayload())) {
                                 registry.getRules(servicesRef)
                                         .forEach(rule -> activate(rule, servicesRef));
                             }

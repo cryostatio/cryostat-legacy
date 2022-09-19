@@ -49,6 +49,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
@@ -64,6 +65,8 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.util.events.Event;
+import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -79,7 +82,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class RuleProcessorTest {
@@ -376,5 +381,47 @@ class RuleProcessorTest {
         failureFunction.apply(Pair.of(serviceRef, rule));
 
         Mockito.verify(vertx).cancelTimer(MockVertx.TIMER_ID);
+    }
+
+    @Test
+    void testEventCallOnCredentialsChange() throws Exception {
+
+        Credentials credentials = new Credentials("foouser", "barpassword");
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        String matchExpression = "target.alias == 'com.example.App'";
+
+        Event<CredentialsEvent, String> event = Mockito.mock(Event.class);
+        Mockito.when(event.getEventType()).thenReturn(CredentialsEvent.ADDED);
+        Mockito.when(credentialsManager.resolveMatchingTargets(event.getPayload()))
+                .thenReturn(Set.of(serviceRef));
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression(matchExpression)
+                        .eventSpecifier("archive")
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        EventListener<CredentialsManager.CredentialsEvent, String> listener =
+                processor.credentialsListener();
+        CredentialsManager credentialsManager = Mockito.mock(CredentialsManager.class);
+
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                listener.onEvent(event);
+                                return null;
+                            }
+                        })
+                .when(credentialsManager)
+                .addCredentials(matchExpression, credentials);
+
+        credentialsManager.addCredentials(matchExpression, credentials);
     }
 }
