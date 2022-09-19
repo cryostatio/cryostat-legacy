@@ -1280,11 +1280,10 @@ The handler-specific descriptions below describe how each handler populates the
     ##### response
     `200` - The result is the GraphQL query response in JSON format.
 
-    `401` - The user does not have sufficient permissions. The GraphQL endpoint
-    requires a set of permissions representing all possible actions that can be
-    performed by the GraphQL internal interface. Requests may be rejected if the
-    requesting client lacks sufficient permissions, even if the particular
-    request sent does not require such permissions.
+    `401` - The user does not have sufficient permissions. Permissions for each
+    subquery or submutation are checked on-demand as the request is processed,
+    and the request will fail with this status if any of the nested
+    queries/mutations fails the authorization check.
 
 * #### `HealthLivenessGetHandler`
 
