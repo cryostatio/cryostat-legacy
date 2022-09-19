@@ -549,7 +549,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until sleep 5; curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health/liveness; do sleep 2; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -566,7 +566,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}; do sleep 10; done</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}; do sleep 2; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -583,7 +583,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}; do sleep 10; done</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}; do sleep 2; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
