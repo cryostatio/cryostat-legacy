@@ -56,10 +56,6 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindApiFallbackHandler(ApiFallbackHandler handler);
-
-    @Binds
-    @IntoSet
     abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
 
     @Binds
