@@ -5,19 +5,22 @@
 ### `[GET|POST] /api/v2.2/graphql`
 
 Accepts `GET` or `POST` requests to perform GraphQL queries. See:
-- https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/
-- https://graphql.org/learn/serving-over-http/
+- [https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/](Getting Started)
+- [https://graphql.org/learn/serving-over-http/](Serving over HTTP)
 for some more info.
 
-src/main/java/io/cryostat/net/web/http/api/v2/graph/GraphModule.java
-contains the bindings for the GraphQL engine to query custom targets.
-
-`graphql/` contains some sample queries which can be used as in the following
+[`graphql/`](graphql/) contains some sample queries which can be used as in the following
 example queries. The first query is a standard API v2 request to create a custom
 target. The second query is a standard API v1 request to list all known targets.
 The third query is a GraphQL query listing all known targets and all fields of
 those targets, except without querying for the recordings belonging to the
 target.
+
+For more information about the available queries and mutations check the
+GraphiQL interface detailed below, or check the GraphQL schema definitions:
+
+- [queries.graphqls](https://github.com/cryostatio/cryostat/blob/main/src/main/resources/queries.graphqls)
+- [types.graphqls](https://github.com/cryostatio/cryostat/blob/main/src/main/resources/types.graphqls)
 
 ```bash
 $ https -f :8181/api/v2/targets alias=foo connectUrl=localhost:0
@@ -131,137 +134,6 @@ Serves a GraphQL "query IDE" that can be used for testing out writing queries
 and seeing the responses served for those queries by `POST /api/v2.2/graphql`.
 Note the `/*` in the path - to open this in your browser while running using
 `run.sh`/`smoketest.sh`, go to `https://localhost:8181/api/v2.2/graphiql/`. The
-trailing slash is significant.
-
-## GraphQL API
-
-### Quick Reference
-
-| What you want to do                                                       | Which handler you should use                                                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Recordings in Target JVMs**                                             |                                                                                 |
-| Update metadata for a recording in a target JVM                    | [`PutActiveRecordingMetadataMutator`](#PutActiveRecordingMetadataMutator) |
-| **Recordings in archive**                                                 |                                                                                 |
-| Update metadata for an archived recording                          | [`PutArchivedRecordingMetadataMutator`](#PutArchivedRecordingMetadataMutator)     |
-
-### Recordings in Target JVMs
-* #### `PutActiveRecordingMetadataMutator`
-
-    ##### synopsis
-    Updates metadata for a recording in a target JVM. Overwrites any existing labels for that recording. If multiple recordings match the query, the metadata for all selected recordings will be replaced with the request metadata.
-
-    ##### request
-    `doPutMetadata(metadata: { labels: []})`
-
-    `labels` - An array consisting of key-value label objects. The label objects should follow the `{key: "myLabelKey", value: "myValue"}` format.
-
-    ##### response
-    `ActiveRecording` - The result contains an `ActiveRecording` which can be queried for fields such as `name` and `metadata`.
-
-    `DataFetchingException` - An argument was invalid. The body is an error message.
-
-    ##### example
-    ```
-    query {
-    targetNodes(filter: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi" }) {
-        recordings {
-            active(filter: { name: "myActiveRecording" }) {
-                doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Profiling"},{key:"template.type",value:"TARGET"}] }) {
-                    name
-                    metadata {
-                        labels
-                    }
-                }
-            }
-        }
-    }
-    }
-
-    {
-        "data": {
-            "targetNodes": [
-                {
-                    "recordings": {
-                        "active": [
-                            {
-                                "doPutMetadata": {
-                                    "metadata": {
-                                        "labels": {
-                                            "app": "cryostat",
-                                            "template.name": "Continuous",
-                                            "template.type": "TARGET"
-                                        }
-                                    },
-                                    "name": "myActiveRecording"
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
-    ```
-
-### Recordings in Archives
-* #### `PutArchivedRecordingMetadataMutator`
-
-    ##### synopsis
-    Updates metadata labels for a recording in Cryostat's archives. Overwrites any existing labels for that recording. If multiple recordings match the query, the metadata for all selected recordings will be replaced with the request metadata.
-
-    ##### request
-    `doPutMetadata(metadata: { labels: []})`
-
-    `labels` - An array consisting of key-value label objects. The label objects should follow the `{key: "myLabelKey", value: "myValue"}` format.
-
-    ##### response
-    `ActiveRecording` - The result contains an `ActiveRecording` which can be queried for fields such as `name` and `metadata`.
-
-    `DataFetchingException` - An argument was invalid. The body is an error message.
-
-    ##### example
-    ```
-    query {
-    targetNodes(filter: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi" }) {
-        recordings {
-            archived(filter: { name: "myArchivedRecording" }) {
-                data {
-                    doPutMetadata(metadata: { labels: [{key:"app",value:"cryostat"}, {key:"template.name",value:"Continuous"},{key:"template.type",value:"TARGET"}] }) {
-                        name
-                        metadata {
-                            labels
-                        }
-                    }
-                }
-            }
-        }
-    }
-    }
-
-    {
-        "data": {
-            "targetNodes": [
-                {
-                    "recordings": {
-                        "archived": {
-                            "data": [
-                                {
-                                    "doPutMetadata": {
-                                        "metadata": {
-                                            "labels": {
-                                                "app": "cryostat",
-                                                "template.name": "Continuous",
-                                                "template.type": "TARGET"
-                                            }
-                                        },
-                                        "name": "myArchivedRecording"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
-        }
-    }
-    ```
+trailing slash is significant. This endpoint is only available and workable if
+the environment variables `CRYOSTAT_DEV_MODE=true` and
+`CRYOSTAT_AUTH_MANAGER=io.cryostat.net.NoopAuthManager` are set.
