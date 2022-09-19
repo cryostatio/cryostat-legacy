@@ -84,6 +84,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.openjdk.jmc.rjmx.ConnectionException;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
@@ -101,7 +102,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final CredentialsManager credentialsManager;
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
-    private final Map<String, String> jvmIdMap;
+    private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
@@ -119,7 +120,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
-            @Named(MainModule.JVM_ID_MAP) Map<String, String> jvmIdMap,
+            JvmIdHelper jvmIdHelper,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -132,7 +133,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.credentialsManager = credentialsManager;
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
-        this.jvmIdMap = jvmIdMap;
+        this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
@@ -231,7 +232,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                 }
                                                                 // archived recording
                                                                 // metadata
-                                                                jvmIdMap.putIfAbsent(
+                                                                jvmIdHelper.putIfAbsent(
                                                                         targetId, srm.getJvmId());
                                                                 recordingMetadataMap.put(
                                                                         Pair.of(
@@ -371,7 +372,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
-        String oldJvmId = jvmIdMap.get(targetId);
+        String oldJvmId = jvmIdHelper.get(targetId);
+        logger.info("RECORDING METADATA MANAGER {}", targetId, oldJvmId);
 
         ConnectionDescriptor cd;
 
@@ -388,15 +390,13 @@ public class RecordingMetadataManager extends AbstractVerticle
         if (oldJvmId == null) {
             logger.info("Target {} did not have a jvmId", targetId);
             try {
-                String newJvmId = getJvmId(cd);
+                String newJvmId = jvmIdHelper.getJvmId(cd);
                 logger.info("Created jvmId {} for target {}", newJvmId, targetId);
-            } catch (IOException e) {
-                logger.error(
-                        "Could not compute jvmId on FOUND target {}, msg: {}",
-                        targetId,
-                        e.getMessage());
+                return;
+            } catch (ConnectionException e) {
+                logger.error("Could not compute jvmId on FOUND target {}, msg: {}", targetId);
+                e.printStackTrace();
             }
-            return;
         }
 
         switch (tde.getEventKind()) {
@@ -483,7 +483,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
 
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
 
         fs.writeString(
@@ -545,7 +545,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     Pair.of(UPLOADS, recordingName), k -> new Metadata());
         }
 
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         return this.recordingMetadataMap.computeIfAbsent(
                 Pair.of(jvmId, recordingName), k -> new Metadata());
     }
@@ -554,7 +554,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             ConnectionDescriptor connectionDescriptor, String recordingName) throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
@@ -599,18 +599,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
-        if (oldJvmId.equals(newJvmId)) {
-            return;
-        }
-        jvmIdMap.entrySet().stream()
-                .filter(e -> e.getValue().equals(oldJvmId))
-                .forEach(
-                        e -> {
-                            jvmIdMap.put(e.getKey(), newJvmId);
-                        });
-    }
-
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
@@ -653,16 +641,16 @@ public class RecordingMetadataManager extends AbstractVerticle
 
                                     Metadata m = this.getMetadata(cd, recordingName);
                                     deleteRecordingMetadataIfExists(cd, recordingName);
-                                    jvmIdMap.put(targetId, newJvmId);
+                                    jvmIdHelper.put(targetId, newJvmId);
                                     setRecordingMetadata(cd, recordingName, m);
-                                    jvmIdMap.put(targetId, oldJvmId);
+                                    jvmIdHelper.put(targetId, oldJvmId);
 
                                 } catch (IOException e) {
                                     logger.error("Metadata could not be transferred", e);
                                 }
                             });
-            jvmIdMap.put(targetId, newJvmId);
-            transferJvmIds(oldJvmId, newJvmId);
+            jvmIdHelper.put(targetId, newJvmId);
+            jvmIdHelper.transferJvmIds(oldJvmId, newJvmId);
             logger.info(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
@@ -817,56 +805,6 @@ public class RecordingMetadataManager extends AbstractVerticle
             logger.error("Try to delete path that doesn't exist {}", path);
         }
         return false;
-    }
-
-    private String computeJvmId(ConnectionDescriptor cd) {
-        // FIXME: this should be fixed after the 2.2.0 release
-        if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
-                || cd.getTargetId().equals(UPLOADS)) {
-            return UPLOADS;
-        }
-
-        try {
-            if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                cd.getTargetId(),
-                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
-            }
-
-            return this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                        try {
-                            return connection.getJvmId();
-                        } catch (Exception e) {
-                            logger.error(e);
-                            return null;
-                        }
-                    });
-        } catch (Exception e) {
-            logger.error(e);
-            return null;
-        }
-    }
-
-    private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
-        String targetId = connectionDescriptor.getTargetId();
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES) || targetId.equals(UPLOADS)) {
-            return UPLOADS;
-        }
-
-        String jvmId =
-                this.jvmIdMap.computeIfAbsent(
-                        targetId,
-                        k -> {
-                            return computeJvmId(connectionDescriptor);
-                        });
-
-        if (jvmId == null) {
-            throw new IOException(String.format("Error connecting to target %s", targetId));
-        }
-        return jvmId;
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(TargetDiscoveryEvent tde)

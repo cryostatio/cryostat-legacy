@@ -50,6 +50,7 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
@@ -112,6 +113,11 @@ class Cryostat extends AbstractVerticle {
                         (m) -> {
                             return client.deployer().deploy(client.discoveryStorage(), true);
                         })
+                .compose(
+                        (m) -> {
+                            return client.deployer()
+                                    .deploy(client.recordingArchiveHelper(), true);
+                     })
                 .onSuccess(cf -> future.complete())
                 .onFailure(
                         t -> {
@@ -173,6 +179,8 @@ class Cryostat extends AbstractVerticle {
         MessagingServer messagingServer();
 
         RecordingMetadataManager recordingMetadataManager();
+
+        RecordingArchiveHelper recordingArchiveHelper();
 
         @Component.Builder
         interface Builder {

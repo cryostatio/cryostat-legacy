@@ -116,6 +116,7 @@ public abstract class RecordingsModule {
             Clock clock,
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
+            JvmIdHelper jvmIdHelper,
             Base32 base32) {
         return new RecordingArchiveHelper(
                 fs,
@@ -128,6 +129,7 @@ public abstract class RecordingsModule {
                 clock,
                 storage,
                 notificationFactory,
+                jvmIdHelper,
                 base32);
     }
 
@@ -162,7 +164,7 @@ public abstract class RecordingsModule {
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
-            @Named(MainModule.JVM_ID_MAP) Map<String, String> jvmIdMap,
+            JvmIdHelper jvmIdHelper,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -187,12 +189,21 @@ public abstract class RecordingsModule {
                     credentialsManager,
                     storage,
                     notificationFactory,
-                    jvmIdMap,
+                    jvmIdHelper,
                     gson,
                     base32,
                     logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static JvmIdHelper provideJvmIdHelper(
+        TargetConnectionManager targetConnectionManager,
+        CredentialsManager credentialsManager,
+            Logger logger) {
+        return new JvmIdHelper(targetConnectionManager, credentialsManager, logger);
     }
 }
