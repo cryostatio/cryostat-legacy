@@ -16,8 +16,9 @@ The third query is a GraphQL query listing all known targets and all fields of
 those targets, except without querying for the recordings belonging to the
 target.
 
-For more information about the available queries and mutations check the
-GraphiQL interface detailed below, or check the GraphQL schema definitions:
+For more information about the available queries and mutations, check the
+GraphiQL interface detailed below. Or, check the GraphQL schema definitions
+directly:
 
 - [queries.graphqls](https://github.com/cryostatio/cryostat/blob/main/src/main/resources/queries.graphqls)
 - [types.graphqls](https://github.com/cryostatio/cryostat/blob/main/src/main/resources/types.graphqls)
