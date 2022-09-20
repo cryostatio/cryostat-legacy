@@ -107,7 +107,7 @@ class RuleGetHandlerTest {
         }
 
         @Test
-        void shouldProducePlaintext() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
                     handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
