@@ -1680,7 +1680,7 @@ The handler-specific descriptions below describe how each handler populates the
     `templateType` - The type of the template to get.
 
     `jwt` - The JSON Web Token providing authorization for this request. See
-    `AuthTokenPostHandler`.
+    [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### response
     `200` - The body is the requested event template, as an XML document.
@@ -1795,7 +1795,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### synopsis
     Returns a recording of a target JVM as an octet stream, using a JWT for
-    authorization. See `AuthTokenPostHandler`.
+    authorization. See [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### request
     `GET /api/v2.1/targets/:targetId/recordings/:recordingName?token=:jwt`
@@ -1808,7 +1808,7 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     `jwt` - The JSON Web Token providing authorization for this request. See
-    `AuthTokenPostHandler`.
+    [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### response
     `200` - The body is an octet stream consisting of the requested recording.
@@ -1850,7 +1850,7 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     `jwt` - The JSON Web Token providing authorization for this request. See
-    `AuthTokenPostHandler`.
+    [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### response
     `200` - The body is the requested report as an HTML document.
@@ -1934,7 +1934,7 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     `jwt` - The JSON Web Token providing authorization for this request. See
-    `AuthTokenPostHandler`.
+    [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### response
     `200` - The body is an octet stream consisting of the requested recording.
@@ -1963,7 +1963,7 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     `jwt` - The JSON Web Token providing authorization for this request. See
-    `AuthTokenPostHandler`.
+    [`AuthTokenPostHandler`](#AuthTokenPostHandler).
 
     ###### response
     `200` - The body is the requested report as an HTML document.
