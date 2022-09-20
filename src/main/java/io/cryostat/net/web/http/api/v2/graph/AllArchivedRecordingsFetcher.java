@@ -42,6 +42,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -79,7 +80,7 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
             String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
             try {
                 recordings = archiveHelper.getRecordings(targetId).get();
-            } catch (Exception e) {
+            } catch (ExecutionException e) {
                 recordings = List.of();
             }
         } else {

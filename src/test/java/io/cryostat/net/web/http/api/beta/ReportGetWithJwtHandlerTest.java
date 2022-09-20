@@ -92,7 +92,14 @@ class ReportGetWithJwtHandlerTest {
     void setup() {
         this.handler =
                 new ReportGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, reports, archiveHelper, 30, logger);
+                        auth,
+                        credentialsManager,
+                        jwt,
+                        () -> webServer,
+                        reports,
+                        archiveHelper,
+                        30,
+                        logger);
     }
 
     @Nested

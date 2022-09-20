@@ -124,7 +124,7 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException || e.getCause() instanceof RecordingSourceTargetNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;

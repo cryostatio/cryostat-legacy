@@ -43,19 +43,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import javax.script.ScriptException;
-
-import org.openjdk.jmc.rjmx.ConnectionException;
-
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.platform.TargetDiscoveryEvent;
 
 public class JvmIdHelper {
     private final TargetConnectionManager targetConnectionManager;
@@ -67,59 +58,55 @@ public class JvmIdHelper {
     public static final int CONNECT_TIMEOUT_SECONDS = 1;
 
     JvmIdHelper(
-        TargetConnectionManager targetConnectionManager,
-        CredentialsManager credentialsManager,
-        Logger logger) {
+            TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
+            Logger logger) {
 
-    this.targetConnectionManager = targetConnectionManager;
-    this.credentialsManager = credentialsManager;
-    this.logger = logger;
-    this.jvmIdMap = new ConcurrentHashMap<>();
-}
+        this.targetConnectionManager = targetConnectionManager;
+        this.credentialsManager = credentialsManager;
+        this.logger = logger;
+        this.jvmIdMap = new ConcurrentHashMap<>();
+    }
 
     private String computeJvmId(ConnectionDescriptor cd) {
-        logger.info("COMPUTING {}", cd.getTargetId());
         CompletableFuture<String> future = new CompletableFuture<>();
         if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
-                || cd.getTargetId().equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+                || cd.getTargetId()
+                        .equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
         try {
-
             if (cd.getCredentials().isEmpty()) {
                 cd =
                         new ConnectionDescriptor(
                                 cd.getTargetId(),
                                 credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
-            logger.info("HERE?: {}", cd.getTargetId());
             final ConnectionDescriptor desc = cd;
-            CompletableFuture.runAsync(() -> {
-                try {
-                    this.targetConnectionManager.executeConnectedTask(
-                        desc,
-                        connection -> {
-                            logger.info("anything?");
-                            logger.info("CONNECTED! {}, {}", connection.getJvmId(), connection.getJMXURL());
-                            return future.complete(connection.getJvmId());
-                        });
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            });
-            return future.get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);            
+            CompletableFuture.runAsync(
+                    () -> {
+                        try {
+                            this.targetConnectionManager.executeConnectedTask(
+                                    desc,
+                                    connection -> {
+                                        return future.complete(connection.getJvmId());
+                                    });
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
+                        }
+                    });
+            return future.get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.info("SOME COMPUTE ERROR!");
             logger.error(e);
             return null;
         }
     }
 
-    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
+    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
         String targetId = connectionDescriptor.getTargetId();
-        logger.info("GETTING JVM ID! PART 2: {}", targetId);
         // FIXME: this should be fixed after the 2.2.0 release
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES) || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+        if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
+                || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
         String jvmId =
@@ -129,14 +116,12 @@ public class JvmIdHelper {
                             return computeJvmId(connectionDescriptor);
                         });
         if (jvmId == null) {
-            throw new IOException(String.format("Error connecting to target %s", targetId));
+            throw new JvmIdGetException(String.format("Error connecting to target %s", targetId));
         }
-        logger.info("NOT NULL: {}", jvmId);
         return jvmId;
     }
 
-    public String getJvmId(String targetId) throws IOException {
-        logger.info("GETTING JVM ID!: {}", targetId);
+    public String getJvmId(String targetId) throws JvmIdGetException {
         return getJvmId(new ConnectionDescriptor(targetId));
     }
 
@@ -152,15 +137,21 @@ public class JvmIdHelper {
                         });
     }
 
-    public String putIfAbsent(String targetId, String jvmId) {
-        return jvmIdMap.putIfAbsent(targetId, jvmId);
-    }
-    
-    public String get(String targetId) {
+    protected String get(String targetId) {
         return jvmIdMap.get(targetId);
     }
 
-    public void put(String targetId, String jvmId) {
+    protected void put(String targetId, String jvmId) {
         jvmIdMap.put(targetId, jvmId);
+    }
+
+    protected String putIfAbsent(String targetId, String jvmId) {
+        return jvmIdMap.putIfAbsent(targetId, jvmId);
+    }
+
+    static class JvmIdGetException extends IOException {
+        JvmIdGetException(String message) {
+            super(message);
+        }
     }
 }

@@ -172,12 +172,12 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
             recordingPath =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-            } catch (RecordingSourceTargetNotFoundException e) {
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new ApiException(404, e.getMessage(), e);
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RecordingNotFoundException || e.getCause() instanceof RecordingSourceTargetNotFoundException) {
-                    throw new ApiException(404, e.getMessage(), e);
-                }
+            }
             throw e;
         }
 

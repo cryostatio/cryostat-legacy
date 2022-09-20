@@ -45,7 +45,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 // FIXME move to a more appropriate package
 public class ArchivedRecordingInfo {
 
-    private final transient String encodedServiceUri;
+    private final transient String serviceUri;
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
@@ -53,13 +53,13 @@ public class ArchivedRecordingInfo {
     private final long size;
 
     public ArchivedRecordingInfo(
-            String encodedServiceUri,
+            String serviceUri,
             String name,
             String downloadUrl,
             String reportUrl,
             Metadata metadata,
             long size) {
-        this.encodedServiceUri = encodedServiceUri;
+        this.serviceUri = serviceUri;
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
@@ -67,8 +67,8 @@ public class ArchivedRecordingInfo {
         this.size = size;
     }
 
-    public String getEncodedServiceUri() {
-        return this.encodedServiceUri;
+    public String getServiceUri() {
+        return this.serviceUri;
     }
 
     public String getName() {
@@ -104,7 +104,7 @@ public class ArchivedRecordingInfo {
         }
         ArchivedRecordingInfo ari = (ArchivedRecordingInfo) other;
         return new EqualsBuilder()
-                .append(encodedServiceUri, ari.encodedServiceUri)
+                .append(serviceUri, ari.serviceUri)
                 .append(name, ari.name)
                 .append(downloadUrl, ari.downloadUrl)
                 .append(reportUrl, ari.reportUrl)
@@ -116,7 +116,7 @@ public class ArchivedRecordingInfo {
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
-                .append(encodedServiceUri)
+                .append(serviceUri)
                 .append(name)
                 .append(downloadUrl)
                 .append(reportUrl)

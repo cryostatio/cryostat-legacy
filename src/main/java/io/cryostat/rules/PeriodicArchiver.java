@@ -110,7 +110,7 @@ class PeriodicArchiver implements Runnable {
                 for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
                     String decodedServiceUri =
                             new String(
-                                    base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
+                                    base32.decode(archivedRecordingInfo.getServiceUri()),
                                     StandardCharsets.UTF_8);
                     String fileName = archivedRecordingInfo.getName();
                     Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);

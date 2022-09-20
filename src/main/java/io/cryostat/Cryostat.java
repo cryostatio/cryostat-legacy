@@ -50,7 +50,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;

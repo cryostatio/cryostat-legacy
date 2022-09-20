@@ -72,6 +72,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
@@ -84,14 +85,12 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
     private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
-    private static final int TARGET_CONNECTION_TIMEOUT_SECONDS = 1;
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
     private final Path recordingMetadataDir;
@@ -353,7 +352,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             subdirectory + " is neither a directory nor a file");
                                 }
                             });
-            archiveHelper.migrate();
+
             future.complete();
         } catch (IOException e) {
             logger.error(
@@ -362,7 +361,17 @@ public class RecordingMetadataManager extends AbstractVerticle
                     e.getMessage());
             future.fail(e.getCause());
         }
-        pruneStaleMetadata(staleMetadata);
+        vertx.executeBlocking(
+                promise -> {
+                    try {
+                        archiveHelper.migrate();
+                        logger.info("Successfully migrated archives");
+                        pruneStaleMetadata(staleMetadata);
+                        logger.info("Successfully pruned all stale metadata");
+                    } finally {
+                        promise.complete();
+                    }
+                });
     }
 
     @Override
@@ -374,10 +383,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     public void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
         String oldJvmId = jvmIdHelper.get(targetId);
-        logger.info("RECORDING METADATA MANAGER {}", targetId, oldJvmId);
 
         ConnectionDescriptor cd;
-
         try {
             cd = getConnectionDescriptorWithCredentials(tde);
         } catch (IOException | ScriptException e) {
@@ -393,11 +400,10 @@ public class RecordingMetadataManager extends AbstractVerticle
             try {
                 String newJvmId = jvmIdHelper.getJvmId(cd);
                 logger.info("Created jvmId {} for target {}", newJvmId, targetId);
-                return;
-            } catch (IOException e) {
+            } catch (JvmIdGetException e) {
                 logger.error("Could not compute jvmId on FOUND target {}, msg: {}", targetId);
-                e.printStackTrace();
             }
+            return;
         }
 
         switch (tde.getEventKind()) {
@@ -419,62 +425,46 @@ public class RecordingMetadataManager extends AbstractVerticle
     // previously active recording
     // Asynchronous since testing connections to targets takes long, especially for many targets
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
-        vertx.executeBlocking(
-                future -> {
+        logger.info("Trying to prune stale metadata");
+        staleMetadata.forEach(
+                (srm, path) -> {
+                    String targetId = srm.getTargetId();
+                    String recordingName = srm.getRecordingName();
+                    ConnectionDescriptor cd;
                     try {
-                        logger.info("Trying to prune stale metadata");
-                        staleMetadata.forEach(
-                                (srm, path) -> {
-                                    String targetId = srm.getTargetId();
-                                    String recordingName = srm.getRecordingName();
-                                    ConnectionDescriptor cd;
-                                    try {
-                                        cd = getConnectionDescriptorWithCredentials(targetId);
-                                    } catch (Exception e) {
-                                        logger.error(
-                                                "Could not get credentials for"
-                                                        + " targetId {}, msg: {}",
-                                                targetId,
-                                                e.getMessage());
-                                        return;
-                                    }
-                                    logger.info(
-                                            "Trying to prune stale recording metadata {}, of target"
-                                                    + " {}, from path {}",
-                                            recordingName,
-                                            targetId,
-                                            path);
-                                    if (!targetRecordingExists(cd, recordingName)) {
-                                        // recording was lost
-                                        logger.info(
-                                                "Active recording lost {}, deleting...",
-                                                recordingName);
-                                        deleteMetadataPathIfExists(path);
-                                    } else {
-                                        // target still up
-                                        logger.info(
-                                                "Found metadata corresponding to active recording:"
-                                                        + " {}",
-                                                recordingName);
-                                        try {
-                                            setRecordingMetadata(
-                                                    cd,
-                                                    recordingName,
-                                                    new Metadata(srm.getLabels()));
-                                        } catch (IOException e) {
-                                            logger.error(
-                                                    "Could not set metadata for recording: {}, msg:"
-                                                            + " {}",
-                                                    recordingName,
-                                                    e.getMessage());
-                                        }
-                                    }
-                                });
-                    } finally {
-                        future.complete();
+                        cd = getConnectionDescriptorWithCredentials(targetId);
+                    } catch (Exception e) {
+                        logger.error(
+                                "Could not get credentials for" + " targetId {}, msg: {}",
+                                targetId,
+                                e.getMessage());
+                        return;
                     }
-                },
-                result -> logger.info("Successfully pruned all stale metadata"));
+                    logger.info(
+                            "Trying to prune stale recording metadata {}, of target"
+                                    + " {}, from path {}",
+                            recordingName,
+                            targetId,
+                            path);
+                    if (!targetRecordingExists(cd, recordingName)) {
+                        // recording was lost
+                        logger.info("Active recording lost {}, deleting...", recordingName);
+                        deleteMetadataPathIfExists(path);
+                    } else {
+                        // target still up
+                        logger.info(
+                                "Found metadata corresponding to active recording:" + " {}",
+                                recordingName);
+                        try {
+                            setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
+                        } catch (IOException e) {
+                            logger.error(
+                                    "Could not set metadata for recording: {}, msg:" + " {}",
+                                    recordingName,
+                                    e.getMessage());
+                        }
+                    }
+                });
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -486,7 +476,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
-
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
 
@@ -732,7 +721,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd, connection -> connectFuture.complete(connection.isConnected()));
-            return connectFuture.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return connectFuture.get(JvmIdHelper.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
             return false;
@@ -751,7 +740,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                     future.complete(
                                                             Objects.equals(
                                                                     recordingName, r.getName()))));
-            return future.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return future.get(JvmIdHelper.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException te) {
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
             return false;

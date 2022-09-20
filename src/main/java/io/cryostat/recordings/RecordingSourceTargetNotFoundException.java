@@ -37,7 +37,6 @@
  */
 package io.cryostat.recordings;
 
-
 public class RecordingSourceTargetNotFoundException extends Exception {
     public RecordingSourceTargetNotFoundException(String sourceTarget) {
         super(String.format("Source target %s not found", sourceTarget));

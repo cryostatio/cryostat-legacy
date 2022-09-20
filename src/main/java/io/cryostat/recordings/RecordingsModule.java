@@ -42,9 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -201,8 +199,8 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
-        TargetConnectionManager targetConnectionManager,
-        CredentialsManager credentialsManager,
+            TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
             Logger logger) {
         return new JvmIdHelper(targetConnectionManager, credentialsManager, logger);
     }
