@@ -5,8 +5,8 @@
 ### `[GET|POST] /api/v2.2/graphql`
 
 Accepts `GET` or `POST` requests to perform GraphQL queries. See:
-- [https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/](Getting Started)
-- [https://graphql.org/learn/serving-over-http/](Serving over HTTP)
+- [Getting Started](https://www.graphql-java.com/tutorials/getting-started-with-spring-boot/)
+- [Serving over HTTP](https://graphql.org/learn/serving-over-http/)
 for some more info.
 
 [`graphql/`](graphql/) contains some sample queries which can be used as in the following
