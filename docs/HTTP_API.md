@@ -280,6 +280,9 @@
     ###### synopsis
     Deletes a recording that was saved to archive.
     This does not affect any recordings in any target JVM's JFR buffer.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `DELETE /api/v1/recordings/:recordingName`
@@ -307,6 +310,9 @@
     ###### synopsis
     Returns a recording that was saved to archive,
     as an octet stream.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `GET /api/v1/recordings/:recordingName`
@@ -336,6 +342,9 @@
 
     ###### synopsis
     Returns a list of the recordings that are saved in archive.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `GET /api/v1/recordings`
@@ -364,6 +373,9 @@
 
     ###### synopsis
     Uploads a recording from the client to Cryostat's archive.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `POST /api/v1/recordings`
@@ -431,6 +443,9 @@
     Uploads a recording that was saved to archive to
     the Grafana datasource that Cryostat is configured with
     (determined by the environment variable `GRAFANA_DATASOURCE_URL`).
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `POST /api/v1/recordings/:recordingName/upload`
@@ -471,6 +486,9 @@
 
     ###### synopsis
     Returns the report of a recording that was saved to archive.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `GET /api/v1/reports/:recordingName`
@@ -1926,6 +1944,9 @@ The handler-specific descriptions below describe how each handler populates the
     ###### synopsis
     Returns a recording that was saved to archive as an octet stream, using a
     JSON Web Token for authorization.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `GET /api/v2.1/recordings/:recordingName?token=:jwt`
@@ -1955,6 +1976,9 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### synopsis
     Returns the report of a recording that was saved to archive.
+    **DEPRECATED**: Endpoints treating the archived recording storage as
+    uncategorized storage, where files are not associated with a particular
+    target application, are deprecated and will be removed in a future release.
 
     ###### request
     `GET /api/v2.1/reports/:recordingName?token=:jwt`
