@@ -119,6 +119,7 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        "application/json",
                         InetAddress.getByName("127.0.01"),
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
@@ -188,6 +189,7 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        "application/json",
                         InetAddress.getByName("127.0.0.1"),
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),

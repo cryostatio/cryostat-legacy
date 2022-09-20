@@ -56,6 +56,7 @@ import org.apache.commons.lang3.StringUtils;
 public class RequestParameters {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
+    private final String acceptableContentType;
     private final InetAddress addr;
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
@@ -69,6 +70,7 @@ public class RequestParameters {
             justification =
                     "InetAddress is mutable but there is no immutable form or copy constructor")
     public RequestParameters(
+            String acceptableContentType,
             InetAddress addr,
             Map<String, String> pathParams,
             MultiMap queryParams,
@@ -76,6 +78,7 @@ public class RequestParameters {
             MultiMap formAttributes,
             Set<FileUpload> fileUploads,
             String body) {
+        this.acceptableContentType = acceptableContentType;
         this.addr = addr;
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
@@ -89,6 +92,8 @@ public class RequestParameters {
     }
 
     public static RequestParameters from(RoutingContext ctx) {
+        String acceptableContentType = ctx.getAcceptableContentType();
+
         InetAddress addr = null;
         if (ctx != null) {
             HttpServerRequest req = ctx.request();
@@ -130,7 +135,14 @@ public class RequestParameters {
         }
 
         return new RequestParameters(
-                addr, pathParams, queryParams, headers, formAttributes, fileUploads, body);
+                acceptableContentType,
+                addr,
+                pathParams,
+                queryParams,
+                headers,
+                formAttributes,
+                fileUploads,
+                body);
     }
 
     private static InetAddress tryResolveAddress(InetAddress addr, String host) {
@@ -143,6 +155,10 @@ public class RequestParameters {
             Logger.INSTANCE.error(e);
         }
         return addr;
+    }
+
+    public String getAcceptableContentType() {
+        return acceptableContentType;
     }
 
     @SuppressFBWarnings(

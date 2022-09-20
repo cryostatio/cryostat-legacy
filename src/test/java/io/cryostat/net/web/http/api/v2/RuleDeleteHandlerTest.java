@@ -150,9 +150,9 @@ class RuleDeleteHandlerTest {
         }
 
         @Test
-        void shouldProducePlaintext() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

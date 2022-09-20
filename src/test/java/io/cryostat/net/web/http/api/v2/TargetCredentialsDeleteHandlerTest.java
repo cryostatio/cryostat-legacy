@@ -134,7 +134,7 @@ class TargetCredentialsDeleteHandlerTest {
         @Test
         void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

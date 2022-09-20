@@ -45,6 +45,7 @@ public enum HttpMimeType {
     JSON("application/json"),
     OCTET_STREAM("application/octet-stream"),
     JFC("application/jfc+xml"),
+    XML("application/xml"),
     MULTIPART_FORM("multipart/form-data"),
     URLENCODED_FORM("application/x-www-form-urlencoded"),
     UNKNOWN(null);

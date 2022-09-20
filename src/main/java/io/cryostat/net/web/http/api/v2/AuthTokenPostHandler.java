@@ -110,6 +110,11 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     }
 
     @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
+    }
+
+    @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)
             throws Exception {
         String resource = requestParams.getFormAttributes().get(AssetJwtHelper.RESOURCE_CLAIM);

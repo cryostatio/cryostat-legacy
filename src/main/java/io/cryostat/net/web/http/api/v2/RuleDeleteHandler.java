@@ -122,7 +122,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.PLAINTEXT);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

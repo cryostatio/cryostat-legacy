@@ -104,7 +104,7 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.PLAINTEXT);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

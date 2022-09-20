@@ -123,6 +123,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
+    }
+
+    @Override
     public IntermediateResponse<ServiceRef> handle(RequestParameters params) throws ApiException {
         try {
             MultiMap attrs = params.getFormAttributes();

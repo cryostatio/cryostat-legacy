@@ -151,9 +151,9 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void shouldProducePlaintext() {
+        void shouldProduceJson() {
             MatcherAssert.assertThat(
-                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -178,7 +178,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("null"));
         }
 
         @Test
@@ -189,7 +188,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -200,7 +198,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -211,7 +208,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("text/plain"));
         }
 
         @ParameterizedTest
