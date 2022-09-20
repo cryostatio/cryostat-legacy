@@ -131,8 +131,9 @@ content-type: application/json
 
 ### `GET /api/v2.2/graphiql/*`
 
-Serves a GraphQL "query IDE" that can be used for testing out writing queries
-and seeing the responses served for those queries by `POST /api/v2.2/graphql`.
+Serves a GraphQL "query IDE" ([GraphiQL](https://github.com/graphql/graphiql))
+that can be used for testing out writing queries and seeing the responses served
+for those queries by `POST /api/v2.2/graphql`.
 Note the `/*` in the path - to open this in your browser while running using
 `run.sh`/`smoketest.sh`, go to `https://localhost:8181/api/v2.2/graphiql/`. The
 trailing slash is significant. This endpoint is only available and workable if
