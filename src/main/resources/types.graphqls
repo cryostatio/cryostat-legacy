@@ -112,6 +112,7 @@ type ArchivedRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
     metadata: RecordingMetadata!
+    fileSize: Long!
 
     doDelete: ArchivedRecording!
     doPutMetadata(metadata: Object): ArchivedRecording!

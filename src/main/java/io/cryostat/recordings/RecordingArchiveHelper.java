@@ -169,7 +169,8 @@ public class RecordingArchiveHelper {
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
-                            metadata);
+                            metadata,
+                            getFileSize(filename));
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -208,6 +209,7 @@ public class RecordingArchiveHelper {
             Path filenamePath = archivedRecording.getFileName();
             String filename = filenamePath.toString();
             String subdirectoryName = parentPath.getFileName().toString();
+
             String targetId =
                     (subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY))
                             ? UPLOADED_RECORDINGS_SUBDIRECTORY
@@ -219,7 +221,8 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                    new ConnectionDescriptor(targetId), recordingName));
+                                    new ConnectionDescriptor(targetId), recordingName),
+                            getFileSize(filename));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -313,7 +316,8 @@ public class RecordingArchiveHelper {
                                             webServer.getArchivedDownloadURL(file),
                                             webServer.getArchivedReportURL(file),
                                             recordingMetadataManager.getMetadata(
-                                                    new ConnectionDescriptor(targetId), file));
+                                                    new ConnectionDescriptor(targetId), file),
+                                            getFileSize(file));
                                 } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
@@ -369,7 +373,8 @@ public class RecordingArchiveHelper {
                                                         recordingMetadataManager.getMetadata(
                                                                 new ConnectionDescriptor(
                                                                         metadataSourceTarget),
-                                                                file));
+                                                                file),
+                                                        getFileSize(file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
@@ -522,5 +527,14 @@ public class RecordingArchiveHelper {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();
+    }
+
+    private long getFileSize(String recordingName) {
+        try {
+            return Files.size(getRecordingPath(recordingName).get());
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.error("Invalid path: ", recordingName);
+            return 0;
+        }
     }
 }
