@@ -218,6 +218,15 @@ public class WebServer extends AbstractVerticle {
                     for (HttpMimeType mime : handler.consumes()) {
                         route = route.consumes(mime.mime());
                     }
+                    DeprecatedApi deprecated =
+                            handler.getClass().getAnnotation(DeprecatedApi.class);
+                    if (deprecated != null) {
+                        route =
+                                route.handler(
+                                        new DeprecatedHandlerDecorator(
+                                                deprecated.deprecated().forRemoval(),
+                                                deprecated.alternateLocation()));
+                    }
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
