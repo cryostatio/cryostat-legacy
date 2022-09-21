@@ -102,8 +102,8 @@ public class RecordingArchiveHelper {
     private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
-    private static final int FS_TIMEOUT_SECONDS = 5;
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
+    private static final long FS_TIMEOUT_SECONDS = 1;
 
     // FIXME: remove ARCHIVES after 2.2.0 release since we either use "uploads" or sourceTarget
     public static final String ARCHIVES = "archives";
@@ -187,8 +187,12 @@ public class RecordingArchiveHelper {
 
     protected void transferArchives(Path subdirectoryPath, String oldJvmId) {
         try {
+            List<String> files = fs.listDirectoryChildren(subdirectoryPath);
+            if (files.isEmpty()) {
+                return;
+            }
             String connectUrl = null;
-            for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+            for (String file : files) {
                 // use metadata file to determine connectUrl to probe for jvmId
                 if (file.equals("connectUrl")) {
                     connectUrl = fs.readFile(subdirectoryPath.resolve(file)).readLine();
@@ -260,6 +264,7 @@ public class RecordingArchiveHelper {
                     targetConnectionManager.executeConnectedTask(
                             connectionDescriptor,
                             connection -> {
+                                System.out.println("SAVE RECORDINGS ARCHIVE");
                                 Optional<IRecordingDescriptor> descriptor =
                                         this.getDescriptorByName(connection, recordingName);
 

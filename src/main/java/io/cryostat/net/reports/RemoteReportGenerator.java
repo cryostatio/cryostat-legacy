@@ -94,44 +94,44 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
         var f = new CompletableFuture<Path>();
 
-        CompletableFuture.runAsync(
-                () -> {
-                    this.http
-                            .postAbs(String.format("%s/report", reportGenerator))
-                            .timeout(TimeUnit.SECONDS.toMillis(generationTimeoutSeconds))
-                            .sendMultipartForm(
-                                    form,
-                                    ar -> {
-                                        if (ar.failed()) {
-                                            f.completeExceptionally(ar.cause());
-                                            return;
-                                        }
-                                        if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                ar.result().statusCode())) {
-                                            f.completeExceptionally(
-                                                    new ReportGenerationException(
-                                                            ar.result().statusCode(),
-                                                            ar.result().statusMessage()));
-                                            return;
-                                        }
-                                        var body = ar.result().bodyAsBuffer();
-                                        vertx.fileSystem()
-                                                .writeFile(
-                                                        destination.toString(),
-                                                        body,
-                                                        ar2 -> {
-                                                            if (ar2.failed()) {
-                                                                f.completeExceptionally(ar.cause());
-                                                                return;
-                                                            }
-                                                            f.complete(destination);
-                                                            logger.info(
-                                                                    "Report response for {}"
-                                                                            + " success",
-                                                                    recording);
-                                                        });
-                                    });
-                });
+        vertx.executeBlocking(future -> {
+                this.http
+                .postAbs(String.format("%s/report", reportGenerator))
+                .timeout(TimeUnit.SECONDS.toMillis(generationTimeoutSeconds))
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            if (ar.failed()) {
+                                f.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            if (!HttpStatusCodeIdentifier.isSuccessCode(
+                                    ar.result().statusCode())) {
+                                f.completeExceptionally(
+                                        new ReportGenerationException(
+                                                ar.result().statusCode(),
+                                                ar.result().statusMessage()));
+                                return;
+                            }
+                            var body = ar.result().bodyAsBuffer();
+                            vertx.fileSystem()
+                                    .writeFile(
+                                            destination.toString(),
+                                            body,
+                                            ar2 -> {
+                                                if (ar2.failed()) {
+                                                    f.completeExceptionally(ar.cause());
+                                                    return;
+                                                }
+                                                f.complete(destination);
+                                                logger.info(
+                                                        "Report response for {}"
+                                                                + " success",
+                                                        recording);
+                                            });
+                        });
+    });
+                    
         return f;
     }
 }

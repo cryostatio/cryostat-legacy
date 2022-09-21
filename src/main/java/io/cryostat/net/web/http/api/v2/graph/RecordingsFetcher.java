@@ -130,6 +130,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                     targetConnectionManager.executeConnectedTask(
                             cd,
                             conn -> {
+                                System.out.println("RECORDINGSFETCHER");
                                 return conn.getService().getAvailableRecordings().stream()
                                         .map(
                                                 r -> {

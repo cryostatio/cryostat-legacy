@@ -62,6 +62,7 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 
@@ -156,6 +157,7 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -181,6 +183,7 @@ public abstract class RecordingsModule {
                     vertx,
                     metadataDir,
                     archivedRecordingsPath,
+                    connectionTimeoutSeconds,
                     fs,
                     archiveHelperProvider,
                     targetConnectionManager,
@@ -199,9 +202,11 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
+            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             Logger logger) {
-        return new JvmIdHelper(targetConnectionManager, credentialsManager, logger);
+        return new JvmIdHelper(vertx, targetConnectionManager, credentialsManager, connectionTimeoutSeconds, logger);
     }
 }

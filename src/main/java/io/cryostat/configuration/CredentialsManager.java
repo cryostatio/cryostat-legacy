@@ -199,9 +199,8 @@ public class CredentialsManager
     public Credentials getCredentialsByTargetId(String targetId)
             throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
-            System.out.println("DISCOVERABLE: ");
-            System.out.println(service.getServiceUri());
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
+                logger.info("Got credentials for {}", targetId);
                 return getCredentials(service);
             }
         }

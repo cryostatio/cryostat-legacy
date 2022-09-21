@@ -69,6 +69,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -85,6 +86,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.openjdk.jmc.rjmx.ConnectionException;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
@@ -95,6 +97,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private final Path recordingMetadataDir;
     private final Path archivedRecordingsPath;
+    private final long connectionTimeoutSeconds;
     private final FileSystem fs;
     private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
@@ -113,6 +116,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             Vertx vertx,
             Path recordingMetadataDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -126,6 +130,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.vertx = vertx;
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
+        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.fs = fs;
         this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
@@ -382,6 +387,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
+        logger.info("ACCEPT: RECORDINGMETADATAMANAGER {}", targetId);
         String oldJvmId = jvmIdHelper.get(targetId);
 
         ConnectionDescriptor cd;
@@ -595,17 +601,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
-            String newJvmId =
-                    this.targetConnectionManager.executeConnectedTask(
-                            cd,
-                            connection -> {
-                                try {
-                                    return connection.getJvmId();
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    return null;
-                                }
-                            });
+            logger.info("TRANSFERMETADATAIFRESTARTED RIGHT BEFORE");
+            String newJvmId = jvmIdHelper.computeJvmId(new ConnectionDescriptor(targetId));
 
             if (newJvmId == null) {
                 logger.info(
@@ -721,7 +718,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd, connection -> connectFuture.complete(connection.isConnected()));
-            return connectFuture.get(JvmIdHelper.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return connectFuture.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
             return false;
@@ -733,14 +730,39 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd,
-                    conn ->
-                            conn.getService().getAvailableRecordings().stream()
-                                    .anyMatch(
-                                            r ->
-                                                    future.complete(
-                                                            Objects.equals(
-                                                                    recordingName, r.getName()))));
-            return future.get(JvmIdHelper.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    conn ->{
+                        try {
+                            return conn.getService().getAvailableRecordings().stream()
+                            .anyMatch(
+                                    r ->
+                                            future.complete(
+                                                    Objects.equals(
+                                                            recordingName, r.getName())));
+                        } catch (ConnectionException e) {
+                            if (e.getCause() instanceof SecurityException) {
+                                // don't have credentials to access target
+                                if (cd.getCredentials().isEmpty()) {
+                                    logger.warn(
+                                            "Target {} requires credentials to access recordings",
+                                            cd.getTargetId());
+                                    throw e;
+                                }
+                                else {
+                                    logger.warn(
+                                            "Target {} credentials are invalid",
+                                            cd.getTargetId());
+                                    throw e;
+                                }
+                            }
+                            else {
+                                e.printStackTrace();
+                                logger.info("why else");
+                                throw e;
+                            }
+                        }
+                    });
+
+            return future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException te) {
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
             return false;

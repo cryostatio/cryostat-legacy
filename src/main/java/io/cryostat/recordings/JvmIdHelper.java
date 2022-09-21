@@ -43,60 +43,107 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
+
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportsModule;
+import io.vertx.core.Vertx;
 
 public class JvmIdHelper {
+    private final Vertx vertx;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
+    private final long connectionTimeoutSeconds;
     private final Logger logger;
 
     private final Map<String, String> jvmIdMap;
 
-    public static final int CONNECT_TIMEOUT_SECONDS = 1;
-
     JvmIdHelper(
+            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             Logger logger) {
-
+        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
+        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.logger = logger;
         this.jvmIdMap = new ConcurrentHashMap<>();
     }
 
-    private String computeJvmId(ConnectionDescriptor cd) {
+    protected String computeJvmId(ConnectionDescriptor cd) {
         CompletableFuture<String> future = new CompletableFuture<>();
-        if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
-                || cd.getTargetId()
-                        .equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+        String targetId = cd.getTargetId();
+        if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
+                || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
         try {
             if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                cd.getTargetId(),
-                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
+                cd = new ConnectionDescriptor(targetId, credentialsManager.getCredentialsByTargetId(targetId));
             }
             final ConnectionDescriptor desc = cd;
-            CompletableFuture.runAsync(
-                    () -> {
-                        try {
-                            this.targetConnectionManager.executeConnectedTask(
-                                    desc,
-                                    connection -> {
-                                        return future.complete(connection.getJvmId());
-                                    });
-                        } catch (Exception e) {
-                            future.completeExceptionally(e);
-                        }
-                    });
-            return future.get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            vertx.executeBlocking(
+                promise -> {
+                    try {
+                        logger.info("COMPUTEJVMID RIGHT BEFORE at this time!: {}", targetId);
+                        this.targetConnectionManager.executeConnectedTask(
+                                desc,
+                                connection -> {
+                                    try {
+                                        logger.info("COMPUTEJVMID before computation at this time: {}", targetId);
+                                        String jvmId = connection.getJvmId();
+                                        logger.info("COMPUTEJVMID after computation at this time: {}", jvmId);
+                                        promise.complete(jvmId);
+                                        return null;
+                                    } catch (ConnectionException e) {
+                                        if (e.getCause() instanceof SecurityException) {
+                                            // don't have credentials to access target
+                                            if (desc.getCredentials().isEmpty()) {
+                                                logger.warn(
+                                                        "Target {} requires credentials to access recordings",
+                                                        desc.getTargetId());
+                                            }
+                                            else {
+                                                logger.warn(
+                                                        "Target {} credentials are invalid",
+                                                        desc.getTargetId());
+                                            }
+                                        }
+                                        else {
+                                            e.printStackTrace();
+                                            logger.info("why else");
+                                        }
+                                        promise.fail(e);
+                                        return null;
+                                    }
+                                });
+                    } catch (Exception e) {
+                        promise.fail(e);
+                    } finally {
+                        logger.info("vertx execute blocking computeid finally finished: {}", targetId);
+                    }
+                }, result -> {
+                    if (result.succeeded()) {
+                        logger.info("COMPUTEJVMID result succeeded at this time: {}", targetId);
+                        future.complete((String) result.result());
+                    } else {
+                        logger.info("COMPUTEJVMID result failed at this time: {}", targetId);
+                        future.completeExceptionally(result.cause());
+                    }
+                });
+            logger.info("trying to get future jvmId at this time! {}", targetId);
+            String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+            logger.info("got future jvmId at this time! {}", id);
+            return id;
         } catch (Exception e) {
+            logger.warn("COMPUTEJVMID: Couldn't compute jvmId for target: {}", targetId);
             logger.error(e);
             return null;
         }
@@ -104,7 +151,7 @@ public class JvmIdHelper {
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
         String targetId = connectionDescriptor.getTargetId();
-        // FIXME: this should be fixed after the 2.2.0 release
+        // FIXME: this should be refactored after the 2.2.0 release
         if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;

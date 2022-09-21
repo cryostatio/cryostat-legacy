@@ -105,10 +105,10 @@ class RecordingArchiveHelperTest {
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
+    @Mock JvmIdHelper jvmIdHelper;
+    @Mock Base32 base32;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    @Mock Base32 base32;
-
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
@@ -141,6 +141,7 @@ class RecordingArchiveHelperTest {
                         clock,
                         platformClient,
                         notificationFactory,
+                        jvmIdHelper,
                         base32);
     }
 
