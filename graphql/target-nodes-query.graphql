@@ -9,3 +9,31 @@ query {
         }
     }
 }
+
+// query the archived recording with aggregate information
+query {
+    targetNodes {
+        name
+        nodeType
+        labels
+        target {
+            alias
+            serviceUri
+        }                
+        recording {            
+            archived {
+                data {
+                    name
+                    metadata {
+                        labels
+                    }
+                    size
+                    aggregate {
+                        count
+                        size
+                    }
+                }
+            }
+        }
+    }
+}

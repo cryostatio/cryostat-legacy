@@ -77,7 +77,7 @@ class FilterInput {
         DURATION_LE("durationMsLessThanEqual"),
         START_TIME_BEFORE("startTimeMsBeforeEqual"),
         START_TIME_AFTER("startTimeMsAfterEqual"),
-        ;
+        SIZE("size");
 
         private final String key;
 

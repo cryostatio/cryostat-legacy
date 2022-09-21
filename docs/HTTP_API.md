@@ -344,7 +344,7 @@
     `200` - The body is a JSON array of recording objects.
 
     The format for a recording is
-    `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL"}`.
+    `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL","metadata":"{"labels":{"$KEY":"$VALUE"}},"size":"$SIZE"`. 
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -356,7 +356,7 @@
     ###### example
     ```
     $ curl localhost:8181/api/v1/recordings
-    [{"downloadUrl":"http://192.168.0.109:8181/api/v1/recordings/localhost_foo_20200903T202547Z.jfr","name":"localhost_foo_20200903T202547Z.jfr","reportUrl":"http://192.168.0.109:8181/api/v1/reports/localhost_foo_20200903T202547Z.jfr"}]
+    [{"downloadUrl":"http://192.168.0.109:8181/api/v1/recordings/localhost_foo_20200903T202547Z.jfr","metadata":{"labels":{"template.name":"Continuous","template.type": "TARGET"}},"name":"localhost_foo_20200903T202547Z.jfr","reportUrl":"http://192.168.0.109:8181/api/v1/reports/localhost_foo_20200903T202547Z.jfr","size":2578134}]
     ```
 
 

@@ -96,11 +96,19 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
                                 .collect(Collectors.toList());
             }
         }
+        if (filter.contains(FilterInput.Key.SIZE)) {
+            Long fileSize = filter.get(FilterInput.Key.SIZE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> Objects.equals(r.getSize(), fileSize))
+                            .collect(Collectors.toList());
+        }
 
         Archived archived = new Archived();
         AggregateInfo aggregate = new AggregateInfo();
         archived.data = recordings;
         aggregate.count = Long.valueOf(archived.data.size());
+        aggregate.size = archived.data.stream().mapToLong(ArchivedRecordingInfo::getSize).sum();
         archived.aggregate = aggregate;
 
         return archived;
@@ -113,5 +121,6 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
 
     static class AggregateInfo {
         Long count;
+        Long size;
     }
 }

@@ -50,7 +50,7 @@ public class ArchivedRecordingInfo {
     private final String name;
     private final String reportUrl;
     private final Metadata metadata;
-    private long fileSize;
+    private long size;
 
     public ArchivedRecordingInfo(
             String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
@@ -68,7 +68,7 @@ public class ArchivedRecordingInfo {
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
-        this.fileSize = 0;
+        this.size = 0;
     }
 
     public ArchivedRecordingInfo(
@@ -77,13 +77,13 @@ public class ArchivedRecordingInfo {
             String downloadUrl,
             String reportUrl,
             Metadata metadata,
-            long fileSize) {
+            long size) {
         this.encodedServiceUri = encodedServiceUri;
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
-        this.fileSize = fileSize;
+        this.size = size;
     }
 
     public String getEncodedServiceUri() {
@@ -106,8 +106,8 @@ public class ArchivedRecordingInfo {
         return this.metadata;
     }
 
-    public long getFileSize() {
-        return this.fileSize;
+    public long getSize() {
+        return this.size;
     }
 
     @Override
@@ -128,7 +128,7 @@ public class ArchivedRecordingInfo {
                 .append(downloadUrl, ari.downloadUrl)
                 .append(reportUrl, ari.reportUrl)
                 .append(metadata, ari.metadata)
-                .append(fileSize, ari.fileSize)
+                .append(size, ari.size)
                 .isEquals();
     }
 
@@ -140,7 +140,7 @@ public class ArchivedRecordingInfo {
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)
-                .append(fileSize)
+                .append(size)
                 .hashCode();
     }
 }

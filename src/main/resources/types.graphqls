@@ -112,7 +112,7 @@ type ArchivedRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
     metadata: RecordingMetadata!
-    fileSize: Long!
+    size: Long!
 
     doDelete: ArchivedRecording!
     doPutMetadata(metadata: Object): ArchivedRecording!
@@ -125,6 +125,7 @@ type Archived {
 
 type AggregateInfo {
     count: Long!
+    size: Long!
 }
 
 interface Recording {
