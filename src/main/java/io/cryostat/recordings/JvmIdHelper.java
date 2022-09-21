@@ -45,8 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
 
-import org.openjdk.jmc.rjmx.ConnectionException;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
@@ -55,10 +53,8 @@ import io.cryostat.net.reports.ReportsModule;
 import io.vertx.core.Vertx;
 
 public class JvmIdHelper {
-    private final Vertx vertx;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
-    private final long connectionTimeoutSeconds;
     private final Logger logger;
 
     private final Map<String, String> jvmIdMap;
@@ -69,16 +65,13 @@ public class JvmIdHelper {
             CredentialsManager credentialsManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             Logger logger) {
-        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
-        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.logger = logger;
         this.jvmIdMap = new ConcurrentHashMap<>();
     }
 
     protected String computeJvmId(ConnectionDescriptor cd) {
-        CompletableFuture<String> future = new CompletableFuture<>();
         String targetId = cd.getTargetId();
         if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
@@ -89,64 +82,35 @@ public class JvmIdHelper {
                 cd = new ConnectionDescriptor(targetId, credentialsManager.getCredentialsByTargetId(targetId));
             }
             final ConnectionDescriptor desc = cd;
-            vertx.executeBlocking(
-                promise -> {
-                    try {
-                        logger.info("COMPUTEJVMID RIGHT BEFORE at this time!: {}", targetId);
-                        this.targetConnectionManager.executeConnectedTask(
-                                desc,
-                                connection -> {
-                                    try {
-                                        logger.info("COMPUTEJVMID before computation at this time: {}", targetId);
-                                        String jvmId = connection.getJvmId();
-                                        logger.info("COMPUTEJVMID after computation at this time: {}", jvmId);
-                                        promise.complete(jvmId);
-                                        return null;
-                                    } catch (ConnectionException e) {
-                                        if (e.getCause() instanceof SecurityException) {
-                                            // don't have credentials to access target
-                                            if (desc.getCredentials().isEmpty()) {
-                                                logger.warn(
-                                                        "Target {} requires credentials to access recordings",
-                                                        desc.getTargetId());
-                                            }
-                                            else {
-                                                logger.warn(
-                                                        "Target {} credentials are invalid",
-                                                        desc.getTargetId());
-                                            }
-                                        }
-                                        else {
-                                            e.printStackTrace();
-                                            logger.info("why else");
-                                        }
-                                        promise.fail(e);
-                                        return null;
-                                    }
-                                });
-                    } catch (Exception e) {
-                        promise.fail(e);
-                    } finally {
-                        logger.info("vertx execute blocking computeid finally finished: {}", targetId);
-                    }
-                }, result -> {
-                    if (result.succeeded()) {
-                        logger.info("COMPUTEJVMID result succeeded at this time: {}", targetId);
-                        future.complete((String) result.result());
-                    } else {
-                        logger.info("COMPUTEJVMID result failed at this time: {}", targetId);
-                        future.completeExceptionally(result.cause());
-                    }
-                });
-            logger.info("trying to get future jvmId at this time! {}", targetId);
-            String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
-            logger.info("got future jvmId at this time! {}", id);
-            return id;
+            return this.targetConnectionManager.executeConnectedTask(
+                    desc,
+                    connection -> {
+                        try {
+                            String jvmId = connection.getJvmId();
+                            return jvmId;
+                        } catch (Exception e) {
+                            if (e.getCause() instanceof SecurityException) {
+                                // don't have credentials to access target
+                                if (desc.getCredentials().isEmpty()) {
+                                    logger.warn(
+                                            "Target {} requires credentials to access recordings",
+                                            desc.getTargetId());
+                                }
+                                else {
+                                    logger.warn("Target {} credentials are invalid",desc.getTargetId());
+                                }
+                            }
+                            else {
+                                logger.warn(e);
+                            }
+                            return null;
+                        }
+                    });
         } catch (Exception e) {
-            logger.warn("COMPUTEJVMID: Couldn't compute jvmId for target: {}", targetId);
-            logger.error(e);
+            logger.warn(e);
             return null;
         }
+        
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
@@ -159,9 +123,8 @@ public class JvmIdHelper {
         String jvmId =
                 this.jvmIdMap.computeIfAbsent(
                         targetId,
-                        k -> {
-                            return computeJvmId(connectionDescriptor);
-                        });
+                        k -> computeJvmId(connectionDescriptor)
+                        );
         if (jvmId == null) {
             throw new JvmIdGetException(String.format("Error connecting to target %s", targetId));
         }
@@ -199,6 +162,10 @@ public class JvmIdHelper {
     static class JvmIdGetException extends IOException {
         JvmIdGetException(String message) {
             super(message);
+        }
+
+        JvmIdGetException(Throwable cause) {
+            super(cause);
         }
     }
 }
