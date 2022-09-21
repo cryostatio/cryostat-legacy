@@ -54,8 +54,7 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;
 
-class AllArchivedRecordingsFetcher
-        extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
+class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
 
     private final RecordingArchiveHelper archiveHelper;
 
@@ -71,28 +70,27 @@ class AllArchivedRecordingsFetcher
     }
 
     @Override
-    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
+    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
-        List<ArchivedRecordingInfo> result = new ArrayList<>();
+        List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
             String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
-            result = archiveHelper.getRecordings(targetId).get();
+            recordings = archiveHelper.getRecordings(targetId).get();
         } else {
-            result = archiveHelper.getRecordings().get();
+            recordings = archiveHelper.getRecordings().get();
         }
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
-                result =
-                        result.stream()
+                recordings =
+                        recordings.stream()
                                 .filter(
                                         r ->
                                                 LabelSelectorMatcher.parse(label)
@@ -100,6 +98,21 @@ class AllArchivedRecordingsFetcher
                                 .collect(Collectors.toList());
             }
         }
-        return result;
+        if (filter.contains(FilterInput.Key.SIZE_GE)) {
+            Long fileSize = filter.get(FilterInput.Key.SIZE_GE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getSize() >= fileSize)
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.SIZE_LE)) {
+            Long fileSize = filter.get(FilterInput.Key.SIZE_LE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getSize() <= fileSize)
+                            .collect(Collectors.toList());
+        }
+
+        return recordings;
     }
 }

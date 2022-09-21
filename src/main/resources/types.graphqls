@@ -39,6 +39,8 @@ input ArchivedRecordingFilterInput {
     name: String
     labels: [String]
     sourceTarget: String
+    sizeBytesGreaterThanEqual: Long
+    sizeBytesLessThanEqual: Long
 }
 
 type ServiceRef {

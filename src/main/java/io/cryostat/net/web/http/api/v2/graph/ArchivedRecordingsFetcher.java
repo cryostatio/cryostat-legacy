@@ -96,11 +96,18 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
                                 .collect(Collectors.toList());
             }
         }
-        if (filter.contains(FilterInput.Key.SIZE)) {
-            Long fileSize = filter.get(FilterInput.Key.SIZE);
+        if (filter.contains(FilterInput.Key.SIZE_GE)) {
+            Long fileSize = filter.get(FilterInput.Key.SIZE_GE);
             recordings =
                     recordings.stream()
-                            .filter(r -> Objects.equals(r.getSize(), fileSize))
+                            .filter(r -> r.getSize() >= fileSize)
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.SIZE_LE)) {
+            Long fileSize = filter.get(FilterInput.Key.SIZE_LE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getSize() <= fileSize)
                             .collect(Collectors.toList());
         }
 
