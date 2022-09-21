@@ -54,7 +54,8 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;
 
-class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
+class AllArchivedRecordingsFetcher
+        extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
 
     private final RecordingArchiveHelper archiveHelper;
 
@@ -70,7 +71,8 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<List<
     }
 
     @Override
-    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         FilterInput filter = FilterInput.from(environment);
         List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
