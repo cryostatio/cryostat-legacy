@@ -191,6 +191,7 @@ class ArchivedRecordingsFetcherTest {
             String nameFilter = "foo";
             String labelFilter1 = "template.type";
             String labelFilter2 = "myLabel";
+            Long size = 1234567L;
 
             ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
             ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
@@ -217,11 +218,14 @@ class ArchivedRecordingsFetcherTest {
             when(recording5.getMetadata())
                     .thenReturn(
                             new Metadata(Map.of("myLabel", "foo", "template.type", "Profiling")));
-
+            when(recording3.getSize()).thenReturn(1234577L);
+            when(recording5.getSize()).thenReturn(1234569L);
             when(filter.contains(Mockito.any())).thenReturn(false);
             when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
             when(filter.contains(FilterInput.Key.LABELS)).thenReturn(true);
+            when(filter.contains(FilterInput.Key.SIZE_GE)).thenReturn(true);
             when(filter.get(FilterInput.Key.NAME)).thenReturn(nameFilter);
+            when(filter.get(FilterInput.Key.SIZE_GE)).thenReturn(size);
             when(filter.get(FilterInput.Key.LABELS))
                     .thenReturn(List.of(labelFilter1, labelFilter2));
 
@@ -233,9 +237,10 @@ class ArchivedRecordingsFetcherTest {
             Archived archived = fetcher.get(env);
 
             MatcherAssert.assertThat(archived, Matchers.notNullValue());
-            MatcherAssert.assertThat(
-                    archived.data, Matchers.containsInAnyOrder(recording3, recording5));
+            MatcherAssert.assertThat(archived.data, Matchers.containsInAnyOrder(recording3, recording5));
             MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(2L));
+            MatcherAssert.assertThat(
+                    archived.aggregate.size, Matchers.equalTo(recording3.getSize() + recording5.getSize()));
         }
     }
 }
