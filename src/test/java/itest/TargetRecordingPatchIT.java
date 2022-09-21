@@ -40,8 +40,11 @@ package itest;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
@@ -106,6 +109,7 @@ public class TargetRecordingPatchIT extends StandardSelfTest {
             CompletableFuture<String> saveResponse = new CompletableFuture<>();
             webClient
                     .patch(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {

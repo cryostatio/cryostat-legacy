@@ -43,6 +43,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -125,6 +126,11 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 
     @Override

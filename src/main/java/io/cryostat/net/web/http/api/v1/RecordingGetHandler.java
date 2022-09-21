@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -96,6 +97,11 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public boolean isAsync() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.OCTET_STREAM);
     }
 
     @Override

@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -91,6 +92,11 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
     @Override
     public boolean isAsync() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,6 +47,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -86,6 +88,16 @@ class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandle
     @Override
     public String path() {
         return basePath() + TargetRecordingsPostHandler.PATH;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
     }
 
     @Override

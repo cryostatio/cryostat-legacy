@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -94,6 +95,11 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JFC, HttpMimeType.XML);
     }
 
     @Override
