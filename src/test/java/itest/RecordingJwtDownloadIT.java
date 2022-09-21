@@ -37,7 +37,6 @@
  */
 package itest;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -57,24 +57,25 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
 
     @Test
     void testDownloadRecordingUsingJwt() throws Exception {
-        URL resource = null;
+        JsonObject resource = null;
         Path assetDownload = null;
         try {
             resource = createRecording();
-            String downloadUrl = getTokenDownloadUrl(resource);
+            String downloadUrl =
+                    getTokenDownloadUrl(
+                            new URL(
+                                    resource.getString("downloadUrl")
+                                            .replace("/api/v1/", "/api/v2.1/")));
             Thread.sleep(10_000L);
             assetDownload =
-                    downloadFileAbs(
-                                    downloadUrl.replace("/api/v1/", "/api/v2.1"),
-                                    TEST_RECORDING_NAME,
-                                    ".jfr")
+                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(Files.isReadable(assetDownload));
             Assertions.assertTrue(Files.isRegularFile(assetDownload));
             MatcherAssert.assertThat(assetDownload.toFile().length(), Matchers.greaterThan(0L));
         } finally {
             if (resource != null) {
-                cleanupCreatedResources(resource.getPath());
+                cleanupCreatedResources(resource.getString("downloadUrl"));
             }
             if (assetDownload != null) {
                 Files.deleteIfExists(assetDownload);
@@ -82,8 +83,8 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
         }
     }
 
-    URL createRecording() throws Exception {
-        CompletableFuture<URL> future = new CompletableFuture<>();
+    JsonObject createRecording() throws Exception {
+        CompletableFuture<JsonObject> future = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", TEST_RECORDING_NAME);
         form.add("duration", "10");
@@ -94,15 +95,7 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
                         form,
                         ar -> {
                             if (assertRequestStatus(ar, future)) {
-                                try {
-                                    future.complete(
-                                            new URL(
-                                                    ar.result()
-                                                            .bodyAsJsonObject()
-                                                            .getString("downloadUrl")));
-                                } catch (MalformedURLException e) {
-                                    throw new RuntimeException(e);
-                                }
+                                future.complete(ar.result().bodyAsJsonObject());
                             }
                         });
         return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

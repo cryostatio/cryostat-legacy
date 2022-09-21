@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -88,8 +89,8 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

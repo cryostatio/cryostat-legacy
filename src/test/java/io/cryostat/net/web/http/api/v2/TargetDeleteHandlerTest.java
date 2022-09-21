@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -109,8 +110,8 @@ class TargetDeleteHandlerTest {
     }
 
     @Test
-    void shouldHaveJsonMimeType() {
-        MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+    void shouldProduceJson() {
+        MatcherAssert.assertThat(handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
     }
 
     @Test

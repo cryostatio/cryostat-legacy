@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -150,8 +151,9 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void shouldHavePlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -176,7 +178,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("null"));
         }
 
         @Test
@@ -187,7 +188,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -198,7 +198,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -209,7 +208,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("text/plain"));
         }
 
         @ParameterizedTest

@@ -47,6 +47,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -118,8 +119,8 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 
     @Override

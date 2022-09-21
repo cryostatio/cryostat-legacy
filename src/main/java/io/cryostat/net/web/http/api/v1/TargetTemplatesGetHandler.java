@@ -112,6 +112,11 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         List<Template> templates =
                 connectionManager.executeConnectedTask(

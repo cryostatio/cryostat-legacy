@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -125,8 +126,8 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

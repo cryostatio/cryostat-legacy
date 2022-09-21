@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -84,8 +85,8 @@ class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

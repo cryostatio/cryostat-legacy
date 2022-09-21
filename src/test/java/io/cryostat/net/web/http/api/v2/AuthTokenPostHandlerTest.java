@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -108,8 +109,9 @@ class AuthTokenPostHandlerTest {
         }
 
         @Test
-        void shouldHaveJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
     }
 

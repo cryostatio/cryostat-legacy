@@ -42,6 +42,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -107,8 +108,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -119,6 +120,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
     }
 
     @Override

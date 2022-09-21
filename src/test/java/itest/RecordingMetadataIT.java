@@ -57,6 +57,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
@@ -298,6 +299,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
                                     SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
@@ -448,6 +450,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                     .patch(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s", targetId, RECORDING_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "

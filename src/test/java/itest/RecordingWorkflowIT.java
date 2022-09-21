@@ -45,8 +45,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
@@ -129,6 +132,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
                                     TARGET_ID, TEST_RECORDING_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {

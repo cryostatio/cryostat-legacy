@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -103,8 +104,8 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
