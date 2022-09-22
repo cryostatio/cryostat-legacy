@@ -207,6 +207,11 @@ public abstract class RecordingsModule {
             CredentialsManager credentialsManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             Logger logger) {
-        return new JvmIdHelper(vertx, targetConnectionManager, credentialsManager, connectionTimeoutSeconds, logger);
+        return new JvmIdHelper(
+                vertx,
+                targetConnectionManager,
+                credentialsManager,
+                connectionTimeoutSeconds,
+                logger);
     }
 }

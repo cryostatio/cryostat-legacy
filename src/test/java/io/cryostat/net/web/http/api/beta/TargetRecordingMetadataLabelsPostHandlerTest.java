@@ -38,9 +38,9 @@
 
 package io.cryostat.net.web.http.api.beta;
 
-import java.util.List;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;

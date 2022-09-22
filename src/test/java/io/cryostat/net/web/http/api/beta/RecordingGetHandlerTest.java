@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -117,9 +118,9 @@ class RecordingGetHandlerTest {
         }
 
         @Test
-        void shouldHaveOctetStreamMimeType() {
+        void shouldProduceOctetStream() {
             MatcherAssert.assertThat(
-                    handler.mimeType(), Matchers.equalTo(HttpMimeType.OCTET_STREAM));
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.OCTET_STREAM)));
         }
 
         @Test

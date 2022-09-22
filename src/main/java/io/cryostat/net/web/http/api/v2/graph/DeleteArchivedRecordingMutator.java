@@ -70,6 +70,8 @@ class DeleteArchivedRecordingMutator
     public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         ArchivedRecordingInfo source = environment.getSource();
-        return recordingArchiveHelper.deleteRecording(source.getName()).get();
+        return recordingArchiveHelper
+                .deleteRecording(source.getServiceUri(), source.getName())
+                .get();
     }
 }

@@ -42,6 +42,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -274,7 +275,8 @@ public class RecordingArchiveHelper {
                                     throw new RecordingNotFoundException(
                                             "active recordings", recordingName);
                                 }
-                            }, false);
+                            },
+                            false);
             validateSavePath(recordingName, savePath);
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
@@ -344,7 +346,8 @@ public class RecordingArchiveHelper {
             Path parentPath = archivedRecording.getParent();
             Path filenamePath = archivedRecording.getFileName();
             String filename = filenamePath.toString();
-            String targetId = getConnectUrlFromPath(parentPath).get();
+            String targetId =
+                    sourceTarget == null ? UPLOADED_RECORDINGS_SUBDIRECTORY : sourceTarget;
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             targetId,
@@ -361,17 +364,23 @@ public class RecordingArchiveHelper {
                     .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
                     .build()
                     .send();
-            if (fs.listDirectoryChildren(parentPath).size() == 1 && fs.listDirectoryChildren(parentPath).contains(CONNECT_URL)) {
-                fs.deleteIfExists(parentPath);
-            }
+            checkEmptySubdirectory(parentPath);
             future.complete(archivedRecordingInfo);
-        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+        } catch (IOException | URISyntaxException e) {
             future.completeExceptionally(e);
         } finally {
             deleteReport(sourceTarget, recordingName);
         }
 
         return future;
+    }
+
+    private void checkEmptySubdirectory(Path parentPath) throws IOException {
+        if (fs.listDirectoryChildren(parentPath).size() == 1
+                && fs.listDirectoryChildren(parentPath).contains(CONNECT_URL)) {
+            fs.deleteIfExists(parentPath.resolve(CONNECT_URL));
+            fs.deleteIfExists(parentPath);
+        }
     }
 
     private void validateSavePath(String recordingName, Path path) throws IOException {
@@ -566,6 +575,10 @@ public class RecordingArchiveHelper {
             Path subdirectory = getRecordingSubdirectoryPath(jvmId);
             if (!fs.exists(archivedRecordingsPath.resolve(subdirectory))) {
                 fs.createDirectory(archivedRecordingsPath.resolve(subdirectory));
+                fs.writeString(
+                        archivedRecordingsPath.resolve(subdirectory.resolve("connectUrl")),
+                        sourceTarget,
+                        StandardOpenOption.CREATE);
             }
             Path archivedRecording = searchSubdirectory(subdirectory, recordingName);
             if (archivedRecording == null) {
@@ -610,11 +623,15 @@ public class RecordingArchiveHelper {
 
     public void validateSourceTarget(String sourceTarget)
             throws RecordingSourceTargetNotFoundException {
+        // assume sourceTarget is percent encoded
+        String decodedTargetId = URLDecoder.decode(sourceTarget, StandardCharsets.UTF_8);
         boolean exists =
                 this.platformClient.listDiscoverableServices().stream()
-                        .anyMatch(target -> target.getServiceUri().toString().equals(sourceTarget));
+                        .anyMatch(
+                                target ->
+                                        target.getServiceUri().toString().equals(decodedTargetId));
         if (!exists) {
-            throw new RecordingSourceTargetNotFoundException(sourceTarget);
+            throw new RecordingSourceTargetNotFoundException(decodedTargetId);
         }
     }
 
@@ -633,6 +650,10 @@ public class RecordingArchiveHelper {
         if (!fs.isReadable(archivedRecording)) {
             throw new ArchivePathException(archivedRecording.toString(), "is not readable");
         }
+        if (!fs.exists(archivedRecording.resolveSibling(CONNECT_URL))) {
+            throw new ArchivePathException(
+                    archivedRecording.resolveSibling(CONNECT_URL).toString(), "does not exist");
+        }
     }
 
     Path writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
@@ -643,7 +664,6 @@ public class RecordingArchiveHelper {
             throw new ConnectionException("Could not get jvmId for " + serviceUri.toString());
         }
         Path specificRecordingsPath = getRecordingSubdirectoryPath(jvmId);
-
         if (!fs.exists(specificRecordingsPath)) {
             Files.createDirectory(specificRecordingsPath);
             fs.writeString(

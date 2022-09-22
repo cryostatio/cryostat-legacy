@@ -51,6 +51,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import itest.bases.JwtAssetsSelfTest;
+import itest.util.Utils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -72,13 +74,14 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
             archivedResource = createArchivedRecording(resource);
             String downloadUrl =
                     getTokenDownloadUrl(
-                            new URIBuilder(archivedResource.toURI())
-                                    .setPath(
-                                            archivedResource
-                                                    .getPath()
-                                                    .replace("/api/v1/", "/api/v2.1/"))
-                                    .build()
-                                    .toURL());
+                            new URL(
+                                    String.format(
+                                            "http://%s:%d/api/beta/recordings/%s/%s",
+                                            Utils.WEB_HOST,
+                                            Utils.WEB_PORT,
+                                            SELF_REFERENCE_TARGET_ID,
+                                            StringUtils.substringAfter(
+                                                    archivedResource.getPath(), "recordings/"))));
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

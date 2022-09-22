@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -124,8 +125,9 @@ class ReportGetHandlerTest {
         }
 
         @Test
-        void shouldHaveHTMLMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.HTML));
+        void shouldProduceHtml() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.HTML)));
         }
 
         @Test

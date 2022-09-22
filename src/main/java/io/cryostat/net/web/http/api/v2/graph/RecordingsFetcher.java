@@ -162,7 +162,8 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                 })
                                         .filter(Objects::nonNull)
                                         .collect(Collectors.toList());
-                            }, false);
+                            },
+                            false);
         }
 
         if (requestedFields.contains("archived")) {

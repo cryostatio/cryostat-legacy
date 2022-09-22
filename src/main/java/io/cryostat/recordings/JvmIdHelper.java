@@ -39,9 +39,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
 
@@ -50,6 +48,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportsModule;
+
 import io.vertx.core.Vertx;
 
 public class JvmIdHelper {
@@ -79,15 +78,16 @@ public class JvmIdHelper {
         }
         try {
             if (cd.getCredentials().isEmpty()) {
-                cd = new ConnectionDescriptor(targetId, credentialsManager.getCredentialsByTargetId(targetId));
+                cd =
+                        new ConnectionDescriptor(
+                                targetId, credentialsManager.getCredentialsByTargetId(targetId));
             }
             final ConnectionDescriptor desc = cd;
             return this.targetConnectionManager.executeConnectedTask(
                     desc,
                     connection -> {
                         try {
-                            String jvmId = connection.getJvmId();
-                            return jvmId;
+                            return connection.getJvmId();
                         } catch (Exception e) {
                             if (e.getCause() instanceof SecurityException) {
                                 // don't have credentials to access target
@@ -95,12 +95,12 @@ public class JvmIdHelper {
                                     logger.warn(
                                             "Target {} requires credentials to access recordings",
                                             desc.getTargetId());
+                                } else {
+                                    logger.warn(
+                                            "Target {} credentials are invalid",
+                                            desc.getTargetId());
                                 }
-                                else {
-                                    logger.warn("Target {} credentials are invalid",desc.getTargetId());
-                                }
-                            }
-                            else {
+                            } else {
                                 logger.warn(e);
                             }
                             return null;
@@ -110,7 +110,6 @@ public class JvmIdHelper {
             logger.warn(e);
             return null;
         }
-        
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
@@ -121,10 +120,7 @@ public class JvmIdHelper {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
         String jvmId =
-                this.jvmIdMap.computeIfAbsent(
-                        targetId,
-                        k -> computeJvmId(connectionDescriptor)
-                        );
+                this.jvmIdMap.computeIfAbsent(targetId, k -> computeJvmId(connectionDescriptor));
         if (jvmId == null) {
             throw new JvmIdGetException(String.format("Error connecting to target %s", targetId));
         }

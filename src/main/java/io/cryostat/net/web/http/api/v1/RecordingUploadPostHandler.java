@@ -54,6 +54,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
@@ -62,7 +63,6 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
@@ -70,7 +70,9 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 
-@DeprecatedApi(deprecated = @Deprecated(forRemoval = true), alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName/upload")
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName/upload")
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
@@ -127,7 +129,8 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         // ctx.response()
-        //         .putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName/upload");
+        //         .putHeader(HttpHeaders.LOCATION,
+        // "recordings/:sourceTarget/:recordingName/upload");
         // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
         // String recordingName = ctx.pathParam("recordingName");
         // try {

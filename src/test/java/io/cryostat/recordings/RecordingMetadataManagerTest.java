@@ -112,9 +112,7 @@ public class RecordingMetadataManagerTest {
         lenient()
                 .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
                 .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.message(Mockito.any()))
-                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
 
         this.recordingMetadataManager =
@@ -122,7 +120,7 @@ public class RecordingMetadataManagerTest {
                         vertx,
                         recordingMetadataDir,
                         archivedRecordingsPath,
-                        30, 
+                        30,
                         fs,
                         archiveHelperProvider,
                         targetConnectionManager,

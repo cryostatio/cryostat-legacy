@@ -61,6 +61,8 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -86,7 +88,6 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
@@ -730,14 +731,14 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd,
-                    conn ->{
+                    conn -> {
                         try {
                             return conn.getService().getAvailableRecordings().stream()
-                            .anyMatch(
-                                    r ->
-                                            future.complete(
-                                                    Objects.equals(
-                                                            recordingName, r.getName())));
+                                    .anyMatch(
+                                            r ->
+                                                    future.complete(
+                                                            Objects.equals(
+                                                                    recordingName, r.getName())));
                         } catch (ConnectionException e) {
                             if (e.getCause() instanceof SecurityException) {
                                 // don't have credentials to access target
@@ -746,15 +747,12 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             "Target {} requires credentials to access recordings",
                                             cd.getTargetId());
                                     throw e;
-                                }
-                                else {
+                                } else {
                                     logger.warn(
-                                            "Target {} credentials are invalid",
-                                            cd.getTargetId());
+                                            "Target {} credentials are invalid", cd.getTargetId());
                                     throw e;
                                 }
-                            }
-                            else {
+                            } else {
                                 e.printStackTrace();
                                 logger.info("why else");
                                 throw e;

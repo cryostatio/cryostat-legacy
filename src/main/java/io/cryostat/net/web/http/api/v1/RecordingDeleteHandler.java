@@ -46,15 +46,17 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-@DeprecatedApi(deprecated = @Deprecated(forRemoval = true), alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
 public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
@@ -96,7 +98,8 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        // ctx.response().putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName");
+        // ctx.response().putHeader(HttpHeaders.LOCATION,
+        // "recordings/:sourceTarget/:recordingName");
         // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
         // String recordingName = ctx.pathParam("recordingName");
         // try {

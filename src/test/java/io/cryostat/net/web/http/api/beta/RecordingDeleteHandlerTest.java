@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.beta;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -115,8 +116,9 @@ class RecordingDeleteHandlerTest {
         }
 
         @Test
-        void shouldHavePlainTextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProducePlaintext() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.PLAINTEXT)));
         }
 
         @Test

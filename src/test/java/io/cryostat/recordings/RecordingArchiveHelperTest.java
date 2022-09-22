@@ -756,22 +756,17 @@ class RecordingArchiveHelperTest {
         List<String> subdirectories = List.of(jvmIdA, jvmId123);
         Mockito.when(fs.listDirectoryChildren(archivedRecordingsPath)).thenReturn(subdirectories);
 
-        Mockito.when(archivedRecordingsPath.resolve(jvmIdA))
-                .thenReturn(Path.of(jvmIdA));
+        Mockito.when(archivedRecordingsPath.resolve(jvmIdA)).thenReturn(Path.of(jvmIdA));
         Mockito.when(fs.listDirectoryChildren(Path.of(jvmIdA)))
                 .thenReturn(List.of("recordingA", "connectUrl"));
 
-        Mockito.when(archivedRecordingsPath.resolve(jvmId123))
-                .thenReturn(Path.of(jvmId123));
+        Mockito.when(archivedRecordingsPath.resolve(jvmId123)).thenReturn(Path.of(jvmId123));
         Mockito.when(fs.listDirectoryChildren(Path.of(jvmId123)))
                 .thenReturn(List.of("123recording", "connectUrl"));
 
         Mockito.when(fs.listDirectoryChildren(Path.of(jvmId123).normalize().toAbsolutePath()))
                 .thenReturn(List.of("123recording", "connectUrl"));
 
-        BufferedReader reader = Mockito.mock(BufferedReader.class);
-        Mockito.when(fs.readFile(Mockito.any(Path.class))).thenReturn(reader);
-        Mockito.when(reader.readLine()).thenReturn(targetId);
         Mockito.when(webServer.getArchivedReportURL(Mockito.anyString(), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
@@ -842,12 +837,7 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(
-                        Map.of(
-                                "recording",
-                                matcher,
-                                "target",
-                                targetId)));
+                Matchers.equalTo(Map.of("recording", matcher, "target", "uploads")));
     }
 
     @ParameterizedTest
@@ -992,7 +982,9 @@ class RecordingArchiveHelperTest {
 
         String targetIdUploads = "uploads";
         String targetIdTarget = "someServiceUri";
-        lenient().when(jvmIdHelper.getJvmId(Mockito.eq(targetIdUploads))).thenReturn(targetIdUploads);
+        lenient()
+                .when(jvmIdHelper.getJvmId(Mockito.eq(targetIdUploads)))
+                .thenReturn(targetIdUploads);
         lenient().when(jvmIdHelper.getJvmId(Mockito.eq(targetIdTarget))).thenReturn(targetIdTarget);
         Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn(targetIdTarget);
         Path specificRecordingsPath = Path.of("/some/path/");

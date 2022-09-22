@@ -119,8 +119,8 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.HTML;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.HTML);
     }
 
     @Override

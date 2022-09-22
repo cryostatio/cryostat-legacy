@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -99,8 +100,8 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.OCTET_STREAM;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.OCTET_STREAM);
     }
 
     @Override
