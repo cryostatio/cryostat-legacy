@@ -73,7 +73,7 @@ function runDemoApps() {
 
     podman run \
         --name vertx-fib-demo-2 \
-        --env HTTP_PORT=8081 \
+        --env HTTP_PORT=8082 \
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
         --pod cryostat-pod \
@@ -81,7 +81,7 @@ function runDemoApps() {
 
     podman run \
         --name vertx-fib-demo-3 \
-        --env HTTP_PORT=8081 \
+        --env HTTP_PORT=8083 \
         --env JMX_PORT=9095 \
         --env USE_SSL=true \
         --env USE_AUTH=true \
@@ -190,6 +190,8 @@ function createPod() {
         --publish "${grafanaPort}:${grafanaPort}" \
         --publish 5432:5432 \
         --publish 8081:8081 \
+        --publish 8082:8082 \
+        --publish 8083:8083 \
         --publish 9093:9093 \
         --publish 9094:9094 \
         --publish 9095:9095 \
@@ -202,7 +204,9 @@ function createPod() {
         --publish 10001:10001 \
         --publish 10010:10010
     # 5432: postgres
-    # 8081: vertx-fib-demo
+    # 8081: vertx-fib-demo-1 HTTP
+    # 8082: vertx-fib-demo-2 HTTP
+    # 8083: vertx-fib-demo-3 HTTP
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX
     # 9095: vertx-fib-demo-3 RJMX
