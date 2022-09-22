@@ -264,7 +264,6 @@ public class RecordingArchiveHelper {
                     targetConnectionManager.executeConnectedTask(
                             connectionDescriptor,
                             connection -> {
-                                System.out.println("SAVE RECORDINGS ARCHIVE");
                                 Optional<IRecordingDescriptor> descriptor =
                                         this.getDescriptorByName(connection, recordingName);
 
@@ -275,7 +274,7 @@ public class RecordingArchiveHelper {
                                     throw new RecordingNotFoundException(
                                             "active recordings", recordingName);
                                 }
-                            });
+                            }, false);
             validateSavePath(recordingName, savePath);
             Path filenamePath = savePath.getFileName();
             String filename = filenamePath.toString();
@@ -362,7 +361,7 @@ public class RecordingArchiveHelper {
                     .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
                     .build()
                     .send();
-            if (fs.listDirectoryChildren(parentPath).isEmpty()) {
+            if (fs.listDirectoryChildren(parentPath).size() == 1 && fs.listDirectoryChildren(parentPath).contains(CONNECT_URL)) {
                 fs.deleteIfExists(parentPath);
             }
             future.complete(archivedRecordingInfo);
@@ -426,8 +425,7 @@ public class RecordingArchiveHelper {
 
         try {
             String jvmId = jvmIdHelper.getJvmId(targetId);
-            Path subdirectory = getRecordingSubdirectoryPath(jvmId);
-            Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectory);
+            Path specificRecordingsPath = getRecordingSubdirectoryPath(jvmId);
             if (!fs.exists(archivedRecordingsPath)) {
                 throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
             }

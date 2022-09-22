@@ -113,7 +113,6 @@ class PutActiveRecordingMetadataMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    System.out.println("PUTACTIVERECORDINGMETADATA");
                     IRecordingDescriptor desc =
                             recordingTargetHelper.getDescriptorByName(conn, recordingName).get();
 

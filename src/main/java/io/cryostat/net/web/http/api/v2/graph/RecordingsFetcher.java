@@ -130,7 +130,6 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                     targetConnectionManager.executeConnectedTask(
                             cd,
                             conn -> {
-                                System.out.println("RECORDINGSFETCHER");
                                 return conn.getService().getAvailableRecordings().stream()
                                         .map(
                                                 r -> {
@@ -163,7 +162,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                 })
                                         .filter(Objects::nonNull)
                                         .collect(Collectors.toList());
-                            });
+                            }, false);
         }
 
         if (requestedFields.contains("archived")) {

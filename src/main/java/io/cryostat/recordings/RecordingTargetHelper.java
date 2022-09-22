@@ -129,7 +129,7 @@ public class RecordingTargetHelper {
             throws Exception {
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
-                connection -> connection.getService().getAvailableRecordings());
+                connection -> connection.getService().getAvailableRecordings(), false);
     }
 
     public IRecordingDescriptor startRecording(
@@ -197,7 +197,7 @@ public class RecordingTargetHelper {
                     }
 
                     return desc;
-                });
+                }, false);
     }
 
     public IRecordingDescriptor startRecording(

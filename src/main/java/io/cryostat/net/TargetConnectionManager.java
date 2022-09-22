@@ -183,14 +183,9 @@ public class TargetConnectionManager {
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
             throws Exception {
-                logger.info("trying to access lock: " + connectionDescriptor.getTargetId());
         synchronized (
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {
-                            logger.info("not locked: " + connectionDescriptor.getTargetId());
-                            connections.asMap().entrySet().stream().forEach(e -> {
-                                logger.info("connections: key: " + e.getKey().getTargetId());
-                            });
             if (useCache) {
                 return task.execute(connections.get(connectionDescriptor));
             } else {
@@ -202,7 +197,6 @@ public class TargetConnectionManager {
                 try {
                     return task.execute(connection);
                 } finally {
-                    logger.info("connection done: " + connectionDescriptor.getTargetId());
                     if (!cached) {
                         connection.close();
                     }
