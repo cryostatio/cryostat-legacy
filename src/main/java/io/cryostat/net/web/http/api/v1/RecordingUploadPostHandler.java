@@ -70,7 +70,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 
-@Deprecated(forRemoval = true)
+@DeprecatedApi(deprecated = @Deprecated(forRemoval = true), alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName/upload")
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
@@ -126,9 +126,9 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        ctx.response()
-                .putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName/upload");
-        ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
+        // ctx.response()
+        //         .putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName/upload");
+        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
         // String recordingName = ctx.pathParam("recordingName");
         // try {
         //     URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));

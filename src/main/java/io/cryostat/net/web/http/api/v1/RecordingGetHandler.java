@@ -55,7 +55,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-@Deprecated(forRemoval = true)
+@DeprecatedApi(deprecated = @Deprecated(forRemoval = true), alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
@@ -102,8 +102,8 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        ctx.response().putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName");
-        ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
+        // ctx.response().putHeader(HttpHeaders.LOCATION, "recordings/:sourceTarget/:recordingName");
+        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
         // String recordingName = ctx.pathParam("recordingName");
         // try {
         //     Path archivedRecording =

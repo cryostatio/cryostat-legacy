@@ -59,7 +59,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-@Deprecated(forRemoval = true)
+@DeprecatedApi(deprecated = @Deprecated(forRemoval = true), alternateLocation = "/api/beta/reports/:sourceTarget/:recordingName")
 class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final ReportService reportService;
@@ -114,8 +114,8 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        ctx.response().putHeader(HttpHeaders.LOCATION, "reports/:sourceTarget/:recordingName");
-        ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
+        // ctx.response().putHeader(HttpHeaders.LOCATION, "reports/:sourceTarget/:recordingName");
+        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
         // String recordingName = ctx.pathParam("recordingName");
         // List<String> queriedFilter = ctx.queryParam("filter");
         // String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
