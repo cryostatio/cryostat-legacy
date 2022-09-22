@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -58,8 +59,9 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.PlatformClient;
 
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
@@ -77,7 +79,7 @@ public class TargetConnectionManager {
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
     private final Logger logger;
 
-    private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
+    private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
     private final Map<String, Object> targetLocks;
     private final Optional<Semaphore> semaphore;
 
@@ -109,7 +111,7 @@ public class TargetConnectionManager {
         } else {
             cacheBuilder = cacheBuilder.expireAfterAccess(ttl);
         }
-        this.connections = cacheBuilder.build(this::connect);
+        this.connections = cacheBuilder.buildAsync(new ConnectionLoader());
 
         // force removal of connections from cache when we're notified about targets being lost.
         // This should already be taken care of by the connection close listener, but this provides
@@ -122,7 +124,7 @@ public class TargetConnectionManager {
                             if (Objects.equals(
                                     cd.getTargetId(),
                                     tde.getServiceRef().getServiceUri().toString())) {
-                                connections.invalidate(cd);
+                                connections.synchronous().invalidate(cd);
                             }
                         }
                     }
@@ -153,9 +155,9 @@ public class TargetConnectionManager {
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {
             if (useCache) {
-                return task.execute(connections.get(connectionDescriptor));
+                return task.execute(connections.get(connectionDescriptor).get());
             } else {
-                JFRConnection connection = connections.getIfPresent(connectionDescriptor);
+                JFRConnection connection = connections.getIfPresent(connectionDescriptor).get();
                 boolean cached = connection != null;
                 if (!cached) {
                     connection = connect(connectionDescriptor);
@@ -277,7 +279,7 @@ public class TargetConnectionManager {
                             Collections.singletonList(
                                     () -> {
                                         logger.info("Connection for {} closed", url);
-                                        this.connections.invalidate(cacheKey);
+                                        this.connections.synchronous().invalidate(cacheKey);
                                     }));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
@@ -290,6 +292,34 @@ public class TargetConnectionManager {
             if (evt.shouldCommit()) {
                 evt.commit();
             }
+        }
+    }
+
+    private class ConnectionLoader
+            implements AsyncCacheLoader<ConnectionDescriptor, JFRConnection> {
+
+        @Override
+        public CompletableFuture<JFRConnection> asyncLoad(
+                ConnectionDescriptor key, Executor executor) throws Exception {
+            return CompletableFuture.supplyAsync(
+                    () -> {
+                        try {
+                            return connect(key);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    },
+                    executor);
+        }
+
+        @Override
+        public CompletableFuture<JFRConnection> asyncReload(
+                ConnectionDescriptor key, JFRConnection prev, Executor executor) throws Exception {
+            // if we're refreshed and already have an existing, open connection, just reuse it.
+            if (prev.isConnected()) {
+                return CompletableFuture.completedFuture(prev);
+            }
+            return asyncLoad(key, executor);
         }
     }
 
