@@ -99,9 +99,9 @@ public abstract class NetworkModule {
     }
 
     @Provides
-    @Named(Variables.TARGET_CACHE_SIZE)
+    @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS)
     static int provideMaxTargetConnections(Environment env) {
-        return Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_SIZE, "-1"));
+        return Integer.parseInt(env.getEnv(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS, "-1"));
     }
 
     @Provides
@@ -116,7 +116,7 @@ public abstract class NetworkModule {
             Lazy<JFRConnectionToolkit> connectionToolkit,
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
-            @Named(Variables.TARGET_CACHE_SIZE) int maxTargetConnections,
+            @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,

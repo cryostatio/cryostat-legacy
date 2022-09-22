@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,6 +79,7 @@ public class TargetConnectionManager {
 
     private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
     private final Map<String, Object> targetLocks;
+    private final Optional<Semaphore> semaphore;
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
@@ -91,6 +93,11 @@ public class TargetConnectionManager {
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
+        if (maxTargetConnections > 0) {
+            this.semaphore = Optional.of(new Semaphore(maxTargetConnections, true));
+        } else {
+            this.semaphore = Optional.empty();
+        }
 
         Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
                 Caffeine.newBuilder()
@@ -98,9 +105,6 @@ public class TargetConnectionManager {
                         .scheduler(scheduler)
                         .expireAfterAccess(ttl)
                         .removalListener(this::closeConnection);
-        if (maxTargetConnections >= 0) {
-            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
-        }
         this.connections = cacheBuilder.build(this::connect);
 
         // force removal of connections from cache when we're notified about targets being lost.
@@ -209,6 +213,11 @@ public class TargetConnectionManager {
             }
         } catch (Exception e) {
             logger.error(e);
+        } finally {
+            if (semaphore.isPresent()) {
+                semaphore.get().release();
+                logger.trace("Semaphore released! Permits: {}", semaphore.get().availablePermits());
+            }
         }
     }
 
@@ -253,6 +262,9 @@ public class TargetConnectionManager {
         logger.info("Creating connection for {}", url);
         evt.begin();
         try {
+            if (semaphore.isPresent()) {
+                semaphore.get().acquire();
+            }
             return jfrConnectionToolkit
                     .get()
                     .connect(
@@ -265,6 +277,9 @@ public class TargetConnectionManager {
                                     }));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
+            if (semaphore.isPresent()) {
+                semaphore.get().release();
+            }
             throw e;
         } finally {
             evt.end();
