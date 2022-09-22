@@ -2,5 +2,5 @@ type Query {
     rootNode: EnvironmentNode!
     environmentNodes(filter: EnvironmentNodeFilterInput): [EnvironmentNode!]!
     targetNodes(filter: TargetNodesFilterInput): [TargetNode!]!
-    archivedRecordings(filter: ArchivedRecordingFilterInput): [Archived!]!
+    archivedRecordings(filter: ArchivedRecordingFilterInput): Archived!
 }
