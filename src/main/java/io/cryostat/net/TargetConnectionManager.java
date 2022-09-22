@@ -188,7 +188,7 @@ public class TargetConnectionManager {
      *     removed from cache, true if it is still active and was refreshed
      */
     public boolean markConnectionInUse(ConnectionDescriptor connectionDescriptor) {
-        return connections.synchronous().getIfPresent(connectionDescriptor) != null;
+        return connections.getIfPresent(connectionDescriptor) != null;
     }
 
     private void closeConnection(
@@ -296,8 +296,6 @@ public class TargetConnectionManager {
         }
     }
 
-    // inner non-static class so that the main TargetConnectionManager class doesn't implement these
-    // methods directly and publicly to external callers
     private class ConnectionLoader
             implements AsyncCacheLoader<ConnectionDescriptor, JFRConnection> {
 
