@@ -103,8 +103,12 @@ public class TargetConnectionManager {
                 Caffeine.newBuilder()
                         .executor(executor)
                         .scheduler(scheduler)
-                        .expireAfterAccess(ttl)
                         .removalListener(this::closeConnection);
+        if (ttl.isZero() || ttl.isNegative()) {
+            cacheBuilder = cacheBuilder.maximumSize(0);
+        } else {
+            cacheBuilder = cacheBuilder.expireAfterAccess(ttl);
+        }
         this.connections = cacheBuilder.build(this::connect);
 
         // force removal of connections from cache when we're notified about targets being lost.

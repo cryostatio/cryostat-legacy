@@ -132,7 +132,8 @@ Cryostat can be configured via the following environment variables:
   requiring further connections will block until a previous connection closes.
   Defaults to `-1` which indicates an unlimited number of connections.
 * `CRYOSTAT_TARGET_CACHE_TTL`: the time to live (in seconds) for cached JMX
-connections. Defaults to `10`.
+connections. Defaults to `10`. If set to `0` or less then connections will not
+be cached after use.
 
 #### Configuration for Logging
 
