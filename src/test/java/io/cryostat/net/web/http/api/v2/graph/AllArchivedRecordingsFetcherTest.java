@@ -47,6 +47,7 @@ import java.util.concurrent.Future;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -100,11 +101,11 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of());
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.empty());
-            MatcherAssert.assertThat(recordings, Matchers.instanceOf(List.class));
+            MatcherAssert.assertThat(recordings.data, Matchers.empty());
+            MatcherAssert.assertThat(recordings.data, Matchers.instanceOf(List.class));
         }
     }
 
@@ -122,10 +123,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording));
         }
     }
 
@@ -148,10 +149,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings(Mockito.any())).thenReturn(future);
             when(future.get()).thenReturn(mockList);
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.equalTo(mockList));
+            MatcherAssert.assertThat(recordings.data, Matchers.equalTo(mockList));
         }
     }
 
@@ -177,10 +178,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording1));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording1));
         }
     }
 
@@ -209,10 +210,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording2));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording2));
         }
     }
 
@@ -239,10 +240,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording1, recording2));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording1, recording2));
         }
     }
 }

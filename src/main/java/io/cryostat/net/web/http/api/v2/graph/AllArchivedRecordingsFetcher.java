@@ -48,14 +48,15 @@ import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.AggregateInfo;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;
 
-class AllArchivedRecordingsFetcher
-        extends AbstractPermissionedDataFetcher<List<ArchivedRecordingInfo>> {
+class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     private final RecordingArchiveHelper archiveHelper;
 
@@ -71,8 +72,7 @@ class AllArchivedRecordingsFetcher
     }
 
     @Override
-    List<ArchivedRecordingInfo> getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
+    Archived getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
         List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
@@ -115,6 +115,13 @@ class AllArchivedRecordingsFetcher
                             .collect(Collectors.toList());
         }
 
-        return recordings;
+        Archived archived = new Archived();
+        AggregateInfo aggregate = new AggregateInfo();
+        archived.data = recordings;
+        aggregate.count = Long.valueOf(archived.data.size());
+        aggregate.size = archived.data.stream().mapToLong(ArchivedRecordingInfo::getSize).sum();
+        archived.aggregate = aggregate;
+
+        return archived;
     }
 }
