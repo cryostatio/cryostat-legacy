@@ -23,19 +23,24 @@ function runCryostat() {
         HBM2DDL="update"
     fi
 
+    if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
+        CRYOSTAT_AUTH_MANAGER="io.cryostat.net.BasicAuthManager"
+    fi
+
     GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
         GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
         CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
-        CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager \
+        CRYOSTAT_AUTH_MANAGER="$CRYOSTAT_AUTH_MANAGER" \
         CRYOSTAT_JDBC_URL="$JDBC_URL" \
         CRYOSTAT_JDBC_DRIVER="$JDBC_DRIVER" \
         CRYOSTAT_HIBERNATE_DIALECT="$HIBERNATE_DIALECT" \
         CRYOSTAT_JDBC_USERNAME="$JDBC_USERNAME" \
         CRYOSTAT_JDBC_PASSWORD="$JDBC_PASSWORD" \
         CRYOSTAT_HBM2DDL="$HBM2DDL" \
+        CRYOSTAT_DEV_MODE="true" \
         exec "$DIR/run.sh"
 }
 
