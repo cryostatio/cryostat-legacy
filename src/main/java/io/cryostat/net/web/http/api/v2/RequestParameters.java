@@ -42,13 +42,13 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -56,6 +56,7 @@ import org.apache.commons.lang3.StringUtils;
 public class RequestParameters {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
+    private final String acceptableContentType;
     private final InetAddress addr;
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
@@ -69,6 +70,7 @@ public class RequestParameters {
             justification =
                     "InetAddress is mutable but there is no immutable form or copy constructor")
     public RequestParameters(
+            String acceptableContentType,
             InetAddress addr,
             Map<String, String> pathParams,
             MultiMap queryParams,
@@ -76,6 +78,7 @@ public class RequestParameters {
             MultiMap formAttributes,
             Set<FileUpload> fileUploads,
             String body) {
+        this.acceptableContentType = acceptableContentType;
         this.addr = addr;
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
@@ -89,48 +92,53 @@ public class RequestParameters {
     }
 
     public static RequestParameters from(RoutingContext ctx) {
+        Objects.requireNonNull(ctx, "ctx");
+
+        String acceptableContentType = ctx.getAcceptableContentType();
+
         InetAddress addr = null;
-        if (ctx != null) {
-            HttpServerRequest req = ctx.request();
-            if (req != null && req.remoteAddress() != null) {
-                addr = tryResolveAddress(addr, req.remoteAddress().host());
-            }
+        if (ctx.request() != null && ctx.request().remoteAddress() != null) {
+            addr = tryResolveAddress(addr, ctx.request().remoteAddress().host());
         }
 
         Map<String, String> pathParams = new HashMap<>();
-        if (ctx != null && ctx.pathParams() != null) {
+        if (ctx.pathParams() != null) {
             pathParams.putAll(ctx.pathParams());
         }
 
         MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
-        if (ctx != null && ctx.queryParams() != null) {
+        if (ctx.queryParams() != null) {
             queryParams.addAll(ctx.queryParams());
         }
 
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        if (ctx != null && ctx.request() != null && ctx.request().headers() != null) {
+        if (ctx.request() != null && ctx.request().headers() != null) {
             MultiMap h = ctx.request().headers();
             headers.addAll(h);
             addr = tryResolveAddress(addr, h.get(X_FORWARDED_FOR));
         }
 
         MultiMap formAttributes = MultiMap.caseInsensitiveMultiMap();
-        if (ctx != null && ctx.request() != null && ctx.request().formAttributes() != null) {
+        if (ctx.request() != null && ctx.request().formAttributes() != null) {
             formAttributes.addAll(ctx.request().formAttributes());
         }
 
         Set<FileUpload> fileUploads = new HashSet<>();
-        if (ctx != null && ctx.fileUploads() != null) {
+        if (ctx.fileUploads() != null) {
             fileUploads.addAll(ctx.fileUploads());
         }
 
-        String body = null;
-        if (ctx != null) {
-            body = ctx.getBodyAsString();
-        }
+        String body = ctx.getBodyAsString();
 
         return new RequestParameters(
-                addr, pathParams, queryParams, headers, formAttributes, fileUploads, body);
+                acceptableContentType,
+                addr,
+                pathParams,
+                queryParams,
+                headers,
+                formAttributes,
+                fileUploads,
+                body);
     }
 
     private static InetAddress tryResolveAddress(InetAddress addr, String host) {
@@ -143,6 +151,10 @@ public class RequestParameters {
             Logger.INSTANCE.error(e);
         }
         return addr;
+    }
+
+    public String getAcceptableContentType() {
+        return acceptableContentType;
     }
 
     @SuppressFBWarnings(

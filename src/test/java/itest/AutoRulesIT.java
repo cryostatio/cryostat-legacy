@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.HttpException;
@@ -125,6 +126,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("preservedArchives", "3");
         webClient
                 .post("/api/v2/rules")
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                 .sendForm(
                         form,
                         ar -> {
@@ -143,7 +145,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 "meta",
                                         Map.of(
                                                 "type",
-                                                HttpMimeType.PLAINTEXT.mime(),
+                                                HttpMimeType.JSON.mime(),
                                                 "status",
                                                 "Created"),
                                 "data", Map.of("result", "Auto_Rule")));
@@ -219,6 +221,7 @@ class AutoRulesIT extends ExternalTargetsTest {
 
         webClient
                 .post("/api/v2/rules")
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                 .sendJsonObject(
                         invalidRule,
                         ar -> {
@@ -238,6 +241,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("password", "adminpass123");
         webClient
                 .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.URLENCODED_FORM.mime())
                 .sendForm(
                         form,
                         ar -> {
@@ -249,7 +253,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
@@ -326,6 +330,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         try {
             webClient
                     .post("/api/v2/rules")
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                     .sendJsonObject(
                             regexRule,
                             ar -> {
@@ -342,7 +347,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     "meta",
                                             Map.of(
                                                     "type",
-                                                    HttpMimeType.PLAINTEXT.mime(),
+                                                    HttpMimeType.JSON.mime(),
                                                     "status",
                                                     "Created"),
                                     "data", Map.of("result", "Regex_Rule")));
@@ -517,7 +522,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
@@ -539,7 +544,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));

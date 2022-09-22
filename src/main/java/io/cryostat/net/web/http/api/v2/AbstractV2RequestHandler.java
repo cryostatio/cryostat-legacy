@@ -92,8 +92,6 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     public abstract IntermediateResponse<T> handle(RequestParameters requestParams)
             throws Exception;
 
-    public abstract HttpMimeType mimeType();
-
     @Override
     public final void handle(RoutingContext ctx) {
         RequestParameters requestParams = RequestParameters.from(ctx);
@@ -192,12 +190,16 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             response.setStatusMessage(intermediateResponse.getStatusMessage());
         }
         intermediateResponse.getHeaders().forEach(response::putHeader);
-        response.putHeader(HttpHeaders.CONTENT_TYPE, mimeType().mime());
+        HttpMimeType contentType = HttpMimeType.fromString(ctx.getAcceptableContentType());
+        if (contentType == HttpMimeType.UNKNOWN && !produces().isEmpty()) {
+            contentType = produces().get(0);
+        }
+        response.putHeader(HttpHeaders.CONTENT_TYPE, contentType.mime());
 
-        switch (mimeType()) {
+        switch (contentType) {
             case PLAINTEXT:
             case JSON:
-                ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
+                ApiMeta meta = new ApiMeta(contentType, response.getStatusMessage());
                 ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
                 ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 

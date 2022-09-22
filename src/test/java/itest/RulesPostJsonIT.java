@@ -142,6 +142,7 @@ class RulesPostJsonIT extends StandardSelfTest {
         try {
             webClient
                     .post("/api/v2/rules")
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                     .sendJsonObject(
                             testRule,
                             ar -> {
@@ -156,7 +157,7 @@ class RulesPostJsonIT extends StandardSelfTest {
                                     "meta",
                                             Map.of(
                                                     "type",
-                                                    HttpMimeType.PLAINTEXT.mime(),
+                                                    HttpMimeType.JSON.mime(),
                                                     "status",
                                                     "Created"),
                                     "data", Map.of("result", TEST_RULE_NAME)));
@@ -165,6 +166,7 @@ class RulesPostJsonIT extends StandardSelfTest {
             CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
             webClient
                     .post("/api/v2/rules")
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                     .sendJsonObject(
                             testRule,
                             ar -> {
@@ -183,6 +185,7 @@ class RulesPostJsonIT extends StandardSelfTest {
             CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
             webClient
                     .delete(String.format("/api/v2/rules/%s", TEST_RULE_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteResponse)) {
@@ -194,7 +197,7 @@ class RulesPostJsonIT extends StandardSelfTest {
                     new JsonObject(
                             Map.of(
                                     "meta",
-                                    Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                    Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                     "data",
                                     NULL_RESULT));
             try {
@@ -216,6 +219,7 @@ class RulesPostJsonIT extends StandardSelfTest {
 
         webClient
                 .post("/api/v2/rules")
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                 .sendJsonObject(
                         testRule,
                         ar -> {

@@ -361,7 +361,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "Created"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "Created"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(
@@ -532,7 +532,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(

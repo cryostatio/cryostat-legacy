@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -125,8 +126,9 @@ class CredentialDeleteHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test

@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -153,7 +154,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 }

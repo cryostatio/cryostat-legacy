@@ -35,76 +35,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.RoutingContext;
 
-import javax.inject.Inject;
+class DeprecatedHandlerDecorator implements Handler<RoutingContext> {
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.ServiceRef;
+    private final boolean forRemoval;
+    private final String alternateLocation;
 
-import com.google.gson.Gson;
-import io.vertx.core.http.HttpMethod;
-
-class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
-
-    private final CredentialsManager credentialsManager;
-
-    @Inject
-    TargetCredentialsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+    DeprecatedHandlerDecorator(boolean forRemoval, String alternateLocation) {
+        this.forRemoval = forRemoval;
+        this.alternateLocation = alternateLocation;
     }
 
     @Override
-    public boolean requiresAuthentication() {
-        return true;
-    }
-
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
-    }
-
-    @Override
-    public String path() {
-        return basePath() + "credentials";
-    }
-
-    @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.JSON);
-    }
-
-    @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
-            throws Exception {
-        return new IntermediateResponse<List<ServiceRef>>()
-                .body(new ArrayList<>(this.credentialsManager.getServiceRefsWithCredentials()));
+    public void handle(RoutingContext ctx) {
+        ctx.response().putHeader("deprecation", "true");
+        ctx.response().putHeader("link", String.format("%s; rel=alternate", alternateLocation));
+        if (forRemoval) {
+            ctx.response().putHeader(HttpHeaders.LOCATION, alternateLocation);
+            ctx.response().setStatusCode(410 /*Gone*/).end("Deprecated. See " + alternateLocation);
+        } else {
+            ctx.next();
+        }
     }
 }

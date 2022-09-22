@@ -206,10 +206,27 @@ public class WebServer extends AbstractVerticle {
                     Route route;
                     if (RequestHandler.ALL_PATHS.equals(handler.path())) {
                         route = router.route();
+                    } else if (handler.pathRegex() != null) {
+                        route = router.routeWithRegex(handler.httpMethod(), handler.pathRegex());
                     } else {
                         route = router.route(handler.httpMethod(), handler.path());
                     }
                     route = route.order(handler.getPriority());
+                    for (HttpMimeType mime : handler.produces()) {
+                        route = route.produces(mime.mime());
+                    }
+                    for (HttpMimeType mime : handler.consumes()) {
+                        route = route.consumes(mime.mime());
+                    }
+                    DeprecatedApi deprecated =
+                            handler.getClass().getAnnotation(DeprecatedApi.class);
+                    if (deprecated != null) {
+                        route =
+                                route.handler(
+                                        new DeprecatedHandlerDecorator(
+                                                deprecated.deprecated().forRemoval(),
+                                                deprecated.alternateLocation()));
+                    }
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {

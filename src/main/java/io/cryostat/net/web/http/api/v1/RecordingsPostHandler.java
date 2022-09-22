@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -163,6 +164,16 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM);
     }
 
     @Override

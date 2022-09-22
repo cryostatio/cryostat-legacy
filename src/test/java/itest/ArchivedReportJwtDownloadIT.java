@@ -45,8 +45,11 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import org.apache.http.client.utils.URIBuilder;
@@ -114,6 +117,7 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
         CompletableFuture<URL> future = new CompletableFuture<>();
         webClient
                 .patch(resource.getPath())
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                 .sendBuffer(
                         Buffer.buffer("SAVE"),
                         ar -> {

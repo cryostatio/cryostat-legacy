@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -140,6 +141,16 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
     }
 
     @Override

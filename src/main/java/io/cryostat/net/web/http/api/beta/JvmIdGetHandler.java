@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -100,8 +101,8 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.PLAINTEXT);
     }
 
     @Override

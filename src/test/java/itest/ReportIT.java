@@ -121,6 +121,7 @@ public class ReportIT extends StandardSelfTest {
             // Save the recording to archive
             webClient
                     .patch(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
