@@ -44,8 +44,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -131,6 +133,7 @@ public class TargetConnectionManager {
                 });
     }
 
+    @Deprecated(forRemoval = true)
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
         return executeConnectedTask(connectionDescriptor, task, true);
@@ -148,28 +151,14 @@ public class TargetConnectionManager {
      * #executeConnectedTask(ConnectionDescriptor cd, ConnectedTask task)} instead). Automated use
      * cases such as Automated Rules should call this with useCache==false.
      */
+    @Deprecated(forRemoval = true)
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
             throws Exception {
         synchronized (
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {
-            if (useCache) {
-                return task.execute(connections.get(connectionDescriptor).get());
-            } else {
-                JFRConnection connection = connections.getIfPresent(connectionDescriptor).get();
-                boolean cached = connection != null;
-                if (!cached) {
-                    connection = connect(connectionDescriptor);
-                }
-                try {
-                    return task.execute(connection);
-                } finally {
-                    if (!cached) {
-                        connection.close();
-                    }
-                }
-            }
+            return task.execute(connections.get(connectionDescriptor).get());
         }
     }
 
@@ -306,7 +295,7 @@ public class TargetConnectionManager {
                         try {
                             return connect(key);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new CompletionException(e);
                         }
                     },
                     executor);
