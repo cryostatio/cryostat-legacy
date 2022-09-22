@@ -133,6 +133,28 @@ public class TargetConnectionManager {
                 });
     }
 
+    public <T> Future<T> executeConnectedTaskAsync(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
+        synchronized (
+                targetLocks.computeIfAbsent(
+                        connectionDescriptor.getTargetId(), k -> new Object())) {
+            return connections
+                    .get(connectionDescriptor)
+                    .thenApply(
+                            conn -> {
+                                try {
+                                    return task.execute(conn);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    throw new CompletionException(e);
+                                }
+                            });
+        }
+    }
+
+    /**
+     * @deprecated use {@link #executeConnectedTaskAsync}
+     */
     @Deprecated(forRemoval = true)
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
@@ -140,16 +162,7 @@ public class TargetConnectionManager {
     }
 
     /**
-     * Execute a {@link ConnectedTask}, optionally caching the connection for future re-use. If
-     * useCache is true then the connection will be retrieved from cache if available, or created
-     * and stored in the cache if not. This is subject to the cache maxSize and TTL policy. If
-     * useCache is false then a connection will be taken from cache if available, otherwise a new
-     * connection will be created externally from the cache. After the task has completed the
-     * connection will be closed only if the connection was not originally retrieved from the cache,
-     * otherwise the connection is left as-is to be subject to the cache's standard eviction policy.
-     * "Interactive" use cases should prefer to call this with useCache==true (or simply call {@link
-     * #executeConnectedTask(ConnectionDescriptor cd, ConnectedTask task)} instead). Automated use
-     * cases such as Automated Rules should call this with useCache==false.
+     * @deprecated use {@link #executeConnectedTaskAsync}
      */
     @Deprecated(forRemoval = true)
     public <T> T executeConnectedTask(
