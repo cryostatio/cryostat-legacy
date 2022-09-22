@@ -124,9 +124,7 @@ class StopRecordingMutatorTest {
         when(env.getSource()).thenReturn(source);
         when(target.getServiceUri()).thenReturn(uri);
         when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any(ConnectedTask.class)))
                 .thenReturn(mockRecording);
 
         GraphRecordingDescriptor recording = mutator.get(env);

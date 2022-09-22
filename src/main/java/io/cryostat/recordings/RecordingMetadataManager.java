@@ -65,6 +65,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
@@ -738,7 +739,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         CompletableFuture<Boolean> connectFuture = new CompletableFuture<>();
         try {
             this.targetConnectionManager.executeConnectedTask(
-                    cd, connection -> connectFuture.complete(connection.isConnected()), false);
+                    cd, connection -> connectFuture.complete(connection.isConnected()));
             return connectFuture.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
@@ -833,11 +834,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
 
-            return this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                        return (String) connection.getJvmId();
-                    });
+            return this.targetConnectionManager.executeConnectedTask(cd, JFRConnection::getJvmId);
         } catch (Exception e) {
             logger.error(e);
             return null;

@@ -134,9 +134,7 @@ class StartRecordingOnTargetMutatorTest {
         when(source.getTarget()).thenReturn(target);
         when(target.getServiceUri()).thenReturn(uri);
         when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any(ConnectedTask.class)))
                 .thenReturn(hsrd);
 
         HyperlinkedSerializableRecordingDescriptor recording = mutator.get(env);

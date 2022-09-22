@@ -706,9 +706,7 @@ public class RecordingTargetHelperTest {
         Metadata metadata =
                 new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<Object>() {
                             @Override

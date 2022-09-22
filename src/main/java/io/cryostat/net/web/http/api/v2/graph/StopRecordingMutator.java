@@ -113,7 +113,6 @@ class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordin
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
                             metadata);
-                },
-                true);
+                });
     }
 }

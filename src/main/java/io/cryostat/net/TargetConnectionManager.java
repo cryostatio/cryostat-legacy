@@ -47,7 +47,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -133,7 +132,7 @@ public class TargetConnectionManager {
                 });
     }
 
-    public <T> Future<T> executeConnectedTaskAsync(
+    public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
         synchronized (
                 targetLocks.computeIfAbsent(
@@ -152,22 +151,8 @@ public class TargetConnectionManager {
         }
     }
 
-    /**
-     * @deprecated use {@link #executeConnectedTaskAsync}
-     */
-    @Deprecated(forRemoval = true)
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        return executeConnectedTask(connectionDescriptor, task, true);
-    }
-
-    /**
-     * @deprecated use {@link #executeConnectedTaskAsync}
-     */
-    @Deprecated(forRemoval = true)
-    public <T> T executeConnectedTask(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
-            throws Exception {
         synchronized (
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {

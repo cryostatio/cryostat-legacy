@@ -153,8 +153,7 @@ public class RecordingArchiveHelper {
                                     throw new RecordingNotFoundException(
                                             "active recordings", recordingName);
                                 }
-                            },
-                            false);
+                            });
             validateSavePath(recordingName, savePath);
             Path parentPath = savePath.getParent();
             Path filenamePath = savePath.getFileName();
