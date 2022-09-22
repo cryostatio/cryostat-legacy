@@ -47,8 +47,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,7 +79,6 @@ public class TargetConnectionManager {
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
-    private final Duration ttl;
     private final Logger logger;
 
     private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
@@ -95,7 +94,6 @@ public class TargetConnectionManager {
             int maxTargetConnections,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
-        this.ttl = ttl;
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
@@ -135,7 +133,7 @@ public class TargetConnectionManager {
                 });
     }
 
-    public <T> CompletableFuture<T> executeConnectedTaskAsync(
+    public <T> Future<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
         synchronized (
                 targetLocks.computeIfAbsent(
@@ -170,8 +168,11 @@ public class TargetConnectionManager {
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
             throws Exception {
-        return executeConnectedTaskAsync(connectionDescriptor, task)
-                .get(ttl.toMillis(), TimeUnit.MILLISECONDS);
+        synchronized (
+                targetLocks.computeIfAbsent(
+                        connectionDescriptor.getTargetId(), k -> new Object())) {
+            return task.execute(connections.get(connectionDescriptor).get());
+        }
     }
 
     /**
