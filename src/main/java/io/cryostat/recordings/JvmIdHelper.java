@@ -122,7 +122,7 @@ public class JvmIdHelper {
         String jvmId =
                 this.jvmIdMap.computeIfAbsent(targetId, k -> computeJvmId(connectionDescriptor));
         if (jvmId == null) {
-            throw new JvmIdGetException(String.format("Error connecting to target %s", targetId));
+            throw new JvmIdGetException("Could not connect to target: " + targetId, targetId);
         }
         return jvmId;
     }
@@ -156,12 +156,20 @@ public class JvmIdHelper {
     }
 
     static class JvmIdGetException extends IOException {
-        JvmIdGetException(String message) {
+        private String targetId;
+
+        JvmIdGetException(String message, String targetId) {
             super(message);
+            this.targetId = targetId;
         }
 
-        JvmIdGetException(Throwable cause) {
+        JvmIdGetException(Throwable cause, String targetId) {
             super(cause);
+            this.targetId = targetId;
+        }
+
+        public String getTarget() {
+            return targetId;
         }
     }
 }
