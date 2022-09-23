@@ -496,7 +496,6 @@ class GraphQLIT extends ExternalTargetsTest {
                 archivedRecording.name,
                 Matchers.matchesRegex(
                         "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
-        
     }
 
     static class Target {
@@ -564,10 +563,21 @@ class GraphQLIT extends ExternalTargetsTest {
 
         @Override
         public String toString() {
-            return "ArchivedRecording [doDelete=" + doDelete + ", downloadUrl=" + downloadUrl + ", metadata=" + metadata
-                    + ", name=" + name + ", reportUrl=" + reportUrl + ", size=" + size + "]";
+            return "ArchivedRecording [doDelete="
+                    + doDelete
+                    + ", downloadUrl="
+                    + downloadUrl
+                    + ", metadata="
+                    + metadata
+                    + ", name="
+                    + name
+                    + ", reportUrl="
+                    + reportUrl
+                    + ", size="
+                    + size
+                    + "]";
         }
-        
+
         @Override
         public int hashCode() {
             return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl, size);
@@ -610,20 +620,14 @@ class GraphQLIT extends ExternalTargetsTest {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
             AggregateInfo other = (AggregateInfo) obj;
-            if (count != other.count)
-                return false;
-            if (size != other.size)
-                return false;
+            if (count != other.count) return false;
+            if (size != other.size) return false;
             return true;
         }
-
     }
 
     static class Archived {
