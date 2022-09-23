@@ -110,7 +110,8 @@ public class TargetConnectionManager {
                         .scheduler(scheduler)
                         .removalListener(this::closeConnection);
         if (ttl.isZero() || ttl.isNegative()) {
-            cacheBuilder = cacheBuilder.maximumSize(0);
+            throw new IllegalArgumentException(
+                    "TTL must be a positive integer in seconds, was " + ttl.toSeconds());
         } else {
             cacheBuilder = cacheBuilder.expireAfterAccess(ttl);
         }
