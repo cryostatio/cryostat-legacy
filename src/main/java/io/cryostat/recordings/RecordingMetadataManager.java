@@ -388,7 +388,6 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
-        logger.info("ACCEPT: RECORDINGMETADATAMANAGER {}", targetId);
         String oldJvmId = jvmIdHelper.get(targetId);
 
         ConnectionDescriptor cd;
