@@ -601,7 +601,6 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void transferMetadataIfRestarted(
             ConnectionDescriptor cd, String oldJvmId, String targetId) {
         try {
-            logger.info("TRANSFERMETADATAIFRESTARTED RIGHT BEFORE");
             String newJvmId = jvmIdHelper.computeJvmId(new ConnectionDescriptor(targetId));
 
             if (newJvmId == null) {

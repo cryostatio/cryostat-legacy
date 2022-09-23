@@ -120,10 +120,6 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                             HttpHeaders.CONTENT_DISPOSITION,
                             String.format("attachment; filename=\"%s\"", recordingName));
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()));
             ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);

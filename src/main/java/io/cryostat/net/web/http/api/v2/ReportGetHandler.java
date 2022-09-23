@@ -37,8 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -52,12 +57,16 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @DeprecatedApi(
         deprecated = @Deprecated(forRemoval = true),
@@ -116,27 +125,24 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        // ctx.response().putHeader(HttpHeaders.LOCATION, "reports/:sourceTarget/:recordingName");
-        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
-        // String recordingName = ctx.pathParam("recordingName");
-        // List<String> queriedFilter = ctx.queryParam("filter");
-        // String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        // try {
-        //     Path report =
-        //             reportService
-        //                     .get(recordingName, rawFilter)
-        //                     .get(generationTimeoutSeconds, TimeUnit.SECONDS);
-        //     ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-        //     ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        //     ctx.response()
-        //             .putHeader(HttpHeaders.CONTENT_LENGTH,
-        // Long.toString(report.toFile().length()));
-        //     ctx.response().sendFile(report.toAbsolutePath().toString());
-        // } catch (ExecutionException | CompletionException ee) {
-        //     if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-        //         throw new ApiException(404, ee);
-        //     }
-        //     throw ee;
-        // }
+        String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+        try {
+            Path report =
+                    reportService
+                            .get(recordingName, rawFilter)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response()
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new ApiException(404, ee);
+            }
+            throw ee;
+        }
     }
 }

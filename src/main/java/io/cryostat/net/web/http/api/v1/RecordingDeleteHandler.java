@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -50,9 +51,12 @@ import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @DeprecatedApi(
         deprecated = @Deprecated(forRemoval = true),
@@ -98,18 +102,15 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        // ctx.response().putHeader(HttpHeaders.LOCATION,
-        // "recordings/:sourceTarget/:recordingName");
-        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
-        // String recordingName = ctx.pathParam("recordingName");
-        // try {
-        //     recordingArchiveHelper.deleteRecording(recordingName).get();
-        //     ctx.response().end();
-        // } catch (ExecutionException e) {
-        //     if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-        //         throw new HttpException(404, e.getMessage(), e);
-        //     }
-        //     throw e;
-        // }
+        String recordingName = ctx.pathParam("recordingName");
+        try {
+            recordingArchiveHelper.deleteRecording(recordingName).get();
+            ctx.response().end();
+        } catch (ExecutionException e) {
+            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+                throw new HttpException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
     }
 }

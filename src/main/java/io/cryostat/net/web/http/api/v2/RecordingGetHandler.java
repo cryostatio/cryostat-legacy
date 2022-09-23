@@ -37,8 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -49,11 +51,14 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
@@ -103,28 +108,24 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        // ctx.response().putHeader(HttpHeaders.LOCATION,
-        // "recordings/:sourceTarget/:recordingName");
-        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
-        // String recordingName = ctx.pathParam("recordingName");
-        // try {
-        //     Path archivedRecording =
-        // recordingArchiveHelper.getRecordingPath(recordingName).get();
-        //     ctx.response()
-        //             .putHeader(
-        //                     HttpHeaders.CONTENT_DISPOSITION,
-        //                     String.format("attachment; filename=\"%s\"", recordingName));
-        //     ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        //     ctx.response()
-        //             .putHeader(
-        //                     HttpHeaders.CONTENT_LENGTH,
-        //                     Long.toString(archivedRecording.toFile().length()));
-        //     ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
-        // } catch (ExecutionException e) {
-        //     if (e.getCause() instanceof RecordingNotFoundException) {
-        //         throw new ApiException(404, e.getMessage(), e);
-        //     }
-        //     throw e;
-        // }
+        String recordingName = ctx.pathParam("recordingName");
+        try {
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            String.format("attachment; filename=\"%s\"", recordingName));
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_LENGTH,
+                            Long.toString(archivedRecording.toFile().length()));
+            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
     }
 }

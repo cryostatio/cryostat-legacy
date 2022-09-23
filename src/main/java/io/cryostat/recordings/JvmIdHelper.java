@@ -91,15 +91,8 @@ public class JvmIdHelper {
                         } catch (Exception e) {
                             if (e.getCause() instanceof SecurityException) {
                                 // don't have credentials to access target
-                                if (desc.getCredentials().isEmpty()) {
-                                    logger.warn(
-                                            "Target {} requires credentials to access recordings",
-                                            desc.getTargetId());
-                                } else {
-                                    logger.warn(
-                                            "Target {} credentials are invalid",
-                                            desc.getTargetId());
-                                }
+                                logger.warn(
+                                        "Target {} credentials are invalid", desc.getTargetId());
                             } else {
                                 logger.warn(e);
                             }

@@ -64,7 +64,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -140,9 +139,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
                     reportService
                             .get(sourceTarget, recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            return new IntermediateResponse<Path>()
-                    .addHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()))
-                    .body(report);
+            return new IntermediateResponse<Path>().body(report);
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException | CompletionException e) {

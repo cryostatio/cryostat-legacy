@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
@@ -71,6 +72,7 @@ class AllArchivedRecordingsFetcherTest {
 
     @Mock AuthManager auth;
     @Mock RecordingArchiveHelper archiveHelper;
+    @Mock Logger logger;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -80,7 +82,7 @@ class AllArchivedRecordingsFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new AllArchivedRecordingsFetcher(auth, archiveHelper);
+        this.fetcher = new AllArchivedRecordingsFetcher(auth, archiveHelper, logger);
     }
 
     @Test

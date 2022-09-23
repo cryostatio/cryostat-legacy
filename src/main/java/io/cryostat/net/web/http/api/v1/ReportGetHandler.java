@@ -37,9 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -47,6 +51,7 @@ import javax.inject.Named;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
@@ -54,9 +59,13 @@ import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
 
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @DeprecatedApi(
         deprecated = @Deprecated(forRemoval = true),
@@ -119,32 +128,29 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        // ctx.response().putHeader(HttpHeaders.LOCATION, "reports/:sourceTarget/:recordingName");
-        // ctx.response().setStatusCode(301).end("ERROR: This endpoint is deprecated.");
-        // String recordingName = ctx.pathParam("recordingName");
-        // List<String> queriedFilter = ctx.queryParam("filter");
-        // String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        // try {
+        String recordingName = ctx.pathParam("recordingName");
+        List<String> queriedFilter = ctx.queryParam("filter");
+        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+        try {
 
-        //     Path report =
-        //             reportService
-        //                     .get(recordingName, rawFilter)
-        //                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-        //     ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        //     ctx.response()
-        //             .putHeader(HttpHeaders.CONTENT_LENGTH,
-        // Long.toString(report.toFile().length()));
-        //     ctx.response().sendFile(report.toAbsolutePath().toString());
-        // } catch (ExecutionException | CompletionException ee) {
-        //     if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
-        //         ReportGenerationException rge =
-        //                 (ReportGenerationException) ExceptionUtils.getRootCause(ee);
-        //         throw new HttpException(rge.getStatusCode(), ee.getMessage());
-        //     }
-        //     if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-        //         throw new HttpException(404, ee);
-        //     }
-        //     throw ee;
-        // }
+            Path report =
+                    reportService
+                            .get(recordingName, rawFilter)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response()
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
+                ReportGenerationException rge =
+                        (ReportGenerationException) ExceptionUtils.getRootCause(ee);
+                throw new HttpException(rge.getStatusCode(), ee.getMessage());
+            }
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new HttpException(404, ee);
+            }
+            throw ee;
+        }
     }
 }

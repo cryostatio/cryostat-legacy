@@ -58,7 +58,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
 public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
@@ -117,11 +116,7 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
             Path archivedRecording =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-            return new IntermediateResponse<Path>()
-                    .addHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()))
-                    .body(archivedRecording);
+            return new IntermediateResponse<Path>().body(archivedRecording);
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {

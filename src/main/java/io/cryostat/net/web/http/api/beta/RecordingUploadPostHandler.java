@@ -125,7 +125,7 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.PLAINTEXT);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
