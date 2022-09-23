@@ -78,6 +78,7 @@ public class TargetConnectionManager {
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
+    private final Executor executor;
     private final Logger logger;
 
     private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
@@ -93,6 +94,7 @@ public class TargetConnectionManager {
             int maxTargetConnections,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
+        this.executor = executor;
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
@@ -139,7 +141,7 @@ public class TargetConnectionManager {
                         connectionDescriptor.getTargetId(), k -> new Object())) {
             return connections
                     .get(connectionDescriptor)
-                    .thenApply(
+                    .thenApplyAsync(
                             conn -> {
                                 try {
                                     return task.execute(conn);
@@ -147,7 +149,8 @@ public class TargetConnectionManager {
                                     logger.error(e);
                                     throw new CompletionException(e);
                                 }
-                            });
+                            },
+                            executor);
         }
     }
 
