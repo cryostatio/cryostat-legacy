@@ -107,7 +107,8 @@ public abstract class NetworkModule {
     @Provides
     @Named(Variables.TARGET_CACHE_TTL)
     static Duration provideMaxTargetTTL(Environment env) {
-        return Duration.ofSeconds(Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_TTL, "10")));
+        return Duration.ofSeconds(
+                Math.max(1, Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_TTL, "10"))));
     }
 
     @Provides
