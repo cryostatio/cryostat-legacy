@@ -52,8 +52,14 @@ import io.cryostat.net.web.http.api.v2.graph.ActiveRecordingsFetcher.Active;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetchingEnvironment;
 
+@SuppressFBWarnings(
+        value = "URF_UNREAD_FIELD",
+        justification =
+                "The Active and AggregateInfo fields are serialized and returned to the client by"
+                        + " the GraphQL engine")
 class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
 
     @Inject
