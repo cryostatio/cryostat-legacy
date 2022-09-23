@@ -48,6 +48,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
@@ -137,7 +138,9 @@ class RecordingsGetHandlerTest {
                                 "encodedServiceUriFoo",
                                 "recordingFoo",
                                 "/some/path/download/recordingFoo",
-                                "/some/path/archive/recordingFoo")));
+                                "/some/path/archive/recordingFoo",
+                                new Metadata(),
+                                0)));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);

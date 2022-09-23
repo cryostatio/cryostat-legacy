@@ -308,7 +308,9 @@ class RecordingsPostHandlerTest {
                         "archive",
                         filename,
                         "/some/download/path/" + filename,
-                        "/some/report/path/" + filename);
+                        "/some/report/path/" + filename,
+                        new Metadata(),
+                        0);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
@@ -495,7 +497,8 @@ class RecordingsPostHandlerTest {
                         filename,
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
-                        metadata);
+                        metadata,
+                        0);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");

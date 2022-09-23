@@ -50,26 +50,7 @@ public class ArchivedRecordingInfo {
     private final String name;
     private final String reportUrl;
     private final Metadata metadata;
-    private long size;
-
-    public ArchivedRecordingInfo(
-            String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
-        this(encodedServiceUri, name, downloadUrl, reportUrl, new Metadata(), 0);
-    }
-
-    public ArchivedRecordingInfo(
-            String encodedServiceUri,
-            String name,
-            String downloadUrl,
-            String reportUrl,
-            Metadata metadata) {
-        this.encodedServiceUri = encodedServiceUri;
-        this.name = name;
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-        this.metadata = metadata;
-        this.size = 0;
-    }
+    private final long size;
 
     public ArchivedRecordingInfo(
             String encodedServiceUri,

@@ -237,10 +237,12 @@ class ArchivedRecordingsFetcherTest {
             Archived archived = fetcher.get(env);
 
             MatcherAssert.assertThat(archived, Matchers.notNullValue());
-            MatcherAssert.assertThat(archived.data, Matchers.containsInAnyOrder(recording3, recording5));
+            MatcherAssert.assertThat(
+                    archived.data, Matchers.containsInAnyOrder(recording3, recording5));
             MatcherAssert.assertThat(archived.aggregate.count, Matchers.equalTo(2L));
             MatcherAssert.assertThat(
-                    archived.aggregate.size, Matchers.equalTo(recording3.getSize() + recording5.getSize()));
+                    archived.aggregate.size,
+                    Matchers.equalTo(recording3.getSize() + recording5.getSize()));
         }
     }
 }

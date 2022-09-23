@@ -16,6 +16,11 @@ query {
                     metadata {
                         labels
                     }
+                    size
+                    aggregate {
+                        count
+                        size
+                    }
                 }
             }
         }

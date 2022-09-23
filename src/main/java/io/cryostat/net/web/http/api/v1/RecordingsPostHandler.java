@@ -227,6 +227,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
         Metadata metadata = new Metadata(labels);
 
+        long size = upload.size();
         String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
@@ -288,7 +289,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                                 .get()
                                                                                 .getArchivedReportURL(
                                                                                         fsName),
-                                                                        metadata),
+                                                                        metadata,
+                                                                        size),
                                                                 "target",
                                                                 subdirectoryName))
                                                 .build()

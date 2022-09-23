@@ -49,6 +49,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
@@ -203,22 +204,30 @@ class PeriodicArchiverTest {
                                 encodedServiceUri,
                                 "targetFoo_recordingFoo_20210101T202547Z.jfr",
                                 "/some/path/download/recordingFoo",
-                                "/some/path/archive/recordingFoo"),
+                                "/some/path/archive/recordingFoo",
+                                new Metadata(),
+                                0),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriA",
                                 "targetA_recordingA_20190801T202547Z.jfr",
                                 "/some/path/download/recordingA",
-                                "/some/path/archive/recordingA"),
+                                "/some/path/archive/recordingA",
+                                new Metadata(),
+                                0),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUri123",
                                 "target123_123recording_20211107T202547Z.jfr",
                                 "/some/path/download/123recording",
-                                "/some/path/archive/123recording"),
+                                "/some/path/archive/123recording",
+                                new Metadata(),
+                                0),
                         new ArchivedRecordingInfo(
                                 encodedServiceUri,
                                 matchingFileName,
                                 String.format("/some/path/download/%s", rule.getRecordingName()),
-                                String.format("/some/path/archive/%s", rule.getRecordingName()))));
+                                String.format("/some/path/archive/%s", rule.getRecordingName()),
+                                new Metadata(),
+                                0)));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
         CompletableFuture<ArchivedRecordingInfo> saveFuture = new CompletableFuture<>();
@@ -227,7 +236,9 @@ class PeriodicArchiverTest {
                         encodedServiceUri,
                         "someRecording.jfr",
                         "/some/path/download/someRecording.jfr",
-                        "/some/path/archive/someRecording.jfr");
+                        "/some/path/archive/someRecording.jfr",
+                        new Metadata(),
+                        0);
         saveFuture.complete(newlySavedRecording);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
                 .thenReturn(saveFuture);
