@@ -167,19 +167,9 @@ class RecordingGetHandlerTest {
             Path archivedRecording = Mockito.mock(Path.class);
             when(future.get()).thenReturn(archivedRecording);
 
-            File file = Mockito.mock(File.class);
-            when(archivedRecording.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(12345L);
-
             IntermediateResponse<Path> response = handler.handle(params);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(
-                    response.getHeaders(),
-                    Matchers.equalTo(
-                            Map.of(
-                                    HttpHeaders.CONTENT_LENGTH,
-                                    (CharSequence) Long.toString(12345L))));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(archivedRecording));
 
             verify(recordingArchiveHelper)

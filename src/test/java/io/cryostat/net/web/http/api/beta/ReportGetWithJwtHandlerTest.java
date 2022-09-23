@@ -175,9 +175,6 @@ class ReportGetWithJwtHandlerTest {
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
-            File file = Mockito.mock(File.class);
-            when(path.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(1234L);
             Future<Path> future = CompletableFuture.completedFuture(path);
             when(reports.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
@@ -187,7 +184,6 @@ class ReportGetWithJwtHandlerTest {
             verify(reports).get("mytarget", "myrecording", "");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
             inOrder.verify(resp).sendFile("foo.jfr");
         }
 
@@ -200,9 +196,6 @@ class ReportGetWithJwtHandlerTest {
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
-            File file = Mockito.mock(File.class);
-            when(path.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(1234L);
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             Future<Path> future = CompletableFuture.completedFuture(path);
             when(reports.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
@@ -213,7 +206,6 @@ class ReportGetWithJwtHandlerTest {
             verify(reports).get("mytarget", "myrecording", "someFilter");
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
             inOrder.verify(resp).sendFile("foo.jfr");
         }
     }

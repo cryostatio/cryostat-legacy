@@ -159,9 +159,6 @@ class RecordingGetWithJwtHandlerTest {
             Path path = Mockito.mock(Path.class);
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
-            File file = Mockito.mock(File.class);
-            when(path.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(1234L);
             Future<Path> future = CompletableFuture.completedFuture(path);
             when(archive.getRecordingPath(Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
@@ -174,7 +171,6 @@ class RecordingGetWithJwtHandlerTest {
                             HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"myrecording\"");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
             inOrder.verify(resp).sendFile("foo.jfr");
         }
     }

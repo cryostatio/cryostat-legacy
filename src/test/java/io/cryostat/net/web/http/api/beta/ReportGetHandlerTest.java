@@ -175,9 +175,6 @@ class ReportGetHandlerTest {
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
-            File file = Mockito.mock(File.class);
-            when(fakePath.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(12345L);
 
             when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
@@ -185,12 +182,6 @@ class ReportGetHandlerTest {
             IntermediateResponse<Path> response = handler.handle(params);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(
-                    response.getHeaders(),
-                    Matchers.equalTo(
-                            Map.of(
-                                    HttpHeaders.CONTENT_LENGTH,
-                                    (CharSequence) Long.toString(12345L))));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
             verify(reportService).get(sourceTarget, recordingName, "");
@@ -208,9 +199,6 @@ class ReportGetHandlerTest {
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
-            File file = Mockito.mock(File.class);
-            when(fakePath.toFile()).thenReturn(file);
-            when(file.length()).thenReturn(12345L);
 
             when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
@@ -218,12 +206,6 @@ class ReportGetHandlerTest {
             IntermediateResponse<Path> response = handler.handle(params);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(
-                    response.getHeaders(),
-                    Matchers.equalTo(
-                            Map.of(
-                                    HttpHeaders.CONTENT_LENGTH,
-                                    (CharSequence) Long.toString(12345L))));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
             verify(reportService).get(sourceTarget, recordingName, "someFilter");
