@@ -65,7 +65,6 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
@@ -834,7 +833,16 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
             }
 
-            return this.targetConnectionManager.executeConnectedTask(cd, JFRConnection::getJvmId);
+            return this.targetConnectionManager.executeConnectedTask(
+                    cd,
+                    connection -> {
+                        try {
+                            return connection.getJvmId();
+                        } catch (Exception e) {
+                            logger.error(e);
+                            return null;
+                        }
+                    });
         } catch (Exception e) {
             logger.error(e);
             return null;
