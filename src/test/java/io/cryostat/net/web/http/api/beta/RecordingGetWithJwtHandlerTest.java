@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.beta;
 
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
