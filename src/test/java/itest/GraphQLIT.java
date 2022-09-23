@@ -438,7 +438,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
 
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
-        MatcherAssert.assertThat(archivedRecording.size, Matchers.notNullValue());
+        MatcherAssert.assertThat(archivedRecording.size, Matchers.greaterThan(0L));
 
         MatcherAssert.assertThat(
                 archivedRecording.metadata,
@@ -484,7 +484,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.aggregate.count, Matchers.equalTo(1L));
-        MatcherAssert.assertThat(node.recordings.archived.aggregate.size, Matchers.notNullValue());
+        MatcherAssert.assertThat(node.recordings.archived.aggregate.size, Matchers.greaterThan(0L));
 
         ActiveRecording activeRecording = node.recordings.active.get(0);
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
