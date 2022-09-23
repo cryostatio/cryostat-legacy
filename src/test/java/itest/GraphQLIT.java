@@ -411,7 +411,7 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                         + "recordings { archived {"
-                        + " data {"
+                        + " data { name size "
                         + " doPutMetadata(metadata: { labels: ["
                         + " {key:\"template.name\",value:\"Profiling\"},"
                         + " {key:\"template.type\",value:\"TARGET\"},"
@@ -615,7 +615,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
         @Override
         public int hashCode() {
-            return Objects.hash(count, count);
+            return Objects.hash(count, size);
         }
 
         @Override
