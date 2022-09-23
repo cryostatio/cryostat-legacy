@@ -321,7 +321,7 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
-                        + " active { name doArchive { name } } } } }");
+                        + " active { data { name doArchive { name } } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -362,11 +362,12 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                         + "recordings { active {"
+                        + " data {"
                         + " doPutMetadata(metadata: { labels: ["
                         + " {key:\"template.name\",value:\"Profiling\"},"
                         + " {key:\"template.type\",value:\"TARGET\"},"
                         + " {key:\"newLabel\",value:\"newValue\"}] })"
-                        + " { metadata { labels } } } } } }");
+                        + " { metadata { labels } } } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -385,9 +386,9 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
 
-        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
 
         MatcherAssert.assertThat(
                 activeRecording.metadata,
@@ -468,7 +469,6 @@ class GraphQLIT extends ExternalTargetsTest {
                     + " } } }");
         webClient
                 .post("/api/v2.2/graphql")
-                
                 .sendJson(
                         query,
                         ar -> {
@@ -797,6 +797,7 @@ class GraphQLIT extends ExternalTargetsTest {
             return Objects.equals(data, other.data);
         }
     }
+
     static class Active {
         List<ActiveRecording> data;
         AggregateInfo aggregate;

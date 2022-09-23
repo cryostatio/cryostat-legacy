@@ -54,8 +54,7 @@ import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
 import graphql.schema.DataFetchingEnvironment;
 
-class ActiveRecordingsFetcher
-        extends AbstractPermissionedDataFetcher<Active> {
+class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
 
     @Inject
     ActiveRecordingsFetcher(AuthManager auth) {
@@ -68,8 +67,7 @@ class ActiveRecordingsFetcher
     }
 
     @Override
-    public Active getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
+    public Active getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         List<GraphRecordingDescriptor> recordings = new ArrayList<>(source.active);
 

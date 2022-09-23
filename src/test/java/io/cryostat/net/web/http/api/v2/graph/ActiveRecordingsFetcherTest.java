@@ -240,7 +240,8 @@ class ActiveRecordingsFetcherTest {
             Active active = fetcher.get(env);
 
             MatcherAssert.assertThat(active, Matchers.notNullValue());
-            MatcherAssert.assertThat(active.data, Matchers.contains(recording1, recording2, recording3));
+            MatcherAssert.assertThat(
+                    active.data, Matchers.contains(recording1, recording2, recording3));
             MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(3L));
         }
     }
@@ -280,7 +281,7 @@ class ActiveRecordingsFetcherTest {
 
             MatcherAssert.assertThat(active, Matchers.notNullValue());
             MatcherAssert.assertThat(active.data, Matchers.contains(recording2));
-            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(1L)); 
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(1L));
         }
     }
 }
