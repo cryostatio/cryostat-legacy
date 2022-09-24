@@ -411,7 +411,7 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                         + "recordings { archived {"
-                        + " data {"
+                        + " data { name size "
                         + " doPutMetadata(metadata: { labels: ["
                         + " {key:\"template.name\",value:\"Profiling\"},"
                         + " {key:\"template.type\",value:\"TARGET\"},"
@@ -438,6 +438,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
 
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
+        MatcherAssert.assertThat(archivedRecording.size, Matchers.greaterThan(0L));
 
         MatcherAssert.assertThat(
                 archivedRecording.metadata,
@@ -461,7 +462,7 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
                     + " active { name doDelete { name } } archived { data { name doDelete { name }"
-                    + " } aggregate { count } } } } }");
+                    + " } aggregate { count size } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -483,6 +484,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.aggregate.count, Matchers.equalTo(1L));
+        MatcherAssert.assertThat(node.recordings.archived.aggregate.size, Matchers.greaterThan(0L));
 
         ActiveRecording activeRecording = node.recordings.active.get(0);
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
@@ -494,8 +496,6 @@ class GraphQLIT extends ExternalTargetsTest {
                 archivedRecording.name,
                 Matchers.matchesRegex(
                         "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
-        MatcherAssert.assertThat(
-                archivedRecording.doDelete.name, Matchers.equalTo(archivedRecording.name));
     }
 
     static class Target {
@@ -557,6 +557,7 @@ class GraphQLIT extends ExternalTargetsTest {
         String reportUrl;
         String downloadUrl;
         RecordingMetadata metadata;
+        long size;
 
         ArchivedRecording doDelete;
 
@@ -572,12 +573,14 @@ class GraphQLIT extends ExternalTargetsTest {
                     + name
                     + ", reportUrl="
                     + reportUrl
+                    + ", size="
+                    + size
                     + "]";
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl);
+            return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl, size);
         }
 
         @Override
@@ -596,36 +599,34 @@ class GraphQLIT extends ExternalTargetsTest {
                     && Objects.equals(downloadUrl, other.downloadUrl)
                     && Objects.equals(metadata, other.metadata)
                     && Objects.equals(name, other.name)
-                    && Objects.equals(reportUrl, other.reportUrl);
+                    && Objects.equals(reportUrl, other.reportUrl)
+                    && Objects.equals(size, other.size);
         }
     }
 
     static class AggregateInfo {
-        Long count;
+        long count;
+        long size;
 
         @Override
         public String toString() {
-            return "AggregateInfo [count=" + count + "]";
+            return "AggregateInfo [count=" + count + ", size=" + size + "]";
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(count);
+            return Objects.hash(count, size);
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
             AggregateInfo other = (AggregateInfo) obj;
-            return Objects.equals(count, other.count);
+            if (count != other.count) return false;
+            if (size != other.size) return false;
+            return true;
         }
     }
 

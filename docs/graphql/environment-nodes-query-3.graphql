@@ -12,9 +12,16 @@ query {
                     }
                 }
                 archived {
-                    name
-                    metadata {
-                        labels
+                    data {
+                        name
+                        metadata {
+                            labels
+                        }
+                        size
+                    }
+                    aggregate {
+                        count
+                        size
                     }
                 }
             }

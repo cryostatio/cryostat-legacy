@@ -830,7 +830,9 @@ class RecordingArchiveHelperTest {
                                         Path.of(subdirectories.get(1)).toAbsolutePath().toString(),
                                         recordingName,
                                         "/some/path/download/" + recordingName,
-                                        "/some/path/archive/" + recordingName),
+                                        "/some/path/archive/" + recordingName,
+                                        new Metadata(),
+                                        0),
                                 "target",
                                 subdirectories.get(1))));
     }
@@ -915,12 +917,16 @@ class RecordingArchiveHelperTest {
                                 "encodedServiceUriA",
                                 "recordingA",
                                 "/some/path/download/recordingA",
-                                "/some/path/archive/recordingA"),
+                                "/some/path/archive/recordingA",
+                                new Metadata(),
+                                0),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUri123",
                                 "123recording",
                                 "/some/path/download/123recording",
-                                "/some/path/archive/123recording"));
+                                "/some/path/archive/123recording",
+                                new Metadata(),
+                                0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
@@ -993,7 +999,9 @@ class RecordingArchiveHelperTest {
                                 targetIdUploads,
                                 "foo_recording",
                                 "/some/path/download/foo_recording",
-                                "/some/path/archive/foo_recording"));
+                                "/some/path/archive/foo_recording",
+                                new Metadata(),
+                                0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
 
         // Test get recordings from target
@@ -1008,6 +1016,8 @@ class RecordingArchiveHelperTest {
                                 "encodedServiceUri",
                                 "foo_recording",
                                 "/some/path/download/foo_recording",
-                                "/some/path/archive/foo_recording"));
+                                "/some/path/archive/foo_recording",
+                                new Metadata(),
+                                0));
     }
 }

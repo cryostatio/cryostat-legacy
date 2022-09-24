@@ -47,6 +47,7 @@ import java.util.concurrent.Future;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -100,11 +101,11 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of());
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.empty());
-            MatcherAssert.assertThat(recordings, Matchers.instanceOf(List.class));
+            MatcherAssert.assertThat(recordings.data, Matchers.empty());
+            MatcherAssert.assertThat(recordings.data, Matchers.instanceOf(List.class));
         }
     }
 
@@ -122,10 +123,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording));
         }
     }
 
@@ -148,10 +149,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings(Mockito.any())).thenReturn(future);
             when(future.get()).thenReturn(mockList);
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.equalTo(mockList));
+            MatcherAssert.assertThat(recordings.data, Matchers.equalTo(mockList));
         }
     }
 
@@ -177,10 +178,10 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording1));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording1));
         }
     }
 
@@ -209,10 +210,40 @@ class AllArchivedRecordingsFetcherTest {
             when(archiveHelper.getRecordings()).thenReturn(future);
             when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
 
-            List<ArchivedRecordingInfo> recordings = fetcher.get(env);
+            Archived recordings = fetcher.get(env);
 
             MatcherAssert.assertThat(recordings, Matchers.notNullValue());
-            MatcherAssert.assertThat(recordings, Matchers.contains(recording2));
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording2));
+        }
+    }
+
+    @Test
+    void shouldReturnRecordingsSizeFiltered() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
+
+            when(recording1.getSize()).thenReturn(12345L);
+            when(recording2.getSize()).thenReturn(123456L);
+            when(recording3.getSize()).thenReturn(1234567L);
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.SIZE_LE)).thenReturn(true);
+            when(filter.get(FilterInput.Key.SIZE_LE)).thenReturn(123456L);
+
+            when(archiveHelper.getRecordings()).thenReturn(future);
+            when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
+
+            Archived recordings = fetcher.get(env);
+
+            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording1, recording2));
         }
     }
 }
