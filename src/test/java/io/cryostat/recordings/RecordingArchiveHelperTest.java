@@ -822,16 +822,14 @@ class RecordingArchiveHelperTest {
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
 
-        ArchivedRecordingInfo matcher = new ArchivedRecordingInfo(
-                Path.of(targetId)
-                        .toAbsolutePath()
-                        .getFileName()
-                        .toString(),
-                recordingName,
-                "/some/path/download/" + recordingName,
-                "/some/path/archive/" + recordingName,
-                new Metadata(),
-                0);
+        ArchivedRecordingInfo matcher =
+                new ArchivedRecordingInfo(
+                        "uploads",
+                        recordingName,
+                        "/some/path/download/" + recordingName,
+                        "/some/path/archive/" + recordingName,
+                        new Metadata(),
+                        0);
 
         MatcherAssert.assertThat(deleted, Matchers.equalTo(matcher));
 

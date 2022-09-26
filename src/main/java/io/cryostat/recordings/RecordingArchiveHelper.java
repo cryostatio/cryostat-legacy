@@ -157,7 +157,7 @@ public class RecordingArchiveHelper {
                     String connectUrl;
                     try {
                         connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                    
+
                     } catch (ExecutionException e) {
                         // try to migrate the recording to the new structure
                         logger.warn("No connectUrl file found in {}", subdirectoryPath);
@@ -306,8 +306,14 @@ public class RecordingArchiveHelper {
                     new ArchivedRecordingInfo(
                             connectionDescriptor.getTargetId(),
                             filename,
-                            webServerProvider.get().getArchivedDownloadURL(connectionDescriptor.getTargetId(), filename),
-                            webServerProvider.get().getArchivedReportURL(connectionDescriptor.getTargetId(), filename),
+                            webServerProvider
+                                    .get()
+                                    .getArchivedDownloadURL(
+                                            connectionDescriptor.getTargetId(), filename),
+                            webServerProvider
+                                    .get()
+                                    .getArchivedReportURL(
+                                            connectionDescriptor.getTargetId(), filename),
                             metadata,
                             getFileSize(filename));
             future.complete(archivedRecordingInfo);
@@ -543,15 +549,9 @@ public class RecordingArchiveHelper {
                                                         webServer.getArchivedReportURL(
                                                                 targetId, file),
                                                         recordingMetadataManager.getMetadata(
-<<<<<<< HEAD
-                                                                new ConnectionDescriptor(
-                                                                        targetId),
+                                                                new ConnectionDescriptor(targetId),
                                                                 file),
                                                         getFileSize(file));
-=======
-                                                                new ConnectionDescriptor(targetId),
-                                                                file));
->>>>>>> 71000b4d (refactored and fixed graphql queries which failed exceptionally because of getJvmId on non-reachable targets -> instead just return empty lists, changed ArchivedRecordingInfo to have non encoded serviceuri field now that the subdirectories are not no longer encoded targetIds, removed debugging prints)
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
