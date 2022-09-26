@@ -162,6 +162,6 @@ class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
     }
 
     static class AggregateInfo {
-        Long count;
+        long count;
     }
 }
