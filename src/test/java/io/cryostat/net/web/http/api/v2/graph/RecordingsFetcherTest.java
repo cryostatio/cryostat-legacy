@@ -177,9 +177,7 @@ class RecordingsFetcherTest {
 
         // mock get active recordings
         when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any(ConnectedTask.class)))
                 .thenReturn(List.of());
 
         // mock get archived recordings
@@ -213,9 +211,7 @@ class RecordingsFetcherTest {
 
         GraphRecordingDescriptor activeRecording = Mockito.mock(GraphRecordingDescriptor.class);
         when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any(ConnectedTask.class)))
                 .thenReturn(List.of(activeRecording));
 
         ArchivedRecordingInfo archivedRecording = Mockito.mock(ArchivedRecordingInfo.class);
@@ -252,8 +248,7 @@ class RecordingsFetcherTest {
                 .when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(ConnectionDescriptor.class),
-                                Mockito.any(ConnectedTask.class),
-                                Mockito.anyBoolean()))
+                                Mockito.any(ConnectedTask.class)))
                 .thenReturn(List.of(activeRecording));
 
         ArchivedRecordingInfo archivedRecording = Mockito.mock(ArchivedRecordingInfo.class);
@@ -289,9 +284,7 @@ class RecordingsFetcherTest {
         GraphRecordingDescriptor activeRecording2 = Mockito.mock(GraphRecordingDescriptor.class);
         GraphRecordingDescriptor activeRecording3 = Mockito.mock(GraphRecordingDescriptor.class);
         when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class),
-                        Mockito.any(ConnectedTask.class),
-                        Mockito.anyBoolean()))
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any(ConnectedTask.class)))
                 .thenReturn(List.of(activeRecording1, activeRecording2, activeRecording3));
 
         ArchivedRecordingInfo archivedRecording1 = Mockito.mock(ArchivedRecordingInfo.class);

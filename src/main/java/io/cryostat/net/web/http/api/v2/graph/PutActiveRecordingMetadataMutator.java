@@ -129,8 +129,7 @@ class PutActiveRecordingMetadataMutator
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
                             metadata);
-                },
-                true);
+                });
     }
 
     public static class InputRecordingLabel {

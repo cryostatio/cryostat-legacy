@@ -75,7 +75,8 @@ public final class Variables {
     public static final String DEV_MODE = "CRYOSTAT_DEV_MODE";
 
     // JMX connections configuration
-    public static final String TARGET_CACHE_SIZE = "CRYOSTAT_TARGET_CACHE_SIZE";
+    public static final String TARGET_MAX_CONCURRENT_CONNECTIONS =
+            "CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS";
     public static final String TARGET_CACHE_TTL = "CRYOSTAT_TARGET_CACHE_TTL";
 
     // paths configuration

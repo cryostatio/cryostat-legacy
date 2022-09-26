@@ -43,8 +43,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,8 +60,9 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.PlatformClient;
 
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
@@ -74,10 +78,12 @@ public class TargetConnectionManager {
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
+    private final Executor executor;
     private final Logger logger;
 
-    private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
+    private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
     private final Map<String, Object> targetLocks;
+    private final Optional<Semaphore> semaphore;
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
@@ -88,20 +94,28 @@ public class TargetConnectionManager {
             int maxTargetConnections,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
+        this.executor = executor;
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
+        if (maxTargetConnections > 0) {
+            this.semaphore = Optional.of(new Semaphore(maxTargetConnections, true));
+        } else {
+            this.semaphore = Optional.empty();
+        }
 
         Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
                 Caffeine.newBuilder()
                         .executor(executor)
                         .scheduler(scheduler)
-                        .expireAfterAccess(ttl)
                         .removalListener(this::closeConnection);
-        if (maxTargetConnections >= 0) {
-            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
+        if (ttl.isZero() || ttl.isNegative()) {
+            throw new IllegalArgumentException(
+                    "TTL must be a positive integer in seconds, was " + ttl.toSeconds());
+        } else {
+            cacheBuilder = cacheBuilder.expireAfterAccess(ttl);
         }
-        this.connections = cacheBuilder.build(this::connect);
+        this.connections = cacheBuilder.buildAsync(new ConnectionLoader());
 
         // force removal of connections from cache when we're notified about targets being lost.
         // This should already be taken care of by the connection close listener, but this provides
@@ -114,52 +128,39 @@ public class TargetConnectionManager {
                             if (Objects.equals(
                                     cd.getTargetId(),
                                     tde.getServiceRef().getServiceUri().toString())) {
-                                connections.invalidate(cd);
+                                connections.synchronous().invalidate(cd);
                             }
                         }
                     }
                 });
     }
 
-    public <T> T executeConnectedTask(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        return executeConnectedTask(connectionDescriptor, task, true);
-    }
-
-    /**
-     * Execute a {@link ConnectedTask}, optionally caching the connection for future re-use. If
-     * useCache is true then the connection will be retrieved from cache if available, or created
-     * and stored in the cache if not. This is subject to the cache maxSize and TTL policy. If
-     * useCache is false then a connection will be taken from cache if available, otherwise a new
-     * connection will be created externally from the cache. After the task has completed the
-     * connection will be closed only if the connection was not originally retrieved from the cache,
-     * otherwise the connection is left as-is to be subject to the cache's standard eviction policy.
-     * "Interactive" use cases should prefer to call this with useCache==true (or simply call {@link
-     * #executeConnectedTask(ConnectionDescriptor cd, ConnectedTask task)} instead). Automated use
-     * cases such as Automated Rules should call this with useCache==false.
-     */
-    public <T> T executeConnectedTask(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
-            throws Exception {
+    public <T> CompletableFuture<T> executeConnectedTaskAsync(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
         synchronized (
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {
-            if (useCache) {
-                return task.execute(connections.get(connectionDescriptor));
-            } else {
-                JFRConnection connection = connections.getIfPresent(connectionDescriptor);
-                boolean cached = connection != null;
-                if (!cached) {
-                    connection = connect(connectionDescriptor);
-                }
-                try {
-                    return task.execute(connection);
-                } finally {
-                    if (!cached) {
-                        connection.close();
-                    }
-                }
-            }
+            return connections
+                    .get(connectionDescriptor)
+                    .thenApplyAsync(
+                            conn -> {
+                                try {
+                                    return task.execute(conn);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    throw new CompletionException(e);
+                                }
+                            },
+                            executor);
+        }
+    }
+
+    public <T> T executeConnectedTask(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
+        synchronized (
+                targetLocks.computeIfAbsent(
+                        connectionDescriptor.getTargetId(), k -> new Object())) {
+            return task.execute(connections.get(connectionDescriptor).get());
         }
     }
 
@@ -209,6 +210,11 @@ public class TargetConnectionManager {
             }
         } catch (Exception e) {
             logger.error(e);
+        } finally {
+            if (semaphore.isPresent()) {
+                semaphore.get().release();
+                logger.trace("Semaphore released! Permits: {}", semaphore.get().availablePermits());
+            }
         }
     }
 
@@ -253,6 +259,9 @@ public class TargetConnectionManager {
         logger.info("Creating connection for {}", url);
         evt.begin();
         try {
+            if (semaphore.isPresent()) {
+                semaphore.get().acquire();
+            }
             return jfrConnectionToolkit
                     .get()
                     .connect(
@@ -261,16 +270,47 @@ public class TargetConnectionManager {
                             Collections.singletonList(
                                     () -> {
                                         logger.info("Connection for {} closed", url);
-                                        this.connections.invalidate(cacheKey);
+                                        this.connections.synchronous().invalidate(cacheKey);
                                     }));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
+            if (semaphore.isPresent()) {
+                semaphore.get().release();
+            }
             throw e;
         } finally {
             evt.end();
             if (evt.shouldCommit()) {
                 evt.commit();
             }
+        }
+    }
+
+    private class ConnectionLoader
+            implements AsyncCacheLoader<ConnectionDescriptor, JFRConnection> {
+
+        @Override
+        public CompletableFuture<JFRConnection> asyncLoad(
+                ConnectionDescriptor key, Executor executor) throws Exception {
+            return CompletableFuture.supplyAsync(
+                    () -> {
+                        try {
+                            return connect(key);
+                        } catch (Exception e) {
+                            throw new CompletionException(e);
+                        }
+                    },
+                    executor);
+        }
+
+        @Override
+        public CompletableFuture<JFRConnection> asyncReload(
+                ConnectionDescriptor key, JFRConnection prev, Executor executor) throws Exception {
+            // if we're refreshed and already have an existing, open connection, just reuse it.
+            if (prev.isConnected()) {
+                return CompletableFuture.completedFuture(prev);
+            }
+            return asyncLoad(key, executor);
         }
     }
 

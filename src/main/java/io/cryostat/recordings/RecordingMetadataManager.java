@@ -738,7 +738,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         CompletableFuture<Boolean> connectFuture = new CompletableFuture<>();
         try {
             this.targetConnectionManager.executeConnectedTask(
-                    cd, connection -> connectFuture.complete(connection.isConnected()), false);
+                    cd, connection -> connectFuture.complete(connection.isConnected()));
             return connectFuture.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
@@ -836,7 +836,12 @@ public class RecordingMetadataManager extends AbstractVerticle
             return this.targetConnectionManager.executeConnectedTask(
                     cd,
                     connection -> {
-                        return (String) connection.getJvmId();
+                        try {
+                            return connection.getJvmId();
+                        } catch (Exception e) {
+                            logger.error(e);
+                            return null;
+                        }
                     });
         } catch (Exception e) {
             logger.error(e);
