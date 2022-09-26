@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,7 +159,7 @@ class CredentialDeleteHandlerTest {
         @Test
         void shouldRespond404IfIdUnknown() throws Exception {
             Mockito.when(credentialsManager.get(Mockito.anyInt()))
-                    .thenThrow(FileNotFoundException.class);
+                    .thenThrow(IllegalArgumentException.class);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
 
             ApiException ex =

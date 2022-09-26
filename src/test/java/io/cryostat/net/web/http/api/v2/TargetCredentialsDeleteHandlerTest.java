@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -178,28 +176,11 @@ class TargetCredentialsDeleteHandlerTest {
             String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
             Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenThrow(FileNotFoundException.class);
+                    .thenThrow(IllegalArgumentException.class);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(404));
-            Mockito.verify(credentialsManager).removeCredentials(matchExpression);
-        }
-
-        @Test
-        void shouldWrapIOExceptions() throws Exception {
-            String targetId = "fooTarget";
-            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenThrow(IOException.class);
-
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
-
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-            MatcherAssert.assertThat(ex.getCause(), Matchers.instanceOf(IOException.class));
             Mockito.verify(credentialsManager).removeCredentials(matchExpression);
         }
     }

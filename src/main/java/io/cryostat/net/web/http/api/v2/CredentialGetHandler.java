@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -115,10 +113,8 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
             Set<ServiceRef> targets = credentialsManager.resolveMatchingTargets(id);
             MatchedCredentials match = new MatchedCredentials(matchExpression, targets);
             return new IntermediateResponse<MatchedCredentials>().body(match);
-        } catch (FileNotFoundException fnfe) {
+        } catch (IllegalArgumentException fnfe) {
             throw new ApiException(404, fnfe);
-        } catch (IOException ioe) {
-            throw new ApiException(500, ioe);
         }
     }
 }

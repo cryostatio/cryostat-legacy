@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -166,8 +165,6 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
                     .body(null);
         } catch (MatchExpressionValidationException e) {
             throw new ApiException(400, e);
-        } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }
     }
 }

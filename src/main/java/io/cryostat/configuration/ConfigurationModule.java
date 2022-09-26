@@ -37,33 +37,25 @@
  */
 package io.cryostat.configuration;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.util.Set;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidator;
 
-import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 
 @Module
 public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
-    public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
 
     @Provides
     @Singleton
@@ -77,36 +69,16 @@ public abstract class ConfigurationModule {
     @Provides
     @Singleton
     static CredentialsManager provideCredentialsManager(
-            @Named(CONFIGURATION_PATH) Path confDir,
             MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
-            FileSystem fs,
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
-            Gson gson,
             Logger logger) {
-        try {
-            Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
-            if (!fs.isDirectory(credentialsDir)) {
-                Files.createDirectory(
-                        credentialsDir,
-                        PosixFilePermissions.asFileAttribute(
-                                Set.of(
-                                        PosixFilePermission.OWNER_READ,
-                                        PosixFilePermission.OWNER_WRITE,
-                                        PosixFilePermission.OWNER_EXECUTE)));
-            }
-            return new CredentialsManager(
-                    credentialsDir,
-                    matchExpressionValidator,
-                    matchExpressionEvaluator,
-                    fs,
-                    storage,
-                    notificationFactory,
-                    gson,
-                    logger);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return new CredentialsManager(
+                matchExpressionValidator,
+                matchExpressionEvaluator,
+                storage,
+                notificationFactory,
+                logger);
     }
 }
