@@ -428,7 +428,6 @@ public class RecordingArchiveHelper {
                                     ? UPLOADED_RECORDINGS_SUBDIRECTORY
                                     : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
             String fileName = recordingName + ".report.html";
-
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectory);
             if (!fs.exists(tempSubdirectory)) {
                 tempSubdirectory = fs.createDirectory(tempSubdirectory);
@@ -437,7 +436,6 @@ public class RecordingArchiveHelper {
         } catch (IOException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 

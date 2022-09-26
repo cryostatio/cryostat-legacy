@@ -108,7 +108,8 @@ public class JvmIdHelper {
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
         String targetId = connectionDescriptor.getTargetId();
         // FIXME: this should be refactored after the 2.2.0 release
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
+        if (targetId == null
+                || targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         }
@@ -121,6 +122,11 @@ public class JvmIdHelper {
     }
 
     public String getJvmId(String targetId) throws JvmIdGetException {
+        if (targetId == null
+                || targetId.equals(RecordingArchiveHelper.ARCHIVES)
+                || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+            return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
+        }
         return getJvmId(new ConnectionDescriptor(targetId));
     }
 
