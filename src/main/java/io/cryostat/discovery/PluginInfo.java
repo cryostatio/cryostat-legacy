@@ -57,10 +57,9 @@ import org.hibernate.annotations.TypeDef;
 public class PluginInfo {
 
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(columnDefinition = "uuid", updatable = false)
-    @Type(type = "org.hibernate.type.UUIDCharType")
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
     @Column(unique = false, nullable = false)
