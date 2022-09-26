@@ -160,9 +160,7 @@ public class RecordingArchiveHelper {
                         logger.info("Found connectUrl: {}", connectUrl);
                     } catch (ExecutionException e) {
                         // try to migrate the recording to the new structure
-                        logger.warn("No connectUrl file found in {}", subdirectoryPath);
-                        connectUrl =
-                                new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                        connectUrl = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
                     }
                     String jvmId = jvmIdHelper.getJvmId(connectUrl);
                     Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
@@ -174,8 +172,8 @@ public class RecordingArchiveHelper {
                             subdirectoryPath.resolve("connectUrl"),
                             connectUrl,
                             StandardOpenOption.CREATE);
-                    // rename subdirectory to jvmId
                     if (!fs.exists(encodedJvmIdPath)) {
+                        // rename subdirectory to jvmId
                         Files.move(subdirectoryPath, encodedJvmIdPath);
                     }
 
@@ -236,7 +234,7 @@ public class RecordingArchiveHelper {
                 }
                 future.complete(connectUrl.orElseThrow(IOException::new));
             } catch (IOException e) {
-                logger.warn("Couldn't get connectUrl from file system", e);
+                logger.warn("Couldn't get connectUrl from file system");
                 future.completeExceptionally(e);
             }
         }
