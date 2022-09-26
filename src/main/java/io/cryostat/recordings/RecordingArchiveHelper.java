@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -153,8 +154,11 @@ public class RecordingArchiveHelper {
                         continue;
                     }
                     Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-                    String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                    if (connectUrl == null) {
+                    String connectUrl;
+                    try {
+                        connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+                    
+                    } catch (ExecutionException e) {
                         // try to migrate the recording to the new structure
                         logger.warn("No connectUrl file found in {}", subdirectoryPath);
                         connectUrl =
@@ -176,12 +180,13 @@ public class RecordingArchiveHelper {
                     if (!fs.exists(encodedJvmIdPath)) {
                         Files.move(subdirectoryPath, encodedJvmIdPath);
                     }
+
                 } catch (JvmIdGetException e) {
                     logger.warn(
                             "Could not find jvmId for targetId {}, skipping migration of"
                                     + " recordings",
                             e.getTarget());
-                } catch (Exception e) {
+                } catch (CancellationException e) {
                     logger.error(e);
                 }
             }
