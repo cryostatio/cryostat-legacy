@@ -160,7 +160,8 @@ public class RecordingArchiveHelper {
                         logger.info("Found connectUrl: {}", connectUrl);
                     } catch (ExecutionException e) {
                         // try to migrate the recording to the new structure
-                        connectUrl = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                        connectUrl =
+                                new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
                     }
                     String jvmId = jvmIdHelper.getJvmId(connectUrl);
                     Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
@@ -199,10 +200,15 @@ public class RecordingArchiveHelper {
             if (oldJvmId.equals(newJvmId)) {
                 return;
             }
-            logger.info("{} Archives subdirectory rename: {} -> {}", connectUrl, oldJvmId, newJvmId);
+            logger.info(
+                    "{} Archives subdirectory rename: {} -> {}", connectUrl, oldJvmId, newJvmId);
             Path jvmIdPath = getRecordingSubdirectoryPath(newJvmId);
             Files.move(subdirectoryPath, jvmIdPath);
-            logger.info("{} Archives subdirectory successfully renamed: {} -> {}", connectUrl, oldJvmId, newJvmId);
+            logger.info(
+                    "{} Archives subdirectory successfully renamed: {} -> {}",
+                    connectUrl,
+                    oldJvmId,
+                    newJvmId);
         } catch (Exception e) {
             logger.error("Archives subdirectory could not be renamed upon target restart", e);
         }
