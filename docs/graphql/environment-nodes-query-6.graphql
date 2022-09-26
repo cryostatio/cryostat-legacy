@@ -3,9 +3,11 @@ query {
         descendantTargets {
             recordings {
                 active {
-                    doDelete {
-                        name
-                        state
+                    data {
+                        doDelete {
+                            name
+                            state
+                        }
                     }
                 }
             }

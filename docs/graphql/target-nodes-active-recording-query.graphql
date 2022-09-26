@@ -8,17 +8,16 @@ query {
             serviceUri
         }                
         recordings {            
-            archived {
+            active {
                 data {
                     name
+                    state
                     metadata {
                         labels
                     }
-                    size
                 }
                 aggregate {
                     count
-                    size
                 }
             }
         }

@@ -3,8 +3,10 @@ query {
         descendantTargets {
             recordings {
                 archived {
-                    doDelete {
-                        name
+                    data {
+                        doDelete {
+                            name
+                        }
                     }
                 }
             }

@@ -84,7 +84,7 @@ interface Node {
 }
 
 type Recordings {
-    active(filter: ActiveRecordingFilterInput): [ActiveRecording!]!
+    active(filter: ActiveRecordingFilterInput): Active!
     archived(filter: ArchivedRecordingFilterInput): Archived!
 }
 
@@ -118,6 +118,11 @@ type ArchivedRecording implements Recording {
 
     doDelete: ArchivedRecording!
     doPutMetadata(metadata: Object): ArchivedRecording!
+}
+
+type Active {
+    data: [ActiveRecording!]!
+    aggregate: AggregateInfo!
 }
 
 type Archived {

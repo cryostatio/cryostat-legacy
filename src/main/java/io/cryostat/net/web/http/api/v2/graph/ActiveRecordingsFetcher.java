@@ -48,13 +48,19 @@ import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ActiveRecordingsFetcher.Active;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.schema.DataFetchingEnvironment;
 
-class ActiveRecordingsFetcher
-        extends AbstractPermissionedDataFetcher<List<GraphRecordingDescriptor>> {
+@SuppressFBWarnings(
+        value = "URF_UNREAD_FIELD",
+        justification =
+                "The Active and AggregateInfo fields are serialized and returned to the client by"
+                        + " the GraphQL engine")
+class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
 
     @Inject
     ActiveRecordingsFetcher(AuthManager auth) {
@@ -67,24 +73,23 @@ class ActiveRecordingsFetcher
     }
 
     @Override
-    public List<GraphRecordingDescriptor> getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
+    public Active getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
-        List<GraphRecordingDescriptor> result = new ArrayList<>(source.active);
+        List<GraphRecordingDescriptor> recordings = new ArrayList<>(source.active);
 
         FilterInput filter = FilterInput.from(environment);
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
-                result =
-                        result.stream()
+                recordings =
+                        recordings.stream()
                                 .filter(
                                         r ->
                                                 LabelSelectorMatcher.parse(label)
@@ -94,54 +99,69 @@ class ActiveRecordingsFetcher
         }
         if (filter.contains(FilterInput.Key.STATE)) {
             String state = filter.get(FilterInput.Key.STATE);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.getState().name(), state))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.CONTINUOUS)) {
             boolean continuous = filter.get(FilterInput.Key.CONTINUOUS);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.isContinuous(), continuous))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.TO_DISK)) {
             boolean toDisk = filter.get(FilterInput.Key.TO_DISK);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.getToDisk(), toDisk))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.DURATION_GE)) {
             long duration = filter.get(FilterInput.Key.DURATION_GE);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> r.getDuration() >= duration)
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.DURATION_LE)) {
             long duration = filter.get(FilterInput.Key.DURATION_LE);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> r.getDuration() <= duration)
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.START_TIME_BEFORE)) {
             long startTime = filter.get(FilterInput.Key.START_TIME_BEFORE);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> r.getStartTime() <= startTime)
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.START_TIME_AFTER)) {
             long startTime = filter.get(FilterInput.Key.START_TIME_AFTER);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> r.getStartTime() >= startTime)
                             .collect(Collectors.toList());
         }
 
-        return result;
+        Active active = new Active();
+        AggregateInfo aggregate = new AggregateInfo();
+        active.data = recordings;
+        aggregate.count = Long.valueOf(active.data.size());
+        active.aggregate = aggregate;
+
+        return active;
+    }
+
+    static class Active {
+        List<GraphRecordingDescriptor> data;
+        AggregateInfo aggregate;
+    }
+
+    static class AggregateInfo {
+        long count;
     }
 }
