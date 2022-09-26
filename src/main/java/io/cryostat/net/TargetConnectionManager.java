@@ -135,7 +135,6 @@ public class TargetConnectionManager {
                 });
     }
 
-<<<<<<< HEAD
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
         synchronized (
@@ -162,47 +161,6 @@ public class TargetConnectionManager {
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new Object())) {
             return task.execute(connections.get(connectionDescriptor).get());
-=======
-    public <T> T executeConnectedTask(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        return executeConnectedTask(connectionDescriptor, task, true);
-    }
-
-    /**
-     * Execute a {@link ConnectedTask}, optionally caching the connection for future re-use. If
-     * useCache is true then the connection will be retrieved from cache if available, or created
-     * and stored in the cache if not. This is subject to the cache maxSize and TTL policy. If
-     * useCache is false then a connection will be taken from cache if available, otherwise a new
-     * connection will be created externally from the cache. After the task has completed the
-     * connection will be closed only if the connection was not originally retrieved from the cache,
-     * otherwise the connection is left as-is to be subject to the cache's standard eviction policy.
-     * "Interactive" use cases should prefer to call this with useCache==true (or simply call {@link
-     * #executeConnectedTask(ConnectionDescriptor cd, ConnectedTask task)} instead). Automated use
-     * cases such as Automated Rules should call this with useCache==false.
-     */
-    public <T> T executeConnectedTask(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
-            throws Exception {
-        synchronized (
-                targetLocks.computeIfAbsent(
-                        connectionDescriptor.getTargetId(), k -> new Object())) {
-            if (useCache) {
-                return task.execute(connections.get(connectionDescriptor));
-            } else {
-                JFRConnection connection = connections.getIfPresent(connectionDescriptor);
-                boolean cached = connection != null;
-                if (!cached) {
-                    connection = connect(connectionDescriptor);
-                }
-                try {
-                    return task.execute(connection);
-                } finally {
-                    if (!cached) {
-                        connection.close();
-                    }
-                }
-            }
->>>>>>> 4a6269de (testing commit)
         }
     }
 
