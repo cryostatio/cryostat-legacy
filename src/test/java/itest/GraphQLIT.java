@@ -462,11 +462,11 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
-                    + " active { data { name doDelete { name }"
-                    + " } aggregate { count } }"  
-                    + " archived { data { name doDelete { name }"
-                    + " } aggregate { count size } }"
-                    + " } } }");
+                        + " active { data { name doDelete { name }"
+                        + " } aggregate { count } }"
+                        + " archived { data { name doDelete { name }"
+                        + " } aggregate { count size } }"
+                        + " } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(

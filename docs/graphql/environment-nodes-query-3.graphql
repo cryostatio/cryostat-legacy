@@ -5,10 +5,15 @@ query {
         descendantTargets {
             recordings {
                 active {
-                    name
-                    state
-                    metadata {
-                        labels
+                    data {
+                        name
+                        state
+                        metadata {
+                            labels
+                        }
+                    }
+                    aggregate {
+                        count
                     }
                 }
                 archived {

@@ -7,8 +7,10 @@ query {
             }
             recordings {
                 active {
-                    doArchive {
-                        name
+                    data {
+                        doArchive {
+                            name
+                        }
                     }
                 }
             }
