@@ -416,8 +416,8 @@ public class RecordingMetadataManager extends AbstractVerticle
             case FOUND:
                 var archiveHelper = archiveHelperProvider.get();
                 Path subdirectoryPath = archiveHelper.getRecordingSubdirectoryPath(oldJvmId);
-                this.transferMetadataIfRestarted(cd, oldJvmId, targetId);
-                archiveHelper.transferArchives(subdirectoryPath, oldJvmId);
+                this.transferMetadataIfRestarted(cd, oldJvmId);
+                archiveHelper.transferArchivesIfRestarted(subdirectoryPath, oldJvmId);
                 break;
             case LOST:
                 this.removeLostTargetMetadata(cd, oldJvmId);
@@ -599,9 +599,10 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private void transferMetadataIfRestarted(
-            ConnectionDescriptor cd, String oldJvmId, String targetId) {
+            ConnectionDescriptor cd, String oldJvmId) {
         try {
-            String newJvmId = jvmIdHelper.computeJvmId(new ConnectionDescriptor(targetId));
+            String targetId = cd.getTargetId();
+            String newJvmId = jvmIdHelper.computeJvmId(cd);
 
             if (newJvmId == null) {
                 logger.info(

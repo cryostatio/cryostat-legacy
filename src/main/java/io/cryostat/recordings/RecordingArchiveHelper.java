@@ -157,7 +157,7 @@ public class RecordingArchiveHelper {
                     String connectUrl;
                     try {
                         connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-
+                        logger.info("Found connectUrl: {}", connectUrl);
                     } catch (ExecutionException e) {
                         // try to migrate the recording to the new structure
                         logger.warn("No connectUrl file found in {}", subdirectoryPath);
@@ -167,11 +167,9 @@ public class RecordingArchiveHelper {
                     String jvmId = jvmIdHelper.getJvmId(connectUrl);
                     Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
                     logger.info(
-                            "Migrating recordings from {} to {}, {}, {}",
+                            "Migrating recordings from {} to {}",
                             subdirectoryPath,
-                            encodedJvmIdPath,
-                            jvmId,
-                            connectUrl);
+                            encodedJvmIdPath);
                     fs.writeString(
                             subdirectoryPath.resolve("connectUrl"),
                             connectUrl,
@@ -196,31 +194,17 @@ public class RecordingArchiveHelper {
         }
     }
 
-    protected void transferArchives(Path subdirectoryPath, String oldJvmId) {
+    protected void transferArchivesIfRestarted(Path subdirectoryPath, String oldJvmId) {
         try {
-            List<String> files = fs.listDirectoryChildren(subdirectoryPath);
-            if (files.isEmpty()) {
-                return;
-            }
-            String connectUrl = null;
-            for (String file : files) {
-                // use metadata file to determine connectUrl to probe for jvmId
-                if (file.equals("connectUrl")) {
-                    connectUrl = fs.readFile(subdirectoryPath.resolve(file)).readLine();
-                }
-            }
-            if (connectUrl == null) {
-                throw new FileNotFoundException("No connectUrl file found in " + subdirectoryPath);
-            }
+            String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
             String newJvmId = jvmIdHelper.getJvmId(connectUrl);
             if (oldJvmId.equals(newJvmId)) {
                 return;
             }
-            logger.info("Archives subdirectory rename: {} -> {}", oldJvmId, newJvmId);
+            logger.info("{} Archives subdirectory rename: {} -> {}", connectUrl, oldJvmId, newJvmId);
             Path jvmIdPath = getRecordingSubdirectoryPath(newJvmId);
             Files.move(subdirectoryPath, jvmIdPath);
-            jvmIdHelper.transferJvmIds(oldJvmId, newJvmId);
-            logger.info("Archives subdirectory successfully renamed: {} -> {}", oldJvmId, newJvmId);
+            logger.info("{} Archives subdirectory successfully renamed: {} -> {}", connectUrl, oldJvmId, newJvmId);
         } catch (Exception e) {
             logger.error("Archives subdirectory could not be renamed upon target restart", e);
         }
