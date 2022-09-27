@@ -182,7 +182,6 @@ class RulePatchTest {
             Mockito.verify(notification).send();
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(204));
-
         }
 
         @Test
