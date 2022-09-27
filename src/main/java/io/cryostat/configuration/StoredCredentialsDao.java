@@ -37,57 +37,14 @@
  */
 package io.cryostat.configuration;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.discovery.DiscoveryStorage;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.rules.MatchExpressionEvaluator;
-import io.cryostat.rules.MatchExpressionValidator;
+import io.cryostat.storage.AbstractDao;
 
-import dagger.Module;
-import dagger.Provides;
+class StoredCredentialsDao extends AbstractDao<Integer, StoredCredentials> {
 
-@Module
-public abstract class ConfigurationModule {
-    public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
-
-    @Provides
-    @Singleton
-    @Named(CONFIGURATION_PATH)
-    static Path provideConfigurationPath(Logger logger, Environment env) {
-        String path = env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d");
-        logger.info(String.format("Local config path set as %s", path));
-        return Paths.get(path);
-    }
-
-    @Provides
-    @Singleton
-    static CredentialsManager provideCredentialsManager(
-            MatchExpressionValidator matchExpressionValidator,
-            MatchExpressionEvaluator matchExpressionEvaluator,
-            DiscoveryStorage discovery,
-            StoredCredentialsDao dao,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        return new CredentialsManager(
-                matchExpressionValidator,
-                matchExpressionEvaluator,
-                discovery,
-                dao,
-                notificationFactory,
-                logger);
-    }
-
-    @Provides
-    @Singleton
-    static StoredCredentialsDao providePluginInfoDao(EntityManager em, Logger logger) {
-        return new StoredCredentialsDao(em, logger);
+    StoredCredentialsDao(EntityManager em, Logger logger) {
+        super(StoredCredentials.class, em, logger);
     }
 }

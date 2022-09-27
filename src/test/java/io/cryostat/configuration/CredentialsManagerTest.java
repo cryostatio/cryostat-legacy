@@ -70,6 +70,7 @@ class CredentialsManagerTest {
     @Mock MatchExpressionValidator matchExpressionValidator;
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock PlatformClient platformClient;
+    @Mock StoredCredentialsDao dao;
     @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
     Base32 base32 = new Base32();
@@ -81,6 +82,7 @@ class CredentialsManagerTest {
                         matchExpressionValidator,
                         matchExpressionEvaluator,
                         platformClient,
+                        dao,
                         notificationFactory,
                         logger);
     }

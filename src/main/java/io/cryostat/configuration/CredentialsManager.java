@@ -42,12 +42,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 
 import javax.script.ScriptException;
 
@@ -70,20 +68,20 @@ public class CredentialsManager
     private final MatchExpressionValidator matchExpressionValidator;
     private final MatchExpressionEvaluator matchExpressionEvaluator;
     private final PlatformClient platformClient;
-    private final Map<Integer, StoredCredentials> map;
+    private final StoredCredentialsDao dao;
     private final Logger logger;
-    private int nextId = 0;
 
     CredentialsManager(
             MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
             PlatformClient platformClient,
+            StoredCredentialsDao dao,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.matchExpressionValidator = matchExpressionValidator;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.platformClient = platformClient;
-        this.map = new TreeMap<>();
+        this.dao = dao;
         this.logger = logger;
     }
 
@@ -97,20 +95,19 @@ public class CredentialsManager
     public int addCredentials(String matchExpression, Credentials credentials)
             throws MatchExpressionValidationException {
         matchExpressionValidator.validate(matchExpression);
-        map.put(nextId, new StoredCredentials(matchExpression, credentials));
+        StoredCredentials saved = dao.save(new StoredCredentials(matchExpression, credentials));
         emit(CredentialsEvent.ADDED, matchExpression);
-        return nextId++;
+        return saved.getId();
     }
 
     public int removeCredentials(String matchExpression) throws MatchExpressionValidationException {
+        // TODO refactor this to do a proper query on the DAO
         matchExpressionValidator.validate(matchExpression);
-        Iterator<Map.Entry<Integer, StoredCredentials>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, StoredCredentials> entry = it.next();
-            Integer id = entry.getKey();
-            StoredCredentials sc = entry.getValue();
+        List<StoredCredentials> list = dao.getAll();
+        for (StoredCredentials sc : list) {
             if (Objects.equals(matchExpression, sc.getMatchExpression())) {
-                it.remove();
+                int id = sc.getId();
+                dao.delete(id);
                 emit(CredentialsEvent.REMOVED, matchExpression);
                 return id;
             }
@@ -128,7 +125,8 @@ public class CredentialsManager
     }
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
-        for (StoredCredentials sc : map.values()) {
+        // TODO refactor this to do a proper query on the DAO
+        for (StoredCredentials sc : dao.getAll()) {
             if (matchExpressionEvaluator.applies(sc.getMatchExpression(), serviceRef)) {
                 return sc.getCredentials();
             }
@@ -148,16 +146,7 @@ public class CredentialsManager
     }
 
     public String get(int id) {
-        for (Iterator<Map.Entry<Integer, StoredCredentials>> it = map.entrySet().iterator();
-                it.hasNext(); ) {
-            Map.Entry<Integer, StoredCredentials> entry = it.next();
-            Integer key = entry.getKey();
-            StoredCredentials sc = entry.getValue();
-            if (Objects.equals(id, key)) {
-                return sc.getMatchExpression();
-            }
-        }
-        throw new IllegalArgumentException();
+        return dao.get(id).orElseThrow(() -> new IllegalArgumentException()).getMatchExpression();
     }
 
     public Set<ServiceRef> resolveMatchingTargets(int id) {
@@ -192,24 +181,13 @@ public class CredentialsManager
     }
 
     public void delete(int id) {
-        Iterator<Map.Entry<Integer, StoredCredentials>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, StoredCredentials> entry = it.next();
-            Integer key = entry.getKey();
-            StoredCredentials sc = entry.getValue();
-            if (Objects.equals(id, key)) {
-                it.remove();
-                emit(CredentialsEvent.REMOVED, sc.getMatchExpression());
-                return;
-            }
-        }
-        throw new IllegalArgumentException();
+        dao.delete(id);
     }
 
     public Map<Integer, String> getAll() {
         Map<Integer, String> result = new HashMap<>();
-        for (Map.Entry<Integer, StoredCredentials> entry : map.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().getMatchExpression());
+        for (StoredCredentials sc : dao.getAll()) {
+            result.put(sc.getId(), sc.getMatchExpression());
         }
         return result;
     }
@@ -250,45 +228,6 @@ public class CredentialsManager
             MatchedCredentials other = (MatchedCredentials) obj;
             return Objects.equals(matchExpression, other.matchExpression)
                     && Objects.equals(targets, other.targets);
-        }
-    }
-
-    static class StoredCredentials {
-        private final String matchExpression;
-        private final Credentials credentials;
-
-        StoredCredentials(String matchExpression, Credentials credentials) {
-            this.matchExpression = matchExpression;
-            this.credentials = credentials;
-        }
-
-        String getMatchExpression() {
-            return this.matchExpression;
-        }
-
-        Credentials getCredentials() {
-            return this.credentials;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(credentials, matchExpression);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            StoredCredentials other = (StoredCredentials) obj;
-            return Objects.equals(credentials, other.credentials)
-                    && Objects.equals(matchExpression, other.matchExpression);
         }
     }
 
