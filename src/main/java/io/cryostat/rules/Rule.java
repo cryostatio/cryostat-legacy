@@ -65,6 +65,7 @@ public class Rule {
     private final int preservedArchives;
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
+    private boolean enabled;
 
     Rule(Builder builder) throws MatchExpressionValidationException {
         this.eventSpecifier = builder.eventSpecifier;
@@ -92,6 +93,7 @@ public class Rule {
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
+        this.enabled = builder.enabled;
         this.validate();
     }
 
@@ -138,6 +140,14 @@ public class Rule {
 
     public int getMaxSizeBytes() {
         return this.maxSizeBytes;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public static String sanitizeRuleName(String name) {
@@ -216,6 +226,7 @@ public class Rule {
         private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
+        private boolean enabled = true;
 
         public Builder name(String name) {
             this.name = name;
@@ -262,6 +273,11 @@ public class Rule {
             return this;
         }
 
+        public Builder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
+
         public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
         }
@@ -277,7 +293,11 @@ public class Rule {
                                     formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
                             .eventSpecifier(
                                     formAttributes.get(
-                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()))
+                            .enabled(
+                                    getBoolean(
+                                            formAttributes.get(
+                                                    Rule.Attribute.ENABLED.getSerialKey())));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, formAttributes);
@@ -298,7 +318,11 @@ public class Rule {
                             .description(getAsNullableString(jsonObj, Rule.Attribute.DESCRIPTION))
                             .eventSpecifier(
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
-                                            .getAsString());
+                                            .getAsString())
+                            .enabled(
+                                    getBoolean(
+                                            getAsNullableString(jsonObj, Rule.Attribute.ENABLED)));
+
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
@@ -306,6 +330,13 @@ public class Rule {
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
 
             return builder;
+        }
+
+        private static boolean getBoolean(String enabled) {
+            if (enabled == null) {
+                return true;
+            }
+            return Boolean.parseBoolean(enabled);
         }
 
         private static String getAsNullableString(JsonObject jsonObj, Rule.Attribute attr) {
@@ -401,7 +432,7 @@ public class Rule {
         PRESERVED_ARCHIVES("preservedArchives"),
         MAX_AGE_SECONDS("maxAgeSeconds"),
         MAX_SIZE_BYTES("maxSizeBytes"),
-        ;
+        ENABLED("enabled");
 
         private final String serialKey;
 
