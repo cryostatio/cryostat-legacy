@@ -93,6 +93,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                                 HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
+
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
                 .timeout(TimeUnit.SECONDS.toMillis(generationTimeoutSeconds))
@@ -122,7 +123,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                                                 }
                                                 f.complete(destination);
                                                 logger.info(
-                                                        "Report response for {} success",
+                                                        "Report response for {}" + " success",
                                                         recording);
                                             });
                         });

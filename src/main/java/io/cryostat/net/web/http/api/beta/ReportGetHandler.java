@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -48,51 +48,55 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.DeprecatedApi;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
-import com.nimbusds.jwt.JWT;
-import dagger.Lazy;
-import io.vertx.core.http.HttpHeaders;
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-@DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
-        alternateLocation = "/api/beta/reports/:sourceTarget/:recordingName")
-class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
+public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
+
+    static final String PATH = "reports/:sourceTarget/:recordingName";
 
     private final ReportService reportService;
-    private final long generationTimeoutSeconds;
+    private final RecordingArchiveHelper recordingArchiveHelper;
+    private final long reportGenerationTimeoutSeconds;
 
     @Inject
     ReportGetHandler(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            AssetJwtHelper jwtFactory,
-            Lazy<WebServer> webServer,
+            Gson gson,
             ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
+            RecordingArchiveHelper recordingArchiveHelper,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds) {
+        super(auth, gson);
         this.reportService = reportService;
-        this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.recordingArchiveHelper = recordingArchiveHelper;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2_1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -110,39 +114,44 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public String path() {
-        return basePath() + "reports/:recordingName";
+        return basePath() + PATH;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.HTML);
     }
 
     @Override
     public boolean isAsync() {
-        return true;
-    }
-
-    @Override
-    public boolean isOrdered() {
         return false;
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        List<String> queriedFilter = ctx.queryParam("filter");
-        String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
         try {
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            List<String> queriedFilter = params.getQueryParams().getAll("filter");
+            String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
-                            .get(recordingName, rawFilter)
-                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
-            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
-            ctx.response().sendFile(report.toAbsolutePath().toString());
-        } catch (ExecutionException | CompletionException ee) {
-            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
-                throw new ApiException(404, ee);
+                            .get(sourceTarget, recordingName, rawFilter)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
+            return new IntermediateResponse<Path>().body(report);
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
+        } catch (ExecutionException | CompletionException e) {
+            if (ExceptionUtils.getRootCause(e) instanceof ReportGenerationException) {
+                ReportGenerationException rge =
+                        (ReportGenerationException) ExceptionUtils.getRootCause(e);
+                throw new ApiException(rge.getStatusCode(), e.getMessage());
             }
-            throw ee;
+            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
+            }
+            throw e;
         }
     }
 }

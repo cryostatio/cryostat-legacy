@@ -35,82 +35,121 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.DeprecatedApi;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
+import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-@DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
-        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
-public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
+class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
+    static final String PATH = "reports/:sourceTarget/:recordingName/jwt";
+
+    private final ReportService reportService;
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final long generationTimeoutSeconds;
 
     @Inject
-    RecordingDeleteHandler(
+    ReportGetWithJwtHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            AssetJwtHelper jwtFactory,
+            Lazy<WebServer> webServer,
+            ReportService reportService,
             RecordingArchiveHelper recordingArchiveHelper,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        super(auth, credentialsManager, logger);
+        super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.reportService = reportService;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.BETA;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_RECORDING);
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.CREATE_REPORT,
+                ResourceAction.READ_REPORT);
     }
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName";
+        return basePath() + PATH;
     }
 
     @Override
     public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public boolean isOrdered() {
         return false;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+        String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
         try {
-            recordingArchiveHelper.deleteRecording(recordingName).get();
-            ctx.response().end();
-        } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpException(404, e.getMessage(), e);
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            List<String> queriedFilter = ctx.queryParam("filter");
+            String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+            Path report =
+                    reportService
+                            .get(sourceTarget, recordingName, rawFilter)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new ApiException(404, ee.getMessage(), ee);
             }
-            throw e;
+            throw ee;
         }
     }
 }

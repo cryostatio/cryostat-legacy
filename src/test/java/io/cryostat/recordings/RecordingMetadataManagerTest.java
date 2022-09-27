@@ -37,6 +37,10 @@
  */
 package io.cryostat.recordings;
 
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Map;
@@ -87,6 +91,7 @@ public class RecordingMetadataManagerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
@@ -97,32 +102,32 @@ public class RecordingMetadataManagerTest {
         Gson gson = new Gson();
         Base32 base32 = new Base32();
 
-        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        Mockito.lenient()
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);
-        Mockito.lenient()
+        lenient()
                 .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
                 .thenReturn(notificationBuilder);
-        Mockito.lenient()
+        lenient()
                 .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
                 .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.message(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
                         vertx,
                         recordingMetadataDir,
                         archivedRecordingsPath,
+                        30,
                         fs,
                         archiveHelperProvider,
                         targetConnectionManager,
                         credentialsManager,
                         platformClient,
                         notificationFactory,
+                        jvmIdHelper,
                         gson,
                         base32,
                         logger);
@@ -136,19 +141,17 @@ public class RecordingMetadataManagerTest {
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenReturn(jvmId);
-
-        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        when(jvmIdHelper.getJvmId(Mockito.any(ConnectionDescriptor.class))).thenReturn(jvmId);
+        when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
-        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, new Metadata(labels))
                 .get();
 
-        Mockito.verify(fs)
+        verify(fs)
                 .writeString(
                         Mockito.any(Path.class),
                         Mockito.anyString(),
@@ -191,12 +194,11 @@ public class RecordingMetadataManagerTest {
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenReturn(jvmId);
-        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        when(jvmIdHelper.getJvmId(Mockito.any(ConnectionDescriptor.class))).thenReturn(jvmId);
+        when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
-        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
@@ -216,7 +218,7 @@ public class RecordingMetadataManagerTest {
                         .getMetadata(connectionDescriptor, recordingName)
                         .getLabels(),
                 Matchers.equalTo(Map.of()));
-        Mockito.verify(fs).deleteIfExists(Mockito.any(Path.class));
+        verify(fs).deleteIfExists(Mockito.any(Path.class));
     }
 
     @Test
@@ -229,12 +231,11 @@ public class RecordingMetadataManagerTest {
                 Map.of("KEY", "UPDATED_VALUE", "key.2", "some.value", "key3", "1234");
         Metadata updatedMetadata = new Metadata(updatedLabels);
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenReturn(jvmId);
-        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        when(jvmIdHelper.getJvmId(Mockito.any(ConnectionDescriptor.class))).thenReturn(jvmId);
+        when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
-        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
@@ -257,12 +258,11 @@ public class RecordingMetadataManagerTest {
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
         Metadata metadata = new Metadata(labels);
         String filename = "archivedRecording";
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenReturn(jvmId);
-        Mockito.when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
+        when(jvmIdHelper.getJvmId(Mockito.any(ConnectionDescriptor.class))).thenReturn(jvmId);
+        when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
         Path mockPath = Mockito.mock(Path.class);
-        Mockito.when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+        when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, metadata)

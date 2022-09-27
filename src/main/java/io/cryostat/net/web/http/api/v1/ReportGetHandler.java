@@ -55,6 +55,7 @@ import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -66,6 +67,9 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/beta/reports/:sourceTarget/:recordingName")
 class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final ReportService reportService;

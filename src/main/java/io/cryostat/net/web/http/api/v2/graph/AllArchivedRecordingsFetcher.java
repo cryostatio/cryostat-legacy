@@ -42,10 +42,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.AggregateInfo;
@@ -59,11 +61,14 @@ import graphql.schema.DataFetchingEnvironment;
 class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     private final RecordingArchiveHelper archiveHelper;
+    private final Logger logger;
 
     @Inject
-    AllArchivedRecordingsFetcher(AuthManager auth, RecordingArchiveHelper archiveHelper) {
+    AllArchivedRecordingsFetcher(
+            AuthManager auth, RecordingArchiveHelper archiveHelper, Logger logger) {
         super(auth);
         this.archiveHelper = archiveHelper;
+        this.logger = logger;
     }
 
     @Override
@@ -77,7 +82,15 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
         List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
             String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
-            recordings = archiveHelper.getRecordings(targetId).get();
+            try {
+                recordings = archiveHelper.getRecordings(targetId).get();
+            } catch (ExecutionException e) {
+                logger.warn(
+                        "Failed to fetch archived recordings for target {}, msg: {}",
+                        targetId,
+                        e.getMessage());
+                recordings = List.of();
+            }
         } else {
             recordings = archiveHelper.getRecordings().get();
         }

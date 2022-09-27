@@ -283,6 +283,7 @@
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`RecordingDeleteHandler`](#RecordingDeleteHandler-1).
 
     ###### request
     `DELETE /api/v1/recordings/:recordingName`
@@ -313,6 +314,7 @@
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`RecordingGetHandler`](#RecordingGetHandler-2).
 
     ###### request
     `GET /api/v1/recordings/:recordingName`
@@ -446,6 +448,7 @@
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`RecordingUploadPostHandler`](#RecordingUploadPostHandler-1).
 
     ###### request
     `POST /api/v1/recordings/:recordingName/upload`
@@ -489,6 +492,7 @@
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`RecordingGetHandler`](#RecordingGetHandler-2).
 
     ###### request
     `GET /api/v1/reports/:recordingName`
@@ -1947,6 +1951,7 @@ The handler-specific descriptions below describe how each handler populates the
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`RecordingGetWithJwtHandler`](#RecordingGetWithJwtHandler).
 
     ###### request
     `GET /api/v2.1/recordings/:recordingName?token=:jwt`
@@ -1979,6 +1984,7 @@ The handler-specific descriptions below describe how each handler populates the
     **DEPRECATED**: Endpoints treating the archived recording storage as
     uncategorized storage, where files are not associated with a particular
     target application, are deprecated and will be removed in a future release.
+    See [`ReportGetWithJwtHandler`](#ReportGetWithJwtHandler).
 
     ###### request
     `GET /api/v2.1/reports/:recordingName?token=:jwt`
@@ -2399,7 +2405,13 @@ The handler-specific descriptions below describe how each handler populates the
 | **Recordings in Target JVMs**                                             |                                                                                         |
 | Create metadata labels for a recording in a target JVM                    | [`TargetRecordingMetadataLabelsPostHandler`](#TargetRecordingMetadataLabelsPostHandler) |
 | **Recordings in archive**                                                 |                                                                                         |
+| Delete a recording from archive                                           | [`RecordingDeleteHandler`](#RecordingDeleteHandler-1)                                   |
+| Download a recording in archive                                           | [`RecordingGetHandler`](#RecordingGetHandler-2)                                         |
+| Download a recording in archive using JWT                                 | [`RecordingGetWithJwtHandler`](#RecordingGetWithJwtHandler)                             |
+| Download a report of a recording in archive                               | [`ReportGetHandler`](#ReportGetHandler-3)                                               |
+| Download a report of a recording in archive using JWT                     | [`ReportGetWithJwtHandler`](#ReportGetWithJwtHandler)                                   |
 | Create metadata labels for a recording                                    | [`RecordingMetadataLabelsPostHandler`](#RecordingMetadataLabelsPostHandler)             |
+| Upload a recording from archive to the Grafana datasource                 | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler-1)                           |
 
 ### Miscellaneous
 * #### `JvmIdGetHandler`
@@ -2455,6 +2467,185 @@ The handler-specific descriptions below describe how each handler populates the
     ```
 
 ### Recordings in Archives
+
+* #### `RecordingDeleteHandler`
+
+    ##### synopsis
+    Delete a recording from archive. This does not affect any recordings in any target JVM's JFR buffer. 
+
+    ##### request
+    `DELETE /api/beta/recordings/:sourceTarget/:recordingName`
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the recording to delete. Should use percent-encoding.
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    recording was deleted.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://localhost:8181/api/beta/recordings/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200910T214559Z.jfr
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+
+
+* #### `RecordingGetHandler`
+
+    ##### synopsis
+    Returns a recording that was saved to archive, as an octet stream
+    
+    ##### request
+    `GET /api/beta/recordings/:sourceTarget/:recordingName`
+    
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the recording to download. Should use percent-encoding.
+
+    ##### response
+    `200` - The result is the recording file.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    ##### example
+    ```
+    $ curl http://localhost:8181/api/beta/recordings/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200910T214559Z.jfr --output foo.jfr
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+    100  391k  100  391k    0     0  64.7M      0 --:--:-- --:--:-- --:--:-- 76.5M
+    ```
+
+* #### `RecordingGetWithJwtHandler`
+
+    ##### synopsis
+    Returns a recording that was saved to archive, as an octet stream with JWT auth.
+
+    ##### request
+    `GET /api/beta/recordings/:sourceTarget/:recordingName/jwt`
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the recording to download. Should use percent-encoding.
+    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)  
+
+    ##### response
+    `200` - The result is the recording file.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    ##### example
+    ```
+    $ curl http://localhost:8181/api/beta/recordings/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200910T214559Z.jfr?token=(trimmed) --output foo.jfr
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+    100  391k  100  391k    0     0  64.7M      0 --:--:-- --:--:-- --:--:-- 76.5M
+    ```
+
+* #### `ReportGetHandler`
+
+    ##### synopsis
+    Returns the report of a recording that was saved to archive.
+
+    ##### request
+    `GET /api/beta/reports/:sourceTarget/:recordingName`
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the recording to get the report for. Should use percent-encoding.
+
+    ##### response
+    `200` - The body is the requested report as an HTML document.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    ##### example
+    ```
+    $ curl localhost:8181/api/beta/reports/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200911T144545Z.jfr? --output report.html
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+    100  116k  100  116k    0     0   134k      0 --:--:-- --:--:-- --:--:--  134k
+    ```
+
+* #### `ReportGetWithJwtHandler`
+
+    ##### synopsis
+    Returns the report of a recording that was saved to archive with JWT auth.
+
+    ##### request
+    `GET /api/beta/reports/:sourceTarget/:recordingName/jwt`
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the recording to get the report for. Should use percent-encoding.
+    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)  
+    ##### response
+    `200` - The body is the requested report as an HTML document.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    ##### example
+    ```
+    $ curl localhost:8181/api/beta/reports/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200911T144545Z.jfr?token=(trimmed) --output report.html
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                    Dload  Upload   Total   Spent    Left  Speed
+    100  116k  100  116k    0     0   134k      0 --:--:-- --:--:-- --:--:--  134k
+    ```
+* #### `RecordingUploadPostHandler`
+
+    ##### synopsis
+    Uploads a recording that was saved to archive to the Grafana datasource that Cryostat is configured with (determined by the environment variable `GRAFANA_DATASOURCE_URL`).
+
+    ##### request
+    `POST /api/beta/recordings/:sourceTarget/:recordingName/upload`
+
+    `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
+    `recordingName` - The name of the saved recording to upload. Should use percent-encoding.
+
+    ##### response
+    `200` - The body is the body of the response that Cryostat got
+    after sending the upload request to the Grafana datasource server.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - `recordingName` could not be found for the given `sourceTarget` or `sourceTarget` is invalid. The body is an error message.
+
+    `501` - The Grafana datasource URL is malformed.
+    The body is an error message.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but Cryostat does not trust the
+    certificate.
+
+    `512` - Cryostat received an invalid response from the
+    Grafana datasource after sending the upload request.
+    The body is an error message.
+
+    ##### example
+    ```
+    $ curl -X POST localhost:8181/api/beta/recordings/service%3Ajmx%3Armi%3A%2F%2F%2Fjndi%2Frmi%3A%2F%2Fcryostat%3A9091%2Fjmxrmi/localhost_foo_20200911T144545Z.jfr/upload
+    Uploaded: file-uploads/555f4dab-240b-486b-b336-2d0e5f43e7cd
+    Loaded: file-uploads/555f4dab-240b-486b-b336-2d0e5f43e7cd
+    ```
 * #### `RecordingMetadataLabelsPostHandler`
 
     ##### synopsis
@@ -2468,7 +2659,7 @@ The handler-specific descriptions below describe how each handler populates the
     `sourceTarget` - The target JVM from which Cryostat saved the recording.
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
     Should use percent-encoding. If a recording was re-uploaded to archives, this field should be
-    set to `unlabelled`.
+    set to `uploads`.
 
     `recordingName` - The name of the recording to attach labels to.
 

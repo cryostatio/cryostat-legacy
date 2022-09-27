@@ -35,24 +35,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
-import java.net.URI;
-import java.util.Collections;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -68,21 +71,21 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DiscoveryGetHandlerTest {
+class RecordingGetHandlerTest {
 
-    AbstractV2RequestHandler<EnvironmentNode> handler;
-    @Mock AuthManager auth;
-    @Mock DiscoveryStorage storage;
-    @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    RecordingGetHandler handler;
+    @Mock AuthManager authManager;
+    @Mock Gson gson;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new DiscoveryGetHandler(auth, storage, gson);
+        this.handler = new RecordingGetHandler(authManager, gson, recordingArchiveHelper);
     }
 
     @Nested
-    class BasicHandlerDefinition {
+    class ApiSpec {
+
         @Test
         void shouldRequireAuthentication() {
             Assertions.assertTrue(handler.requiresAuthentication());
@@ -90,88 +93,85 @@ class DiscoveryGetHandlerTest {
 
         @Test
         void shouldBeV2Handler() {
-            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2_1));
+            MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.BETA));
         }
 
         @Test
-        void shouldBeGETHandler() {
+        void shouldHandleGETRequest() {
             MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
-        }
-
-        @Test
-        void shouldHaveExpectedApiPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2.1/discovery"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
+                    Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
         }
 
         @Test
-        void shouldProducePlaintext() {
+        void shouldHandleCorrectPath() {
             MatcherAssert.assertThat(
-                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
+                    handler.path(),
+                    Matchers.equalTo("/api/beta/recordings/:sourceTarget/:recordingName"));
         }
 
         @Test
-        void shouldNotBeAsyncHandler() {
+        void shouldProduceOctetStream() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.OCTET_STREAM)));
+        }
+
+        @Test
+        void shouldNotBeAsync() {
             Assertions.assertFalse(handler.isAsync());
-        }
-
-        @Test
-        void shouldBeOrderedHandler() {
-            Assertions.assertTrue(handler.isOrdered());
         }
     }
 
     @Nested
-    class Requests {
+    class Behaviour {
+
         @Mock RequestParameters params;
-        EnvironmentNode expected;
 
-        @BeforeEach
-        void setup() throws Exception {
-            EnvironmentNode pod = new EnvironmentNode("appPod-1", KubernetesNodeType.POD);
+        @Test
+        void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
+            String recordingName = "someRecording";
+            String sourceTarget = "someTarget";
+            when(params.getPathParams())
+                    .thenReturn(
+                            Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
 
-            ServiceRef serviceRef =
-                    new ServiceRef(
-                            new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
-                            "appReplica-1-1");
-            TargetNode endpoint = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);
+            Future<Path> future =
+                    CompletableFuture.failedFuture(
+                            new RecordingNotFoundException(sourceTarget, recordingName));
+            when(recordingArchiveHelper.getRecordingPath(Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(future);
 
-            EnvironmentNode deployment =
-                    new EnvironmentNode(
-                            "appDeployment",
-                            KubernetesNodeType.DEPLOYMENT,
-                            Collections.emptyMap(),
-                            Set.of(pod, endpoint));
-
-            EnvironmentNode project =
-                    new EnvironmentNode(
-                            "myProject",
-                            KubernetesNodeType.NAMESPACE,
-                            Collections.emptyMap(),
-                            Set.of(deployment));
-
-            expected = project;
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 
         @Test
-        void shouldRespondWithEnvironmentNode() throws Exception {
-            Mockito.when(storage.getDiscoveryTree()).thenReturn(expected);
+        void shouldHandleSuccessfulGETRequest() throws Exception {
+            String recordingName = "someRecording";
+            String sourceTarget = "someTarget";
+            when(params.getPathParams())
+                    .thenReturn(
+                            Map.of("recordingName", recordingName, "sourceTarget", sourceTarget));
 
-            IntermediateResponse<EnvironmentNode> response = handler.handle(params);
+            CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+            when(recordingArchiveHelper.getRecordingPath(Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(future);
+            Path archivedRecording = Mockito.mock(Path.class);
+            when(future.get()).thenReturn(archivedRecording);
+
+            IntermediateResponse<Path> response = handler.handle(params);
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(archivedRecording));
 
-            EnvironmentNode actual = response.getBody();
-
-            MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
-            Mockito.verify(storage).getDiscoveryTree();
-            Mockito.verifyNoMoreInteractions(storage);
+            verify(recordingArchiveHelper)
+                    .getRecordingPath(Mockito.eq(sourceTarget), Mockito.eq(recordingName));
         }
     }
 }

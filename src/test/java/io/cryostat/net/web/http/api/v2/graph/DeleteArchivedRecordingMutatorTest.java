@@ -91,7 +91,7 @@ class DeleteArchivedRecordingMutatorTest {
     }
 
     @Test
-    void shouldArchiveAndReturnRecording() throws Exception {
+    void shouldDeleteAndReturnRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -101,8 +101,10 @@ class DeleteArchivedRecordingMutatorTest {
 
         when(env.getSource()).thenReturn(source);
         when(source.getName()).thenReturn("foo");
+        when(source.getServiceUri()).thenReturn("someServiceUri");
 
-        when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
+        when(recordingArchiveHelper.deleteRecording(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(future);
         when(future.get()).thenReturn(mockRecording);
 
         ArchivedRecordingInfo recording = mutator.get(env);
@@ -110,6 +112,7 @@ class DeleteArchivedRecordingMutatorTest {
         MatcherAssert.assertThat(recording, Matchers.notNullValue());
         MatcherAssert.assertThat(recording, Matchers.equalTo(mockRecording));
 
-        Mockito.verify(recordingArchiveHelper).deleteRecording(Mockito.anyString());
+        Mockito.verify(recordingArchiveHelper)
+                .deleteRecording(Mockito.anyString(), Mockito.anyString());
     }
 }

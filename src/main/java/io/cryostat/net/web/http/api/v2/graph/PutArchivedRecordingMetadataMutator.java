@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +79,7 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
     @Override
     public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
         ArchivedRecordingInfo source = environment.getSource();
-        String uri =
-                new String(base32.decode(source.getEncodedServiceUri()), StandardCharsets.UTF_8);
+        String uri = source.getServiceUri();
         String recordingName = source.getName();
         long size = source.getSize();
         Map<String, Object> settings = environment.getArgument("metadata");
@@ -96,7 +94,6 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
                 labels.put(l.getKey(), l.getValue());
             }
         }
-
         Metadata metadata =
                 metadataManager
                         .setRecordingMetadata(
@@ -111,8 +108,8 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
         return new ArchivedRecordingInfo(
                 uri,
                 recordingName,
-                ws.getArchivedDownloadURL(recordingName),
-                ws.getArchivedReportURL(recordingName),
+                ws.getArchivedDownloadURL(uri, recordingName),
+                ws.getArchivedReportURL(uri, recordingName),
                 metadata,
                 size);
     }

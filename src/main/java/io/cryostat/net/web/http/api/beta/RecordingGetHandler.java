@@ -35,64 +35,72 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
+import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.DeprecatedApi;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
-@DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
-        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
-public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
+
+    static final String PATH = "recordings/:sourceTarget/:recordingName";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingDeleteHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+    RecordingGetHandler(
+            AuthManager auth, Gson gson, RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.BETA;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
+        return HttpMethod.GET;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_RECORDING);
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName";
+        return basePath() + PATH;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.OCTET_STREAM);
     }
 
     @Override
@@ -101,14 +109,19 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
+    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
         try {
-            recordingArchiveHelper.deleteRecording(recordingName).get();
-            ctx.response().end();
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            return new IntermediateResponse<Path>().body(archivedRecording);
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpException(404, e.getMessage(), e);
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
             }
             throw e;
         }

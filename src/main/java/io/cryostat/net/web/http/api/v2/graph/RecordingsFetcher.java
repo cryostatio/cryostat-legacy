@@ -43,6 +43,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -165,7 +166,12 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
         }
 
         if (requestedFields.contains("archived")) {
-            recordings.archived = archiveHelper.getRecordings(targetId).get();
+            try {
+                recordings.archived = archiveHelper.getRecordings(targetId).get();
+            } catch (ExecutionException e) {
+                recordings.archived = List.of();
+                logger.warn("Couldn't get archived recordings for {}", targetId);
+            }
         }
 
         return recordings;

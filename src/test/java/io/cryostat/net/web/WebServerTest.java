@@ -142,9 +142,12 @@ class WebServerTest {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
+        String sourceTarget = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
         MatcherAssert.assertThat(
-                exporter.getArchivedDownloadURL(recordingName),
-                Matchers.equalTo("http://example.com:8181/api/v1/recordings/" + recordingName));
+                exporter.getArchivedDownloadURL(sourceTarget, recordingName),
+                Matchers.equalTo(
+                        "http://example.com:8181/api/beta/recordings/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/"
+                                + recordingName));
     }
 
     @ParameterizedTest()
@@ -212,9 +215,12 @@ class WebServerTest {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
+        String sourceTarget = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
         MatcherAssert.assertThat(
-                exporter.getArchivedReportURL(recordingName),
-                Matchers.equalTo("http://example.com:8181/api/v1/reports/" + recordingName));
+                exporter.getArchivedReportURL(sourceTarget, recordingName),
+                Matchers.equalTo(
+                        "http://example.com:8181/api/beta/reports/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/"
+                                + recordingName));
     }
 
     @ParameterizedTest()

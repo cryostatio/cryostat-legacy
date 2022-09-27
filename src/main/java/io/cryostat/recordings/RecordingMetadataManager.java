@@ -61,6 +61,8 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -69,9 +71,11 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
@@ -90,61 +94,64 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
     private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
-    private static final int TARGET_CONNECTION_TIMEOUT_SECONDS = 1;
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
     private final Path recordingMetadataDir;
     private final Path archivedRecordingsPath;
+    private final long connectionTimeoutSeconds;
     private final FileSystem fs;
     private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
+    private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
 
     private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
-    private final Map<String, String> jvmIdMap;
     private final Map<String, Long> staleMetadataTimers;
 
     RecordingMetadataManager(
             Vertx vertx,
             Path recordingMetadataDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
+            JvmIdHelper jvmIdHelper,
             Gson gson,
             Base32 base32,
             Logger logger) {
         this.vertx = vertx;
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
+        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.fs = fs;
         this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
+        this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
         this.base32 = base32;
         this.logger = logger;
         this.recordingMetadataMap = new ConcurrentHashMap<>();
-        this.jvmIdMap = new ConcurrentHashMap<>();
         this.staleMetadataTimers = new ConcurrentHashMap<>();
     }
 
     @Override
     public void start(Promise<Void> future) {
         this.platformClient.addTargetDiscoveryListener(this);
-        RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
+        RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         try {
             this.fs.listDirectoryChildren(recordingMetadataDir).stream()
                     .peek(
@@ -230,7 +237,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                 }
                                                                 // archived recording
                                                                 // metadata
-                                                                jvmIdMap.putIfAbsent(
+                                                                jvmIdHelper.putIfAbsent(
                                                                         targetId, srm.getJvmId());
                                                                 recordingMetadataMap.put(
                                                                         Pair.of(
@@ -351,6 +358,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             subdirectory + " is neither a directory nor a file");
                                 }
                             });
+
             future.complete();
         } catch (IOException e) {
             logger.error(
@@ -359,7 +367,17 @@ public class RecordingMetadataManager extends AbstractVerticle
                     e.getMessage());
             future.fail(e.getCause());
         }
-        pruneStaleMetadata(staleMetadata);
+        vertx.executeBlocking(
+                promise -> {
+                    try {
+                        archiveHelper.migrate();
+                        logger.info("Successfully migrated archives");
+                        pruneStaleMetadata(staleMetadata);
+                        logger.info("Successfully pruned all stale metadata");
+                    } finally {
+                        promise.complete();
+                    }
+                });
     }
 
     @Override
@@ -370,10 +388,9 @@ public class RecordingMetadataManager extends AbstractVerticle
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         String targetId = tde.getServiceRef().getServiceUri().toString();
-        String oldJvmId = jvmIdMap.get(targetId);
+        String oldJvmId = jvmIdHelper.get(targetId);
 
         ConnectionDescriptor cd;
-
         try {
             cd = getConnectionDescriptorWithCredentials(tde);
         } catch (IOException | ScriptException e) {
@@ -387,20 +404,20 @@ public class RecordingMetadataManager extends AbstractVerticle
         if (oldJvmId == null) {
             logger.info("Target {} did not have a jvmId", targetId);
             try {
-                String newJvmId = getJvmId(cd);
+                String newJvmId = jvmIdHelper.getJvmId(cd);
                 logger.info("Created jvmId {} for target {}", newJvmId, targetId);
-            } catch (IOException e) {
-                logger.error(
-                        "Could not compute jvmId on FOUND target {}, msg: {}",
-                        targetId,
-                        e.getMessage());
+            } catch (JvmIdGetException e) {
+                logger.error("Could not compute jvmId on FOUND target {}, msg: {}", targetId);
             }
             return;
         }
 
         switch (tde.getEventKind()) {
             case FOUND:
-                this.transferMetadataIfRestarted(cd, oldJvmId, targetId);
+                var archiveHelper = archiveHelperProvider.get();
+                Path subdirectoryPath = archiveHelper.getRecordingSubdirectoryPath(oldJvmId);
+                this.transferMetadataIfRestarted(cd, oldJvmId);
+                archiveHelper.transferArchivesIfRestarted(subdirectoryPath, oldJvmId);
                 break;
             case LOST:
                 this.removeLostTargetMetadata(cd, oldJvmId);
@@ -414,62 +431,46 @@ public class RecordingMetadataManager extends AbstractVerticle
     // previously active recording
     // Asynchronous since testing connections to targets takes long, especially for many targets
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
-        vertx.executeBlocking(
-                future -> {
+        logger.info("Trying to prune stale metadata");
+        staleMetadata.forEach(
+                (srm, path) -> {
+                    String targetId = srm.getTargetId();
+                    String recordingName = srm.getRecordingName();
+                    ConnectionDescriptor cd;
                     try {
-                        logger.info("Trying to prune stale metadata");
-                        staleMetadata.forEach(
-                                (srm, path) -> {
-                                    String targetId = srm.getTargetId();
-                                    String recordingName = srm.getRecordingName();
-                                    ConnectionDescriptor cd;
-                                    try {
-                                        cd = getConnectionDescriptorWithCredentials(targetId);
-                                    } catch (Exception e) {
-                                        logger.error(
-                                                "Could not get credentials for"
-                                                        + " targetId {}, msg: {}",
-                                                targetId,
-                                                e.getMessage());
-                                        return;
-                                    }
-                                    logger.info(
-                                            "Trying to prune stale recording metadata {}, of target"
-                                                    + " {}, from path {}",
-                                            recordingName,
-                                            targetId,
-                                            path);
-                                    if (!targetRecordingExists(cd, recordingName)) {
-                                        // recording was lost
-                                        logger.info(
-                                                "Active recording lost {}, deleting...",
-                                                recordingName);
-                                        deleteMetadataPathIfExists(path);
-                                    } else {
-                                        // target still up
-                                        logger.info(
-                                                "Found metadata corresponding to active recording:"
-                                                        + " {}",
-                                                recordingName);
-                                        try {
-                                            setRecordingMetadata(
-                                                    cd,
-                                                    recordingName,
-                                                    new Metadata(srm.getLabels()));
-                                        } catch (IOException e) {
-                                            logger.error(
-                                                    "Could not set metadata for recording: {}, msg:"
-                                                            + " {}",
-                                                    recordingName,
-                                                    e.getMessage());
-                                        }
-                                    }
-                                });
-                    } finally {
-                        future.complete();
+                        cd = getConnectionDescriptorWithCredentials(targetId);
+                    } catch (Exception e) {
+                        logger.error(
+                                "Could not get credentials for" + " targetId {}, msg: {}",
+                                targetId,
+                                e.getMessage());
+                        return;
                     }
-                },
-                result -> logger.info("Successfully pruned all stale metadata"));
+                    logger.info(
+                            "Trying to prune stale recording metadata {}, of target"
+                                    + " {}, from path {}",
+                            recordingName,
+                            targetId,
+                            path);
+                    if (!targetRecordingExists(cd, recordingName)) {
+                        // recording was lost
+                        logger.info("Active recording lost {}, deleting...", recordingName);
+                        deleteMetadataPathIfExists(path);
+                    } else {
+                        // target still up
+                        logger.info(
+                                "Found metadata corresponding to active recording:" + " {}",
+                                recordingName);
+                        try {
+                            setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
+                        } catch (IOException e) {
+                            logger.error(
+                                    "Could not set metadata for recording: {}, msg:" + " {}",
+                                    recordingName,
+                                    e.getMessage());
+                        }
+                    }
+                });
     }
 
     public Future<Metadata> setRecordingMetadata(
@@ -481,8 +482,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
-
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
 
         fs.writeString(
@@ -544,7 +544,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     Pair.of(UPLOADS, recordingName), k -> new Metadata());
         }
 
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         return this.recordingMetadataMap.computeIfAbsent(
                 Pair.of(jvmId, recordingName), k -> new Metadata());
     }
@@ -553,7 +553,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             ConnectionDescriptor connectionDescriptor, String recordingName) throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        String jvmId = this.getJvmId(connectionDescriptor);
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
@@ -598,32 +598,10 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
-        if (oldJvmId.equals(newJvmId)) {
-            return;
-        }
-        jvmIdMap.entrySet().stream()
-                .filter(e -> e.getValue().equals(oldJvmId))
-                .forEach(
-                        e -> {
-                            jvmIdMap.put(e.getKey(), newJvmId);
-                        });
-    }
-
-    private void transferMetadataIfRestarted(
-            ConnectionDescriptor cd, String oldJvmId, String targetId) {
+    private void transferMetadataIfRestarted(ConnectionDescriptor cd, String oldJvmId) {
         try {
-            String newJvmId =
-                    this.targetConnectionManager.executeConnectedTask(
-                            cd,
-                            connection -> {
-                                try {
-                                    return connection.getJvmId();
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    return null;
-                                }
-                            });
+            String targetId = cd.getTargetId();
+            String newJvmId = jvmIdHelper.computeJvmId(cd);
 
             if (newJvmId == null) {
                 logger.info(
@@ -652,16 +630,16 @@ public class RecordingMetadataManager extends AbstractVerticle
 
                                     Metadata m = this.getMetadata(cd, recordingName);
                                     deleteRecordingMetadataIfExists(cd, recordingName);
-                                    jvmIdMap.put(targetId, newJvmId);
+                                    jvmIdHelper.put(targetId, newJvmId);
                                     setRecordingMetadata(cd, recordingName, m);
-                                    jvmIdMap.put(targetId, oldJvmId);
+                                    jvmIdHelper.put(targetId, oldJvmId);
 
                                 } catch (IOException e) {
                                     logger.error("Metadata could not be transferred", e);
                                 }
                             });
-            jvmIdMap.put(targetId, newJvmId);
-            transferJvmIds(oldJvmId, newJvmId);
+            jvmIdHelper.put(targetId, newJvmId);
+            jvmIdHelper.transferJvmIds(oldJvmId, newJvmId);
             logger.info(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
@@ -739,7 +717,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd, connection -> connectFuture.complete(connection.isConnected()));
-            return connectFuture.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return connectFuture.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
             return false;
@@ -751,14 +729,36 @@ public class RecordingMetadataManager extends AbstractVerticle
         try {
             this.targetConnectionManager.executeConnectedTask(
                     cd,
-                    conn ->
-                            conn.getService().getAvailableRecordings().stream()
+                    conn -> {
+                        try {
+                            return conn.getService().getAvailableRecordings().stream()
                                     .anyMatch(
                                             r ->
                                                     future.complete(
                                                             Objects.equals(
-                                                                    recordingName, r.getName()))));
-            return future.get(TARGET_CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                                                                    recordingName, r.getName())));
+                        } catch (ConnectionException e) {
+                            if (e.getCause() instanceof SecurityException) {
+                                // don't have credentials to access target
+                                if (cd.getCredentials().isEmpty()) {
+                                    logger.warn(
+                                            "Target {} requires credentials to access recordings",
+                                            cd.getTargetId());
+                                    throw e;
+                                } else {
+                                    logger.warn(
+                                            "Target {} credentials are invalid", cd.getTargetId());
+                                    throw e;
+                                }
+                            } else {
+                                e.printStackTrace();
+                                logger.info("why else");
+                                throw e;
+                            }
+                        }
+                    });
+
+            return future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException te) {
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
             return false;
@@ -816,56 +816,6 @@ public class RecordingMetadataManager extends AbstractVerticle
             logger.error("Try to delete path that doesn't exist {}", path);
         }
         return false;
-    }
-
-    private String computeJvmId(ConnectionDescriptor cd) {
-        // FIXME: this should be fixed after the 2.2.0 release
-        if (cd.getTargetId().equals(RecordingArchiveHelper.ARCHIVES)
-                || cd.getTargetId().equals(UPLOADS)) {
-            return UPLOADS;
-        }
-
-        try {
-            if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                cd.getTargetId(),
-                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
-            }
-
-            return this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                        try {
-                            return connection.getJvmId();
-                        } catch (Exception e) {
-                            logger.error(e);
-                            return null;
-                        }
-                    });
-        } catch (Exception e) {
-            logger.error(e);
-            return null;
-        }
-    }
-
-    private String getJvmId(ConnectionDescriptor connectionDescriptor) throws IOException {
-        String targetId = connectionDescriptor.getTargetId();
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES) || targetId.equals(UPLOADS)) {
-            return UPLOADS;
-        }
-
-        String jvmId =
-                this.jvmIdMap.computeIfAbsent(
-                        targetId,
-                        k -> {
-                            return computeJvmId(connectionDescriptor);
-                        });
-
-        if (jvmId == null) {
-            throw new IOException(String.format("Error connecting to target %s", targetId));
-        }
-        return jvmId;
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(TargetDiscoveryEvent tde)

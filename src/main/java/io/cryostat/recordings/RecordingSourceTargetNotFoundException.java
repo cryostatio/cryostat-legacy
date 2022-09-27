@@ -35,43 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2.graph;
+package io.cryostat.recordings;
 
-import java.util.EnumSet;
-import java.util.Set;
-
-import javax.inject.Inject;
-
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.rules.ArchivedRecordingInfo;
-
-import graphql.schema.DataFetchingEnvironment;
-
-class DeleteArchivedRecordingMutator
-        extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
-
-    @Inject
-    DeleteArchivedRecordingMutator(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
-        this.recordingArchiveHelper = recordingArchiveHelper;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_RECORDING);
-    }
-
-    @Override
-    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        ArchivedRecordingInfo source = environment.getSource();
-        return recordingArchiveHelper
-                .deleteRecording(source.getServiceUri(), source.getName())
-                .get();
+public class RecordingSourceTargetNotFoundException extends Exception {
+    public RecordingSourceTargetNotFoundException(String sourceTarget) {
+        super(String.format("Source target %s not found", sourceTarget));
     }
 }

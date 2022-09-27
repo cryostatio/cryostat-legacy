@@ -350,7 +350,10 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             CompletableFuture<Void> deleteArchiveFuture = new CompletableFuture<>();
             webClient
-                    .delete(String.format("/api/v1/recordings/%s", archivedRecordingName))
+                    .delete(
+                            String.format(
+                                    "/api/beta/recordings/%s/%s",
+                                    SELF_REFERENCE_TARGET_ID, archivedRecordingName))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchiveFuture)) {
@@ -552,7 +555,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             webClient
                     .delete(
                             String.format(
-                                    "/api/v1/recordings/%s",
+                                    "/api/beta/recordings/%s/%s",
+                                    targetId,
                                     archivedRecordingName.get(
                                             REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)))
                     .send(

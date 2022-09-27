@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,34 +50,33 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.DeprecatedApi;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.validator.routines.UrlValidator;
 
-@DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
-        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName/upload")
-class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
+
+    static final String PATH = "recordings/:sourceTarget/:recordingName/upload";
 
     private final Environment env;
     private final long httpTimeoutSeconds;
@@ -87,13 +86,12 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     RecordingUploadPostHandler(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             Environment env,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+            Gson gson) {
+        super(auth, gson);
         this.env = env;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
@@ -101,8 +99,13 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -117,7 +120,12 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName/upload";
+        return basePath() + PATH;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -126,29 +134,25 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.PLAINTEXT);
-    }
-
-    @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
+    public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
         try {
             URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
-                throw new HttpException(
+                throw new ApiException(
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
                                 Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
             }
-            ResponseMessage response = doPost(recordingName, uploadUrl);
+            ResponseMessage response = doPost(sourceTarget, recordingName, uploadUrl);
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
-                throw new HttpException(
+                throw new ApiException(
                         512,
                         String.format(
                                 "Invalid response from datasource server; datasource URL may be"
@@ -156,21 +160,24 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
                                     + " %s",
                                 response.statusCode, response.statusMessage));
             }
-            ctx.response().setStatusCode(response.statusCode);
-            ctx.response().setStatusMessage(response.statusMessage);
-            ctx.response().end(response.body);
+            return new IntermediateResponse<String>().body(response.body);
         } catch (MalformedURLException e) {
-            throw new HttpException(501, e);
+            throw new ApiException(501, e);
         }
     }
 
-    private ResponseMessage doPost(String recordingName, URL uploadUrl) throws Exception {
+    private ResponseMessage doPost(String sourceTarget, String recordingName, URL uploadUrl)
+            throws Exception {
         Path recordingPath = null;
         try {
-            recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            recordingPath =
+                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+        } catch (RecordingSourceTargetNotFoundException e) {
+            throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpException(404, e.getMessage(), e);
+                throw new ApiException(404, e.getMessage(), e);
             }
             throw e;
         }

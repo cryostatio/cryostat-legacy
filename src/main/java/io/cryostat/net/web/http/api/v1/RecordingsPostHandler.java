@@ -279,15 +279,17 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                         Map.of(
                                                                 "recording",
                                                                 new ArchivedRecordingInfo(
-                                                                        "archive",
+                                                                        subdirectoryName,
                                                                         fsName,
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedDownloadURL(
+                                                                                        subdirectoryName,
                                                                                         fsName),
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedReportURL(
+                                                                                        subdirectoryName,
                                                                                         fsName),
                                                                         metadata,
                                                                         size),

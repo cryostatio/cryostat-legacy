@@ -226,13 +226,13 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        Mockito.argThat(
-                                arg ->
-                                        arg.getTargetId()
-                                                .equals(connectionDescriptor.getTargetId())),
-                        Mockito.eq(recordingName));
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
+        MatcherAssert.assertThat(
+                connectionDescriptorCaptor.getValue().getTargetId(),
+                Matchers.equalTo(connectionDescriptor.getTargetId()));
 
         Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
@@ -276,13 +276,13 @@ public class RecordingTargetHelperTest {
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
         Mockito.verify(reportService)
-                .delete(
-                        Mockito.argThat(
-                                arg ->
-                                        arg.getTargetId()
-                                                .equals(connectionDescriptor.getTargetId())),
-                        Mockito.eq(recordingName));
+                .delete(connectionDescriptorCaptor.capture(), Mockito.eq(recordingName));
+        MatcherAssert.assertThat(
+                connectionDescriptorCaptor.getValue().getTargetId(),
+                Matchers.equalTo(connectionDescriptor.getTargetId()));
 
         Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
