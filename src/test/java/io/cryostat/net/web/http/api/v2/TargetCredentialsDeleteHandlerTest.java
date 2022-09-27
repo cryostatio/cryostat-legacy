@@ -155,7 +155,6 @@ class TargetCredentialsDeleteHandlerTest {
             String targetId = "fooTarget";
             String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString())).thenReturn(1);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
@@ -175,8 +174,9 @@ class TargetCredentialsDeleteHandlerTest {
             String targetId = "fooTarget";
             String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", targetId));
-            Mockito.when(credentialsManager.removeCredentials(Mockito.anyString()))
-                    .thenThrow(IllegalArgumentException.class);
+            Mockito.doThrow(IllegalArgumentException.class)
+                    .when(credentialsManager)
+                    .removeCredentials(Mockito.anyString());
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 

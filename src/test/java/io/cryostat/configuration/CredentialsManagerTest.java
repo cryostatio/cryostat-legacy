@@ -40,6 +40,7 @@ package io.cryostat.configuration;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
@@ -57,6 +58,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -111,11 +113,18 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+        StoredCredentials stored = new StoredCredentials(1, matchExpression, credentials);
+
         ServiceRef serviceRef = new ServiceRef(new URI(targetId), "foo");
         Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
                 .thenReturn(true);
 
+        Mockito.when(dao.save(Mockito.any())).thenReturn(stored);
+
         credentialsManager.addCredentials(matchExpression, credentials);
+
+        Mockito.verify(dao).save(Mockito.any());
+        Mockito.when(dao.getAll()).thenReturn(List.of(stored));
 
         Credentials found = credentialsManager.getCredentials(serviceRef);
         MatcherAssert.assertThat(found.getUsername(), Matchers.equalTo(username));
@@ -135,10 +144,23 @@ class CredentialsManagerTest {
                 IllegalArgumentException.class,
                 () -> credentialsManager.removeCredentials(matchExpression));
 
+        Mockito.when(dao.save(Mockito.any())).thenAnswer(invocation -> invocation.getArgument(0));
+
         credentialsManager.addCredentials(matchExpression, credentials);
 
-        MatcherAssert.assertThat(
-                credentialsManager.removeCredentials(matchExpression), Matchers.equalTo(0));
+        ArgumentCaptor<StoredCredentials> storedCaptor =
+                ArgumentCaptor.forClass(StoredCredentials.class);
+        Mockito.verify(dao).save(storedCaptor.capture());
+
+        StoredCredentials stored = storedCaptor.getValue();
+        MatcherAssert.assertThat(stored.getMatchExpression(), Matchers.equalTo(matchExpression));
+        MatcherAssert.assertThat(stored.getCredentials(), Matchers.equalTo(credentials));
+
+        Mockito.when(dao.deleteByMatchExpression(Mockito.eq(matchExpression))).thenReturn(1);
+
+        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression));
+
+        Mockito.verify(dao, Mockito.times(2)).deleteByMatchExpression(matchExpression);
     }
 
     @Test
@@ -152,6 +174,8 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+        Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
+
         Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> credentialsManager.removeCredentials(matchExpression1));
@@ -160,18 +184,21 @@ class CredentialsManagerTest {
                 IllegalArgumentException.class,
                 () -> credentialsManager.removeCredentials(matchExpression2));
 
-        credentialsManager.addCredentials(matchExpression1, credentials);
-        credentialsManager.addCredentials(matchExpression2, credentials);
+        Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(1);
 
-        MatcherAssert.assertThat(
-                credentialsManager.removeCredentials(matchExpression1), Matchers.equalTo(0));
+        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression1));
+
+        Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
 
         Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> credentialsManager.removeCredentials(matchExpression1));
 
-        MatcherAssert.assertThat(
-                credentialsManager.removeCredentials(matchExpression2), Matchers.equalTo(1));
+        Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(1);
+
+        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression2));
+
+        Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
 
         Assertions.assertThrows(
                 IllegalArgumentException.class,
@@ -193,19 +220,12 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+        StoredCredentials stored = new StoredCredentials(1, matchExpression, credentials);
+        Mockito.when(dao.getAll()).thenReturn(List.of(stored));
+
         Mockito.when(matchExpressionEvaluator.applies(Mockito.eq(matchExpression), Mockito.any()))
                 .thenAnswer(
-                        new Answer<Boolean>() {
-                            @Override
-                            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                                ServiceRef sr = (ServiceRef) invocation.getArgument(1);
-                                String alias = sr.getAlias().orElseThrow();
-                                return Set.of(target1.getAlias().get(), target2.getAlias().get())
-                                        .contains(alias);
-                            }
-                        });
-
-        credentialsManager.addCredentials(matchExpression, credentials);
+                        invocation -> Set.of(target1, target2).contains(invocation.getArgument(1)));
 
         MatcherAssert.assertThat(
                 credentialsManager.getCredentials(target1), Matchers.equalTo(credentials));
@@ -241,6 +261,9 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+        StoredCredentials stored = new StoredCredentials(1, matchExpression, credentials);
+        Mockito.when(dao.getAll()).thenReturn(List.of(stored));
+
         Mockito.when(matchExpressionEvaluator.applies(Mockito.eq(matchExpression), Mockito.any()))
                 .thenAnswer(
                         new Answer<Boolean>() {
@@ -252,8 +275,6 @@ class CredentialsManagerTest {
                                         .contains(alias);
                             }
                         });
-
-        credentialsManager.addCredentials(matchExpression, credentials);
 
         MatcherAssert.assertThat(
                 credentialsManager.getServiceRefsWithCredentials(),
@@ -267,10 +288,10 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
-        credentialsManager.addCredentials(matchExpression, credentials);
+        StoredCredentials stored = new StoredCredentials(5, matchExpression, credentials);
+        Mockito.when(dao.getAll()).thenReturn(List.of(stored));
 
-        Map<Integer, String> expected = Map.of(0, matchExpression);
-
+        Map<Integer, String> expected = Map.of(5, matchExpression);
         MatcherAssert.assertThat(credentialsManager.getAll(), Matchers.equalTo(expected));
     }
 
@@ -292,9 +313,10 @@ class CredentialsManagerTest {
 
         Set<ServiceRef> expected = Set.of(serviceRef);
 
-        credentialsManager.addCredentials(matchExpression, credentials);
+        StoredCredentials stored = new StoredCredentials(7, matchExpression, credentials);
+        Mockito.when(dao.get(Mockito.anyInt())).thenReturn(Optional.of(stored));
 
         MatcherAssert.assertThat(
-                credentialsManager.resolveMatchingTargets(0), Matchers.equalTo(expected));
+                credentialsManager.resolveMatchingTargets(7), Matchers.equalTo(expected));
     }
 }
