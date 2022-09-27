@@ -85,6 +85,8 @@ public abstract class StorageModule {
 
         // TODO not directly related, maybe extract
         StandardPBEStringEncryptor strongEncryptor = new StandardPBEStringEncryptor();
+        strongEncryptor.setProviderName("BC" /* BouncyCastle */);
+        strongEncryptor.setAlgorithm("PBEWITHSHA256AND128BITAES-CBC-BC");
         String pw = env.getEnv(Variables.JMX_CREDENTIALS_DB_PASSWORD);
         if (StringUtils.isBlank(pw)) {
             throw new RuntimeException(
