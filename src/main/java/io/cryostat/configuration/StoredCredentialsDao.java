@@ -37,7 +37,13 @@
  */
 package io.cryostat.configuration;
 
+import java.util.Objects;
+
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaDelete;
+import javax.persistence.criteria.Root;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.storage.AbstractDao;
@@ -46,5 +52,17 @@ class StoredCredentialsDao extends AbstractDao<Integer, StoredCredentials> {
 
     StoredCredentialsDao(EntityManager em, Logger logger) {
         super(StoredCredentials.class, em, logger);
+    }
+
+    public int deleteByMatchExpression(String matchExpression) {
+        Objects.requireNonNull(matchExpression);
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaDelete<StoredCredentials> cd = cb.createCriteriaDelete(klazz);
+        Root<StoredCredentials> rootEntry = cd.from(klazz);
+        CriteriaDelete<StoredCredentials> with =
+                cd.where(cb.equal(rootEntry.get("matchexpression"), matchExpression));
+        Query query = entityManager.createQuery(with);
+        return query.executeUpdate();
     }
 }

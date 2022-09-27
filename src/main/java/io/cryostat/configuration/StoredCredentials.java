@@ -78,10 +78,15 @@ public class StoredCredentials {
 
     StoredCredentials() {}
 
-    StoredCredentials(String matchExpression, Credentials credentials) {
+    StoredCredentials(int id, String matchExpression, Credentials credentials) {
+        this.id = id;
         this.matchExpression = matchExpression;
         this.username = credentials.getUsername();
         this.password = credentials.getPassword();
+    }
+
+    StoredCredentials(String matchExpression, Credentials credentials) {
+        this(0, matchExpression, credentials);
     }
 
     String getMatchExpression() {
@@ -92,16 +97,8 @@ public class StoredCredentials {
         return id;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public Credentials getCredentials() {
-        return new Credentials(getUsername(), getPassword());
+    Credentials getCredentials() {
+        return new Credentials(username, password);
     }
 
     @Override
