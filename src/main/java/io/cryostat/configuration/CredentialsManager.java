@@ -100,13 +100,19 @@ public class CredentialsManager
         return saved.getId();
     }
 
-    public void removeCredentials(String matchExpression)
-            throws MatchExpressionValidationException {
+    public int removeCredentials(String matchExpression) throws MatchExpressionValidationException {
+        // TODO refactor this to do a proper query on the DAO
         matchExpressionValidator.validate(matchExpression);
-        if (dao.deleteByMatchExpression(matchExpression) < 1) {
-            throw new IllegalArgumentException();
+        List<StoredCredentials> list = dao.getAll();
+        for (StoredCredentials sc : list) {
+            if (Objects.equals(matchExpression, sc.getMatchExpression())) {
+                int id = sc.getId();
+                dao.delete(id);
+                emit(CredentialsEvent.REMOVED, matchExpression);
+                return id;
+            }
         }
-        emit(CredentialsEvent.REMOVED, matchExpression);
+        throw new IllegalArgumentException();
     }
 
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
