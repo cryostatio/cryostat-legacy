@@ -103,8 +103,7 @@ public class CredentialsManager
     public int removeCredentials(String matchExpression) throws MatchExpressionValidationException {
         // TODO refactor this to do a proper query on the DAO
         matchExpressionValidator.validate(matchExpression);
-        List<StoredCredentials> list = dao.getAll();
-        for (StoredCredentials sc : list) {
+        for (StoredCredentials sc : dao.getAll()) {
             if (Objects.equals(matchExpression, sc.getMatchExpression())) {
                 int id = sc.getId();
                 dao.delete(id);

@@ -545,8 +545,6 @@
               <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--env</argument>
               <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_LOG_DB_QUERIES=true</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersionLower}</argument>
