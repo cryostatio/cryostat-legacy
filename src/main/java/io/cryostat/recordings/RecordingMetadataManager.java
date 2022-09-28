@@ -266,8 +266,31 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                     deleteMetadataPathIfExists(
                                                                             file);
                                                                 }
+<<<<<<< HEAD
                                                             });
                                         }
+=======
+                                                                // archived recording
+                                                                // metadata
+                                                                jvmIdHelper.putIfAbsent(
+                                                                        targetId, srm.getJvmId());
+                                                                recordingMetadataMap.put(
+                                                                        Pair.of(
+                                                                                srm.getJvmId(),
+                                                                                recordingName),
+                                                                        new Metadata(srm.getLabels()));
+                                                            } else {
+                                                                logger.warn(
+                                                                        "Invalid metadata with"
+                                                                                + " no jvmId"
+                                                                                + " originating"
+                                                                                + " from"
+                                                                                + " {}",
+                                                                        targetId);
+                                                                deleteMetadataPathIfExists(file);
+                                                            }
+                                                        });
+>>>>>>> 36b05d1f (removed jvmId from metadata query)
                                     } catch (IOException e) {
                                         logger.error(
                                                 "Could not read metadata subdirectory"
