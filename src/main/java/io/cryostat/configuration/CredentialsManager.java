@@ -47,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.script.ScriptException;
@@ -177,7 +178,7 @@ public class CredentialsManager
                 return id;
             }
         }
-        throw new IllegalArgumentException();
+        return -1;
     }
 
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
@@ -209,16 +210,19 @@ public class CredentialsManager
         return result;
     }
 
-    public String get(int id) {
-        return dao.get(id).orElseThrow(() -> new IllegalArgumentException()).getMatchExpression();
+    public Optional<String> get(int id) {
+        return dao.get(id).map(StoredCredentials::getMatchExpression);
     }
 
     public Set<ServiceRef> resolveMatchingTargets(int id) {
-        String matchExpression = get(id);
+        Optional<String> matchExpression = get(id);
+        if (matchExpression.isEmpty()) {
+            return Set.of();
+        }
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
-                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                if (matchExpressionEvaluator.applies(matchExpression.get(), target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
@@ -244,8 +248,8 @@ public class CredentialsManager
         return matchedTargets;
     }
 
-    public void delete(int id) {
-        dao.delete(id);
+    public boolean delete(int id) {
+        return dao.delete(id);
     }
 
     public Map<Integer, String> getAll() {

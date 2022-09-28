@@ -119,7 +119,10 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
                 CredentialsManager.targetIdToMatchExpression(
                         params.getPathParams().get("targetId"));
         try {
-            this.credentialsManager.removeCredentials(targetId);
+            int removed = this.credentialsManager.removeCredentials(targetId);
+            if (removed < 0) {
+                return new IntermediateResponse<Void>().statusCode(404);
+            }
 
             notificationFactory
                     .createBuilder()
@@ -130,8 +133,6 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .send();
 
             return new IntermediateResponse<Void>().statusCode(200);
-        } catch (IllegalArgumentException e) {
-            return new IntermediateResponse<Void>().statusCode(404);
         } catch (MatchExpressionValidationException e) {
             throw new ApiException(500, e);
         }

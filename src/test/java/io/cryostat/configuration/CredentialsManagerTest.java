@@ -57,7 +57,6 @@ import com.google.gson.Gson;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -102,8 +101,7 @@ class CredentialsManagerTest {
 
         MatcherAssert.assertThat(
                 credentialsManager.getServiceRefsWithCredentials(), Matchers.empty());
-        Assertions.assertThrows(
-                IllegalArgumentException.class, () -> credentialsManager.removeCredentials("foo"));
+        MatcherAssert.assertThat(credentialsManager.removeCredentials("foo"), Matchers.lessThan(0));
         MatcherAssert.assertThat(
                 credentialsManager.getCredentials(new ServiceRef(new URI("foo"), "foo")),
                 Matchers.nullValue());
@@ -147,9 +145,8 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> credentialsManager.removeCredentials(matchExpression));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression), Matchers.lessThan(0));
 
         Mockito.when(dao.save(Mockito.any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -166,7 +163,9 @@ class CredentialsManagerTest {
         // Mockito.when(dao.deleteByMatchExpression(Mockito.eq(matchExpression))).thenReturn(1);
         Mockito.when(dao.getAll()).thenReturn(List.of(stored));
 
-        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression),
+                Matchers.greaterThanOrEqualTo(0));
 
         // Mockito.verify(dao, Mockito.times(2)).deleteByMatchExpression(matchExpression);
     }
@@ -187,37 +186,37 @@ class CredentialsManagerTest {
         // Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
         Mockito.when(dao.getAll()).thenReturn(List.of());
 
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> credentialsManager.removeCredentials(matchExpression1));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression1), Matchers.lessThan(0));
 
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> credentialsManager.removeCredentials(matchExpression2));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression2), Matchers.lessThan(0));
 
         // Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(1);
         Mockito.when(dao.getAll()).thenReturn(List.of(stored1));
 
-        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression1));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression1),
+                Matchers.greaterThanOrEqualTo(0));
 
         // Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
         Mockito.when(dao.getAll()).thenReturn(List.of());
 
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> credentialsManager.removeCredentials(matchExpression1));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression2), Matchers.lessThan(0));
 
         // Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(1);
         Mockito.when(dao.getAll()).thenReturn(List.of(stored2));
 
-        Assertions.assertDoesNotThrow(() -> credentialsManager.removeCredentials(matchExpression2));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression2),
+                Matchers.greaterThanOrEqualTo(0));
 
         // Mockito.when(dao.deleteByMatchExpression(Mockito.anyString())).thenReturn(0);
         Mockito.when(dao.getAll()).thenReturn(List.of());
 
-        Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> credentialsManager.removeCredentials(matchExpression2));
+        MatcherAssert.assertThat(
+                credentialsManager.removeCredentials(matchExpression2), Matchers.lessThan(0));
     }
 
     @Test

@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -56,7 +57,6 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -131,7 +131,7 @@ class CredentialGetHandlerTest {
                     new MatchedCredentials(matchExpression, Set.of(serviceRef));
 
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
-            Mockito.when(credentialsManager.get(10)).thenReturn(matchExpression);
+            Mockito.when(credentialsManager.get(10)).thenReturn(Optional.of(matchExpression));
             Mockito.when(credentialsManager.resolveMatchingTargets(10))
                     .thenReturn(Set.of(serviceRef));
 
@@ -147,14 +147,11 @@ class CredentialGetHandlerTest {
         @Test
         void shouldRespond404IfIdUnknown() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
-            Mockito.when(credentialsManager.get(Mockito.anyInt()))
-                    .thenThrow(IllegalArgumentException.class);
+            Mockito.when(credentialsManager.get(Mockito.anyInt())).thenReturn(Optional.empty());
 
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
+            IntermediateResponse<?> resp = handler.handle(requestParams);
 
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(404));
         }
     }
 }

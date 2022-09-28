@@ -80,7 +80,7 @@ public abstract class AbstractDao<I, T> {
         }
     }
 
-    public final void delete(I id) {
+    public final boolean delete(I id) {
         Objects.requireNonNull(id);
         EntityTransaction transaction = entityManager.getTransaction();
         try {
@@ -88,11 +88,13 @@ public abstract class AbstractDao<I, T> {
             T t = entityManager.find(klazz, id);
             entityManager.remove(t);
             transaction.commit();
+            return true;
         } catch (Exception e) {
             if (transaction != null) {
                 transaction.rollback();
             }
             logger.error(e);
+            return false;
         }
     }
 
