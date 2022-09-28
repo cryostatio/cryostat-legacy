@@ -38,19 +38,22 @@
 package io.cryostat.configuration;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidator;
 
+import com.google.gson.Gson;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -69,23 +72,27 @@ import org.mockito.stubbing.Answer;
 class CredentialsManagerTest {
 
     CredentialsManager credentialsManager;
+    @Mock Path credentialsDir;
     @Mock MatchExpressionValidator matchExpressionValidator;
     @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock PlatformClient platformClient;
     @Mock StoredCredentialsDao dao;
-    @Mock NotificationFactory notificationFactory;
+    @Mock FileSystem fs;
     @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
     Base32 base32 = new Base32();
 
     @BeforeEach
     void setup() {
         this.credentialsManager =
                 new CredentialsManager(
+                        credentialsDir,
                         matchExpressionValidator,
                         matchExpressionEvaluator,
                         platformClient,
                         dao,
-                        notificationFactory,
+                        fs,
+                        gson,
                         logger);
     }
 

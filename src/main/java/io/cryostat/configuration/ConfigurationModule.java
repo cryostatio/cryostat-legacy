@@ -46,17 +46,19 @@ import javax.persistence.EntityManager;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidator;
 
+import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 
 @Module
 public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
+    public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
 
     @Provides
     @Singleton
@@ -70,18 +72,23 @@ public abstract class ConfigurationModule {
     @Provides
     @Singleton
     static CredentialsManager provideCredentialsManager(
+            @Named(CONFIGURATION_PATH) Path confDir,
             MatchExpressionValidator matchExpressionValidator,
             MatchExpressionEvaluator matchExpressionEvaluator,
             DiscoveryStorage discovery,
             StoredCredentialsDao dao,
-            NotificationFactory notificationFactory,
+            FileSystem fs,
+            Gson gson,
             Logger logger) {
+        Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
         return new CredentialsManager(
+                credentialsDir,
                 matchExpressionValidator,
                 matchExpressionEvaluator,
                 discovery,
                 dao,
-                notificationFactory,
+                fs,
+                gson,
                 logger);
     }
 
