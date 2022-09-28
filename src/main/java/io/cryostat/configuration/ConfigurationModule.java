@@ -94,7 +94,7 @@ public abstract class ConfigurationModule {
 
     @Provides
     @Singleton
-    static StoredCredentialsDao providePluginInfoDao(EntityManager em, Logger logger) {
+    static StoredCredentialsDao provideStoredCredentialsDao(EntityManager em, Logger logger) {
         return new StoredCredentialsDao(em, logger);
     }
 }
