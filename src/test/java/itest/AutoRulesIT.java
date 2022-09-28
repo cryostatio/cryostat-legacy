@@ -181,7 +181,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 "maxAgeSeconds",
                                 60,
                                 "maxSizeBytes",
-                                -1));
+                                -1,
+                                "enabled",
+                                true));
         JsonObject expectedRules =
                 new JsonObject(
                         Map.of(
