@@ -25,18 +25,19 @@ $ git commit -m "some very nice message"
 
 ## Open a PR
 
-Push your changes to your remote respository (forked). You might need to rebase on the newest commit on the upstream.
+Push your changes to your remote respository (forked). You might need to rebase on the latest commit on the upstream's `main`.
 
 To rebase:
 ```bash
 $ git fetch upstream # Fetch upstream commits
-$ git checkout main && git rebase upstream/main && git push origin main # Checkout main, merge upstream and update origin
+$ git rebase upstream/main # Rebase on latest commit on upstream/main
 ```
 
 To push:
 ```bash
-$ git checkout some-task-branch
 $ git push -u origin some-task-branch
+# or
+$ git push -f origin some-task-branch # If already pushed to origin remote
 ```
 
 Visit upstream repository and open a PR.
@@ -70,4 +71,12 @@ To delete:
 $ git checkout main # Must checkout a different branch before deleting the current checked out one
 $ git branch -D some-task-branch # Delete local branch with force or without force using -d
 $ git push --delete origin some-task-branch # Delete branch on origin (forked)
+```
+
+Now, you can rebase your local and origin `main` with latest upstream:
+```bash
+$ git fetch upstream
+$ git checkout main
+$ git rebase upstream/main
+$ git push origin main # Update origin remote
 ```
