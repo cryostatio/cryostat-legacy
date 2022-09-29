@@ -54,7 +54,6 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -154,10 +153,7 @@ class RulePatchTest {
 
             Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
 
-            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
-            queryParams.set("enabled", "true");
-
-            Mockito.when(params.getQueryParams()).thenReturn(queryParams);
+            Mockito.when(params.getBody()).thenReturn("{\"enabled\" : true}");
 
             Rule rule =
                     new Rule.Builder()

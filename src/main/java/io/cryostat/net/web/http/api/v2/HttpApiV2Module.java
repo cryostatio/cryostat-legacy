@@ -172,6 +172,10 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRulePatchBodyHandler(RulePatchBodyHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRulePatchHandler(RulePatchHandler handler);
 
     @Binds
