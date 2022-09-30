@@ -70,7 +70,6 @@ import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -101,7 +100,6 @@ class RuleProcessorTest {
     @Mock RecordingMetadataManager metadataManager;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
-    @Mock Base32 base32;
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -121,8 +119,7 @@ class RuleProcessorTest {
                         recordingTargetHelper,
                         metadataManager,
                         periodicArchiverFactory,
-                        logger,
-                        base32);
+                        logger);
     }
 
     @Test
@@ -197,7 +194,6 @@ class RuleProcessorTest {
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
                         periodicArchiverFactory.create(
-                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -361,7 +357,6 @@ class RuleProcessorTest {
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
-                                Mockito.any(),
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
@@ -377,8 +372,7 @@ class RuleProcessorTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),
-                        functionCaptor.capture(),
-                        Mockito.any());
+                        functionCaptor.capture());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
         Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.TIMER_ID);
 

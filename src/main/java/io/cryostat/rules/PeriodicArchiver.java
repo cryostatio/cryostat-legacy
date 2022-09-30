@@ -37,9 +37,9 @@
  */
 package io.cryostat.rules;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -55,7 +55,6 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -71,7 +70,6 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
-    private final Base32 base32;
 
     private final Queue<String> previousRecordings;
 
@@ -81,15 +79,13 @@ class PeriodicArchiver implements Runnable {
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
-        this.base32 = base32;
 
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
@@ -105,20 +101,18 @@ class PeriodicArchiver implements Runnable {
             if (previousRecordings.isEmpty()) {
                 String serviceUri = serviceRef.getServiceUri().toString();
                 List<ArchivedRecordingInfo> archivedRecordings =
-                        recordingArchiveHelper.getRecordings().get();
+                        recordingArchiveHelper
+                                .getRecordings(serviceRef.getServiceUri().toString())
+                                .get();
 
                 for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
-                    String decodedServiceUri =
-                            new String(
-                                    base32.decode(archivedRecordingInfo.getServiceUri()),
-                                    StandardCharsets.UTF_8);
                     String fileName = archivedRecordingInfo.getName();
                     Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
                     if (m.matches()) {
                         String recordingName = m.group(2);
 
-                        if (decodedServiceUri.equals(serviceUri)
-                                && recordingName.equals(rule.getRecordingName())) {
+                        if (Objects.equals(serviceUri, archivedRecordingInfo.getServiceUri())
+                                && Objects.equals(recordingName, rule.getRecordingName())) {
                             previousRecordings.add(fileName);
                         }
                     }
