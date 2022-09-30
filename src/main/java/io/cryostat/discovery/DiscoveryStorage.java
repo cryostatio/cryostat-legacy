@@ -111,7 +111,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 deployer.deploy(builtin.get(), true)
                                         .onSuccess(ar -> future.complete())
                                         .onFailure(t -> future.fail((Throwable) t))
-                                        .eventually(m -> getVertx().eventBus().send(DISCOVERY_STARTUP_ADDRESS, "Discovery storage deployed")))
+                                        .eventually(
+                                                m ->
+                                                        getVertx()
+                                                                .eventBus()
+                                                                .send(
+                                                                        DISCOVERY_STARTUP_ADDRESS,
+                                                                        "Discovery storage"
+                                                                                + " deployed")))
                 .onFailure(future::fail);
 
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());

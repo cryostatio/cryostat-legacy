@@ -142,50 +142,47 @@ public class RecordingArchiveHelper {
 
     // on startup migration and jvmId transfer method for archived recordings
     protected void migrate() throws Exception {
-            List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
-            for (String subdirectoryName : subdirectories) {
-                try {
-                    logger.info("Found archived recordings subdirectory: {}", subdirectoryName);
-                    // FIXME: refactor structure to remove file-uploads (v1
-                    // RecordingsPostBodyHandler)
-                    if (subdirectoryName.equals("file-uploads")
-                            || subdirectoryName.equals("uploads")) {
-                        continue;
-                    }
-                    Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-                    String connectUrl;
-                    try {
-                        connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                        logger.info("Found connectUrl: {}", connectUrl);
-                    } catch (ExecutionException e) {
-                        // try to migrate the recording to the new structure
-                        connectUrl =
-                                new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-                    }
-                    String jvmId = jvmIdHelper.getJvmId(connectUrl);
-                    Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
-                    logger.info(
-                            "Migrating recordings from {} to {}",
-                            subdirectoryPath,
-                            encodedJvmIdPath);
-                    fs.writeString(
-                            subdirectoryPath.resolve("connectUrl"),
-                            connectUrl,
-                            StandardOpenOption.CREATE);
-                    if (!fs.exists(encodedJvmIdPath)) {
-                        // rename subdirectory to jvmId
-                        Files.move(subdirectoryPath, encodedJvmIdPath);
-                    }
-
-                } catch (JvmIdGetException e) {
-                    logger.warn(
-                            "Could not find jvmId for targetId {}, skipping migration of"
-                                    + " recordings",
-                            e.getTarget());
-                } catch (CancellationException e) {
-                    logger.error(e);
+        List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
+        for (String subdirectoryName : subdirectories) {
+            try {
+                logger.info("Found archived recordings subdirectory: {}", subdirectoryName);
+                // FIXME: refactor structure to remove file-uploads (v1
+                // RecordingsPostBodyHandler)
+                if (subdirectoryName.equals("file-uploads") || subdirectoryName.equals("uploads")) {
+                    continue;
                 }
+                Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+                String connectUrl;
+                try {
+                    connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+                    logger.info("Found connectUrl: {}", connectUrl);
+                } catch (ExecutionException e) {
+                    // try to migrate the recording to the new structure
+                    connectUrl =
+                            new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                }
+                String jvmId = jvmIdHelper.getJvmId(connectUrl);
+                Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
+                logger.info(
+                        "Migrating recordings from {} to {}", subdirectoryPath, encodedJvmIdPath);
+                fs.writeString(
+                        subdirectoryPath.resolve("connectUrl"),
+                        connectUrl,
+                        StandardOpenOption.CREATE);
+                if (!fs.exists(encodedJvmIdPath)) {
+                    // rename subdirectory to jvmId
+                    Files.move(subdirectoryPath, encodedJvmIdPath);
+                }
+
+            } catch (JvmIdGetException e) {
+                logger.warn(
+                        "Could not find jvmId for targetId {}, skipping migration of"
+                                + " recordings",
+                        e.getTarget());
+            } catch (CancellationException e) {
+                logger.error(e);
             }
+        }
     }
 
     protected void transferArchivesIfRestarted(Path subdirectoryPath, String oldJvmId) {
