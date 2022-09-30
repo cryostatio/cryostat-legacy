@@ -264,58 +264,91 @@ class AutoRulesIT extends ExternalTargetsTest {
     @Test
     @Order(4)
     void testNewContainerHasRuleApplied() throws Exception {
-        CONTAINERS.add(
-                Podman.run(
-                        new Podman.ImageSpec(
-                                FIB_DEMO_IMAGESPEC,
-                                Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
-        Thread.sleep(10_000L); // wait for JDP to discover new container(s)
 
-        CompletableFuture<JsonArray> response = new CompletableFuture<>();
-        webClient
-                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
-                .putHeader(
-                        "X-JMX-Authorization",
-                        "Basic "
-                                + Base64.getEncoder()
-                                        .encodeToString("admin:adminpass123".getBytes()))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonObject recording = response.get().getJsonObject(0);
-        MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
-        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_Auto_Rule"));
-        MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
-        MatcherAssert.assertThat(recording.getInteger("duration"), Matchers.equalTo(0));
-        MatcherAssert.assertThat(recording.getInteger("maxAge"), Matchers.equalTo(60000));
-        MatcherAssert.assertThat(recording.getInteger("maxSize"), Matchers.equalTo(0));
-        MatcherAssert.assertThat(recording.getBoolean("continuous"), Matchers.equalTo(true));
-        MatcherAssert.assertThat(recording.getBoolean("toDisk"), Matchers.equalTo(true));
-        MatcherAssert.assertThat(
-                recording.getString("downloadUrl"),
-                Matchers.equalTo(
-                        "http://"
-                                + Utils.WEB_HOST
-                                + ":"
-                                + Utils.WEB_PORT
-                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
-        MatcherAssert.assertThat(
-                recording.getString("reportUrl"),
-                Matchers.equalTo(
-                        "http://"
-                                + Utils.WEB_HOST
-                                + ":"
-                                + Utils.WEB_PORT
-                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
+        try {
+            CONTAINERS.add(
+                    Podman.run(
+                            new Podman.ImageSpec(
+                                    FIB_DEMO_IMAGESPEC,
+                                    Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
+            CompletableFuture.allOf(
+                            CONTAINERS.stream()
+                                    .map(id -> Podman.waitForContainerState(id, "running"))
+                                    .collect(Collectors.toList())
+                                    .toArray(new CompletableFuture[0]))
+                    .join();
+            Thread.sleep(10_000L); // wait for JDP to discover new container(s)
+
+            CompletableFuture<JsonArray> response = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, response)) {
+                                    response.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonObject recording = response.get().getJsonObject(0);
+            MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
+            MatcherAssert.assertThat(
+                    recording.getString("name"), Matchers.equalTo("auto_Auto_Rule"));
+            MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
+            MatcherAssert.assertThat(recording.getInteger("duration"), Matchers.equalTo(0));
+            MatcherAssert.assertThat(recording.getInteger("maxAge"), Matchers.equalTo(60000));
+            MatcherAssert.assertThat(recording.getInteger("maxSize"), Matchers.equalTo(0));
+            MatcherAssert.assertThat(recording.getBoolean("continuous"), Matchers.equalTo(true));
+            MatcherAssert.assertThat(recording.getBoolean("toDisk"), Matchers.equalTo(true));
+            MatcherAssert.assertThat(
+                    recording.getString("downloadUrl"),
+                    Matchers.equalTo(
+                            "http://"
+                                    + Utils.WEB_HOST
+                                    + ":"
+                                    + Utils.WEB_PORT
+                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
+            MatcherAssert.assertThat(
+                    recording.getString("reportUrl"),
+                    Matchers.equalTo(
+                            "http://"
+                                    + Utils.WEB_HOST
+                                    + ":"
+                                    + Utils.WEB_PORT
+                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
+
+        } finally {
+
+            // Delete active recordings generated by the above rule
+            CompletableFuture<JsonObject> deleteFibDemoRecResponse = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    Podman.POD_NAME + ":9093", "auto_Auto_Rule"))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteFibDemoRecResponse)) {
+                                    deleteFibDemoRecResponse.complete(
+                                            ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            try {
+                deleteFibDemoRecResponse.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", "auto_Auto_Rule"), e);
+            }
+        }
     }
 
     @Test
@@ -376,7 +409,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     getResponse.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            JsonObject recording = getResponse.get().getJsonObject(1);
+            JsonObject recording = getResponse.get().getJsonObject(0);
             MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(2));
             MatcherAssert.assertThat(
                     recording.getString("name"), Matchers.equalTo(expectedRecordingName));
@@ -532,6 +565,131 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(7)
+    void testAddRuleDisabledAndPatchEnable() throws Exception {
+
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("name", "Disabled_Rule");
+        form.add(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        form.add("description", "AutoRulesIT automated rule disabled");
+        form.add("eventSpecifier", "template=Continuous,type=TARGET");
+        form.add("enabled", "false");
+
+        String recordingName = "auto_Disabled_Rule";
+
+        webClient
+                .post("/api/v2/rules")
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, postResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(201));
+                                postResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        JsonObject expectedPostResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.JSON.mime(),
+                                                "status",
+                                                "Created"),
+                                "data", Map.of("result", "Disabled_Rule")));
+        MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+
+        Thread.sleep(3_000);
+
+        CompletableFuture<JsonArray> getResp = new CompletableFuture<>();
+
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                .putHeader(
+                        "X-JMX-Authorization",
+                        "Basic "
+                                + Base64.getEncoder()
+                                        .encodeToString("admin:adminpass123".getBytes()))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getResp)) {
+                                getResp.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+
+        MatcherAssert.assertThat(getResp.get().size(), Matchers.is(0));
+
+        JsonObject enableObject = new JsonObject();
+        enableObject.put("enabled", true);
+
+        CompletableFuture<JsonObject> patchResp = new CompletableFuture<>();
+
+        webClient
+                .patch("/api/v2/rules/Disabled_Rule")
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                .sendJson(
+                        enableObject,
+                        ar -> {
+                            if (assertRequestStatus(ar, patchResp)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(204));
+                                patchResp.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        patchResp.get();
+
+        Thread.sleep(3_000);
+
+        CompletableFuture<JsonArray> getResp2 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                .putHeader(
+                        "X-JMX-Authorization",
+                        "Basic "
+                                + Base64.getEncoder()
+                                        .encodeToString("admin:adminpass123".getBytes()))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getResp2)) {
+                                getResp2.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+
+        JsonObject recording2 = getResp2.get().getJsonObject(0);
+        MatcherAssert.assertThat(recording2.getInteger("id"), Matchers.equalTo(3));
+        MatcherAssert.assertThat(recording2.getString("name"), Matchers.equalTo(recordingName));
+        MatcherAssert.assertThat(recording2.getString("state"), Matchers.equalTo("RUNNING"));
+        MatcherAssert.assertThat(recording2.getInteger("duration"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording2.getInteger("maxAge"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording2.getInteger("maxSize"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording2.getBoolean("continuous"), Matchers.equalTo(true));
+        MatcherAssert.assertThat(recording2.getBoolean("toDisk"), Matchers.equalTo(true));
+        MatcherAssert.assertThat(
+                recording2.getString("downloadUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Disabled_Rule"));
+        MatcherAssert.assertThat(
+                recording2.getString("reportUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Disabled_Rule"));
+    }
+
+    @Test
+    @Order(8)
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -553,7 +711,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void testGetNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -571,7 +729,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     void testDeleteNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient

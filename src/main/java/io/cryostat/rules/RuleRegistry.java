@@ -181,17 +181,16 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public void enableRule(Rule rule, boolean enabled) {
         String name = rule.getName();
-        if (enabled && !rule.isEnabled()) {
+        if ((enabled && !rule.isEnabled()) || (!enabled && rule.isEnabled())) {
             getRule(name).get().setEnabled(enabled);
-            emit(RuleEvent.ADDED, rule);
-        } else if (!enabled && rule.isEnabled()) {
-            getRule(name).get().setEnabled(enabled);
+            emit(RuleEvent.UPDATED, rule);
         }
     }
 
     enum RuleEvent implements EventType {
         ADDED,
         REMOVED,
+        UPDATED,
         ;
     }
 }
