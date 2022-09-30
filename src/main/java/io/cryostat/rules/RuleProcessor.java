@@ -76,7 +76,6 @@ import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
@@ -91,7 +90,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     private final RecordingMetadataManager metadataManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
-    private final Base32 base32;
 
     private final Map<Pair<ServiceRef, Rule>, Set<Long>> tasks;
 
@@ -106,8 +104,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         this.vertx = vertx;
         this.platformClient = platformClient;
         this.registry = registry;
@@ -119,7 +116,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
-        this.base32 = base32;
         this.tasks = new HashMap<>();
 
         this.registry.addListener(this.ruleListener());
@@ -250,8 +246,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                                 credentialsManager,
                                                 rule,
                                                 recordingArchiveHelper,
-                                                this::archivalFailureHandler,
-                                                base32);
+                                                this::archivalFailureHandler);
                                 Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
                                 Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
                                 long initialTask =

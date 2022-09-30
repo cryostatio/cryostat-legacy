@@ -51,7 +51,6 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
-import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -73,7 +72,6 @@ class PeriodicArchiverTest {
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
     @Mock Logger logger;
-    Base32 base32 = new Base32();
     @Mock Queue<String> previousRecordings;
 
     @BeforeEach
@@ -101,15 +99,14 @@ class PeriodicArchiverTest {
                             failureCounter.incrementAndGet();
                             return null;
                         },
-                        logger,
-                        base32);
+                        logger);
     }
 
     @Test
     void testPerformArchival() throws Exception {
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(new ArrayList<>());
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
         CompletableFuture<ArchivedRecordingInfo> infoFuture = new CompletableFuture<>();
         infoFuture.complete(Mockito.mock(ArchivedRecordingInfo.class));
@@ -126,7 +123,7 @@ class PeriodicArchiverTest {
     void testNotifyOnExecutionFailure() throws Exception {
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(new ArrayList<>());
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
         CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
@@ -145,7 +142,7 @@ class PeriodicArchiverTest {
     void testNotifyOnConnectionFailure() throws Exception {
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(new ArrayList<>());
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
         Mockito.doThrow(SecurityException.class)
                 .when(recordingArchiveHelper)
@@ -161,7 +158,7 @@ class PeriodicArchiverTest {
     void testPruneArchive() throws Exception {
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(new ArrayList<>());
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
         CompletableFuture<ArchivedRecordingInfo> saveFuture = new CompletableFuture<>();
         ArchivedRecordingInfo info = Mockito.mock(ArchivedRecordingInfo.class);
@@ -193,47 +190,45 @@ class PeriodicArchiverTest {
         // populate the archive with various recordings, two of which are for  the current target
         // (based on the encoded serviceUri), with only one of those two having a recording name
         // that matches the Rule in question
-        String encodedServiceUri =
-                base32.encodeAsString(serviceRef.getServiceUri().toString().getBytes());
         String matchingFileName =
                 String.format("targetFoo_%s_20200903T202547Z.jfr", rule.getRecordingName());
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(
                 List.of(
                         new ArchivedRecordingInfo(
-                                encodedServiceUri,
+                                jmxUrl,
                                 "targetFoo_recordingFoo_20210101T202547Z.jfr",
                                 "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo",
                                 new Metadata(),
                                 0),
                         new ArchivedRecordingInfo(
-                                "encodedServiceUriA",
+                                "aJmxUrl",
                                 "targetA_recordingA_20190801T202547Z.jfr",
                                 "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA",
                                 new Metadata(),
                                 0),
                         new ArchivedRecordingInfo(
-                                "encodedServiceUri123",
+                                "bJmxUrl",
                                 "target123_123recording_20211107T202547Z.jfr",
                                 "/some/path/download/123recording",
                                 "/some/path/archive/123recording",
                                 new Metadata(),
                                 0),
                         new ArchivedRecordingInfo(
-                                encodedServiceUri,
+                                jmxUrl,
                                 matchingFileName,
                                 String.format("/some/path/download/%s", rule.getRecordingName()),
                                 String.format("/some/path/archive/%s", rule.getRecordingName()),
                                 new Metadata(),
                                 0)));
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
         CompletableFuture<ArchivedRecordingInfo> saveFuture = new CompletableFuture<>();
         ArchivedRecordingInfo newlySavedRecording =
                 new ArchivedRecordingInfo(
-                        encodedServiceUri,
+                        jmxUrl,
                         "someRecording.jfr",
                         "/some/path/download/someRecording.jfr",
                         "/some/path/archive/someRecording.jfr",
@@ -246,8 +241,7 @@ class PeriodicArchiverTest {
         archiver.run();
 
         // if the archived recordings were scanned properly the first entry should be the matching
-        // file name above,
-        // followed by the newly saved "someRecording.jfr"
+        // file name above, followed by the newly saved "someRecording.jfr"
         Queue<String> previousRecordings = archiver.getPreviousRecordings();
         Assertions.assertEquals(matchingFileName, previousRecordings.remove());
         Assertions.assertEquals(newlySavedRecording.getName(), previousRecordings.remove());
