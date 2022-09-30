@@ -37,6 +37,7 @@
  */
 package io.cryostat.platform.internal;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,6 +59,7 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -81,6 +83,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     private Integer memoHash;
     private EnvironmentNode memoTree;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final JvmIdHelper jvmIdHelper;
     private final Logger logger;
     private final String namespace;
     private final Map<Pair<String, String>, Pair<HasMetadata, EnvironmentNode>> discoveryNodeCache =
@@ -91,10 +94,12 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             String namespace,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            JvmIdHelper jvmIdHelper,
             Logger logger) {
         this.namespace = namespace;
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;
+        this.jvmIdHelper = jvmIdHelper;
         this.logger = logger;
     }
 
@@ -369,12 +374,14 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         discoveryNodeCache.computeIfAbsent(
                                 cacheKey(objRef), KubeApiPlatformClient.this::queryForNode);
                 String targetName = objRef.getName();
+                URI uri = URIUtil.convert(
+                    connectionToolkit
+                            .get()
+                            .createServiceURL(addr.getIp(), port.getPort()));
                 ServiceRef serviceRef =
                         new ServiceRef(
-                                URIUtil.convert(
-                                        connectionToolkit
-                                                .get()
-                                                .createServiceURL(addr.getIp(), port.getPort())),
+                                jvmIdHelper.getJvmId(uri.toString()),
+                                uri,
                                 targetName);
 
                 if (node.getRight().getNodeType() == KubernetesNodeType.POD) {

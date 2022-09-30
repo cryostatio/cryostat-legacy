@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -67,6 +69,7 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final String namespace;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final JvmIdHelper jvmIdHelper;
     private final Environment env;
     private final Logger logger;
 
@@ -74,10 +77,12 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
             String namespace,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
+            JvmIdHelper jvmIdHelper,
             Logger logger) {
         this.namespace = namespace;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
+        this.jvmIdHelper = jvmIdHelper;
         this.logger = logger;
     }
 
@@ -109,12 +114,14 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
+            URI uri = URIUtil.convert(
+                connectionToolkit
+                        .get()
+                        .createServiceURL(entry.getValue(), port));
             ServiceRef sr =
                     new ServiceRef(
-                            URIUtil.convert(
-                                    connectionToolkit
-                                            .get()
-                                            .createServiceURL(entry.getValue(), port)),
+                            jvmIdHelper.getJvmId(uri.toString()),
+                            uri,
                             alias);
             sr.setCryostatAnnotations(
                     Map.of(

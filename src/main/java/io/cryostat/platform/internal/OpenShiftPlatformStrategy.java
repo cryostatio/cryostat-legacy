@@ -45,7 +45,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
-
+import io.cryostat.recordings.JvmIdHelper;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
@@ -56,17 +56,21 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
 
     private final Logger logger;
     private final AuthManager authMgr;
+    private final JvmIdHelper jvmIdHelper;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private OpenShiftClient osClient;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
+
 
     OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
+            JvmIdHelper jvmIdHelper,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
+        this.jvmIdHelper = jvmIdHelper;
         this.fs = fs;
         try {
             this.osClient = new DefaultOpenShiftClient();
@@ -104,7 +108,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
+        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, jvmIdHelper, logger);
     }
 
     @Override

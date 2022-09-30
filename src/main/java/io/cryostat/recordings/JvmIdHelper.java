@@ -169,7 +169,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                 || directoryName.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY);
     }
 
-    static class JvmIdGetException extends IOException {
+    public static class JvmIdGetException extends IOException {
         private String targetId;
 
         JvmIdGetException(String message, String targetId) {

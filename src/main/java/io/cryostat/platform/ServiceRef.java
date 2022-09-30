@@ -134,6 +134,7 @@ public class ServiceRef {
             return false;
         }
         ServiceRef sr = (ServiceRef) other;
+        // id is intentionally ignored ? 
         return new EqualsBuilder()
                 .append(serviceUri, sr.serviceUri)
                 .append(alias, sr.alias)
@@ -144,6 +145,7 @@ public class ServiceRef {
 
     @Override
     public int hashCode() {
+        // id is intentionally ignored ?
         return new HashCodeBuilder()
                 .append(serviceUri)
                 .append(alias)

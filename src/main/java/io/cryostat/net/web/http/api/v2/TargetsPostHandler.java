@@ -58,6 +58,8 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -70,6 +72,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     static final String PATH = "targets";
 
     private final DiscoveryStorage storage;
+    private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
 
     @Inject
@@ -78,9 +81,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             CredentialsManager credentialsManager,
             Gson gson,
             DiscoveryStorage storage,
+            JvmIdHelper jvmIdHelper,
             CustomTargetPlatformClient customTargetPlatformClient) {
         super(auth, credentialsManager, gson);
         this.storage = storage;
+        this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
     }
 
@@ -148,7 +153,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            ServiceRef serviceRef = new ServiceRef(uri, alias);
+            ServiceRef serviceRef = new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?
@@ -165,6 +170,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
+        } catch (JvmIdGetException jige) {
+            throw new ApiException(400, "Couldn't connect to the target", jige);
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {

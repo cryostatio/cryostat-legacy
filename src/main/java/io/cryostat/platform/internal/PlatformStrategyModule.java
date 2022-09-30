@@ -47,7 +47,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
-
+import io.cryostat.recordings.JvmIdHelper;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -66,11 +66,12 @@ public abstract class PlatformStrategyModule {
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
+            JvmIdHelper jvmIdHelper,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, connectionToolkit, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, fs),
-                new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
-                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
+                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, jvmIdHelper, connectionToolkit, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, jvmIdHelper, fs),
+                new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, jvmIdHelper, connectionToolkit, env),
+                new DefaultPlatformStrategy(logger, noopAuthManager, jvmIdHelper, discoveryClient));
     }
 }

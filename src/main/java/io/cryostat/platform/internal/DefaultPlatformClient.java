@@ -60,6 +60,8 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 public class DefaultPlatformClient extends AbstractPlatformClient
@@ -70,10 +72,12 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
     private final Logger logger;
+    private final JvmIdHelper jvmIdHelper;
     private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformClient(Logger logger, JvmDiscoveryClient discoveryClient) {
+    DefaultPlatformClient(Logger logger, JvmIdHelper jvmIdHelper, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
+        this.jvmIdHelper = jvmIdHelper;
         this.discoveryClient = discoveryClient;
     }
 
@@ -94,7 +98,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public void accept(JvmDiscoveryEvent evt) {
         try {
             notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));
-        } catch (MalformedURLException | URISyntaxException e) {
+        } catch (MalformedURLException | URISyntaxException | JvmIdGetException e) {
             logger.warn(e);
         }
     }
@@ -106,7 +110,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                         desc -> {
                             try {
                                 return convert(desc);
-                            } catch (MalformedURLException | URISyntaxException e) {
+                            } catch (MalformedURLException | URISyntaxException | JvmIdGetException e) {
                                 logger.warn(e);
                                 return null;
                             }
@@ -115,10 +119,10 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                 .collect(Collectors.toList());
     }
 
-    private static ServiceRef convert(DiscoveredJvmDescriptor desc)
-            throws MalformedURLException, URISyntaxException {
+    private ServiceRef convert(DiscoveredJvmDescriptor desc)
+            throws MalformedURLException, URISyntaxException, JvmIdGetException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
-        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
+        ServiceRef serviceRef = new ServiceRef(jvmIdHelper.getJvmId(serviceUrl.toString()), URIUtil.convert(serviceUrl), desc.getMainClass());
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(

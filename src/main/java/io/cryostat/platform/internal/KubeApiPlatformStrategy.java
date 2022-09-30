@@ -45,7 +45,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NoopAuthManager;
-
+import io.cryostat.recordings.JvmIdHelper;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
@@ -58,16 +58,19 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     private final AuthManager authMgr;
     private final FileSystem fs;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final JvmIdHelper jvmIdHelper;
     private KubernetesClient k8sClient;
 
     KubeApiPlatformStrategy(
             Logger logger,
             NoopAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            JvmIdHelper jvmIdHelper,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
+        this.jvmIdHelper = jvmIdHelper;
         this.fs = fs;
         try {
             this.k8sClient = new DefaultKubernetesClient();
@@ -105,7 +108,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, logger);
+        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, jvmIdHelper, logger);
     }
 
     @Override

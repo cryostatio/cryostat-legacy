@@ -191,6 +191,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public UUID register(String realm, URI callback) throws RegistrationException {
         // FIXME this method should return a Future and be performed async
+        Objects.requireNonNull(realm, "realm");
         try {
             CompletableFuture<Boolean> cf = new CompletableFuture<>();
             ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
@@ -212,7 +213,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     Map.of(AnnotationKey.REALM.name(), id.toString())),
                             initial.getChildren());
             PluginInfo updated = dao.update(id, update);
-            logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return updated.getId();
         } catch (Exception e) {
             throw new RegistrationException(realm, callback, e, e.getMessage());
@@ -228,8 +228,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
+        Objects.requireNonNull(children, "children");
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
-        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, Objects.requireNonNull(children));
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
