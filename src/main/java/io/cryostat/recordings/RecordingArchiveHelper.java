@@ -141,8 +141,7 @@ public class RecordingArchiveHelper {
     }
 
     // on startup migration and jvmId transfer method for archived recordings
-    protected void migrate() {
-        try {
+    protected void migrate() throws Exception {
             List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
             for (String subdirectoryName : subdirectories) {
                 try {
@@ -187,10 +186,6 @@ public class RecordingArchiveHelper {
                     logger.error(e);
                 }
             }
-        } catch (Exception e) {
-            logger.warn("Couldn't read archived recordings directory...");
-            logger.error(e);
-        }
     }
 
     protected void transferArchivesIfRestarted(Path subdirectoryPath, String oldJvmId) {
