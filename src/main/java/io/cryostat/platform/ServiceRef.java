@@ -52,12 +52,14 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class ServiceRef {
 
+    private final String jvmId;
     private final @SerializedName("connectUrl") URI serviceUri;
     private final String alias;
     private final Map<String, String> labels;
     private final Annotations annotations;
 
-    public ServiceRef(URI uri, String alias) {
+    public ServiceRef(String jvmId, URI uri, String alias) {
+        this.jvmId = jvmId;
         this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
         this.labels = new HashMap<>();
@@ -65,10 +67,15 @@ public class ServiceRef {
     }
 
     public ServiceRef(ServiceRef sr) {
+        this.jvmId = sr.jvmId;
         this.serviceUri = sr.serviceUri;
         this.alias = sr.alias;
         this.labels = new HashMap<String, String>(sr.labels);
         this.annotations = new Annotations(sr.annotations);
+    }
+
+    public String getJvmId() {
+        return jvmId;
     }
 
     public URI getServiceUri() {
