@@ -62,6 +62,7 @@ import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.URIUtil;
 
 import org.hamcrest.Matcher;
@@ -79,12 +80,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DefaultPlatformClientTest {
 
     @Mock Logger logger;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock JvmDiscoveryClient discoveryClient;
     DefaultPlatformClient client;
 
     @BeforeEach
     void setup() {
-        this.client = new DefaultPlatformClient(logger, discoveryClient);
+        this.client = new DefaultPlatformClient(logger, jvmIdHelper, discoveryClient);
     }
 
     @Test
@@ -121,7 +123,7 @@ class DefaultPlatformClientTest {
         List<ServiceRef> results = client.listDiscoverableServices();
 
         ServiceRef exp1 =
-                new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                new ServiceRef("id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -133,7 +135,7 @@ class DefaultPlatformClientTest {
                         AnnotationKey.PORT,
                         "9091"));
         ServiceRef exp2 =
-                new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                new ServiceRef("id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -171,7 +173,7 @@ class DefaultPlatformClientTest {
         EnvironmentNode realmNode = client.getDiscoveryTree();
 
         ServiceRef exp1 =
-                new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                new ServiceRef("id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -183,7 +185,7 @@ class DefaultPlatformClientTest {
                         AnnotationKey.PORT,
                         "9091"));
         ServiceRef exp2 =
-                new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                new ServiceRef("id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -238,7 +240,7 @@ class DefaultPlatformClientTest {
 
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(url), javaMain);
+        ServiceRef serviceRef = new ServiceRef("id", URIUtil.convert(url), javaMain);
         serviceRef.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,

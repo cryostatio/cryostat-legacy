@@ -55,6 +55,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.recordings.JvmIdHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -80,6 +81,7 @@ class TargetsPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
@@ -88,7 +90,7 @@ class TargetsPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetsPostHandler(
-                        auth, credentialsManager, gson, storage, customTargetPlatformClient);
+                        auth, credentialsManager, gson, storage, jvmIdHelper, customTargetPlatformClient);
     }
 
     @Test

@@ -297,7 +297,7 @@ public class CredentialsIT extends ExternalTargetsTest {
 
         List<ServiceRef> expectedList = new ArrayList<ServiceRef>();
         ServiceRef expectedServiceRef =
-                new ServiceRef(
+                new ServiceRef("id",
                         new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")
                                 .build(),
                         "io.cryostat.Cryostat");

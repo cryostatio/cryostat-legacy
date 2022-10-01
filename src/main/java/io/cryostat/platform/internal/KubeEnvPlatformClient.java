@@ -76,13 +76,13 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
     KubeEnvPlatformClient(
             String namespace,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
             JvmIdHelper jvmIdHelper,
+            Environment env,
             Logger logger) {
         this.namespace = namespace;
         this.connectionToolkit = connectionToolkit;
-        this.env = env;
         this.jvmIdHelper = jvmIdHelper;
+        this.env = env;
         this.logger = logger;
     }
 

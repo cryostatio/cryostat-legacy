@@ -120,7 +120,7 @@ class TargetsGetHandlerTest {
                             }
                         });
         ServiceRef target =
-                new ServiceRef(
+                new ServiceRef("id1",
                         URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)), "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);

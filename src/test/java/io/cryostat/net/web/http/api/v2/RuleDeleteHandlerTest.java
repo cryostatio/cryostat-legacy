@@ -235,7 +235,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.applies(Mockito.any(), Mockito.any())).thenReturn(true);
 
             ServiceRef serviceRef =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
             Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
@@ -307,7 +307,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.applies(Mockito.any(), Mockito.any())).thenReturn(true);
 
             ServiceRef serviceRef =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
             Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));

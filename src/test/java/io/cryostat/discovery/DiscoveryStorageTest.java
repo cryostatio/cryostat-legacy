@@ -427,7 +427,7 @@ class DiscoveryStorageTest {
         @Test
         void updatesDaoAndEmitsFoundAndLostNotifications() throws InterruptedException {
             ServiceRef prevServiceRef =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "prevServiceRef");
             TargetNode prevTarget = new TargetNode(BaseNodeType.JVM, prevServiceRef);
@@ -435,7 +435,7 @@ class DiscoveryStorageTest {
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
 
             ServiceRef nextServiceRef =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "nextServiceRef");
             TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
@@ -490,11 +490,11 @@ class DiscoveryStorageTest {
             UUID id = UUID.randomUUID();
 
             ServiceRef serviceRef1 =
-                    new ServiceRef(
+                    new ServiceRef("id1",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
                             "serviceRef1");
             ServiceRef serviceRef2 =
-                    new ServiceRef(
+                    new ServiceRef("id2",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
                             "serviceRef2");
             TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
@@ -542,13 +542,13 @@ class DiscoveryStorageTest {
             TargetNode leaf1 =
                     new TargetNode(
                             BaseNodeType.JVM,
-                            new ServiceRef(
+                            new ServiceRef("id1",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"),
                                     "leaf1"));
             TargetNode leaf2 =
                     new TargetNode(
                             BaseNodeType.JVM,
-                            new ServiceRef(
+                            new ServiceRef("id2",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
                                     "leaf2"));
             EnvironmentNode realm1 =
@@ -560,13 +560,13 @@ class DiscoveryStorageTest {
             TargetNode leaf3 =
                     new TargetNode(
                             BaseNodeType.JVM,
-                            new ServiceRef(
+                            new ServiceRef("id3",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
                                     "leaf3"));
             TargetNode leaf4 =
                     new TargetNode(
                             BaseNodeType.JVM,
-                            new ServiceRef(
+                            new ServiceRef("id4",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
                                     "leaf4"));
             EnvironmentNode realm2 =
@@ -600,11 +600,11 @@ class DiscoveryStorageTest {
         @Test
         void listsAllTreeLeaves() {
             ServiceRef sr1 =
-                    new ServiceRef(
+                    new ServiceRef("id1",
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"), "sr1");
             TargetNode leaf1 = new TargetNode(BaseNodeType.JVM, sr1);
             ServiceRef sr2 =
-                    new ServiceRef(
+                    new ServiceRef("id2",
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"), "sr2");
             TargetNode leaf2 = new TargetNode(BaseNodeType.JVM, sr2);
             EnvironmentNode realm1 =
@@ -614,11 +614,11 @@ class DiscoveryStorageTest {
             plugin1.setSubtree(gson.toJson(realm1));
 
             ServiceRef sr3 =
-                    new ServiceRef(
+                    new ServiceRef("id3",
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"), "sr3");
             TargetNode leaf3 = new TargetNode(BaseNodeType.JVM, sr3);
             ServiceRef sr4 =
-                    new ServiceRef(
+                    new ServiceRef("id4",
                             URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"), "sr4");
             TargetNode leaf4 = new TargetNode(BaseNodeType.JVM, sr4);
             EnvironmentNode realm2 =

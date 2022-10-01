@@ -413,7 +413,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                                 resolveResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-
+        
         JsonObject resolutionResponse =
                 resolveResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(resolutionResponse.getJsonObject("meta"), Matchers.notNullValue());
@@ -438,8 +438,9 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 matchedCredential.matchExpression, Matchers.equalTo(MATCH_EXPRESSION));
 
         Set<ServiceRef> expectedResolvedTargets = new HashSet<ServiceRef>();
+        // TODO: FIX THIS
         ServiceRef expectedTarget1 =
-                new ServiceRef(
+                new ServiceRef("id1",
                         new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9094/jmxrmi")
                                 .build(),
                         "es.andrewazor.demo.Main");
@@ -455,7 +456,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main"));
         expectedResolvedTargets.add(expectedTarget1);
         ServiceRef expectedTarget2 =
-                new ServiceRef(
+                new ServiceRef("id2",
                         new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9095/jmxrmi")
                                 .build(),
                         "es.andrewazor.demo.Main");

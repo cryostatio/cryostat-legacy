@@ -172,7 +172,7 @@ class RuleProcessorTest {
         Mockito.when(connection.getService()).thenReturn(service);
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
@@ -286,7 +286,7 @@ class RuleProcessorTest {
         Mockito.when(service.getSnapshotRecording()).thenReturn(snapshot);
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
@@ -334,7 +334,7 @@ class RuleProcessorTest {
     @Test
     void testTaskCancellationOnFailure() throws Exception {
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         Mockito.when(credentialsManager.getCredentials(serviceRef)).thenReturn(credentials);
@@ -391,7 +391,7 @@ class RuleProcessorTest {
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(jmxUrl), "com.example.App");
         String matchExpression = "target.alias == 'com.example.App'";
 
         RecordingOptionsBuilder recordingOptionsBuilder =

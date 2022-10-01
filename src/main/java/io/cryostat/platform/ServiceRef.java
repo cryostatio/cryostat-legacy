@@ -59,7 +59,7 @@ public class ServiceRef {
     private final Annotations annotations;
 
     public ServiceRef(String jvmId, URI uri, String alias) {
-        this.jvmId = jvmId;
+        this.jvmId = Objects.requireNonNull(jvmId);
         this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
         this.labels = new HashMap<>();

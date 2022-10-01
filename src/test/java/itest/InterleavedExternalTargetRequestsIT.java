@@ -133,7 +133,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
         Set<ServiceRef> expected = new HashSet<>();
         ServiceRef cryostat =
-                new ServiceRef(
+                new ServiceRef("id",
                         new URI(
                                 String.format(
                                         "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
@@ -152,7 +152,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             ServiceRef ext =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             new URI(
                                     String.format(
                                             "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",

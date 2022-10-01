@@ -176,7 +176,7 @@ class DiscoveryPostHandlerTest {
             Set<AbstractNode> children = new HashSet<>();
             EnvironmentNode pod = new EnvironmentNode("TestEnvironment", KubernetesNodeType.POD);
             ServiceRef serviceRef =
-                    new ServiceRef(
+                    new ServiceRef("id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "selftest");
             TargetNode leaf = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);
