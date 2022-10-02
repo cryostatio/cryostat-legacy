@@ -26,6 +26,12 @@ of JMC are borrowed and re-used to form the basis of Cryostat. JMC is still
 a recommended tool for more full-featured analysis of JFR files beyond what
 Cryostat currently implements.
 
+## CONTRIBUTING
+
+We welcome and appreciate any contributions from our community. Please visit our guide on how you can take part in improving Cryostat.
+
+[See contribution guide →](./CONTRIBUTING.md)
+
 ## REQUIREMENTS
 Build Requirements:
 - Git
