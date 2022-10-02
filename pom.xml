@@ -96,6 +96,7 @@
   <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.22.7</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.15.3</org.jsoup.version>
+  <shellcheck-maven-plugin.version>0.4.1</shellcheck-maven-plugin.version>
 </properties>
 
 <dependencies>
@@ -830,6 +831,34 @@
             <toLowerCase>true</toLowerCase>
             <failIfNoMatch>false</failIfNoMatch>
           </configuration>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
+      <groupId>dev.dimlight</groupId>
+      <artifactId>shellcheck-maven-plugin</artifactId>
+      <version>${shellcheck-maven-plugin.version}</version>
+      <configuration>
+        <sourceDirs>
+          <sourceDir>
+            <directory>${project.basedir}</directory>
+            <includes>
+                <include>**/*.sh</include>
+            </includes>
+            <excludes>
+                <exclude>web-client/**</exclude>
+            </excludes>
+          </sourceDir>
+        </sourceDirs>
+        <failBuildIfWarnings>true</failBuildIfWarnings>
+      </configuration>
+      <executions>
+        <execution>
+          <id>shellcheck</id>
+          <phase>verify</phase>
+          <goals>
+              <goal>check</goal>
+          </goals>
         </execution>
       </executions>
     </plugin>
