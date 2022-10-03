@@ -552,7 +552,7 @@ public class RecordingArchiveHelper {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Optional<Path> optional =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
-            validateRecordingPath(optional, recordingName);
+            validateRecordingPath(optional, recordingName, true);
             future.complete(optional.get());
         } catch (RecordingNotFoundException | IOException | ArchivePathException e) {
             future.completeExceptionally(e);
@@ -561,7 +561,7 @@ public class RecordingArchiveHelper {
     }
 
     public Future<Path> getRecordingPath(String sourceTarget, String recordingName) {
-        if (sourceTarget == null) {
+        if (sourceTarget == null || sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return getRecordingPath(recordingName);
         }
         CompletableFuture<Path> future = new CompletableFuture<>();
@@ -579,7 +579,7 @@ public class RecordingArchiveHelper {
             if (archivedRecording == null) {
                 throw new RecordingNotFoundException(sourceTarget, recordingName);
             }
-            validateRecordingPath(Optional.of(archivedRecording), recordingName);
+            validateRecordingPath(Optional.of(archivedRecording), recordingName, false);
             future.complete(archivedRecording);
         } catch (RecordingNotFoundException | ArchivePathException | IOException e) {
             future.completeExceptionally(e);
@@ -618,6 +618,9 @@ public class RecordingArchiveHelper {
 
     public void validateSourceTarget(String sourceTarget)
             throws RecordingSourceTargetNotFoundException {
+        if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+            return;
+        }
         // assume sourceTarget is percent encoded
         String decodedTargetId = URLDecoder.decode(sourceTarget, StandardCharsets.UTF_8);
         boolean exists =
@@ -630,7 +633,7 @@ public class RecordingArchiveHelper {
         }
     }
 
-    private void validateRecordingPath(Optional<Path> optional, String recordingName)
+    private void validateRecordingPath(Optional<Path> optional, String recordingName, boolean isUploads)
             throws RecordingNotFoundException, ArchivePathException {
         if (optional.isEmpty()) {
             throw new RecordingNotFoundException(ARCHIVES, recordingName);
@@ -645,7 +648,7 @@ public class RecordingArchiveHelper {
         if (!fs.isReadable(archivedRecording)) {
             throw new ArchivePathException(archivedRecording.toString(), "is not readable");
         }
-        if (!fs.exists(archivedRecording.resolveSibling(CONNECT_URL))) {
+        if (!isUploads && !fs.exists(archivedRecording.resolveSibling(CONNECT_URL))) {
             throw new ArchivePathException(
                     archivedRecording.resolveSibling(CONNECT_URL).toString(), "does not exist");
         }
