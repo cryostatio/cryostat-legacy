@@ -69,7 +69,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
 
 @Module
@@ -122,8 +121,7 @@ public abstract class RulesModule {
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         return new RuleProcessor(
                 vertx,
                 storage,
@@ -135,8 +133,7 @@ public abstract class RulesModule {
                 recordingTargetHelper,
                 metadataManager,
                 periodicArchiverFactory,
-                logger,
-                base32);
+                logger);
     }
 
     @Provides
