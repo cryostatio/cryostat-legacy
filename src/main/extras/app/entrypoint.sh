@@ -55,7 +55,7 @@ importTrustStores() {
         return 0
     fi
 
-    for cert in $(find "$SSL_TRUSTSTORE_DIR" -type f); do
+    find "./truststore" -type f | while IFS= read -r cert; do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
@@ -106,46 +106,41 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
     CRYOSTAT_RMI_PORT=9091
 fi
 
-FLAGS=(
-    "-XX:+CrashOnOutOfMemoryError"
-    "-Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT"
-    "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
-    "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
-    "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
-)
+FLAGS="-XX:+CrashOnOutOfMemoryError -Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT -Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT -Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE -Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
+
 
 if [ -z "$CRYOSTAT_ENABLE_JDP_BROADCAST" ]; then
-    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=true")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.autodiscovery=true"
 else
-    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST"
 fi
 
 if [ -n "$CRYOSTAT_JDP_ADDRESS" ]; then
-    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS"
 fi
 
 if [ -n "$CRYOSTAT_JDP_PORT" ]; then
-    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT"
 fi
 
 importTrustStores
 
 if [ "$CRYOSTAT_DISABLE_JMX_AUTH" = "true" ]; then
     banner "JMX Auth Disabled"
-    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.authenticate=false"
 else
     createJmxCredentials
-    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
-    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.authenticate=true"
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.password.file=$PWFILE"
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.access.file=$USRFILE"
 fi
 
 if [ "$CRYOSTAT_DISABLE_SSL" = "true" ]; then
     banner "SSL Disabled"
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
-    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl=false"
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.registry.ssl=false"
 else
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl.need.client.auth=true"
 
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
         generateSslCert
@@ -155,18 +150,18 @@ else
         KEYSTORE_PASS="$SSL_KEY_PASS"
     fi
 
-    FLAGS+=("-Djavax.net.ssl.keyStore=$KEYSTORE_PATH")
-    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
+    FLAGS="${FLAGS} -Djavax.net.ssl.keyStore=$KEYSTORE_PATH"
+    FLAGS="${FLAGS} -Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS"
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl=true"
+    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.registry.ssl=true"
 fi
 
 if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
-    FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
+    FLAGS="${FLAGS} -Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG"
 fi
 
 CLASSPATH="$( cat /app/jib-classpath-file )"
-if [ -n "CRYOSTAT_CLIENTLIB_PATH" ]; then
+if [ -n "$CRYOSTAT_CLIENTLIB_PATH" ]; then
     CLASSPATH="$CLASSPATH:$CRYOSTAT_CLIENTLIB_PATH/*"
 fi
 
@@ -176,7 +171,7 @@ export SSL_TRUSTSTORE_DIR
 
 set -x
 exec java \
-    "${FLAGS[@]}" \
+    "${FLAGS}" \
     -cp "$CLASSPATH" \
     @/app/jib-main-class-file \
     "$@"
