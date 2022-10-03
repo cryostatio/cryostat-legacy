@@ -851,6 +851,15 @@
           </sourceDir>
         </sourceDirs>
         <failBuildIfWarnings>true</failBuildIfWarnings>
+        <binaryResolutionMethod>download</binaryResolutionMethod>
+        <releaseArchiveUrls>
+          <Linux-amd64>
+              https://github.com/koalaman/shellcheck/releases/download/v0.8.0/shellcheck-v0.8.0.linux.x86_64.tar.xz
+          </Linux-amd64>
+          <Mac_OS_X-x86_64>
+              https://github.com/koalaman/shellcheck/releases/download/v0.8.0/shellcheck-v0.8.0.darwin.x86_64.tar.xz
+          </Mac_OS_X-x86_64>
+        </releaseArchiveUrls>
       </configuration>
       <executions>
         <execution>

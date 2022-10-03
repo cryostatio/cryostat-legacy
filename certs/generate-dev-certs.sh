@@ -2,7 +2,7 @@
 
 set -x
 
-CERTS_DIR=$(realpath $(dirname $0))
+CERTS_DIR=$(realpath "$(dirname "$0")")
 
 SSL_KEYSTORE=cryostat-keystore.p12
 
@@ -10,10 +10,10 @@ SSL_TRUSTSTORE=cryostat-truststore.p12
 
 SSL_KEYSTORE_PASS_FILE=keystore.pass
 
-function cleanup() {
-    pushd "$CERTS_DIR"
+cleanup() {
+    cd "$CERTS_DIR"
     rm $SSL_TRUSTSTORE $SSL_KEYSTORE $SSL_KEYSTORE_PASS_FILE
-    popd
+    cd -
 }
 
 case "$1" in
@@ -31,16 +31,16 @@ esac
 
 set -e
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+genpass() {
+    printf '%s' "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
 }
 
 SSL_TRUSTSTORE_PASS=$(genpass)
 
 SSL_KEYSTORE_PASS=$(genpass)
 
-pushd $CERTS_DIR
-trap popd EXIT
+cd "$CERTS_DIR"
+trap "cd -" EXIT
 
 echo "$SSL_KEYSTORE_PASS" > $SSL_KEYSTORE_PASS_FILE
 

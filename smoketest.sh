@@ -1,13 +1,15 @@
 #!/bin/sh
+# shellcheck disable=SC3043
 
 set -x
 set -e
 
-function runCryostat() {
-    local DIR="$(dirname "$(readlink -f "$0")")"
-    local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
-    local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
-    local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+runCryostat() {
+    local DIR; local host; local datasourcePort; local grafanaPort;
+    DIR="$(dirname "$(readlink -f "$0")")"
+    host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
+    datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+    grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
 
@@ -44,12 +46,13 @@ function runCryostat() {
         exec "$DIR/run.sh"
 }
 
-function runPostgres() {
-    if [ ! -d "$(dirname $0)/conf/postgres" ]; then
-        mkdir "$(dirname $0)/conf/postgres"
+runPostgres() {
+    if [ ! -d "$(dirname "$0")/conf/postgres" ]; then
+        mkdir "$(dirname "$0")/conf/postgres"
     fi
-    local image="$(xpath -q -e 'project/properties/postgres.image/text()' pom.xml)"
-    local version="$(xpath -q -e 'project/properties/postgres.version/text()' pom.xml)"
+    local image; local version;
+    image="$(xpath -q -e 'project/properties/postgres.image/text()' pom.xml)"
+    version="$(xpath -q -e 'project/properties/postgres.version/text()' pom.xml)"
     podman run \
         --name postgres \
         --pod cryostat-pod \
@@ -57,13 +60,13 @@ function runPostgres() {
         --env POSTGRES_PASSWORD=abcd1234 \
         --env POSTGRES_DB=cryostat \
         --env PGPASSWORD=abcd1234 \
-        --mount type=bind,source="$(dirname $0)/conf/postgres",destination=/var/lib/postgresql/data/pgdata,relabel=shared \
-        --mount type=bind,source="$(dirname $0)/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
+        --mount type=bind,source="$(dirname "$0")/conf/postgres",destination=/var/lib/postgresql/data/pgdata,relabel=shared \
+        --mount type=bind,source="$(dirname "$0")/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
         --env PGDATA=/var/lib/postgresql/data/pgdata \
         --rm -d "${image}:${version}"
 }
 
-function runDemoApps() {
+runDemoApps() {
     podman run \
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
@@ -92,11 +95,12 @@ function runDemoApps() {
         --name quarkus-test \
         --pod cryostat-pod \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
-
+        
+    local webPort; 
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-        local webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
+        webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
     else
-        local webPort="${CRYOSTAT_WEB_PORT}"
+        webPort="${CRYOSTAT_WEB_PORT}"
     fi
     if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
         local protocol="https"
@@ -108,7 +112,7 @@ function runDemoApps() {
         --pod cryostat-pod \
         --restart unless-stopped \
         --env QUARKUS_HTTP_PORT=10010 \
-        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(printf user:pass | base64)" \
         --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
@@ -121,7 +125,7 @@ function runDemoApps() {
         --restart unless-stopped \
         --env QUARKUS_HTTP_PORT=10011 \
         --env JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9197 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false" \
-        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(echo -n user:pass | base64)" \
+        --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(printf user:pass | base64)" \
         --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
@@ -136,9 +140,10 @@ function runDemoApps() {
         --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
 }
 
-function runJfrDatasource() {
-    local stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
-    local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
+runJfrDatasource() {
+    local stream; local tag;
+    stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
+    tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name jfr-datasource \
         --pull always \
@@ -146,11 +151,12 @@ function runJfrDatasource() {
         --rm -d "${stream}:${tag}"
 }
 
-function runGrafana() {
-    local stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
-    local tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
-    local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
-    local port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+runGrafana() {
+    local stream; local tag; local host; local port; 
+    stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
+    tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
+    host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
+    port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     podman run \
         --name grafana \
         --pull always \
@@ -161,7 +167,7 @@ function runGrafana() {
         --rm -d "${stream}:${tag}"
 }
 
-function runReportGenerator() {
+runReportGenerator() {
     local RJMX_PORT=10000
     podman run \
         --name reports \
@@ -175,11 +181,12 @@ function runReportGenerator() {
         --rm -d quay.io/cryostat/cryostat-reports:latest
 }
 
-function createPod() {
-    local jmxPort="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
-    local webPort="$(xpath -q -e 'project/properties/cryostat.webPort/text()' pom.xml)"
-    local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
-    local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+createPod() {
+    local jmxPort; local webPort; local datasourcePort; local grafanaPort;
+    jmxPort="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
+    webPort="$(xpath -q -e 'project/properties/cryostat.webPort/text()' pom.xml)"
+    datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+    grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
     podman pod create \
         --replace \
         --hostname cryostat \
@@ -223,7 +230,7 @@ function createPod() {
     # 10011: quarkus-test-plugin-2 HTTP
 }
 
-function destroyPod() {
+destroyPod() {
     podman pod stop cryostat-pod
     podman pod rm cryostat-pod
 }
