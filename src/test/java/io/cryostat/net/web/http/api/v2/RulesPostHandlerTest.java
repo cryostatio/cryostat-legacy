@@ -312,6 +312,7 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");
             form.set(Rule.Attribute.MAX_AGE_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.MAX_SIZE_BYTES.getSerialKey(), "8192");
+            form.set(Rule.Attribute.ENABLED.getSerialKey(), "true");
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
@@ -335,6 +336,7 @@ class RulesPostHandlerTest {
                                     .preservedArchives(5)
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
+                                    .enabled(true)
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
@@ -364,7 +366,9 @@ class RulesPostHandlerTest {
                                     "maxAgeSeconds",
                                     60,
                                     "maxSizeBytes",
-                                    8192));
+                                    8192,
+                                    "enabled",
+                                    true));
             Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
@@ -390,6 +394,7 @@ class RulesPostHandlerTest {
                                     .preservedArchives(5)
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
+                                    .enabled(true)
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();

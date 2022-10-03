@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import static org.mockito.Mockito.never;
+
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -491,5 +493,59 @@ class RuleProcessorTest {
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
         MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+    }
+
+    @Test
+    void testSuccessfulRuleNonActivationWithCredentials() throws Exception {
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+
+        TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression("target.alias == 'com.example.App'")
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(5)
+                        .archivalPeriodSeconds(67)
+                        .enabled(false)
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        processor.accept(tde);
+
+        Mockito.verify(recordingOptionsBuilder, never()).name("auto_Test_Rule");
+
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
+
+        ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
+                ArgumentCaptor.forClass(IConstrainedMap.class);
+
+        ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<TemplateType> templateTypeCaptor =
+                ArgumentCaptor.forClass(TemplateType.class);
+
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
+        Mockito.verify(recordingTargetHelper, never())
+                .startRecording(
+                        restartCaptor.capture(),
+                        connectionDescriptorCaptor.capture(),
+                        recordingOptionsCaptor.capture(),
+                        templateNameCaptor.capture(),
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture());
     }
 }

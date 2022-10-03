@@ -181,7 +181,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 "maxAgeSeconds",
                                 60,
                                 "maxSizeBytes",
-                                -1));
+                                -1,
+                                "enabled",
+                                true));
         JsonObject expectedRules =
                 new JsonObject(
                         Map.of(
@@ -262,6 +264,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     @Test
     @Order(4)
     void testNewContainerHasRuleApplied() throws Exception {
+
         CONTAINERS.add(
                 Podman.run(
                         new Podman.ImageSpec(
@@ -530,6 +533,229 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(7)
+    void testAddRuleDisabledAndPatchEnable() throws Exception {
+
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("name", "Disabled_Rule");
+        form.add("matchExpression", "target.annotations.cryostat.PORT == 9096");
+        form.add("description", "AutoRulesIT automated rule disabled");
+        form.add("eventSpecifier", "template=Continuous,type=TARGET");
+        form.add("enabled", "false");
+        final String recordingName = "auto_Disabled_Rule";
+        String jmxServiceUrl2 =
+                String.format("service:jmx:rmi:///jndi/rmi://%s:9096/jmxrmi", Podman.POD_NAME);
+        String jmxServiceUrlEncoded2 = jmxServiceUrl2.replaceAll("/", "%2F");
+
+        try {
+
+            webClient
+                    .post("/api/v2/rules")
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, postResponse)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(201));
+                                    postResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            JsonObject expectedPostResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                            Map.of(
+                                                    "type",
+                                                    HttpMimeType.JSON.mime(),
+                                                    "status",
+                                                    "Created"),
+                                    "data", Map.of("result", "Disabled_Rule")));
+            MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+
+            CONTAINERS.add(
+                    Podman.run(
+                            new Podman.ImageSpec(
+                                    FIB_DEMO_IMAGESPEC,
+                                    Map.of("JMX_PORT", "9096", "USE_AUTH", "true"))));
+            CompletableFuture.allOf(
+                            CONTAINERS.stream()
+                                    .map(id -> Podman.waitForContainerState(id, "running"))
+                                    .collect(Collectors.toList())
+                                    .toArray(new CompletableFuture[0]))
+                    .join();
+            Thread.sleep(10_000L); // wait for JDP to discover new container(s)
+
+            CompletableFuture<JsonObject> response = new CompletableFuture<>();
+            MultiMap credForm = MultiMap.caseInsensitiveMultiMap();
+            credForm.add("username", "admin");
+            credForm.add("password", "adminpass123");
+            webClient
+                    .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded2))
+                    .putHeader(
+                            HttpHeaders.CONTENT_TYPE.toString(),
+                            HttpMimeType.URLENCODED_FORM.mime())
+                    .sendForm(
+                            credForm,
+                            ar -> {
+                                if (assertRequestStatus(ar, response)) {
+                                    response.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+            JsonObject expectedResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                    Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                    "data",
+                                    NULL_RESULT));
+            MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+
+            CompletableFuture<JsonArray> getResp = new CompletableFuture<>();
+
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9096"))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, getResp)) {
+                                    getResp.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+
+            MatcherAssert.assertThat(getResp.get().size(), Matchers.is(0));
+
+            JsonObject enableObject = new JsonObject();
+            enableObject.put("enabled", true);
+
+            CompletableFuture<JsonObject> patchResp = new CompletableFuture<>();
+
+            webClient
+                    .patch("/api/v2/rules/Disabled_Rule")
+                    .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                    .sendJson(
+                            enableObject,
+                            ar -> {
+                                if (assertRequestStatus(ar, patchResp)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(204));
+                                    patchResp.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            patchResp.get();
+
+            Thread.sleep(3_000);
+
+            CompletableFuture<JsonArray> getResp2 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9096"))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, getResp2)) {
+                                    getResp2.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+
+            JsonObject recording2 = getResp2.get().getJsonObject(0);
+            MatcherAssert.assertThat(recording2.getInteger("id"), Matchers.equalTo(1));
+            MatcherAssert.assertThat(recording2.getString("name"), Matchers.equalTo(recordingName));
+            MatcherAssert.assertThat(recording2.getString("state"), Matchers.equalTo("RUNNING"));
+            MatcherAssert.assertThat(recording2.getInteger("duration"), Matchers.equalTo(0));
+            MatcherAssert.assertThat(recording2.getInteger("maxAge"), Matchers.equalTo(0));
+            MatcherAssert.assertThat(recording2.getInteger("maxSize"), Matchers.equalTo(0));
+            MatcherAssert.assertThat(recording2.getBoolean("continuous"), Matchers.equalTo(true));
+            MatcherAssert.assertThat(recording2.getBoolean("toDisk"), Matchers.equalTo(true));
+            MatcherAssert.assertThat(
+                    recording2.getString("downloadUrl"),
+                    Matchers.equalTo(
+                            "http://"
+                                    + Utils.WEB_HOST
+                                    + ":"
+                                    + Utils.WEB_PORT
+                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9096%2Fjmxrmi/recordings/auto_Disabled_Rule"));
+            MatcherAssert.assertThat(
+                    recording2.getString("reportUrl"),
+                    Matchers.equalTo(
+                            "http://"
+                                    + Utils.WEB_HOST
+                                    + ":"
+                                    + Utils.WEB_PORT
+                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9096%2Fjmxrmi/reports/auto_Disabled_Rule"));
+
+        } finally {
+
+            // Delete the rule
+            CompletableFuture<JsonObject> response = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("/api/v2/rules/%s", "Disabled_Rule"))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, response)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    response.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            // Delete active recordings generated by the above rule
+            CompletableFuture<JsonObject> deleteRecResponse = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    Podman.POD_NAME + ":9096", recordingName))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRecResponse)) {
+                                    deleteRecResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            try {
+                deleteRecResponse.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", recordingName), e);
+            }
+
+            CompletableFuture<JsonObject> credResponse = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded2))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, credResponse)) {
+                                    credResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+            JsonObject expectedResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                    Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                    "data",
+                                    NULL_RESULT));
+            MatcherAssert.assertThat(credResponse.get(), Matchers.equalTo(expectedResponse));
+        }
+    }
+
+    @Test
+    @Order(8)
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -551,7 +777,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void testGetNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -569,7 +795,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     void testDeleteNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
