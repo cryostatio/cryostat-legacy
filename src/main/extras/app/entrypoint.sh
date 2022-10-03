@@ -11,7 +11,7 @@ banner() {
 }
 
 genpass() {
-    printf '%s' "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+    < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32
 }
 
 USRFILE="/tmp/jmxremote.access"
@@ -34,12 +34,13 @@ if [ -z "$CONF_DIR" ]; then
     # this should be set by Containerfile, but set a default if not
     CONF_DIR="/opt/cryostat.d"
 fi
-export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
-export SSL_STORE_PASS="$SSL_KEY_PASS"
+
 SSL_KEY_PASS="$(genpass)"
 export SSL_KEY_PASS
 SSL_TRUSTSTORE_PASS="$(cat "$SSL_TRUSTSTORE_PASS_FILE")"
 export SSL_TRUSTSTORE_PASS
+export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
+export SSL_STORE_PASS="$SSL_KEY_PASS"
 
 if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
     SSL_TRUSTSTORE_DIR="/truststore"
@@ -106,41 +107,46 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
     CRYOSTAT_RMI_PORT=9091
 fi
 
-FLAGS="-XX:+CrashOnOutOfMemoryError -Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT -Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT -Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE -Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
-
+FLAGS=(
+    "-XX:+CrashOnOutOfMemoryError"
+    "-Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT"
+    "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
+    "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
+    "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
+)
 
 if [ -z "$CRYOSTAT_ENABLE_JDP_BROADCAST" ]; then
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.autodiscovery=true"
+    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=true")
 else
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST"
+    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST")
 fi
 
 if [ -n "$CRYOSTAT_JDP_ADDRESS" ]; then
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS"
+    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS")
 fi
 
 if [ -n "$CRYOSTAT_JDP_PORT" ]; then
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT"
+    FLAGS+=("-Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT")
 fi
 
 importTrustStores
 
 if [ "$CRYOSTAT_DISABLE_JMX_AUTH" = "true" ]; then
     banner "JMX Auth Disabled"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.authenticate=false"
+    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
 else
     createJmxCredentials
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.authenticate=true"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.password.file=$PWFILE"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.access.file=$USRFILE"
+    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
+    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
 fi
 
 if [ "$CRYOSTAT_DISABLE_SSL" = "true" ]; then
     banner "SSL Disabled"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl=false"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.registry.ssl=false"
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
+    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
 else
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl.need.client.auth=true"
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
 
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
         generateSslCert
@@ -150,14 +156,14 @@ else
         KEYSTORE_PASS="$SSL_KEY_PASS"
     fi
 
-    FLAGS="${FLAGS} -Djavax.net.ssl.keyStore=$KEYSTORE_PATH"
-    FLAGS="${FLAGS} -Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.ssl=true"
-    FLAGS="${FLAGS} -Dcom.sun.management.jmxremote.registry.ssl=true"
+    FLAGS+=("-Djavax.net.ssl.keyStore=$KEYSTORE_PATH")
+    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS")
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
 if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
-    FLAGS="${FLAGS} -Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG"
+    FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
 fi
 
 CLASSPATH="$( cat /app/jib-classpath-file )"
@@ -171,7 +177,7 @@ export SSL_TRUSTSTORE_DIR
 
 set -x
 exec java \
-    "${FLAGS}" \
+    "${FLAGS[@]}" \
     -cp "$CLASSPATH" \
     @/app/jib-main-class-file \
     "$@"
