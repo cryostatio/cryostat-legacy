@@ -32,7 +32,7 @@ esac
 set -e
 
 genpass() {
-    printf '%s' "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+    < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32
 }
 
 SSL_TRUSTSTORE_PASS=$(genpass)
