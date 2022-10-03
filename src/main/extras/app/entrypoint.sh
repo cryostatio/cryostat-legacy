@@ -2,21 +2,21 @@
 
 set -e
 
-function banner() {
+banner() {
     echo   "+------------------------------------------+"
-    printf "| %-40s |\n" "`date`"
+    printf "| %-40s |\n" "$(date)"
     echo   "|                                          |"
     printf "| %-40s |\n" "$@"
     echo   "+------------------------------------------+"
 }
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+genpass() {
+    printf '%s' "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
 }
 
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
-function createJmxCredentials() {
+createJmxCredentials() {
     if [ -z "$CRYOSTAT_RJMX_USER" ]; then
         CRYOSTAT_RJMX_USER="cryostat"
     fi
@@ -24,9 +24,9 @@ function createJmxCredentials() {
         CRYOSTAT_RJMX_PASS="$(genpass)"
     fi
 
-    echo -n "$CRYOSTAT_RJMX_USER $CRYOSTAT_RJMX_PASS" > "$PWFILE"
+    printf '%s %s' "$CRYOSTAT_RJMX_USER" "$CRYOSTAT_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
-    echo -n "$CRYOSTAT_RJMX_USER readwrite" > "$USRFILE"
+    printf '%s readwrite' "$CRYOSTAT_RJMX_USER" > "$USRFILE"
     chmod 400 "$USRFILE"
 }
 
@@ -35,16 +35,18 @@ if [ -z "$CONF_DIR" ]; then
     CONF_DIR="/opt/cryostat.d"
 fi
 export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
-export SSL_KEY_PASS="$(genpass)"
 export SSL_STORE_PASS="$SSL_KEY_PASS"
-export SSL_TRUSTSTORE_PASS="$(cat $SSL_TRUSTSTORE_PASS_FILE)"
+SSL_KEY_PASS="$(genpass)"
+export SSL_KEY_PASS
+SSL_TRUSTSTORE_PASS="$(cat "$SSL_TRUSTSTORE_PASS_FILE")"
+export SSL_TRUSTSTORE_PASS
 
 if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
     SSL_TRUSTSTORE_DIR="/truststore"
 fi
 export SSL_TRUSTSTORE_DIR
 
-function importTrustStores() {
+importTrustStores() {
     if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
         banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
@@ -58,7 +60,7 @@ function importTrustStores() {
 
         keytool -importcert -v \
             -noprompt \
-            -alias "imported-$(basename $cert)" \
+            -alias "imported-$(basename "$cert")" \
             -trustcacerts \
             -keystore "$SSL_TRUSTSTORE" \
             -file "$cert"\
@@ -66,8 +68,8 @@ function importTrustStores() {
     done
 }
 
-function generateSslCert() {
-    pushd /tmp
+generateSslCert() {
+    cd /tmp
 
     keytool -genkeypair -v \
         -alias cryostat \
@@ -93,7 +95,7 @@ function generateSslCert() {
         -file server.cer \
         -storepass "$SSL_TRUSTSTORE_PASS"
 
-    popd
+    cd -
 }
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then

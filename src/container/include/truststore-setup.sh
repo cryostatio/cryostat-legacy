@@ -2,16 +2,16 @@
 
 set -e
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+genpass() {
+    printf '%s' "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
 }
 
 SSL_TRUSTSTORE_PASS="$(genpass)"
 
 echo "$SSL_TRUSTSTORE_PASS" > "$SSL_TRUSTSTORE_PASS_FILE"
 
-trap popd EXIT
-pushd $CONF_DIR
+trap "cd -" EXIT
+cd "$CONF_DIR"
 
 keytool -importkeystore \
     -noprompt \
