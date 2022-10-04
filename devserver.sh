@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC3043,SC3030
+# shellcheck disable=SC3043,SC3030,SC3054
 
 work_dir="$(mktemp -d)"
 
@@ -103,7 +103,7 @@ runReportGenerator
 runJfrDatasource
 runGrafana
 
-MAVEN_OPTS="${flags[@]}" \
+MAVEN_OPTS="${flags[*]}" \
     CRYOSTAT_PLATFORM=io.cryostat.platform.internal.DefaultPlatformStrategy \
     CRYOSTAT_DISABLE_SSL=true \
     CRYOSTAT_DISABLE_JMX_AUTH=true \
