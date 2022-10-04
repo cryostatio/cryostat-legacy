@@ -633,7 +633,8 @@ public class RecordingArchiveHelper {
         }
     }
 
-    private void validateRecordingPath(Optional<Path> optional, String recordingName, boolean isUploads)
+    private void validateRecordingPath(
+            Optional<Path> optional, String recordingName, boolean isUploads)
             throws RecordingNotFoundException, ArchivePathException {
         if (optional.isEmpty()) {
             throw new RecordingNotFoundException(ARCHIVES, recordingName);
