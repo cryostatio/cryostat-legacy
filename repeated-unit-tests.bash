@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2188
 
 set -o pipefail
 
@@ -37,6 +38,7 @@ runcount=0
 while [ "${runcount}" -lt ${runs} ]; do
     logfile="$DIR/target/cryostat-unittests-$(date -Iminutes).log"
     mkdir -p "$(dirname logfile)"
+    >"${logfile}"
     if ! "${MVN}" "${FLAGS[@]}" |& tee >($PIPECLEANER > "${logfile}"); then
         failures=$((failures+1))
     fi
