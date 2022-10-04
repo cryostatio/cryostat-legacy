@@ -84,6 +84,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Logger logger;
     private long timerId = -1L;
 
+    public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
+
     DiscoveryStorage(
             VerticleDeployer deployer,
             Duration pingPeriod,
@@ -108,7 +110,15 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         cf ->
                                 deployer.deploy(builtin.get(), true)
                                         .onSuccess(ar -> future.complete())
-                                        .onFailure(t -> future.fail((Throwable) t)))
+                                        .onFailure(t -> future.fail((Throwable) t))
+                                        .eventually(
+                                                m ->
+                                                        getVertx()
+                                                                .eventBus()
+                                                                .send(
+                                                                        DISCOVERY_STARTUP_ADDRESS,
+                                                                        "Discovery storage"
+                                                                                + " deployed")))
                 .onFailure(future::fail);
 
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());

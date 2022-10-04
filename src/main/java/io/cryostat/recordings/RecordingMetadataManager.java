@@ -68,6 +68,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -84,6 +85,7 @@ import com.google.gson.reflect.TypeToken;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -167,7 +169,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                         this.fs.listDirectoryChildren(subdirectory).stream()
                                                 .peek(
                                                         n ->
-                                                                logger.info(
+                                                                logger.trace(
                                                                         "Recording"
                                                                                 + " Metadata"
                                                                                 + " file:"
@@ -367,16 +369,27 @@ public class RecordingMetadataManager extends AbstractVerticle
                     e.getMessage());
             future.fail(e.getCause());
         }
-        vertx.executeBlocking(
-                promise -> {
-                    try {
-                        archiveHelper.migrate();
-                        logger.info("Successfully migrated archives");
-                        pruneStaleMetadata(staleMetadata);
-                        logger.info("Successfully pruned all stale metadata");
-                    } finally {
-                        promise.complete();
-                    }
+        EventBus eb = vertx.eventBus();
+        eb.consumer(
+                DiscoveryStorage.DISCOVERY_STARTUP_ADDRESS,
+                message -> {
+                    logger.trace(
+                            "Event bus [{}]: {}",
+                            DiscoveryStorage.DISCOVERY_STARTUP_ADDRESS,
+                            message.body());
+                    vertx.executeBlocking(
+                            promise -> {
+                                try {
+                                    archiveHelper.migrate();
+                                    logger.info("Successfully migrated archives");
+                                    pruneStaleMetadata(staleMetadata);
+                                    logger.info("Successfully pruned all stale metadata");
+                                    promise.complete();
+                                } catch (Exception e) {
+                                    logger.warn("Couldn't read archived recordings directory...");
+                                    promise.fail(e);
+                                }
+                            });
                 });
     }
 
@@ -752,7 +765,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 }
                             } else {
                                 e.printStackTrace();
-                                logger.info("why else");
                                 throw e;
                             }
                         }
