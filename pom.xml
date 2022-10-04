@@ -844,6 +844,7 @@
             <directory>${project.basedir}</directory>
             <includes>
                 <include>**/*.sh</include>
+                <include>**/*.bash</include>
             </includes>
             <excludes>
                 <exclude>web-client/**</exclude>

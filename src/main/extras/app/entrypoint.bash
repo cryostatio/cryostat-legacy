@@ -1,9 +1,8 @@
-#!/bin/sh
-# shellcheck disable=SC3024,SC3030,SC3035,SC3054
+#!/bin/bash
 
 set -e
 
-banner() {
+function banner() {
     echo   "+------------------------------------------+"
     printf "| %-40s |\n" "$(date)"
     echo   "|                                          |"
@@ -11,13 +10,13 @@ banner() {
     echo   "+------------------------------------------+"
 }
 
-genpass() {
+function genpass() {
     < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32
 }
 
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
-createJmxCredentials() {
+function createJmxCredentials() {
     if [ -z "$CRYOSTAT_RJMX_USER" ]; then
         CRYOSTAT_RJMX_USER="cryostat"
     fi
@@ -25,9 +24,9 @@ createJmxCredentials() {
         CRYOSTAT_RJMX_PASS="$(genpass)"
     fi
 
-    printf '%s %s' "$CRYOSTAT_RJMX_USER" "$CRYOSTAT_RJMX_PASS" > "$PWFILE"
+    echo -n "$CRYOSTAT_RJMX_USER $CRYOSTAT_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
-    printf '%s readwrite' "$CRYOSTAT_RJMX_USER" > "$USRFILE"
+    echo -n "$CRYOSTAT_RJMX_USER readwrite" > "$USRFILE"
     chmod 400 "$USRFILE"
 }
 
@@ -48,7 +47,7 @@ if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
 fi
 export SSL_TRUSTSTORE_DIR
 
-importTrustStores() {
+function importTrustStores() {
     if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
         banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
@@ -70,8 +69,8 @@ importTrustStores() {
     done
 }
 
-generateSslCert() {
-    cd /tmp
+function generateSslCert() {
+    pushd /tmp
 
     keytool -genkeypair -v \
         -alias cryostat \
@@ -97,7 +96,7 @@ generateSslCert() {
         -file server.cer \
         -storepass "$SSL_TRUSTSTORE_PASS"
 
-    cd -
+    popd
 }
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then

@@ -39,7 +39,7 @@ STARTFLAGS=(
     "-DfailIfNoTests=true"
 )
 
-if [ ! -z $2 ]; then
+if [ -n "$2" ]; then
     STARTFLAGS+=("-Dit.test=$2")
 fi
 
@@ -50,9 +50,9 @@ STOPFLAGS=(
 if command -v ansi2txt >/dev/null; then
     STARTFLAGS+=("-Dstyle.color=always")
     STOPFLAGS+=("-Dstyle.color=always")
-    PIPECLEANER=ansi2txt
+    PIPECLEANER="ansi2txt"
 else
-    PIPECLEANER=cat
+    PIPECLEANER="cat"
 fi
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -64,12 +64,9 @@ while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
     server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
-    mkdir -p "$(dirname $client_logfile)"
-    mkdir -p "$(dirname $server_logfile)"
-    >"${client_logfile}"
-    >"${server_logfile}"
-    "${MVN}" "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
-    if [ "$?" -ne 0 ]; then
+    mkdir -p "$(dirname "$client_logfile")"
+    mkdir -p "$(dirname "$server_logfile")"
+    if ! "${MVN}" "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}"); then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))

@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC3043,SC3030,SC3054
+# shellcheck disable=SC3043
 
 work_dir="$(mktemp -d)"
 
@@ -47,14 +47,7 @@ fi
 # HACK. The vertx-maven-plugin doesn't include target/assets on the classpath, so copy its contents into target/classes which is included
 cp -r target/assets/app/resources/* target/classes
 
-flags=(
-    "-Dcom.sun.management.jmxremote.autodiscovery=true"
-    "-Dcom.sun.management.jmxremote.port=9091"
-    "-Dcom.sun.management.jmxremote.rmi.port=9091"
-    "-Dcom.sun.management.jmxremote.authenticate=false"
-    "-Dcom.sun.management.jmxremote.ssl=false"
-    "-Dcom.sun.management.jmxremote.registry.ssl=false"
-)
+flags="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.rmi.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.registry.ssl=false"
 
 createPod() {
     podman pod create \
@@ -103,7 +96,7 @@ runReportGenerator
 runJfrDatasource
 runGrafana
 
-MAVEN_OPTS="${flags[*]}" \
+MAVEN_OPTS="${flags}" \
     CRYOSTAT_PLATFORM=io.cryostat.platform.internal.DefaultPlatformStrategy \
     CRYOSTAT_DISABLE_SSL=true \
     CRYOSTAT_DISABLE_JMX_AUTH=true \

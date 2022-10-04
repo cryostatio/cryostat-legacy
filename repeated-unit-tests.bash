@@ -20,15 +20,15 @@ FLAGS=(
     "surefire:test"
 )
 
-if [ ! -z $2 ]; then
+if [ -n "$2" ]; then
     FLAGS+=("-Dtest=$2")
 fi
 
 if command -v ansi2txt >/dev/null; then
     FLAGS+=("-Dstyle.color=always")
-    PIPECLEANER=ansi2txt
+    PIPECLEANER="ansi2txt"
 else
-    PIPECLEANER=cat
+    PIPECLEANER="cat"
 fi
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -37,9 +37,7 @@ runcount=0
 while [ "${runcount}" -lt ${runs} ]; do
     logfile="$DIR/target/cryostat-unittests-$(date -Iminutes).log"
     mkdir -p "$(dirname logfile)"
-    >"${logfile}"
-     "${MVN}" "${FLAGS[@]}" |& tee >($PIPECLEANER > "${logfile}")
-    if [ "$?" -ne 0 ]; then
+    if ! "${MVN}" "${FLAGS[@]}" |& tee >($PIPECLEANER > "${logfile}"); then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
