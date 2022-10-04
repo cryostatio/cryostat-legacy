@@ -34,7 +34,7 @@
   <skipUTs>${skipTests}</skipUTs>
   <headless>false</headless>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
-  <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.entrypoint>/app/entrypoint.bash</cryostat.entrypoint>
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
