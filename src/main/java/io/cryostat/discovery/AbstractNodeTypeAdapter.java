@@ -69,7 +69,10 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
     private final Logger logger;
 
     public AbstractNodeTypeAdapter(
-            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters, Lazy<JvmIdHelper> jvmIdHelper, Logger logger) {
+            Class<AbstractNode> klazz,
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters,
+            Lazy<JvmIdHelper> jvmIdHelper,
+            Logger logger) {
         super(klazz);
         this.adapters = adapters;
         this.jvmIdHelper = jvmIdHelper;

@@ -102,6 +102,8 @@ class DefaultPlatformClientTest {
 
     @Test
     void testDiscoverableServiceMapping() throws Exception {
+        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
+
         DiscoveredJvmDescriptor desc1 = mock(DiscoveredJvmDescriptor.class);
         JMXServiceURL url1 =
                 new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
@@ -123,7 +125,8 @@ class DefaultPlatformClientTest {
         List<ServiceRef> results = client.listDiscoverableServices();
 
         ServiceRef exp1 =
-                new ServiceRef("id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                new ServiceRef(
+                        "id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -135,7 +138,8 @@ class DefaultPlatformClientTest {
                         AnnotationKey.PORT,
                         "9091"));
         ServiceRef exp2 =
-                new ServiceRef("id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                new ServiceRef(
+                        "id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -152,6 +156,8 @@ class DefaultPlatformClientTest {
 
     @Test
     void testDiscoveryTree() throws Exception {
+        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
+
         DiscoveredJvmDescriptor desc1 = mock(DiscoveredJvmDescriptor.class);
         JMXServiceURL url1 =
                 new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
@@ -173,7 +179,8 @@ class DefaultPlatformClientTest {
         EnvironmentNode realmNode = client.getDiscoveryTree();
 
         ServiceRef exp1 =
-                new ServiceRef("id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                new ServiceRef(
+                        "id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -185,7 +192,8 @@ class DefaultPlatformClientTest {
                         AnnotationKey.PORT,
                         "9091"));
         ServiceRef exp2 =
-                new ServiceRef("id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                new ServiceRef(
+                        "id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -222,6 +230,7 @@ class DefaultPlatformClientTest {
 
     @Test
     void testAcceptDiscoveryEvent() throws Exception {
+        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         String javaMain = "com.example.Main";
         DiscoveredJvmDescriptor desc = mock(DiscoveredJvmDescriptor.class);

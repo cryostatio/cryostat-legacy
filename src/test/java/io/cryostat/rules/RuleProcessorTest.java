@@ -507,7 +507,7 @@ class RuleProcessorTest {
                 Mockito.mock(RecordingOptionsBuilder.class);
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(jmxUrl), "com.example.App");
 
         TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
 

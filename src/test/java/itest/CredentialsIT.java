@@ -37,6 +37,7 @@
  */
 package itest;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +60,7 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.JvmIdWebRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -296,11 +298,12 @@ public class CredentialsIT extends ExternalTargetsTest {
                         });
 
         List<ServiceRef> expectedList = new ArrayList<ServiceRef>();
+        URI expectedURI =
+                new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi").build();
+        String expectedJvmId =
+                JvmIdWebRequest.jvmIdRequest(expectedURI, MultiMap.caseInsensitiveMultiMap());
         ServiceRef expectedServiceRef =
-                new ServiceRef("id",
-                        new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")
-                                .build(),
-                        "io.cryostat.Cryostat");
+                new ServiceRef(expectedJvmId, expectedURI, "io.cryostat.Cryostat");
         expectedServiceRef.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,

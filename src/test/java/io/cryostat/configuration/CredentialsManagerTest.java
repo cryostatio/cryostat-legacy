@@ -103,7 +103,7 @@ class CredentialsManagerTest {
                 credentialsManager.getServiceRefsWithCredentials(), Matchers.empty());
         MatcherAssert.assertThat(credentialsManager.removeCredentials("foo"), Matchers.lessThan(0));
         MatcherAssert.assertThat(
-                credentialsManager.getCredentials(new ServiceRef(new URI("foo"), "foo")),
+                credentialsManager.getCredentials(new ServiceRef("id", new URI("foo"), "foo")),
                 Matchers.nullValue());
         MatcherAssert.assertThat(
                 credentialsManager.getCredentialsByTargetId("foo"), Matchers.nullValue());
@@ -118,9 +118,13 @@ class CredentialsManagerTest {
         String password = "pass";
         Credentials credentials = new Credentials(username, password);
 
+<<<<<<< HEAD
         StoredCredentials stored = new StoredCredentials(1, matchExpression, credentials);
 
         ServiceRef serviceRef = new ServiceRef(new URI(targetId), "foo");
+=======
+        ServiceRef serviceRef = new ServiceRef("id", new URI(targetId), "foo");
+>>>>>>> 75af5957 (resolved some tests, some issues with DefaultPlatformClient not being able to connect to targets onAccept)
         Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
                 .thenReturn(true);
 
@@ -211,10 +215,10 @@ class CredentialsManagerTest {
 
     @Test
     void addedCredentialsCanMatchMultipleTargets() throws Exception {
-        ServiceRef target1 = new ServiceRef(new URI("target1"), "target1Alias");
-        ServiceRef target2 = new ServiceRef(new URI("target2"), "target2Alias");
-        ServiceRef target3 = new ServiceRef(new URI("target3"), "target3Alias");
-        ServiceRef target4 = new ServiceRef(new URI("target4"), "target4Alias");
+        ServiceRef target1 = new ServiceRef("id1", new URI("target1"), "target1Alias");
+        ServiceRef target2 = new ServiceRef("id2", new URI("target2"), "target2Alias");
+        ServiceRef target3 = new ServiceRef("id3", new URI("target3"), "target3Alias");
+        ServiceRef target4 = new ServiceRef("id4", new URI("target4"), "target4Alias");
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(target1, target2, target3, target4));
@@ -252,10 +256,10 @@ class CredentialsManagerTest {
 
     @Test
     void canQueryDiscoveredTargetsWithConfiguredCredentials() throws Exception {
-        ServiceRef target1 = new ServiceRef(new URI("target1"), "target1Alias");
-        ServiceRef target2 = new ServiceRef(new URI("target2"), "target2Alias");
-        ServiceRef target3 = new ServiceRef(new URI("target3"), "target3Alias");
-        ServiceRef target4 = new ServiceRef(new URI("target4"), "target4Alias");
+        ServiceRef target1 = new ServiceRef("id1", new URI("target1"), "target1Alias");
+        ServiceRef target2 = new ServiceRef("id2", new URI("target2"), "target2Alias");
+        ServiceRef target3 = new ServiceRef("id3", new URI("target3"), "target3Alias");
+        ServiceRef target4 = new ServiceRef("id4", new URI("target4"), "target4Alias");
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(target1, target2, target3, target4));
@@ -308,6 +312,7 @@ class CredentialsManagerTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
+                        "id",
                         URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                         "mytarget");
 
@@ -321,6 +326,176 @@ class CredentialsManagerTest {
         Mockito.when(dao.get(Mockito.anyInt())).thenReturn(Optional.of(stored));
 
         MatcherAssert.assertThat(
+<<<<<<< HEAD
                 credentialsManager.resolveMatchingTargets(7), Matchers.equalTo(expected));
+=======
+                credentialsManager.resolveMatchingTargets(0), Matchers.equalTo(expected));
+    }
+
+    @Nested
+    class Migration {
+
+        @Test
+        void doesNothingIfNoFiles() throws Exception {
+            Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
+
+            Mockito.verifyNoInteractions(fs);
+
+            credentialsManager.migrate();
+
+            Mockito.verify(fs).listDirectoryChildren(credentialsDir);
+            Mockito.verifyNoMoreInteractions(fs);
+        }
+
+        @Test
+        void doesNothingIfAllFilesInNewFormat() throws Exception {
+            String matchExpression = "target.connectUrl == \"foo\"";
+            String filename = "0";
+            Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(filename));
+
+            Path path = Mockito.mock(Path.class);
+            Mockito.when(credentialsDir.resolve(filename)).thenReturn(path);
+
+            String contents =
+                    gson.toJson(
+                            Map.of(
+                                    "matchExpression",
+                                    matchExpression,
+                                    "credentials",
+                                    Map.of("username", "user", "password", "pass")));
+            Mockito.when(fs.readFile(path))
+                    .thenReturn(new BufferedReader(new StringReader(contents)));
+
+            credentialsManager.migrate();
+
+            InOrder inOrder = Mockito.inOrder(fs, credentialsDir);
+            inOrder.verify(fs).listDirectoryChildren(credentialsDir);
+            inOrder.verify(credentialsDir).resolve(filename);
+            inOrder.verify(fs).readFile(path);
+            Mockito.verifyNoMoreInteractions(fs);
+        }
+
+        @Test
+        void migratesOldFormatToNewFormat() throws Exception {
+            String targetId = "foo";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
+
+            String originalFilename =
+                    String.format(
+                            "%s.json",
+                            base32.encodeToString(targetId.getBytes(StandardCharsets.UTF_8)));
+            Mockito.when(fs.listDirectoryChildren(Mockito.any()))
+                    .thenReturn(List.of(originalFilename));
+
+            String newFilename = "0";
+
+            Path originalPath = Mockito.mock(Path.class);
+            Path newPath = Mockito.mock(Path.class);
+            Mockito.when(credentialsDir.resolve(originalFilename)).thenReturn(originalPath);
+            Mockito.when(credentialsDir.resolve(newFilename)).thenReturn(newPath);
+
+            String username = "user";
+            String password = "pass";
+
+            String oldContents =
+                    gson.toJson(
+                            Map.of(
+                                    "targetId",
+                                    targetId,
+                                    "credentials",
+                                    Map.of("username", username, "password", password)));
+            Mockito.when(fs.readFile(originalPath))
+                    .thenReturn(new BufferedReader(new StringReader(oldContents)));
+
+            credentialsManager.migrate();
+
+            ArgumentCaptor<String> contentsCaptor = ArgumentCaptor.forClass(String.class);
+
+            Mockito.verify(fs).listDirectoryChildren(credentialsDir);
+            Mockito.verify(credentialsDir).resolve(originalFilename);
+            Mockito.verify(fs).readFile(originalPath);
+            Mockito.verify(fs)
+                    .writeString(
+                            Mockito.eq(newPath),
+                            contentsCaptor.capture(),
+                            Mockito.eq(StandardOpenOption.WRITE),
+                            Mockito.eq(StandardOpenOption.CREATE),
+                            Mockito.eq(StandardOpenOption.TRUNCATE_EXISTING));
+            Mockito.verify(fs)
+                    .setPosixFilePermissions(
+                            newPath,
+                            Set.of(
+                                    PosixFilePermission.OWNER_READ,
+                                    PosixFilePermission.OWNER_WRITE));
+            Mockito.verify(fs).deleteIfExists(originalPath);
+            Mockito.verifyNoMoreInteractions(fs);
+
+            String newContents = contentsCaptor.getValue();
+            JsonObject json = gson.fromJson(newContents, JsonObject.class);
+            MatcherAssert.assertThat(
+                    json.getAsJsonPrimitive("matchExpression").getAsString(),
+                    Matchers.equalTo(matchExpression));
+            JsonObject credentials = json.getAsJsonObject("credentials");
+            String foundUsername = credentials.getAsJsonPrimitive("username").getAsString();
+            String foundPassword = credentials.getAsJsonPrimitive("password").getAsString();
+            MatcherAssert.assertThat(foundUsername, Matchers.equalTo(username));
+            MatcherAssert.assertThat(foundPassword, Matchers.equalTo(password));
+        }
+    }
+
+    @Nested
+    class Loading {
+        @Test
+        void loadingFilesMakesContentsAvailable() throws Exception {
+            String targetId = "foo";
+            String matchExpression = String.format("target.connectUrl == \"%s\"", targetId);
+            String filename =
+                    String.format(
+                            "%s.json",
+                            base32.encodeToString(
+                                    matchExpression.getBytes(StandardCharsets.UTF_8)));
+            Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(filename));
+
+            Path path = Mockito.mock(Path.class);
+            Path filenamePath = Mockito.mock(Path.class);
+            Mockito.when(filenamePath.toString()).thenReturn("0");
+            Mockito.when(path.getFileName()).thenReturn(filenamePath);
+
+            String username = "user";
+            String password = "pass";
+
+            Mockito.when(fs.listDirectoryChildren(credentialsDir)).thenReturn(List.of("0"));
+            Mockito.when(credentialsDir.resolve("0")).thenReturn(path);
+            Mockito.when(fs.readFile(path))
+                    .thenAnswer(
+                            new Answer<BufferedReader>() {
+                                @Override
+                                public BufferedReader answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    return new BufferedReader(
+                                            new StringReader(
+                                                    gson.toJson(
+                                                            new StoredCredentials(
+                                                                    matchExpression,
+                                                                    new Credentials(
+                                                                            username, password)))));
+                                }
+                            });
+
+            ServiceRef serviceRef = new ServiceRef("id", new URI(targetId), "foo");
+            Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
+                    .thenReturn(true);
+
+            credentialsManager.load();
+
+            Mockito.verify(fs).listDirectoryChildren(credentialsDir);
+            Mockito.verifyNoMoreInteractions(fs);
+
+            Credentials found = credentialsManager.getCredentialsByTargetId(targetId);
+            MatcherAssert.assertThat(found.getUsername(), Matchers.equalTo(username));
+            MatcherAssert.assertThat(found.getPassword(), Matchers.equalTo(password));
+        }
+>>>>>>> 75af5957 (resolved some tests, some issues with DefaultPlatformClient not being able to connect to targets onAccept)
     }
 }

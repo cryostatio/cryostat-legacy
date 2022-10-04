@@ -212,6 +212,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     initial.getLabels(),
                                     Map.of(AnnotationKey.REALM.name(), id.toString())),
                             initial.getChildren());
+            logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             PluginInfo updated = dao.update(id, update);
             return updated.getId();
         } catch (Exception e) {
@@ -230,6 +231,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             UUID id, Collection<? extends AbstractNode> children) {
         Objects.requireNonNull(children, "children");
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
+        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, Objects.requireNonNull(children));
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);

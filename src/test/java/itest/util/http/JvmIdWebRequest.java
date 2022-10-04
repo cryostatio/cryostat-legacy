@@ -35,47 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.internal;
+package itest.util.http;
 
-import java.util.Set;
+import java.net.URI;
+import java.util.Base64;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.net.discovery.JvmDiscoveryClient;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.NetworkResolver;
-import io.cryostat.net.NoopAuthManager;
-import io.cryostat.net.openshift.OpenShiftAuthManager;
-import io.cryostat.recordings.JvmIdHelper;
+import io.vertx.core.MultiMap;
+import io.vertx.ext.web.client.WebClient;
+import itest.bases.StandardSelfTest;
+import itest.util.Utils;
+import org.apache.http.client.utils.URLEncodedUtils;
 
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.ElementsIntoSet;
+public class JvmIdWebRequest {
+    public static final int REQUEST_TIMEOUT_SECONDS = 10;
+    public static final WebClient webClient = Utils.getWebClient();
 
-@Module
-public abstract class PlatformStrategyModule {
+    public static String jvmIdRequest(String encodedServiceUri, MultiMap form)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<String> jvmIdFuture = new CompletableFuture<>();
+        System.out.println("Encoded Service URI: " + encodedServiceUri);
+        System.out.println();
 
-    @Provides
-    @ElementsIntoSet
-    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
-            Logger logger,
-            OpenShiftAuthManager openShiftAuthManager,
-            NoopAuthManager noopAuthManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            NetworkResolver resolver,
-            Environment env,
-            FileSystem fs,
-            JvmIdHelper jvmIdHelper,
-            JvmDiscoveryClient discoveryClient) {
-        return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, jvmIdHelper, connectionToolkit, fs),
-                new KubeApiPlatformStrategy(
-                        logger, noopAuthManager, connectionToolkit, jvmIdHelper, fs),
-                new KubeEnvPlatformStrategy(
-                        logger, fs, noopAuthManager, jvmIdHelper, connectionToolkit, env),
-                new DefaultPlatformStrategy(logger, noopAuthManager, jvmIdHelper, discoveryClient));
+        webClient
+                .get(String.format("/api/beta/targets/%s", encodedServiceUri))
+                .putHeader(
+                        "X-JMX-Authorization",
+                        "Basic "
+                                + Base64.getUrlEncoder()
+                                        .encodeToString("admin:adminpass123".getBytes()))
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (StandardSelfTest.assertRequestStatus(ar, jvmIdFuture)) {
+                                jvmIdFuture.complete(ar.result().bodyAsString());
+                            }
+                        });
+        return jvmIdFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    public static String jvmIdRequest(URI serviceUri, MultiMap form)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        return jvmIdRequest(URLEncodedUtils.formatSegments(serviceUri.toString()), form);
     }
 }

@@ -61,6 +61,7 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -132,8 +133,13 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         // size should not change
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
         Set<ServiceRef> expected = new HashSet<>();
+        String cryostatJvmId =
+                JvmIdWebRequest.jvmIdRequest(
+                        SELF_REFERENCE_TARGET_ID, MultiMap.caseInsensitiveMultiMap());
+        System.out.println("Cryostat JVM ID: " + cryostatJvmId);
         ServiceRef cryostat =
-                new ServiceRef("id",
+                new ServiceRef(
+                        cryostatJvmId,
                         new URI(
                                 String.format(
                                         "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
@@ -151,13 +157,15 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                         "9091"));
         expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            ServiceRef ext =
-                    new ServiceRef("id",
-                            new URI(
-                                    String.format(
-                                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
-                                            Podman.POD_NAME, 9093 + i)),
-                            "es.andrewazor.demo.Main");
+            var uri =
+                    new URI(
+                            String.format(
+                                    "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
+                                    Podman.POD_NAME, 9093 + i));
+            String jvmId =
+                    JvmIdWebRequest.jvmIdRequest(
+                            uri.toString(), MultiMap.caseInsensitiveMultiMap());
+            ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
                     Map.of(
                             AnnotationKey.REALM,

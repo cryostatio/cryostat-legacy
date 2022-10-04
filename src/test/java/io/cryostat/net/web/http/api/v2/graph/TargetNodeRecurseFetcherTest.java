@@ -74,6 +74,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TargetNodeRecurseFetcherTest {
+    static final String JVM_ID = "id";
     static final String URI_STRING = "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi";
     static final String URI_STRING_2 = "cryostat:9091";
     static final URI EXAMPLE_URI = URI.create(URI_STRING);
@@ -148,7 +149,7 @@ class TargetNodeRecurseFetcherTest {
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
-            ServiceRef sharedTarget = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
+            ServiceRef sharedTarget = new ServiceRef(JVM_ID, EXAMPLE_URI, EXAMPLE_ALIAS);
 
             TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
             TargetNode customTargetNode =
@@ -224,7 +225,7 @@ class TargetNodeRecurseFetcherTest {
                 when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
                 when(filter.get(FilterInput.Key.NAME)).thenReturn(EXAMPLE_URI_2.toString());
 
-                ServiceRef sharedTarget = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
+                ServiceRef sharedTarget = new ServiceRef(JVM_ID, EXAMPLE_URI, EXAMPLE_ALIAS);
 
                 TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
                 TargetNode customTargetNode =
@@ -232,7 +233,7 @@ class TargetNodeRecurseFetcherTest {
                 TargetNode orphanNode =
                         new TargetNode(
                                 KubernetesNodeType.DEPLOYMENT,
-                                new ServiceRef(EXAMPLE_URI_2, EXAMPLE_ALIAS));
+                                new ServiceRef(JVM_ID, EXAMPLE_URI_2, EXAMPLE_ALIAS));
 
                 EnvironmentNode jdpRealm =
                         new EnvironmentNode(

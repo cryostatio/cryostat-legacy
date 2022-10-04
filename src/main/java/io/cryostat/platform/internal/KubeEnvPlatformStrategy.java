@@ -46,12 +46,12 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.recordings.JvmIdHelper;
+
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
-
 
     private final Logger logger;
     private final FileSystem fs;
@@ -89,7 +89,8 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(getNamespace(), connectionToolkit, jvmIdHelper, env, logger);
+        return new KubeEnvPlatformClient(
+                getNamespace(), connectionToolkit, jvmIdHelper, env, logger);
     }
 
     @Override

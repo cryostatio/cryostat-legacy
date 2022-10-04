@@ -139,7 +139,8 @@ class DiscoveryGetHandlerTest {
             EnvironmentNode pod = new EnvironmentNode("appPod-1", KubernetesNodeType.POD);
 
             ServiceRef serviceRef =
-                    new ServiceRef("id",
+                    new ServiceRef(
+                            "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "appReplica-1-1");
             TargetNode endpoint = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);

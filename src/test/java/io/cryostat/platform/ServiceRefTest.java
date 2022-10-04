@@ -65,17 +65,21 @@ class ServiceRefTest {
 
     @Test
     void shouldThrowOnNullJvmId() {
-        Assertions.assertThrows(NullPointerException.class, () -> new ServiceRef(null, EXAMPLE_URI, EXAMPLE_ALIAS));
+        Assertions.assertThrows(
+                NullPointerException.class, () -> new ServiceRef(null, EXAMPLE_URI, EXAMPLE_ALIAS));
     }
 
     @Test
     void shouldThrowOnNullUri() {
-        Assertions.assertThrows(NullPointerException.class, () -> new ServiceRef(EXAMPLE_JVMID, null, EXAMPLE_ALIAS));
+        Assertions.assertThrows(
+                NullPointerException.class,
+                () -> new ServiceRef(EXAMPLE_JVMID, null, EXAMPLE_ALIAS));
     }
 
     @Test
     void shouldAllowEmptyAlias() {
-        Assertions.assertTrue(new ServiceRef(EXAMPLE_JVMID, EXAMPLE_URI, null).getAlias().isEmpty());
+        Assertions.assertTrue(
+                new ServiceRef(EXAMPLE_JVMID, EXAMPLE_URI, null).getAlias().isEmpty());
     }
 
     @Test

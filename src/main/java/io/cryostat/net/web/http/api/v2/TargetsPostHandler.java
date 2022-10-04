@@ -153,7 +153,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            ServiceRef serviceRef = new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
+            ServiceRef serviceRef =
+                    new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?

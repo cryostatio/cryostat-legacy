@@ -59,7 +59,7 @@ public class ServiceRef {
     private final Annotations annotations;
 
     public ServiceRef(String jvmId, URI uri, String alias) {
-        this.jvmId = Objects.requireNonNull(jvmId);
+        this.jvmId = jvmId;
         this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
         this.labels = new HashMap<>();
@@ -134,7 +134,7 @@ public class ServiceRef {
             return false;
         }
         ServiceRef sr = (ServiceRef) other;
-        // id is intentionally ignored ? 
+        // id is intentionally ignored ?
         return new EqualsBuilder()
                 .append(serviceUri, sr.serviceUri)
                 .append(alias, sr.alias)

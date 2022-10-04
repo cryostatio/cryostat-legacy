@@ -51,7 +51,10 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     private final JvmDiscoveryClient discoveryClient;
 
     DefaultPlatformStrategy(
-            Logger logger, NoopAuthManager authMgr, JvmIdHelper jvmIdHelper, JvmDiscoveryClient discoveryClient) {
+            Logger logger,
+            NoopAuthManager authMgr,
+            JvmIdHelper jvmIdHelper,
+            JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.jvmIdHelper = jvmIdHelper;

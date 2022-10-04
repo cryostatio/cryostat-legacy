@@ -64,6 +64,7 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.JvmIdWebRequest;
 import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -413,7 +414,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                                 resolveResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        
+
         JsonObject resolutionResponse =
                 resolveResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(resolutionResponse.getJsonObject("meta"), Matchers.notNullValue());
@@ -438,12 +439,14 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 matchedCredential.matchExpression, Matchers.equalTo(MATCH_EXPRESSION));
 
         Set<ServiceRef> expectedResolvedTargets = new HashSet<ServiceRef>();
-        // TODO: FIX THIS
+        URI expectedTarget1URI =
+                new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9094/jmxrmi").build();
+        URI expectedTarget2URI =
+                new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9095/jmxrmi").build();
+        String expectedTarget1JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget1URI, form);
+        String expectedTarget2JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget2URI, form);
         ServiceRef expectedTarget1 =
-                new ServiceRef("id1",
-                        new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9094/jmxrmi")
-                                .build(),
-                        "es.andrewazor.demo.Main");
+                new ServiceRef(expectedTarget1JvmId, expectedTarget1URI, "es.andrewazor.demo.Main");
         expectedTarget1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -456,10 +459,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main"));
         expectedResolvedTargets.add(expectedTarget1);
         ServiceRef expectedTarget2 =
-                new ServiceRef("id2",
-                        new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9095/jmxrmi")
-                                .build(),
-                        "es.andrewazor.demo.Main");
+                new ServiceRef(expectedTarget2JvmId, expectedTarget2URI, "es.andrewazor.demo.Main");
         expectedTarget2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,

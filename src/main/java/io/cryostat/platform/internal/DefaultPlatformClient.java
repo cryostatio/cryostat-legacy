@@ -75,7 +75,8 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     private final JvmIdHelper jvmIdHelper;
     private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformClient(Logger logger, JvmIdHelper jvmIdHelper, JvmDiscoveryClient discoveryClient) {
+    DefaultPlatformClient(
+            Logger logger, JvmIdHelper jvmIdHelper, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
         this.jvmIdHelper = jvmIdHelper;
         this.discoveryClient = discoveryClient;
@@ -98,7 +99,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public void accept(JvmDiscoveryEvent evt) {
         try {
             notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));
-        } catch (MalformedURLException | URISyntaxException | JvmIdGetException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             logger.warn(e);
         }
     }
@@ -110,7 +111,7 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                         desc -> {
                             try {
                                 return convert(desc);
-                            } catch (MalformedURLException | URISyntaxException | JvmIdGetException e) {
+                            } catch (MalformedURLException | URISyntaxException e) {
                                 logger.warn(e);
                                 return null;
                             }
@@ -120,9 +121,18 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     }
 
     private ServiceRef convert(DiscoveredJvmDescriptor desc)
-            throws MalformedURLException, URISyntaxException, JvmIdGetException {
+            throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
-        ServiceRef serviceRef = new ServiceRef(jvmIdHelper.getJvmId(serviceUrl.toString()), URIUtil.convert(serviceUrl), desc.getMainClass());
+        logger.info("convert");
+        logger.info(serviceUrl.toString());
+        String jvmId;
+        try {
+            jvmId = jvmIdHelper.getJvmId(serviceUrl.toString());
+        } catch (JvmIdGetException e) {
+            jvmId = null;
+        }
+        ServiceRef serviceRef =
+                new ServiceRef(jvmId, URIUtil.convert(serviceUrl), desc.getMainClass());
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(

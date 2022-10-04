@@ -374,15 +374,13 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         discoveryNodeCache.computeIfAbsent(
                                 cacheKey(objRef), KubeApiPlatformClient.this::queryForNode);
                 String targetName = objRef.getName();
-                URI uri = URIUtil.convert(
-                    connectionToolkit
-                            .get()
-                            .createServiceURL(addr.getIp(), port.getPort()));
+                URI uri =
+                        URIUtil.convert(
+                                connectionToolkit
+                                        .get()
+                                        .createServiceURL(addr.getIp(), port.getPort()));
                 ServiceRef serviceRef =
-                        new ServiceRef(
-                                jvmIdHelper.getJvmId(uri.toString()),
-                                uri,
-                                targetName);
+                        new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, targetName);
 
                 if (node.getRight().getNodeType() == KubernetesNodeType.POD) {
                     HasMetadata podRef = node.getLeft();

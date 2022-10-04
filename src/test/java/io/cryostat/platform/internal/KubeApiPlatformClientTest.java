@@ -99,7 +99,8 @@ class KubeApiPlatformClientTest {
     @BeforeEach
     void setup() throws Exception {
         this.platformClient =
-                new KubeApiPlatformClient(NAMESPACE, k8sClient, () -> connectionToolkit, jvmIdHelper, logger);
+                new KubeApiPlatformClient(
+                        NAMESPACE, k8sClient, () -> connectionToolkit, jvmIdHelper, logger);
     }
 
     @Test
@@ -211,6 +212,7 @@ class KubeApiPlatformClientTest {
 
         k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -231,7 +233,8 @@ class KubeApiPlatformClientTest {
 
         // targetA is intentionally not a matching service
         ServiceRef serv1 =
-                new ServiceRef("id1",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
                         "targetB");
         serv1.setCryostatAnnotations(
@@ -247,7 +250,8 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.POD_NAME,
                         "targetB"));
         ServiceRef serv2 =
-                new ServiceRef("id2",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.4", 9091)),
                         "targetC");
         serv2.setCryostatAnnotations(
@@ -263,7 +267,8 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.POD_NAME,
                         "targetC"));
         ServiceRef serv3 =
-                new ServiceRef("id3",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.5", 9091)),
                         "targetD");
         serv3.setCryostatAnnotations(
@@ -279,7 +284,8 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.POD_NAME,
                         "targetD"));
         ServiceRef serv4 =
-                new ServiceRef("id4",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.6", 5678)),
                         "targetE");
         serv4.setCryostatAnnotations(
@@ -300,6 +306,7 @@ class KubeApiPlatformClientTest {
 
     @Test
     void shouldReturnDiscoveryTree() throws Exception {
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -363,7 +370,8 @@ class KubeApiPlatformClientTest {
         platformClient.start();
         EnvironmentNode realmNode = platformClient.getDiscoveryTree();
         ServiceRef serv1 =
-                new ServiceRef("id1",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.2", 9091)),
                         "targetA");
         serv1.setCryostatAnnotations(
@@ -379,7 +387,8 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.POD_NAME,
                         "targetA"));
         ServiceRef serv2 =
-                new ServiceRef("id2",
+                new ServiceRef(
+                        "mockId",
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
                         "targetB");
         serv2.setCryostatAnnotations(
@@ -458,6 +467,7 @@ class KubeApiPlatformClientTest {
         CompletableFuture<TargetDiscoveryEvent> eventFuture = new CompletableFuture<>();
         platformClient.addTargetDiscoveryListener(eventFuture::complete);
 
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -505,7 +515,8 @@ class KubeApiPlatformClientTest {
         TargetDiscoveryEvent evt = eventFuture.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(evt.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         ServiceRef serv =
-                new ServiceRef("id1",
+                new ServiceRef(
+                        "id",
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         serv.setCryostatAnnotations(
@@ -525,6 +536,7 @@ class KubeApiPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncDeleted() throws Exception {
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -585,7 +597,8 @@ class KubeApiPlatformClientTest {
         MatcherAssert.assertThat(events, Matchers.hasSize(2));
 
         ServiceRef serv =
-                new ServiceRef("id",
+                new ServiceRef(
+                        "id",
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         serv.setCryostatAnnotations(
@@ -612,6 +625,7 @@ class KubeApiPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncModified() throws Exception {
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -698,7 +712,8 @@ class KubeApiPlatformClientTest {
         MatcherAssert.assertThat(events, Matchers.hasSize(3));
 
         ServiceRef original =
-                new ServiceRef("id",
+                new ServiceRef(
+                        "id",
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         original.setCryostatAnnotations(
@@ -715,7 +730,8 @@ class KubeApiPlatformClientTest {
                         "watchedTarget"));
 
         ServiceRef modified =
-                new ServiceRef("id",
+                new ServiceRef(
+                        "id",
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "modifiedTarget");
         modified.setCryostatAnnotations(

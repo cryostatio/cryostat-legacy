@@ -114,15 +114,10 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            URI uri = URIUtil.convert(
-                connectionToolkit
-                        .get()
-                        .createServiceURL(entry.getValue(), port));
-            ServiceRef sr =
-                    new ServiceRef(
-                            jvmIdHelper.getJvmId(uri.toString()),
-                            uri,
-                            alias);
+            URI uri =
+                    URIUtil.convert(
+                            connectionToolkit.get().createServiceURL(entry.getValue(), port));
+            ServiceRef sr = new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
             sr.setCryostatAnnotations(
                     Map.of(
                             AnnotationKey.REALM, REALM,
