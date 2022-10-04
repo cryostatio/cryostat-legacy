@@ -56,7 +56,7 @@ function importTrustStores() {
         return 0
     fi
 
-    find "./truststore" -type f | while IFS= read -r cert; do
+    find "$SSL_TRUSTSTORE_DIR" -type f | while IFS= read -r cert; do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
