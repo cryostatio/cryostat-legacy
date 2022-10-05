@@ -47,6 +47,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
@@ -65,6 +66,7 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -81,6 +83,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RuleDeleteHandlerTest {
 
     RuleDeleteHandler handler;
+    Vertx vertx = MockVertx.vertx();
     @Mock AuthManager auth;
     @Mock RuleRegistry registry;
     @Mock TargetConnectionManager targetConnectionManager;
@@ -110,6 +113,7 @@ class RuleDeleteHandlerTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new RuleDeleteHandler(
+                        vertx,
                         auth,
                         registry,
                         targetConnectionManager,

@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -60,7 +59,7 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 
 class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
@@ -69,6 +68,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = RuleGetHandler.PATH;
     static final String CLEAN_PARAM = "clean";
 
+    private final Vertx vertx;
     private final RuleRegistry ruleRegistry;
     private final TargetConnectionManager targetConnectionManager;
     private final DiscoveryStorage storage;
@@ -78,6 +78,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     RuleDeleteHandler(
+            Vertx vertx,
             AuthManager auth,
             RuleRegistry ruleRegistry,
             TargetConnectionManager targetConnectionManager,
@@ -87,6 +88,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             Gson gson,
             Logger logger) {
         super(auth, gson);
+        this.vertx = vertx;
         this.ruleRegistry = ruleRegistry;
         this.targetConnectionManager = targetConnectionManager;
         this.storage = storage;
@@ -126,8 +128,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse<Void> handle(
-            RequestParameters params) throws ApiException {
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         if (!ruleRegistry.hasRuleByName(name)) {
             throw new ApiException(404);
@@ -146,35 +147,63 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                 .build()
                 .send();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            for (ServiceRef ref : storage.listDiscoverableServices()) {
-                if (!ruleRegistry.applies(rule, ref)) {
-                    continue;
-                }
-                try {
-                    targetConnectionManager.executeConnectedTask(
-                            new ConnectionDescriptor(ref, credentialsManager.getCredentials(ref)),
-                            conn -> {
-                                conn.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                rec ->
-                                                        rec.getName()
-                                                                .equals(rule.getRecordingName()))
-                                        .findFirst()
-                                        .ifPresent(
-                                                r -> {
-                                                    try {
-                                                        conn.getService().stop(r);
-                                                    } catch (Exception e) {
-                                                        logger.error(e);
-                                                    }
-                                                });
-                                return null;
-                            });
-                } catch (Exception e) {
-                    logger.error(e);
-                }
-            }
+            vertx.executeBlocking(promise -> {
+                cleanup(rule);
+                promise.complete();
+            });
         }
         return new IntermediateResponse<Void>().body(null);
+    }
+
+    private void cleanup(Rule rule) {
+        for (ServiceRef ref : storage.listDiscoverableServices()) {
+            vertx.<Boolean>executeBlocking(
+                    promise -> {
+                        try {
+                            promise.complete(ruleRegistry.applies(rule, ref));
+                            if (!ruleRegistry.applies(rule, ref)) {
+                                promise.complete(null);
+                            }
+                        } catch (Exception e) {
+                            promise.fail(e);
+                        }
+                    },
+                    false,
+                    result -> {
+                        if (result.failed()) {
+                            logger.error(new RuntimeException(result.cause()));
+                            return;
+                        }
+                        if (!result.result()) {
+                            return;
+                        }
+                        try {
+                            targetConnectionManager.executeConnectedTaskAsync(
+                                    new ConnectionDescriptor(
+                                            ref, credentialsManager.getCredentials(ref)),
+                                    conn -> {
+                                        conn.getService().getAvailableRecordings().stream()
+                                                .filter(
+                                                        rec ->
+                                                                rec.getName()
+                                                                        .equals(
+                                                                                rule
+                                                                                        .getRecordingName()))
+                                                .findFirst()
+                                                .ifPresent(
+                                                        r -> {
+                                                            try {
+                                                                conn.getService().stop(r);
+                                                            } catch (Exception e) {
+                                                                logger.error(e);
+                                                            }
+                                                        });
+                                        return null;
+                                    });
+                        } catch (Exception e) {
+                            logger.error(e);
+                        }
+                    });
+        }
     }
 }
