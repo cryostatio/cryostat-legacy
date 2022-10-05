@@ -34,7 +34,7 @@
   <skipUTs>${skipTests}</skipUTs>
   <headless>false</headless>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
-  <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.entrypoint>/app/entrypoint.bash</cryostat.entrypoint>
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
@@ -96,6 +96,7 @@
   <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.22.7</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.15.3</org.jsoup.version>
+  <shellcheck-maven-plugin.version>0.4.1</shellcheck-maven-plugin.version>
 </properties>
 
 <dependencies>
@@ -830,6 +831,36 @@
             <toLowerCase>true</toLowerCase>
             <failIfNoMatch>false</failIfNoMatch>
           </configuration>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
+      <groupId>dev.dimlight</groupId>
+      <artifactId>shellcheck-maven-plugin</artifactId>
+      <version>${shellcheck-maven-plugin.version}</version>
+      <configuration>
+        <sourceDirs>
+          <sourceDir>
+            <directory>${project.basedir}</directory>
+            <includes>
+                <include>**/*.sh</include>
+                <include>**/*.bash</include>
+            </includes>
+            <excludes>
+                <exclude>web-client/**</exclude>
+            </excludes>
+          </sourceDir>
+        </sourceDirs>
+        <failBuildIfWarnings>true</failBuildIfWarnings>
+        <binaryResolutionMethod>embedded</binaryResolutionMethod>
+      </configuration>
+      <executions>
+        <execution>
+          <id>shellcheck</id>
+          <phase>verify</phase>
+          <goals>
+              <goal>check</goal>
+          </goals>
         </execution>
       </executions>
     </plugin>
