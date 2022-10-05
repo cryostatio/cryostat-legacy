@@ -514,6 +514,18 @@
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
+              <argument>JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"</argument>
+              <argument>--env</argument>
+              <argument>JDBC_DRIVER=org.h2.Driver</argument>
+              <argument>--env</argument>
+              <argument>JDBC_USERNAME=sa</argument>
+              <argument>--env</argument>
+              <argument>JDBC_PASSWORD=""</argument>
+              <argument>--env</argument>
+              <argument>HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect</argument>
+              <argument>--env</argument>
+              <argument>HBM2DDL=update</argument>
+              <argument>--env</argument>
               <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TARGET_CACHE_TTL=30</argument>
