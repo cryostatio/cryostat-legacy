@@ -206,9 +206,8 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);
-                    if (connectUrl != null) {
-                        jvmId = jvmIdHelper.get().getJvmId(target);
-                    }
+
+                    jvmId = jvmIdHelper.get().getJvmId(target);
                     target = new ServiceRef(target, jvmId);
                     break;
                 default:

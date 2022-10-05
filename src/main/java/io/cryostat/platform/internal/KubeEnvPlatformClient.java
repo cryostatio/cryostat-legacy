@@ -118,7 +118,8 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
             URI uri =
                     URIUtil.convert(
                             connectionToolkit.get().createServiceURL(entry.getValue(), port));
-            String jvmId = null;;
+            String jvmId = null;
+            ;
             try {
                 jvmId = jvmIdHelper.getJvmId(uri.toString());
             } catch (JvmIdGetException e) {

@@ -165,8 +165,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            
-            String jvmId = null;;
+
+            String jvmId = null;
+            ;
             try {
                 jvmId = jvmIdHelper.getJvmId(uri.toString());
             } catch (JvmIdGetException e) {

@@ -382,8 +382,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                                         .createServiceURL(addr.getIp(), port.getPort()));
                 String jvmId = null;
                 try {
-                    jvmIdHelper.getJvmId(uri.toString());             } 
-                catch (JvmIdGetException e) {
+                    jvmIdHelper.getJvmId(uri.toString());
+                } catch (JvmIdGetException e) {
                     logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
                 }
                 ServiceRef serviceRef = new ServiceRef(jvmId, uri, targetName);
