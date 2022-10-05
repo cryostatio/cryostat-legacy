@@ -58,6 +58,7 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -117,7 +118,13 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
             URI uri =
                     URIUtil.convert(
                             connectionToolkit.get().createServiceURL(entry.getValue(), port));
-            ServiceRef sr = new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
+            String jvmId = null;;
+            try {
+                jvmId = jvmIdHelper.getJvmId(uri.toString());
+            } catch (JvmIdGetException e) {
+                logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
+            }
+            ServiceRef sr = new ServiceRef(jvmId, uri, alias);
             sr.setCryostatAnnotations(
                     Map.of(
                             AnnotationKey.REALM, REALM,

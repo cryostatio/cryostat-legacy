@@ -123,13 +123,11 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     private ServiceRef convert(DiscoveredJvmDescriptor desc)
             throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
-        logger.info("convert");
-        logger.info(serviceUrl.toString());
-        String jvmId;
+        String jvmId = null;;
         try {
             jvmId = jvmIdHelper.getJvmId(serviceUrl.toString());
         } catch (JvmIdGetException e) {
-            jvmId = null;
+            logger.warn("Couldn't put jvmId in serviceRef for {}", serviceUrl.toString());
         }
         ServiceRef serviceRef =
                 new ServiceRef(jvmId, URIUtil.convert(serviceUrl), desc.getMainClass());

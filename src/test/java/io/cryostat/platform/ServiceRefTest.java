@@ -64,12 +64,6 @@ class ServiceRefTest {
     }
 
     @Test
-    void shouldThrowOnNullJvmId() {
-        Assertions.assertThrows(
-                NullPointerException.class, () -> new ServiceRef(null, EXAMPLE_URI, EXAMPLE_ALIAS));
-    }
-
-    @Test
     void shouldThrowOnNullUri() {
         Assertions.assertThrows(
                 NullPointerException.class,

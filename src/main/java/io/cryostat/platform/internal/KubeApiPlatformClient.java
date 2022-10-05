@@ -60,6 +60,7 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -379,8 +380,13 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                                 connectionToolkit
                                         .get()
                                         .createServiceURL(addr.getIp(), port.getPort()));
-                ServiceRef serviceRef =
-                        new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, targetName);
+                String jvmId = null;
+                try {
+                    jvmIdHelper.getJvmId(uri.toString());             } 
+                catch (JvmIdGetException e) {
+                    logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
+                }
+                ServiceRef serviceRef = new ServiceRef(jvmId, uri, targetName);
 
                 if (node.getRight().getNodeType() == KubernetesNodeType.POD) {
                     HasMetadata podRef = node.getLeft();

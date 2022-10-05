@@ -49,7 +49,11 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+<<<<<<< HEAD
 import io.cryostat.configuration.CredentialsManager;
+=======
+import io.cryostat.core.log.Logger;
+>>>>>>> 35374b7f (fixed more tests, added null checking for jvmId field in serviceRef so that they don't fail completely)
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -74,6 +78,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     private final DiscoveryStorage storage;
     private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
+    private final Logger logger;
 
     @Inject
     TargetsPostHandler(
@@ -82,11 +87,18 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             Gson gson,
             DiscoveryStorage storage,
             JvmIdHelper jvmIdHelper,
+<<<<<<< HEAD
             CustomTargetPlatformClient customTargetPlatformClient) {
         super(auth, credentialsManager, gson);
+=======
+            CustomTargetPlatformClient customTargetPlatformClient,
+            Logger logger) {
+        super(auth, gson);
+>>>>>>> 35374b7f (fixed more tests, added null checking for jvmId field in serviceRef so that they don't fail completely)
         this.storage = storage;
         this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
+        this.logger = logger;
     }
 
     @Override
@@ -153,8 +165,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            ServiceRef serviceRef =
-                    new ServiceRef(jvmIdHelper.getJvmId(uri.toString()), uri, alias);
+            
+            String jvmId = null;;
+            try {
+                jvmId = jvmIdHelper.getJvmId(uri.toString());
+            } catch (JvmIdGetException e) {
+                logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
+            }
+            ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?
