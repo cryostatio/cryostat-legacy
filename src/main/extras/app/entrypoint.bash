@@ -1,17 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
 function banner() {
     echo   "+------------------------------------------+"
-    printf "| %-40s |\n" "`date`"
+    printf "| %-40s |\n" "$(date)"
     echo   "|                                          |"
     printf "| %-40s |\n" "$@"
     echo   "+------------------------------------------+"
 }
 
 function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+    < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32
 }
 
 USRFILE="/tmp/jmxremote.access"
@@ -34,10 +34,13 @@ if [ -z "$CONF_DIR" ]; then
     # this should be set by Containerfile, but set a default if not
     CONF_DIR="/opt/cryostat.d"
 fi
+
+SSL_KEY_PASS="$(genpass)"
+export SSL_KEY_PASS
+SSL_TRUSTSTORE_PASS="$(cat "$SSL_TRUSTSTORE_PASS_FILE")"
+export SSL_TRUSTSTORE_PASS
 export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
-export SSL_KEY_PASS="$(genpass)"
 export SSL_STORE_PASS="$SSL_KEY_PASS"
-export SSL_TRUSTSTORE_PASS="$(cat $SSL_TRUSTSTORE_PASS_FILE)"
 
 if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
     SSL_TRUSTSTORE_DIR="/truststore"
@@ -53,12 +56,12 @@ function importTrustStores() {
         return 0
     fi
 
-    for cert in $(find "$SSL_TRUSTSTORE_DIR" -type f); do
+    find "$SSL_TRUSTSTORE_DIR" -type f | while IFS= read -r cert; do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
             -noprompt \
-            -alias "imported-$(basename $cert)" \
+            -alias "imported-$(basename "$cert")" \
             -trustcacerts \
             -keystore "$SSL_TRUSTSTORE" \
             -file "$cert"\
@@ -164,7 +167,7 @@ if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
 fi
 
 CLASSPATH="$( cat /app/jib-classpath-file )"
-if [ -n "CRYOSTAT_CLIENTLIB_PATH" ]; then
+if [ -n "$CRYOSTAT_CLIENTLIB_PATH" ]; then
     CLASSPATH="$CLASSPATH:$CRYOSTAT_CLIENTLIB_PATH/*"
 fi
 
