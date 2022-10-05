@@ -50,11 +50,11 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
@@ -70,7 +70,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private final Vertx vertx;
     private final RuleRegistry ruleRegistry;
-    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingTargetHelper recordings;
     private final DiscoveryStorage storage;
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
@@ -81,7 +81,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             Vertx vertx,
             AuthManager auth,
             RuleRegistry ruleRegistry,
-            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordings,
             DiscoveryStorage storage,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
@@ -90,7 +90,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
         super(auth, gson);
         this.vertx = vertx;
         this.ruleRegistry = ruleRegistry;
-        this.targetConnectionManager = targetConnectionManager;
+        this.recordings = recordings;
         this.storage = storage;
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
@@ -147,61 +147,34 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                 .build()
                 .send();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            vertx.executeBlocking(promise -> {
-                cleanup(rule);
-                promise.complete();
-            });
+            vertx.executeBlocking(
+                    promise -> {
+                        try {
+                            cleanup(rule);
+                            promise.complete();
+                        } catch (Exception e) {
+                            promise.fail(e);
+                        }
+                    });
         }
         return new IntermediateResponse<Void>().body(null);
     }
 
     private void cleanup(Rule rule) {
         for (ServiceRef ref : storage.listDiscoverableServices()) {
-            vertx.<Boolean>executeBlocking(
+            vertx.executeBlocking(
                     promise -> {
                         try {
-                            promise.complete(ruleRegistry.applies(rule, ref));
-                            if (!ruleRegistry.applies(rule, ref)) {
-                                promise.complete(null);
+                            if (ruleRegistry.applies(rule, ref)) {
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(
+                                                ref, credentialsManager.getCredentials(ref));
+                                recordings.stopRecording(cd, rule.getRecordingName());
                             }
-                        } catch (Exception e) {
-                            promise.fail(e);
-                        }
-                    },
-                    false,
-                    result -> {
-                        if (result.failed()) {
-                            logger.error(new RuntimeException(result.cause()));
-                            return;
-                        }
-                        if (!result.result()) {
-                            return;
-                        }
-                        try {
-                            targetConnectionManager.executeConnectedTaskAsync(
-                                    new ConnectionDescriptor(
-                                            ref, credentialsManager.getCredentials(ref)),
-                                    conn -> {
-                                        conn.getService().getAvailableRecordings().stream()
-                                                .filter(
-                                                        rec ->
-                                                                rec.getName()
-                                                                        .equals(
-                                                                                rule
-                                                                                        .getRecordingName()))
-                                                .findFirst()
-                                                .ifPresent(
-                                                        r -> {
-                                                            try {
-                                                                conn.getService().stop(r);
-                                                            } catch (Exception e) {
-                                                                logger.error(e);
-                                                            }
-                                                        });
-                                        return null;
-                                    });
+                            promise.complete();
                         } catch (Exception e) {
                             logger.error(e);
+                            promise.fail(e);
                         }
                     });
         }
