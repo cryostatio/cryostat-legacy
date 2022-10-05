@@ -402,7 +402,8 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     builder.build(),
                                     template.getLeft(),
                                     template.getRight(),
-                                    new Metadata());
+                                    new Metadata(),
+                                    false);
                         });
         try {
             future.handleAsync(

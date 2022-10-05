@@ -89,6 +89,7 @@ public abstract class RecordingsModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             RecordingMetadataManager recordingMetadataManager,
+            RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         return new RecordingTargetHelper(
                 vertx,
@@ -99,6 +100,7 @@ public abstract class RecordingsModule {
                 recordingOptionsBuilderFactory,
                 reportService,
                 recordingMetadataManager,
+                recordingArchiveHelper,
                 logger);
     }
 

@@ -201,6 +201,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
                                 }
+                                boolean archiveOnStop = false;
+                                if (attrs.contains("archiveOnStop")) {
+                                    Pattern bool = Pattern.compile("true|false");
+                                    Matcher m = bool.matcher(attrs.get("archiveOnStop"));
+                                    if (!m.matches())
+                                        throw new HttpException(400, "Invalid options");
+                                    archiveOnStop = Boolean.valueOf(attrs.get("archiveOnStop"));
+                                }
 
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
@@ -211,7 +219,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 builder.build(),
                                                 template.getLeft(),
                                                 template.getRight(),
-                                                metadata);
+                                                metadata,
+                                                archiveOnStop);
 
                                 try {
                                     WebServer webServer = webServerProvider.get();
@@ -222,7 +231,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
                                             recordingMetadataManager.getMetadata(
-                                                    connectionDescriptor, recordingName));
+                                                    connectionDescriptor, recordingName),
+                                            archiveOnStop);
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {

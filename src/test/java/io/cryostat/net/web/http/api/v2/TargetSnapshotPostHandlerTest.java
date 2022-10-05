@@ -53,6 +53,7 @@ import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
@@ -114,7 +115,9 @@ class TargetSnapshotPostHandlerTest {
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        new Metadata(),
+                        false);
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
                 Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
@@ -152,6 +155,7 @@ class TargetSnapshotPostHandlerTest {
         result.put("downloadUrl", "http://example.com/download");
         result.put("reportUrl", "http://example.com/report");
         result.put("metadata", Map.of("labels", Map.of()));
+        result.put("archiveOnStop", false);
         result.put("id", 1.0);
         result.put("name", "snapshot-1");
         result.put("state", "STOPPED");
