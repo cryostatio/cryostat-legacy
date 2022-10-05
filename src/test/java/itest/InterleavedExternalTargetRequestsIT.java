@@ -136,7 +136,6 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         String cryostatJvmId =
                 JvmIdWebRequest.jvmIdRequest(
                         SELF_REFERENCE_TARGET_ID, MultiMap.caseInsensitiveMultiMap());
-        System.out.println("Cryostat JVM ID: " + cryostatJvmId);
         ServiceRef cryostat =
                 new ServiceRef(
                         cryostatJvmId,
@@ -162,9 +161,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             String.format(
                                     "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                     Podman.POD_NAME, 9093 + i));
-            String jvmId =
-                    JvmIdWebRequest.jvmIdRequest(
-                            uri.toString(), MultiMap.caseInsensitiveMultiMap());
+            String jvmId = JvmIdWebRequest.jvmIdRequest(uri, MultiMap.caseInsensitiveMultiMap());
             ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
                     Map.of(
@@ -192,7 +189,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
         deleteInMemoryRecordings();
 
-        verifyInmemoryRecordingsDeleted();
+        verifyInMemoryRecordingsDeleted();
 
         long stop = System.nanoTime();
         long elapsed = stop - start;
@@ -309,7 +306,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void verifyInmemoryRecordingsDeleted() throws Exception {
+    private void verifyInMemoryRecordingsDeleted() throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
         for (int i = 0; i < CONTAINERS.size(); i++) {
             final int fi = i;

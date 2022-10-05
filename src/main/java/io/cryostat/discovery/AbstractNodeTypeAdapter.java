@@ -197,13 +197,19 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                         }
                     }
                     reader.endObject();
-                    if (connectUrl != null) {
-                        jvmId = jvmIdHelper.get().getJvmId(connectUrl.toString());
-                    }
-                    target = new ServiceRef(jvmId, connectUrl, alias);
+
+                    // To prevent Gson recursion, we need to manually construct the ServiceRef with
+                    // a null jvmId and use that ServiceRef object to get the jvmId with correct
+                    // credentials without calling platformClient.listDiscoverableServices() which
+                    // would recurse through this adapter again to getJvmId
+                    target = new ServiceRef(null, connectUrl, alias);
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);
+                    if (connectUrl != null) {
+                        jvmId = jvmIdHelper.get().getJvmId(target);
+                    }
+                    target = new ServiceRef(target, jvmId);
                     break;
                 default:
                     logger.warn("Unexpected token {} at {}", tokenName, reader.getPath());

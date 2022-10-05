@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import itest.bases.StandardSelfTest;
 import itest.util.Utils;
@@ -56,9 +57,7 @@ public class JvmIdWebRequest {
 
     public static String jvmIdRequest(String encodedServiceUri, MultiMap form)
             throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<String> jvmIdFuture = new CompletableFuture<>();
-        System.out.println("Encoded Service URI: " + encodedServiceUri);
-        System.out.println();
+        CompletableFuture<JsonObject> jvmIdFuture = new CompletableFuture<>();
 
         webClient
                 .get(String.format("/api/beta/targets/%s", encodedServiceUri))
@@ -71,10 +70,11 @@ public class JvmIdWebRequest {
                         form,
                         ar -> {
                             if (StandardSelfTest.assertRequestStatus(ar, jvmIdFuture)) {
-                                jvmIdFuture.complete(ar.result().bodyAsString());
+                                jvmIdFuture.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        return jvmIdFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject response = jvmIdFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return response.getJsonObject("data").getString("result");
     }
 
     public static String jvmIdRequest(URI serviceUri, MultiMap form)
