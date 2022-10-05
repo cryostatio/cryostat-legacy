@@ -21,7 +21,7 @@ runCryostat() {
         JDBC_PASSWORD="abcd1234"
         HBM2DDL="update"
     elif [ "$1" = "h2mem" ]; then
-        JDBC_URL="jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as varchar"
+        JDBC_URL="jdbc:h2:mem:cryostat;DB_CLOSE_DELAY=-1;INIT=create domain if not exists jsonb as varchar"
         JDBC_DRIVER="org.h2.Driver"
         JDBC_USERNAME="sa"
         JDBC_PASSWORD=""
@@ -107,8 +107,8 @@ runDemoApps() {
         --name quarkus-test \
         --pod cryostat-pod \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
-        
-    local webPort; 
+
+    local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
         webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
     else
@@ -164,7 +164,7 @@ runJfrDatasource() {
 }
 
 runGrafana() {
-    local stream; local tag; local host; local port; 
+    local stream; local tag; local host; local port;
     stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
     tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
     host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
