@@ -20,8 +20,19 @@ runCryostat() {
         JDBC_USERNAME="postgres"
         JDBC_PASSWORD="abcd1234"
         HBM2DDL="update"
-    elif [ "$1" = "h2file" ]; then
+    elif [ "$1" = "h2mem" ]; then
+        JDBC_URL="jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as varchar"
+        JDBC_DRIVER="org.h2.Driver"
+        JDBC_USERNAME="sa"
+        JDBC_PASSWORD=""
+        HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
+        HBM2DDL="create"
+    else
         JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"
+        JDBC_DRIVER="org.h2.Driver"
+        JDBC_USERNAME="sa"
+        JDBC_PASSWORD=""
+        HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
         HBM2DDL="update"
     fi
 
