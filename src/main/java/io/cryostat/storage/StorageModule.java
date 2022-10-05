@@ -68,8 +68,8 @@ public abstract class StorageModule {
                 "jakarta.persistence.jdbc.url",
                 env.getEnv(
                         Variables.JDBC_URL,
-                        "jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as"
-                                + " varchar"));
+                        "jdbc:h2:mem:cryostat;DB_CLOSE_DELAY=-1;INIT=create domain if not exists"
+                                + " jsonb as varchar"));
         properties.put("jakarta.persistence.jdbc.user", env.getEnv(Variables.JDBC_USERNAME, "sa"));
         properties.put(
                 "jakarta.persistence.jdbc.password", env.getEnv(Variables.JDBC_PASSWORD, ""));
