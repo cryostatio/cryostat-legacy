@@ -60,6 +60,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = new Metadata();
+        this.archiveOnStop = false;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -69,6 +70,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
+        this.archiveOnStop = false;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -107,6 +109,10 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return metadata;
     }
 
+    public Boolean getArchiveOnStop() {
+        return archiveOnStop;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
@@ -130,6 +136,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
                 .append(downloadUrl, descriptor.downloadUrl)
                 .append(reportUrl, descriptor.reportUrl)
                 .append(metadata, descriptor.metadata)
+                .append(archiveOnStop, descriptor.archiveOnStop)
                 .build();
     }
 
@@ -139,6 +146,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)
+                .append(archiveOnStop)
                 .toHashCode();
     }
 }
