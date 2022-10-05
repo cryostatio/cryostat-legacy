@@ -177,7 +177,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                                 return null;
                             });
                 } catch (Exception e) {
-                    logger.error(new ApiException(500, e));
+                    logger.error(e);
                     CleanupFailure failure = new CleanupFailure();
                     failure.ref = ref;
                     failure.message = e.getMessage();
@@ -185,11 +185,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                 }
             }
         }
-        if (failures.size() == 0) {
-            return new IntermediateResponse<List<CleanupFailure>>().body(null);
-        } else {
-            return new IntermediateResponse<List<CleanupFailure>>().statusCode(500).body(failures);
-        }
+        return new IntermediateResponse<List<CleanupFailure>>().body(null);
     }
 
     @SuppressFBWarnings("URF_UNREAD_FIELD")
