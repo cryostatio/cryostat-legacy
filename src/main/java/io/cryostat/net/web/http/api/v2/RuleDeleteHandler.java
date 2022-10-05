@@ -63,7 +63,7 @@ import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 
-class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.CleanupFailure>> {
+class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private static final String DELETE_RULE_CATEGORY = "RuleDeleted";
     static final String PATH = RuleGetHandler.PATH;
@@ -126,7 +126,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
     }
 
     @Override
-    public IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> handle(
+    public IntermediateResponse<Void> handle(
             RequestParameters params) throws ApiException {
         String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         if (!ruleRegistry.hasRuleByName(name)) {
@@ -145,7 +145,6 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                 .message(rule)
                 .build()
                 .send();
-        List<CleanupFailure> failures = new ArrayList<>();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
             for (ServiceRef ref : storage.listDiscoverableServices()) {
                 if (!ruleRegistry.applies(rule, ref)) {
@@ -166,31 +165,16 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                                                     try {
                                                         conn.getService().stop(r);
                                                     } catch (Exception e) {
-                                                        logger.error(new ApiException(500, e));
-                                                        CleanupFailure failure =
-                                                                new CleanupFailure();
-                                                        failure.ref = ref;
-                                                        failure.message = e.getMessage();
-                                                        failures.add(failure);
+                                                        logger.error(e);
                                                     }
                                                 });
                                 return null;
                             });
                 } catch (Exception e) {
                     logger.error(e);
-                    CleanupFailure failure = new CleanupFailure();
-                    failure.ref = ref;
-                    failure.message = e.getMessage();
-                    failures.add(failure);
                 }
             }
         }
-        return new IntermediateResponse<List<CleanupFailure>>().body(null);
-    }
-
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
-    static class CleanupFailure {
-        ServiceRef ref;
-        String message;
+        return new IntermediateResponse<Void>().body(null);
     }
 }

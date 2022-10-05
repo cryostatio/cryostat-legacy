@@ -185,8 +185,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             Mockito.verify(notificationFactory).createBuilder();
@@ -206,7 +205,7 @@ class RuleDeleteHandlerTest {
         }
 
         @Test
-        void shouldRespondWith500ForCleanupFailures() throws Exception {
+        void shouldRespondWith200ForCleanupFailures() throws Exception {
             Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("clean", "true");
@@ -233,18 +232,10 @@ class RuleDeleteHandlerTest {
             Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                     .thenThrow(exception);
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(500));
+            IntermediateResponse<Void> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            RuleDeleteHandler.CleanupFailure failure = new RuleDeleteHandler.CleanupFailure();
-            failure.ref = serviceRef;
-            failure.message = exception.getMessage();
-            List<RuleDeleteHandler.CleanupFailure> actualList = response.getBody();
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            RuleDeleteHandler.CleanupFailure actual = actualList.get(0);
-            MatcherAssert.assertThat(actual.ref, Matchers.sameInstance(serviceRef));
-            MatcherAssert.assertThat(actual.message, Matchers.equalTo(exception.getMessage()));
+            Mockito.verify(logger).error(exception);
         }
 
         @Test
@@ -283,8 +274,7 @@ class RuleDeleteHandlerTest {
 
             Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 
@@ -326,8 +316,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
             Mockito.when(recording.getName()).thenReturn(rule.getRecordingName());
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             Mockito.verify(service).stop(recording);
@@ -335,7 +324,7 @@ class RuleDeleteHandlerTest {
         }
 
         @Test
-        void shouldRespondWith500AfterUnsuccessfulCleanup() throws Exception {
+        void shouldRespondWith200AfterUnsuccessfulCleanup() throws Exception {
             Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("clean", "true");
@@ -376,21 +365,10 @@ class RuleDeleteHandlerTest {
             Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
             Mockito.when(recording.getName()).thenReturn(rule.getRecordingName());
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(500));
+            IntermediateResponse<Void> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            RuleDeleteHandler.CleanupFailure failure = new RuleDeleteHandler.CleanupFailure();
-            failure.ref = serviceRef;
-            failure.message = exception.getMessage();
-            List<RuleDeleteHandler.CleanupFailure> actualList = response.getBody();
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            RuleDeleteHandler.CleanupFailure actual = actualList.get(0);
-            MatcherAssert.assertThat(actual.ref, Matchers.sameInstance(serviceRef));
-            MatcherAssert.assertThat(actual.message, Matchers.equalTo(exception.getMessage()));
-
-            Mockito.verify(service).stop(recording);
-            Mockito.verify(service, Mockito.never()).close(recording);
+            Mockito.verify(logger).error(exception);
         }
     }
 }
