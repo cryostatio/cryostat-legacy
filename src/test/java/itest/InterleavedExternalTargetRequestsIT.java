@@ -156,7 +156,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                         "9091"));
         expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            var uri =
+            URI uri =
                     new URI(
                             String.format(
                                     "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",

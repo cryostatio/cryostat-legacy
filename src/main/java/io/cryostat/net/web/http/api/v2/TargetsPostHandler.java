@@ -167,7 +167,6 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
 
             String jvmId = null;
-            ;
             try {
                 jvmId = jvmIdHelper.getJvmId(uri.toString());
             } catch (JvmIdGetException e) {
@@ -190,8 +189,6 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
-        } catch (JvmIdGetException jige) {
-            throw new ApiException(400, "Couldn't connect to the target", jige);
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {

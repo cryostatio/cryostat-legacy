@@ -230,6 +230,8 @@ public class MockNodeTypeUtil {
                         }
                         reader.endObject();
 
+                        // Class was created to mock out jvmIdHelper without mocking out Gson
+                        // altogether
                         jvmId = "id";
 
                         target = new ServiceRef(jvmId, connectUrl, alias);

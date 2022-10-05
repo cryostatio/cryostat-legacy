@@ -122,8 +122,6 @@ class DiscoveryPostHandler extends AbstractDiscoveryJwtConsumingHandler<Void> {
                     this.uuidFromString.apply(
                             StringUtil.requireNonBlank(ctx.pathParam("id"), "id"));
             String body = ctx.getBodyAsString();
-            logger.info("BODY: {}", body);
-            logger.info("ID: {}", id);
             Set<AbstractNode> nodes =
                     gson.fromJson(
                             StringUtil.requireNonBlank(body, "body"),
