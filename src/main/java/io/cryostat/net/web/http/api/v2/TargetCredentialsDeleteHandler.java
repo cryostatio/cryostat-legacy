@@ -48,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.MatchExpressionValidationException;
@@ -55,6 +56,9 @@ import io.cryostat.rules.MatchExpressionValidationException;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/v2.2/credentials/:id")
 class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = TargetCredentialsPostHandler.PATH;

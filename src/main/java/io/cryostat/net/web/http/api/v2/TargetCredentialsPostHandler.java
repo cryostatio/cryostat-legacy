@@ -51,6 +51,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.MatchExpressionValidationException;
@@ -61,6 +62,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hibernate.exception.ConstraintViolationException;
 
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/v2.2/credentials")
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/credentials";

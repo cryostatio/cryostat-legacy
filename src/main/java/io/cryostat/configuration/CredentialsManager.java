@@ -152,6 +152,7 @@ public class CredentialsManager
         }
     }
 
+    @Deprecated
     public static String targetIdToMatchExpression(String targetId) {
         if (StringUtils.isBlank(targetId)) {
             return null;
@@ -167,8 +168,8 @@ public class CredentialsManager
         return saved.getId();
     }
 
+    @Deprecated
     public int removeCredentials(String matchExpression) throws MatchExpressionValidationException {
-        // TODO refactor this to do a proper query on the DAO
         matchExpressionValidator.validate(matchExpression);
         for (StoredCredentials sc : dao.getAll()) {
             if (Objects.equals(matchExpression, sc.getMatchExpression())) {
