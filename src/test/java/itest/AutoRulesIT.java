@@ -280,7 +280,7 @@ class AutoRulesIT extends ExternalTargetsTest {
 
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
-                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))
                 .putHeader(
                         "X-JMX-Authorization",
                         "Basic "
@@ -365,7 +365,7 @@ class AutoRulesIT extends ExternalTargetsTest {
             // Assert rule applied to both targets
             CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                    .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -406,7 +406,8 @@ class AutoRulesIT extends ExternalTargetsTest {
 
             CompletableFuture<JsonArray> getResponse2 = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9091"))
+                    .get(String.format("/api/v1/targets/%s/recordings",
+                                jmxServiceUrlEncoded.replace("9093", "9091")))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, getResponse2)) {
@@ -461,7 +462,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                     .delete(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
-                                    Podman.POD_NAME + ":9093", expectedRecordingName))
+                                    jmxServiceUrlEncoded, expectedRecordingName))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -489,7 +490,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                     .delete(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
-                                    Podman.POD_NAME + ":9091", expectedRecordingName))
+                                    jmxServiceUrlEncoded.replace("9093", "9091"), expectedRecordingName))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteCryostatRecResponse)) {
@@ -615,7 +616,7 @@ class AutoRulesIT extends ExternalTargetsTest {
             CompletableFuture<JsonArray> getResp = new CompletableFuture<>();
 
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9096"))
+                    .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded2))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -654,7 +655,7 @@ class AutoRulesIT extends ExternalTargetsTest {
 
             CompletableFuture<JsonArray> getResp2 = new CompletableFuture<>();
             webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9096"))
+                    .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded2))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -714,7 +715,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                     .delete(
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s",
-                                    Podman.POD_NAME + ":9096", recordingName))
+                                    jmxServiceUrlEncoded2, recordingName))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
