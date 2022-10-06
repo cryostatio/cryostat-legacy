@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http;
 
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
@@ -181,7 +182,14 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     }
 
     public static boolean isJmxSslFailure(Exception e) {
-        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0;
+        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0
+                && !isServiceTypeFailure(e);
+    }
+
+    /** Check if the exception happened because the port connected to a non-JMX service. */
+    public static boolean isServiceTypeFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0
+                && ExceptionUtils.indexOfType(e, SocketTimeoutException.class) >= 0;
     }
 
     public static boolean isUnknownTargetFailure(Exception e) {
@@ -199,6 +207,9 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         }
         if (isJmxSslFailure(e)) {
             throw new HttpException(502, "Target SSL Untrusted", e);
+        }
+        if (isServiceTypeFailure(e)) {
+            throw new HttpException(504, "Non-JMX Port", e);
         }
     }
 }

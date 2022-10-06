@@ -113,6 +113,9 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
             if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
                 throw new ApiException(502, "Target SSL Untrusted", e);
             }
+            if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+                throw new ApiException(504, "Non-JMX Port", e);
+            }
             throw new ApiException(500, e);
         }
     }

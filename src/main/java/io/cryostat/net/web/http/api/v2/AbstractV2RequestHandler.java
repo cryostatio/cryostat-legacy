@@ -218,5 +218,8 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
             throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
         }
+        if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+            throw new ApiException(504, "Connection Failure", "Non-JMX Port", e);
+        }
     }
 }

@@ -110,6 +110,6 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(500));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(504));
     }
 }
