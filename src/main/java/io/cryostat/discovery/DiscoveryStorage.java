@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +52,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.security.sasl.SaslException;
+
 import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -60,6 +63,7 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
@@ -79,6 +83,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
+    private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
@@ -91,6 +96,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
+            Lazy<JvmIdHelper> jvmIdHelper,
             Gson gson,
             WebClient http,
             Logger logger) {
@@ -98,6 +104,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
         this.dao = dao;
+        this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
         this.http = http;
         this.logger = logger;
@@ -212,8 +219,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     initial.getLabels(),
                                     Map.of(AnnotationKey.REALM.name(), id.toString())),
                             initial.getChildren());
-            logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             PluginInfo updated = dao.update(id, update);
+            logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return updated.getId();
         } catch (Exception e) {
             throw new RegistrationException(realm, callback, e, e.getMessage());
@@ -229,13 +236,37 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
-        Objects.requireNonNull(children, "children");
+        var updatedChildren = new ArrayList<AbstractNode>();
+        for (AbstractNode child : children) {
+            if (child instanceof TargetNode) {
+                System.out.println("Target: " + child);
+                ServiceRef ref = ((TargetNode) child).getTarget();
+                System.out.println(ref.getJvmId());
+                try {
+                    ref = jvmIdHelper.get().resolveId(ref);
+                    System.out.println(ref.getJvmId());
+                } catch (Exception e) {
+                    logger.warn("Failed to resolve jvmId for node {}");
+                    // if Exception is of SSL or JMX Auth 
+                    // ignore warning and use null jvmId
+                    // else, something wrong so 
+                    // continue and don't add child;      
+                    if (!(e.getCause() instanceof SecurityException || e.getCause() instanceof SaslException)) {
+                        logger.info("ignoring target child node {}", child.getName());
+                        continue;
+                    }
+                }
+                child = new TargetNode(child.getNodeType(), ref, child.getLabels()); 
+            }   
+            updatedChildren.add(child);    
+        }
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
-        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
+
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-        plugin = dao.update(id, Objects.requireNonNull(children));
+        plugin = dao.update(id, Objects.requireNonNull(updatedChildren));
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
+        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         Set<TargetNode> previousLeaves = findLeavesFrom(original);
         Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
@@ -252,7 +283,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
-        return original.getChildren();
+        return currentTree.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {

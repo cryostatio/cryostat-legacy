@@ -84,7 +84,6 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     private Integer memoHash;
     private EnvironmentNode memoTree;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final JvmIdHelper jvmIdHelper;
     private final Logger logger;
     private final String namespace;
     private final Map<Pair<String, String>, Pair<HasMetadata, EnvironmentNode>> discoveryNodeCache =
@@ -95,12 +94,10 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             String namespace,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            JvmIdHelper jvmIdHelper,
             Logger logger) {
         this.namespace = namespace;
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;
-        this.jvmIdHelper = jvmIdHelper;
         this.logger = logger;
     }
 
@@ -380,14 +377,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                                 connectionToolkit
                                         .get()
                                         .createServiceURL(addr.getIp(), port.getPort()));
-                String jvmId = null;
-                try {
-                    jvmIdHelper.getJvmId(uri.toString());
-                } catch (JvmIdGetException e) {
-                    logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
-                }
-                ServiceRef serviceRef = new ServiceRef(jvmId, uri, targetName);
-
+                ServiceRef serviceRef = new ServiceRef(null, uri, targetName);
                 if (node.getRight().getNodeType() == KubernetesNodeType.POD) {
                     HasMetadata podRef = node.getLeft();
                     if (podRef != null) {

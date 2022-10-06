@@ -38,7 +38,6 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +56,6 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.recordings.JvmIdHelper;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -70,19 +67,16 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final String namespace;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final JvmIdHelper jvmIdHelper;
     private final Environment env;
     private final Logger logger;
 
     KubeEnvPlatformClient(
             String namespace,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            JvmIdHelper jvmIdHelper,
             Environment env,
             Logger logger) {
         this.namespace = namespace;
         this.connectionToolkit = connectionToolkit;
-        this.jvmIdHelper = jvmIdHelper;
         this.env = env;
         this.logger = logger;
     }
@@ -115,17 +109,13 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            URI uri =
-                    URIUtil.convert(
-                            connectionToolkit.get().createServiceURL(entry.getValue(), port));
-            String jvmId = null;
-            ;
-            try {
-                jvmId = jvmIdHelper.getJvmId(uri.toString());
-            } catch (JvmIdGetException e) {
-                logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
-            }
-            ServiceRef sr = new ServiceRef(jvmId, uri, alias);
+            ServiceRef sr =
+                    new ServiceRef(null,
+                            URIUtil.convert(
+                                    connectionToolkit
+                                            .get()
+                                            .createServiceURL(entry.getValue(), port)),
+                            alias);
             sr.setCryostatAnnotations(
                     Map.of(
                             AnnotationKey.REALM, REALM,

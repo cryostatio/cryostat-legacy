@@ -59,6 +59,7 @@ import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import dagger.Lazy;
 
@@ -143,6 +144,13 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     while (reader.hasNext()) {
                         String targetTokenName = reader.nextName();
                         switch (targetTokenName) {
+                            case "jvmId":
+                                if (reader.peek() == JsonToken.NULL) {
+                                    reader.nextNull();
+                                } else {
+                                    jvmId = reader.nextString();
+                                }
+                                break;
                             case "connectUrl":
                                 try {
                                     connectUrl = new URI(reader.nextString());
@@ -197,18 +205,12 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                         }
                     }
                     reader.endObject();
+                    System.out.println("ABSTRACT NODE TYPE ADAPTER: " + jvmId);
 
-                    // To prevent Gson recursion, we need to manually construct the ServiceRef with
-                    // a null jvmId and use that ServiceRef object to get the jvmId with correct
-                    // credentials without calling platformClient.listDiscoverableServices() which
-                    // would recurse through this adapter again to getJvmId
-                    target = new ServiceRef(null, connectUrl, alias);
+                    target = new ServiceRef(jvmId, connectUrl, alias);
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);
-
-                    jvmId = jvmIdHelper.get().getJvmId(target);
-                    target = new ServiceRef(target, jvmId);
                     break;
                 default:
                     logger.warn("Unexpected token {} at {}", tokenName, reader.getPath());
@@ -257,6 +259,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
 
             writer.name("target").beginObject();
 
+            writer.name("jvmId").value(sr.getJvmId());
             writer.name("connectUrl").value(sr.getServiceUri().toString());
             writer.name("alias").value(sr.getAlias().orElse(sr.getServiceUri().toString()));
             writeMap(writer, "labels", sr.getLabels());

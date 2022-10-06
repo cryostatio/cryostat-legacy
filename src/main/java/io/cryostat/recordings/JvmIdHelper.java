@@ -107,7 +107,37 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                 });
     }
 
-    private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
+    // Get jvmIds for DiscoveryStorage ServiceRefs (throws Exception)
+    private String getIdServiceRef(ServiceRef ref) throws Exception {
+        String targetId = ref.getServiceUri().toString();
+        ConnectionDescriptor cd = new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
+        try {
+            String jvmId = this.targetConnectionManager.executeConnectedTask(
+                    cd,
+                    connection -> {
+                            return connection.getJvmId();
+                    });
+            jvmIdMap.put(targetId, jvmId);
+            return jvmId;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    protected String computeJvmId(ServiceRef ref) {
+        String targetId = ref.getServiceUri().toString();
+        try {
+            ConnectionDescriptor desc =
+                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
+            return compute(desc);
+        } catch (Exception e) {
+            logger.warn(e);
+            return null;
+        }
+    }
+
+    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
+        String targetId = connectionDescriptor.getTargetId();
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)

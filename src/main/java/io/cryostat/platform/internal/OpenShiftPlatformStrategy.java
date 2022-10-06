@@ -57,7 +57,6 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
 
     private final Logger logger;
     private final AuthManager authMgr;
-    private final JvmIdHelper jvmIdHelper;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private OpenShiftClient osClient;
@@ -65,12 +64,10 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
-            JvmIdHelper jvmIdHelper,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
-        this.jvmIdHelper = jvmIdHelper;
         this.fs = fs;
         try {
             this.osClient = new DefaultOpenShiftClient();
@@ -109,7 +106,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
         return new KubeApiPlatformClient(
-                getNamespace(), osClient, connectionToolkit, jvmIdHelper, logger);
+                getNamespace(), osClient, connectionToolkit, logger);
     }
 
     @Override

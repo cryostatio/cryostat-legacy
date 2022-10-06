@@ -60,8 +60,6 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.recordings.JvmIdHelper;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 public class DefaultPlatformClient extends AbstractPlatformClient
@@ -72,13 +70,10 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
     private final Logger logger;
-    private final JvmIdHelper jvmIdHelper;
     private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformClient(
-            Logger logger, JvmIdHelper jvmIdHelper, JvmDiscoveryClient discoveryClient) {
+    DefaultPlatformClient(Logger logger, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
-        this.jvmIdHelper = jvmIdHelper;
         this.discoveryClient = discoveryClient;
     }
 
@@ -120,18 +115,10 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                 .collect(Collectors.toList());
     }
 
-    private ServiceRef convert(DiscoveredJvmDescriptor desc)
+    private static ServiceRef convert(DiscoveredJvmDescriptor desc)
             throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
-        String jvmId = null;
-        ;
-        try {
-            jvmId = jvmIdHelper.getJvmId(serviceUrl.toString());
-        } catch (JvmIdGetException e) {
-            logger.warn("Couldn't put jvmId in serviceRef for {}", serviceUrl.toString());
-        }
-        ServiceRef serviceRef =
-                new ServiceRef(jvmId, URIUtil.convert(serviceUrl), desc.getMainClass());
+        ServiceRef serviceRef = new ServiceRef(null, URIUtil.convert(serviceUrl), desc.getMainClass());
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(

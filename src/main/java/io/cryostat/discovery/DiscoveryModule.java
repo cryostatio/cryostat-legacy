@@ -90,10 +90,11 @@ public abstract class DiscoveryModule {
             @Named(DISCOVERY_PING_DURATION) Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
+            Lazy<JvmIdHelper> jvmIdHelper,
             Gson gson,
             WebClient http,
             Logger logger) {
-        return new DiscoveryStorage(deployer, pingPeriod, builtin, dao, gson, http, logger);
+        return new DiscoveryStorage(deployer, pingPeriod, builtin, dao, jvmIdHelper, gson, http, logger);
     }
 
     @Provides

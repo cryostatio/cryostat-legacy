@@ -74,15 +74,6 @@ public class ServiceRef {
         this.annotations = new Annotations(sr.annotations);
     }
 
-    // Used only in AbstractNodeTypeAdapter
-    public ServiceRef(ServiceRef sr, String jvmId) {
-        this.jvmId = jvmId;
-        this.serviceUri = sr.serviceUri;
-        this.alias = sr.alias;
-        this.labels = new HashMap<String, String>(sr.labels);
-        this.annotations = new Annotations(sr.annotations);
-    }
-
     public String getJvmId() {
         return jvmId;
     }

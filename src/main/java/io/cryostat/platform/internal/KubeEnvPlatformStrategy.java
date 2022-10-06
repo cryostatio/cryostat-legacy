@@ -45,7 +45,6 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
-import io.cryostat.recordings.JvmIdHelper;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -53,24 +52,21 @@ import io.fabric8.kubernetes.client.Config;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
 
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final FileSystem fs;
     private final AuthManager authMgr;
-    private final JvmIdHelper jvmIdHelper;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Environment env;
 
     KubeEnvPlatformStrategy(
             Logger logger,
             FileSystem fs,
             AuthManager authMgr,
-            JvmIdHelper jvmIdHelper,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env) {
         this.logger = logger;
         this.fs = fs;
         this.authMgr = authMgr;
-        this.jvmIdHelper = jvmIdHelper;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
     }
@@ -89,8 +85,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(
-                getNamespace(), connectionToolkit, jvmIdHelper, env, logger);
+        return new KubeEnvPlatformClient(getNamespace(), connectionToolkit, env, logger);
     }
 
     @Override
