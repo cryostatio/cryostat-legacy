@@ -57,7 +57,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 @DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
+        deprecated = @Deprecated(forRemoval = false),
         alternateLocation = "/api/v2.2/credentials")
 class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
 

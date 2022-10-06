@@ -63,7 +63,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hibernate.exception.ConstraintViolationException;
 
 @DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
+        deprecated = @Deprecated(forRemoval = false),
         alternateLocation = "/api/v2.2/credentials")
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
