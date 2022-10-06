@@ -320,7 +320,7 @@ user2=def987
 ```
 Where `abc123` and `def987` are substituted for the SHA-256 sum hexes of the
 desired user passwords. These can be obtained by ex.
-`echo -n PASS | sha256sum | cut -d' ' -f1'`.
+`echo -n PASS | sha256sum | cut -d' ' -f1`.
 
 Token-based auth managers expect an HTTP `Authorization: Bearer TOKEN` header
 and a

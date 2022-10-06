@@ -744,7 +744,7 @@ public class RecordingArchiveHelper {
         try {
             return Files.size(getRecordingPath(recordingName).get());
         } catch (IOException | InterruptedException | ExecutionException e) {
-            logger.error("Invalid path: ", recordingName);
+            logger.error("Invalid path: {}", recordingName);
             return 0;
         }
     }

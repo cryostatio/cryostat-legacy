@@ -150,7 +150,9 @@ class PeriodicArchiver implements Runnable {
     }
 
     private void pruneArchive(String recordingName) throws Exception {
-        recordingArchiveHelper.deleteRecording(recordingName).get();
+        recordingArchiveHelper
+                .deleteRecording(serviceRef.getServiceUri().toString(), recordingName)
+                .get();
         previousRecordings.remove(recordingName);
     }
 
