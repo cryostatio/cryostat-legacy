@@ -98,7 +98,6 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
             plugin.setSubtree(gson.toJson(subtree));
             entityManager.merge(plugin);
             transaction.commit();
-            entityManager.detach(plugin);
 
             return plugin;
         } catch (Exception e) {
@@ -130,7 +129,6 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
             plugin.setSubtree(gson.toJson(subtree));
             entityManager.merge(plugin);
             transaction.commit();
-            entityManager.detach(plugin);
 
             return plugin;
         } catch (Exception e) {
