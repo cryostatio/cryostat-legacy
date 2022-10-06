@@ -108,10 +108,10 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
                 throw new ApiException(427, "JMX Authentication Failure", e);
             }
             if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
-                throw new HttpException(404, "Target Not Found", e);
+                throw new ApiException(404, "Target Not Found", e);
             }
             if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
-                throw new HttpException(502, "Target SSL Untrusted", e);
+                throw new ApiException(502, "Target SSL Untrusted", e);
             }
             throw new ApiException(500, e);
         }
