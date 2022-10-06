@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,7 +70,6 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.rules.ArchivedRecordingInfo;
 
 import dagger.Lazy;
 import io.vertx.core.Handler;
@@ -102,8 +102,7 @@ public class RecordingTargetHelper {
     private final ReportService reportService;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
-    private final Map<Pair<String, String>, Long> scheduledStopNotifications;
-    private final Map<Pair<String, String>, Long> scheduledRecordingArchive;
+    private final Map<Pair<String, String>, Long> scheduledRecordingTasks;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     RecordingTargetHelper(
@@ -127,8 +126,7 @@ public class RecordingTargetHelper {
         this.recordingMetadataManager = recordingMetadataManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.logger = logger;
-        this.scheduledStopNotifications = new ConcurrentHashMap<>();
-        this.scheduledRecordingArchive = new ConcurrentHashMap<>();
+        this.scheduledRecordingTasks = new ConcurrentHashMap<>();
     }
 
     public List<IRecordingDescriptor> getRecordings(ConnectionDescriptor connectionDescriptor)
@@ -200,12 +198,8 @@ public class RecordingTargetHelper {
                         Long delay =
                                 Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
 
-                        scheduleRecordingStopNotification(
-                                recordingName, delay, connectionDescriptor);
-
-                        if (archiveOnStop) {
-                            scheduleRecordingArchive(recordingName, delay, connectionDescriptor);
-                        }
+                        scheduleRecordingTasks(
+                                recordingName, delay, connectionDescriptor, archiveOnStop);
                     }
 
                     return desc;
@@ -311,7 +305,7 @@ public class RecordingTargetHelper {
                             return d;
                         }
                         connection.getService().stop(d);
-                        this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                        this.cancelScheduledTasksIfExists(targetId, recordingName);
                         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         d,
@@ -460,9 +454,7 @@ public class RecordingTargetHelper {
                                     IRecordingDescriptor d = descriptor.get();
                                     connection.getService().close(d);
                                     reportService.delete(connectionDescriptor, recordingName);
-                                    this.cancelScheduledNotificationIfExists(
-                                            targetId, recordingName);
-                                    this.cancelScheduledRecordingArchive(targetId, recordingName);
+                                    this.cancelScheduledTasksIfExists(targetId, recordingName);
                                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                             new HyperlinkedSerializableRecordingDescriptor(
                                                     d,
@@ -512,17 +504,9 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName)
+    private void cancelScheduledTasksIfExists(String targetId, String stoppedRecordingName)
             throws IOException {
-        Long id = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
-        if (id != null) {
-            this.vertx.cancelTimer(id);
-        }
-    }
-
-    private void cancelScheduledRecordingArchive(String targetId, String stoppedRecordingName)
-            throws IOException {
-        Long id = scheduledRecordingArchive.remove(Pair.of(targetId, stoppedRecordingName));
+        Long id = scheduledRecordingTasks.remove(Pair.of(targetId, stoppedRecordingName));
         if (id != null) {
             this.vertx.cancelTimer(id);
         }
@@ -582,8 +566,11 @@ public class RecordingTargetHelper {
         return builder.build();
     }
 
-    private void scheduleRecordingStopNotification(
-            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
+    private void scheduleRecordingTasks(
+            String recordingName,
+            long delay,
+            ConnectionDescriptor connectionDescriptor,
+            boolean archiveOnStop) {
         String targetId = connectionDescriptor.getTargetId();
 
         Handler<Promise<HyperlinkedSerializableRecordingDescriptor>> promiseHandler =
@@ -643,79 +630,22 @@ public class RecordingTargetHelper {
                                                 ((HyperlinkedSerializableRecordingDescriptor)
                                                         result.result()),
                                                 STOP_NOTIFICATION_CATEGORY);
-                                    });
-                        });
-
-        scheduledStopNotifications.put(Pair.of(targetId, recordingName), task);
-    }
-
-    private void scheduleRecordingArchive(
-            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
-        String targetId = connectionDescriptor.getTargetId();
-
-        Handler<Promise<ArchivedRecordingInfo>> promiseHandler =
-                promise -> {
-                    try {
-                        ArchivedRecordingInfo archived =
-                                targetConnectionManager.executeConnectedTask(
-                                        connectionDescriptor,
-                                        connection -> {
-                                            Optional<IRecordingDescriptor> desc =
-                                                    getDescriptorByName(connection, recordingName);
-
-                                            desc =
-                                                    desc.stream()
-                                                            .filter(
-                                                                    r ->
-                                                                            r.getState()
-                                                                                    .equals(
-                                                                                            RecordingState
-                                                                                                    .STOPPED))
-                                                            .findFirst();
-                                            if (desc.isPresent()) {
-                                                String name = desc.get().getName();
-                                                HyperlinkedSerializableRecordingDescriptor linked =
-                                                        new HyperlinkedSerializableRecordingDescriptor(
-                                                                desc.get(),
-                                                                webServer
-                                                                        .get()
-                                                                        .getDownloadURL(
-                                                                                connection, name),
-                                                                webServer
-                                                                        .get()
-                                                                        .getReportURL(
-                                                                                connection, name));
-
-                                                ArchivedRecordingInfo archivedRecording =
-                                                        recordingArchiveHelper
-                                                                .saveRecording(
-                                                                        connectionDescriptor, name)
-                                                                .get();
-
-                                                return archivedRecording;
+                                        if (archiveOnStop) {
+                                            try {
+                                                recordingArchiveHelper
+                                                        .saveRecording(
+                                                                connectionDescriptor, recordingName)
+                                                        .get();
+                                            } catch (InterruptedException | ExecutionException e) {
+                                                logger.error(
+                                                        "Failed to archive the active recording: "
+                                                                + e);
                                             }
-                                            return null;
-                                        });
-                        promise.complete(archived);
-                    } catch (Exception e) {
-                        promise.fail(e);
-                    }
-                };
-        long task =
-                this.vertx.setTimer(
-                        delay + TIMESTAMP_DRIFT_SAFEGUARD,
-                        id -> {
-                            vertx.executeBlocking(
-                                    promiseHandler,
-                                    false,
-                                    result -> {
-                                        if (result.failed()) {
-                                            return;
                                         }
                                     });
                         });
 
-        scheduledRecordingArchive.put(Pair.of(targetId, recordingName), task);
+        scheduledRecordingTasks.put(Pair.of(targetId, recordingName), task);
     }
 
     /**

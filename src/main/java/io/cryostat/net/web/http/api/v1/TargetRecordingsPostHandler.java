@@ -44,8 +44,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -182,11 +180,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                             Long.parseLong(attrs.get("duration"))));
                                 }
                                 if (attrs.contains("toDisk")) {
-                                    Pattern bool = Pattern.compile("true|false");
-                                    Matcher m = bool.matcher(attrs.get("toDisk"));
-                                    if (!m.matches())
+                                    if (attrs.get("toDisk").equals("true")
+                                            || attrs.get("toDisk").equals("false")) {
+                                        builder =
+                                                builder.toDisk(
+                                                        Boolean.valueOf(attrs.get("toDisk")));
+                                    } else {
                                         throw new HttpException(400, "Invalid options");
-                                    builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
+                                    }
                                 }
                                 if (attrs.contains("maxAge")) {
                                     builder = builder.maxAge(Long.parseLong(attrs.get("maxAge")));
@@ -203,11 +204,12 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 }
                                 boolean archiveOnStop = false;
                                 if (attrs.contains("archiveOnStop")) {
-                                    Pattern bool = Pattern.compile("true|false");
-                                    Matcher m = bool.matcher(attrs.get("archiveOnStop"));
-                                    if (!m.matches())
+                                    if (attrs.get("archiveOnStop").equals("true")
+                                            || attrs.get("archiveOnStop").equals("false")) {
+                                        archiveOnStop = Boolean.valueOf(attrs.get("archiveOnStop"));
+                                    } else {
                                         throw new HttpException(400, "Invalid options");
-                                    archiveOnStop = Boolean.valueOf(attrs.get("archiveOnStop"));
+                                    }
                                 }
 
                                 Pair<String, TemplateType> template =

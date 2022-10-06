@@ -51,7 +51,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     protected String downloadUrl;
     protected String reportUrl;
     protected Metadata metadata;
-    protected Boolean archiveOnStop;
+    protected boolean archiveOnStop;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -78,7 +78,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
             String downloadUrl,
             String reportUrl,
             Metadata metadata,
-            Boolean archiveOnStop)
+            boolean archiveOnStop)
             throws QuantityConversionException {
         super(original);
         this.downloadUrl = downloadUrl;
@@ -109,7 +109,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         return metadata;
     }
 
-    public Boolean getArchiveOnStop() {
+    public boolean getArchiveOnStop() {
         return archiveOnStop;
     }
 
