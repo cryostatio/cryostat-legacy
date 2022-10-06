@@ -49,17 +49,15 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportsModule;
 
-import io.vertx.core.Vertx;
-
 public class JvmIdHelper {
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final Logger logger;
 
+    // FIXME replace this map with a Caffeine async loading cache
     private final Map<String, String> jvmIdMap;
 
     JvmIdHelper(
-            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,

@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -154,7 +155,6 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
-            Vertx vertx,
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
@@ -182,7 +182,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    vertx,
+                    ForkJoinPool.commonPool(),
                     metadataDir,
                     archivedRecordingsPath,
                     connectionTimeoutSeconds,

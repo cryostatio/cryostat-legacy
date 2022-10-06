@@ -47,6 +47,8 @@ import java.util.Map;
 
 import javax.inject.Provider;
 
+import io.cryostat.DirectExecutorService;
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -79,7 +81,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class RecordingMetadataManagerTest {
 
     RecordingMetadataManager recordingMetadataManager;
-    Vertx vertx;
+    Vertx vertx = MockVertx.vertx();
 
     @Mock Path recordingMetadataDir;
     @Mock Path archivedRecordingsPath;
@@ -117,7 +119,7 @@ public class RecordingMetadataManagerTest {
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
-                        vertx,
+                        new DirectExecutorService(),
                         recordingMetadataDir,
                         archivedRecordingsPath,
                         30,
@@ -131,6 +133,7 @@ public class RecordingMetadataManagerTest {
                         gson,
                         base32,
                         logger);
+        this.recordingMetadataManager.init(vertx, null);
     }
 
     @Test
