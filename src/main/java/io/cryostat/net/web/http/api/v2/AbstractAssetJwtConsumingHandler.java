@@ -44,7 +44,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.rmi.ConnectIOException;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Objects;
@@ -52,9 +51,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
 import javax.script.ScriptException;
-import javax.security.sasl.SaslException;
-
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -71,7 +67,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.vertx.ext.web.handler.HttpException;
 
 public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
 
@@ -101,26 +97,24 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
         try {
             JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
-        } catch (ConnectionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SecurityException || cause instanceof SaslException) {
+        } catch (ApiException | HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)) {
                 ctx.response()
                         .putHeader(
                                 AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
                                 "Basic");
                 throw new ApiException(427, "JMX Authentication Failure", e);
             }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new ApiException(502, "Target SSL Untrusted", e);
-            }
-            if (rootCause instanceof UnknownHostException) {
+            if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
                 throw new ApiException(404, "Target Not Found", e);
             }
-            throw new ApiException(500, e);
-        } catch (Exception e) {
-            if (e instanceof ApiException) {
-                throw (ApiException) e;
+            if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+                throw new ApiException(502, "Target SSL Untrusted", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+                throw new ApiException(504, "Non-JMX Port", e);
             }
             throw new ApiException(500, e);
         }

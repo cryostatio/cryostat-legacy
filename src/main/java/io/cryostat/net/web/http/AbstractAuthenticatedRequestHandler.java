@@ -37,26 +37,30 @@
  */
 package io.cryostat.net.web.http;
 
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.naming.ServiceUnavailableException;
 import javax.script.ScriptException;
 import javax.security.sasl.SaslException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.web.http.api.v2.ApiException;
 
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
@@ -96,21 +100,15 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
             handleAuthenticated(ctx);
-        } catch (ExecutionException ee) {
-            if (isAuthFailure(ee)) {
-                throw new HttpException(401, "HTTP Authorization Failure", ee);
-            }
-            Throwable cause = ee.getCause();
-            if (cause instanceof ConnectionException) {
-                handleConnectionException(ctx, (ConnectionException) cause);
-            }
-            throw new HttpException(500, ee.getMessage(), ee);
-        } catch (HttpException e) {
+        } catch (ApiException | HttpException e) {
             throw e;
-        } catch (ConnectionException e) {
-            handleConnectionException(ctx, e);
-            throw new HttpException(500, e.getMessage(), e);
         } catch (Exception e) {
+            if (isAuthFailure(e)) {
+                throw new HttpException(401, "HTTP Authorization Failure", e);
+            }
+            if (isTargetConnectionFailure(e)) {
+                handleConnectionException(ctx, e);
+            }
             throw new HttpException(500, e.getMessage(), e);
         }
     }
@@ -165,25 +163,53 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         }
     }
 
-    private boolean isAuthFailure(ExecutionException e) {
+    public static boolean isTargetConnectionFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, ConnectionException.class) >= 0
+                || ExceptionUtils.indexOfType(e, FlightRecorderException.class) >= 0;
+    }
+
+    public static boolean isAuthFailure(Exception e) {
         // Check if the Exception has a PermissionDeniedException or KubernetesClientException
         // in its cause chain
         return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
+                || ExceptionUtils.indexOfType(e, AuthorizationErrorException.class) >= 0
                 || ExceptionUtils.indexOfType(e, KubernetesClientException.class) >= 0;
     }
 
-    private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof SecurityException || cause instanceof SaslException) {
+    public static boolean isJmxAuthFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, SecurityException.class) >= 0
+                || ExceptionUtils.indexOfType(e, SaslException.class) >= 0;
+    }
+
+    public static boolean isJmxSslFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0
+                && !isServiceTypeFailure(e);
+    }
+
+    /** Check if the exception happened because the port connected to a non-JMX service. */
+    public static boolean isServiceTypeFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0
+                && ExceptionUtils.indexOfType(e, SocketTimeoutException.class) >= 0;
+    }
+
+    public static boolean isUnknownTargetFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, UnknownHostException.class) >= 0
+                || ExceptionUtils.indexOfType(e, ServiceUnavailableException.class) >= 0;
+    }
+
+    private void handleConnectionException(RoutingContext ctx, Exception e) {
+        if (isJmxAuthFailure(e)) {
             ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
             throw new HttpException(427, "JMX Authentication Failure", e);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
+        if (isUnknownTargetFailure(e)) {
+            throw new HttpException(404, "Target Not Found", e);
+        }
+        if (isJmxSslFailure(e)) {
             throw new HttpException(502, "Target SSL Untrusted", e);
         }
-        if (rootCause instanceof UnknownHostException) {
-            throw new HttpException(404, "Target Not Found", e);
+        if (isServiceTypeFailure(e)) {
+            throw new HttpException(504, "Non-JMX Port", e);
         }
     }
 }
