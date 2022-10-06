@@ -514,17 +514,21 @@
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
-              <argument>JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"</argument>
+              <argument>CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=${cryostat.itest.jmx.db-passwd}</argument>
               <argument>--env</argument>
-              <argument>JDBC_DRIVER=org.h2.Driver</argument>
+              <argument>CRYOSTAT_JDBC_URL=jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar</argument>
               <argument>--env</argument>
-              <argument>JDBC_USERNAME=sa</argument>
+              <argument>CRYOSTAT_JDBC_DRIVER=org.h2.Driver</argument>
               <argument>--env</argument>
-              <argument>JDBC_PASSWORD=""</argument>
+              <argument>CRYOSTAT_JDBC_USERNAME=sa</argument>
               <argument>--env</argument>
-              <argument>HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect</argument>
+              <argument>CRYOSTAT_JDBC_PASSWORD=""</argument>
               <argument>--env</argument>
-              <argument>HBM2DDL=update</argument>
+              <argument>CRYOSTAT_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_HBM2DDL=update</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_LOG_DB_QUERIES=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=true</argument>
               <argument>--env</argument>
@@ -533,8 +537,6 @@
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=${cryostat.itest.jmx.db-passwd}</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
