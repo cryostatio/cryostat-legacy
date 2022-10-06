@@ -40,10 +40,8 @@ package io.cryostat.net.web.http.api.v2;
 import static io.cryostat.util.StringUtil.requireNonBlank;
 
 import java.io.File;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.rmi.ConnectIOException;
 import java.util.Base64;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -66,7 +64,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
@@ -215,11 +212,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
             throw new ApiException(427, "Authentication Failure", "JMX Authentication Failure", e);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
-            throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
-        } else if (rootCause instanceof UnknownHostException) {
+        if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
             throw new ApiException(404, "Connection Failure", "Target Not Found", e);
+        }
+        if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+            throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
         }
     }
 }

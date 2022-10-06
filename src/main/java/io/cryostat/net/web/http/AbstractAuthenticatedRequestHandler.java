@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.naming.ServiceUnavailableException;
 import javax.script.ScriptException;
 import javax.security.sasl.SaslException;
 
@@ -179,17 +180,25 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                 || ExceptionUtils.indexOfType(e, SaslException.class) >= 0;
     }
 
+    public static boolean isJmxSslFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, ConnectIOException.class) >= 0;
+    }
+
+    public static boolean isUnknownTargetFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, UnknownHostException.class) >= 0
+                || ExceptionUtils.indexOfType(e, ServiceUnavailableException.class) >= 0;
+    }
+
     private void handleConnectionException(RoutingContext ctx, Exception e) {
         if (isJmxAuthFailure(e)) {
             ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
             throw new HttpException(427, "JMX Authentication Failure", e);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
-            throw new HttpException(502, "Target SSL Untrusted", e);
-        }
-        if (rootCause instanceof UnknownHostException) {
+        if (isUnknownTargetFailure(e)) {
             throw new HttpException(404, "Target Not Found", e);
+        }
+        if (isJmxSslFailure(e)) {
+            throw new HttpException(502, "Target SSL Untrusted", e);
         }
     }
 }

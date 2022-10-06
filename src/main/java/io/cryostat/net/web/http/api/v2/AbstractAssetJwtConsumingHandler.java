@@ -44,7 +44,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.rmi.ConnectIOException;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Objects;
@@ -69,7 +68,6 @@ import com.nimbusds.jwt.proc.BadJWTException;
 import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
 
@@ -109,12 +107,11 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
                                 "Basic");
                 throw new ApiException(427, "JMX Authentication Failure", e);
             }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new ApiException(502, "Target SSL Untrusted", e);
+            if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
+                throw new HttpException(404, "Target Not Found", e);
             }
-            if (rootCause instanceof UnknownHostException) {
-                throw new ApiException(404, "Target Not Found", e);
+            if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+                throw new HttpException(502, "Target SSL Untrusted", e);
             }
             throw new ApiException(500, e);
         }
