@@ -37,11 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -115,11 +114,14 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         int id = Integer.parseInt(params.getPathParams().get("id"));
-        try {
-            int numMatchingTargets = credentialsManager.resolveMatchingTargets(id).size();
-            String matchExpression = credentialsManager.get(id);
-            this.credentialsManager.delete(id);
+        Optional<String> matchExpression = credentialsManager.get(id);
+        if (matchExpression.isEmpty()) {
+            return new IntermediateResponse<Void>().statusCode(404);
+        }
 
+        String expr = matchExpression.get();
+        int numMatchingTargets = credentialsManager.resolveMatchingTargets(expr).size();
+        if (this.credentialsManager.delete(id)) {
             notificationFactory
                     .createBuilder()
                     .metaCategory("CredentialsDeleted")
@@ -129,18 +131,13 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
                                     "id",
                                     id,
                                     "matchExpression",
-                                    matchExpression,
+                                    expr,
                                     "numMatchingTargets",
                                     numMatchingTargets))
                     .build()
                     .send();
-
             return new IntermediateResponse<Void>().statusCode(200);
-        } catch (FileNotFoundException e) {
-            throw new ApiException(404, e);
-        } catch (IOException e) {
-            throw new ApiException(
-                    500, "IOException occurred while clearing persisted credentials", e);
         }
+        throw new ApiException(500);
     }
 }

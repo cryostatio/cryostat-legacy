@@ -76,7 +76,6 @@ class Cryostat extends AbstractVerticle {
 
         try {
             client.credentialsManager().migrate();
-            client.credentialsManager().load();
             client.ruleRegistry().loadRules();
         } catch (Exception e) {
             logger.error(e);

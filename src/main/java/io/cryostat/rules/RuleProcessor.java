@@ -199,20 +199,15 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             public void onEvent(Event<CredentialsEvent, String> event) {
                 switch (event.getEventType()) {
                     case ADDED:
-                        try {
-                            for (ServiceRef servicesRef :
-                                    credentialsManager.resolveMatchingTargets(event.getPayload())) {
-                                registry.getRules(servicesRef)
-                                        .forEach(
-                                                rule -> {
-                                                    if (rule.isEnabled()) {
-                                                        activate(rule, servicesRef);
-                                                    }
-                                                });
-                            }
-                        } catch (IOException e) {
-                            logger.error(e);
-                        }
+                        credentialsManager
+                                .resolveMatchingTargets(event.getPayload())
+                                .forEach(
+                                        sr ->
+                                                registry.getRules(sr).stream()
+                                                        .filter(Rule::isEnabled)
+                                                        .forEach(rule -> activate(rule, sr)));
+                        break;
+                    case REMOVED:
                         break;
                     default:
                         throw new UnsupportedOperationException(event.getEventType().toString());
@@ -242,86 +237,80 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
-
-        if (rule.isEnabled()) {
-            this.logger.trace(
-                    "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
-
-            vertx.<Credentials>executeBlocking(
-                            promise -> {
-                                try {
-                                    Credentials creds =
-                                            credentialsManager.getCredentials(serviceRef);
-                                    promise.complete(creds);
-                                } catch (IOException | ScriptException e) {
-                                    promise.fail(e);
-                                }
-                            })
-                    .onSuccess(c -> logger.trace("Rule activation successful"))
-                    .onSuccess(
-                            credentials -> {
-                                if (rule.isArchiver()) {
-                                    try {
-                                        archiveRuleRecording(
-                                                new ConnectionDescriptor(serviceRef, credentials),
-                                                rule);
-                                    } catch (Exception e) {
-                                        logger.error(e);
-                                    }
-                                } else {
-                                    try {
-                                        startRuleRecording(
-                                                new ConnectionDescriptor(serviceRef, credentials),
-                                                rule);
-                                    } catch (Exception e) {
-                                        logger.error(e);
-                                    }
-
-                                    PeriodicArchiver periodicArchiver =
-                                            periodicArchiverFactory.create(
-                                                    serviceRef,
-                                                    credentialsManager,
-                                                    rule,
-                                                    recordingArchiveHelper,
-                                                    this::archivalFailureHandler);
-                                    Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
-                                    Set<Long> ids =
-                                            tasks.computeIfAbsent(key, k -> new HashSet<>());
-                                    long initialTask =
-                                            vertx.setTimer(
-                                                    Duration.ofSeconds(
-                                                                    rule.getInitialDelaySeconds())
-                                                            .toMillis(),
-                                                    initialId -> {
-                                                        tasks.get(key).remove(initialId);
-                                                        periodicArchiver.run();
-                                                        if (rule.getPreservedArchives() <= 0
-                                                                || rule.getArchivalPeriodSeconds()
-                                                                        <= 0) {
-                                                            return;
-                                                        }
-                                                        long periodicTask =
-                                                                vertx.setPeriodic(
-                                                                        Duration.ofSeconds(
-                                                                                        rule
-                                                                                                .getArchivalPeriodSeconds())
-                                                                                .toMillis(),
-                                                                        periodicId ->
-                                                                                periodicArchiver
-                                                                                        .run());
-                                                        ids.add(periodicTask);
-                                                    });
-                                    ids.add(initialTask);
-                                }
-                            });
-
-        } else {
+        if (!rule.isEnabled()) {
             this.logger.trace(
                     "Activating rule {} for target {} aborted, rule is disabled {} ",
                     rule.getName(),
                     serviceRef.getServiceUri(),
                     rule.isEnabled());
+            return;
         }
+        this.logger.trace(
+                "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
+
+        vertx.<Credentials>executeBlocking(
+                        promise -> {
+                            try {
+                                Credentials creds = credentialsManager.getCredentials(serviceRef);
+                                promise.complete(creds);
+                            } catch (ScriptException e) {
+                                promise.fail(e);
+                            }
+                        })
+                .onSuccess(c -> logger.trace("Rule activation successful"))
+                .onSuccess(
+                        credentials -> {
+                            if (rule.isArchiver()) {
+                                try {
+                                    archiveRuleRecording(
+                                            new ConnectionDescriptor(serviceRef, credentials),
+                                            rule);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+                            } else {
+                                try {
+                                    startRuleRecording(
+                                            new ConnectionDescriptor(serviceRef, credentials),
+                                            rule);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+
+                                PeriodicArchiver periodicArchiver =
+                                        periodicArchiverFactory.create(
+                                                serviceRef,
+                                                credentialsManager,
+                                                rule,
+                                                recordingArchiveHelper,
+                                                this::archivalFailureHandler);
+                                Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
+                                Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
+                                long initialTask =
+                                        vertx.setTimer(
+                                                Duration.ofSeconds(rule.getInitialDelaySeconds())
+                                                        .toMillis(),
+                                                initialId -> {
+                                                    tasks.get(key).remove(initialId);
+                                                    periodicArchiver.run();
+                                                    if (rule.getPreservedArchives() <= 0
+                                                            || rule.getArchivalPeriodSeconds()
+                                                                    <= 0) {
+                                                        return;
+                                                    }
+                                                    long periodicTask =
+                                                            vertx.setPeriodic(
+                                                                    Duration.ofSeconds(
+                                                                                    rule
+                                                                                            .getArchivalPeriodSeconds())
+                                                                            .toMillis(),
+                                                                    periodicId ->
+                                                                            periodicArchiver.run());
+                                                    ids.add(periodicTask);
+                                                });
+                                ids.add(initialTask);
+                            }
+                        });
     }
 
     private void deactivate(Rule rule, ServiceRef serviceRef) {

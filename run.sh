@@ -53,6 +53,10 @@ if [ ! -d "$(dirname "$0")/archive" ]; then
     mkdir "$(dirname "$0")/archive"
 fi
 
+if [ -z "$CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD" ]; then
+    CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+fi
+
 if [ ! -d "$(dirname "$0")/conf" ]; then
     mkdir "$(dirname "$0")/conf"
 fi
@@ -136,6 +140,7 @@ podman run \
     -e CRYOSTAT_JDBC_URL="$CRYOSTAT_JDBC_URL" \
     -e CRYOSTAT_JDBC_USERNAME="$CRYOSTAT_JDBC_USERNAME" \
     -e CRYOSTAT_JDBC_PASSWORD="$CRYOSTAT_JDBC_PASSWORD" \
+    -e CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD="$CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD" \
     -e CRYOSTAT_HIBERNATE_DIALECT="$CRYOSTAT_HIBERNATE_DIALECT" \
     -e CRYOSTAT_HBM2DDL="$CRYOSTAT_HBM2DDL" \
     -e CRYOSTAT_LOG_DB_QUERIES="true" \

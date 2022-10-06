@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
@@ -161,7 +160,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                 credentials = new Credentials(parts[0], parts[1]);
             }
             return new ConnectionDescriptor(targetId, credentials);
-        } catch (IOException | ScriptException e) {
+        } catch (ScriptException e) {
             throw new HttpException(500, e);
         }
     }

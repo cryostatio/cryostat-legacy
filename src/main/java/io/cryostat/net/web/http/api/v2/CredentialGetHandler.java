@@ -37,10 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -110,15 +109,12 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
     public IntermediateResponse<MatchedCredentials> handle(RequestParameters params)
             throws ApiException {
         int id = Integer.parseInt(params.getPathParams().get("id"));
-        try {
-            String matchExpression = credentialsManager.get(id);
-            Set<ServiceRef> targets = credentialsManager.resolveMatchingTargets(id);
-            MatchedCredentials match = new MatchedCredentials(matchExpression, targets);
-            return new IntermediateResponse<MatchedCredentials>().body(match);
-        } catch (FileNotFoundException fnfe) {
-            throw new ApiException(404, fnfe);
-        } catch (IOException ioe) {
-            throw new ApiException(500, ioe);
+        Optional<String> matchExpression = credentialsManager.get(id);
+        if (matchExpression.isEmpty()) {
+            return new IntermediateResponse<MatchedCredentials>().statusCode(404);
         }
+        Set<ServiceRef> targets = credentialsManager.resolveMatchingTargets(id);
+        MatchedCredentials match = new MatchedCredentials(matchExpression.get(), targets);
+        return new IntermediateResponse<MatchedCredentials>().body(match);
     }
 }
