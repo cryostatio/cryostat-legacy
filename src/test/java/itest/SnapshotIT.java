@@ -335,6 +335,8 @@ public class SnapshotIT extends StandardSelfTest {
                                                                     Map.entry("maxSize", 0),
                                                                     Map.entry("maxAge", 0),
                                                                     Map.entry(
+                                                                            "archiveOnStop", false),
+                                                                    Map.entry(
                                                                             "metadata",
                                                                             Map.of(
                                                                                     "labels",

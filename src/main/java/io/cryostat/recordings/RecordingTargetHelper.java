@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,7 +102,8 @@ public class RecordingTargetHelper {
     private final ReportService reportService;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
-    private final Map<Pair<String, String>, Long> scheduledStopNotifications;
+    private final Map<Pair<String, String>, Long> scheduledRecordingTasks;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     RecordingTargetHelper(
             Vertx vertx,
@@ -112,6 +114,7 @@ public class RecordingTargetHelper {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             RecordingMetadataManager recordingMetadataManager,
+            RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
@@ -121,8 +124,9 @@ public class RecordingTargetHelper {
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.logger = logger;
-        this.scheduledStopNotifications = new ConcurrentHashMap<>();
+        this.scheduledRecordingTasks = new ConcurrentHashMap<>();
     }
 
     public List<IRecordingDescriptor> getRecordings(ConnectionDescriptor connectionDescriptor)
@@ -138,7 +142,8 @@ public class RecordingTargetHelper {
             IConstrainedMap<String> recordingOptions,
             String templateName,
             TemplateType templateType,
-            Metadata metadata)
+            Metadata metadata,
+            boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
         return targetConnectionManager.executeConnectedTask(
@@ -183,7 +188,8 @@ public class RecordingTargetHelper {
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    metadata);
+                                    metadata,
+                                    archiveOnStop);
                     this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
 
                     Object fixedDuration =
@@ -192,8 +198,8 @@ public class RecordingTargetHelper {
                         Long delay =
                                 Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
 
-                        scheduleRecordingStopNotification(
-                                recordingName, delay, connectionDescriptor);
+                        scheduleRecordingTasks(
+                                recordingName, delay, connectionDescriptor, archiveOnStop);
                     }
 
                     return desc;
@@ -213,7 +219,26 @@ public class RecordingTargetHelper {
                 recordingOptions,
                 templateName,
                 templateType,
-                metadata);
+                metadata,
+                false);
+    }
+
+    public IRecordingDescriptor startRecording(
+            ConnectionDescriptor connectionDescriptor,
+            IConstrainedMap<String> recordingOptions,
+            String templateName,
+            TemplateType templateType,
+            Metadata metadata,
+            boolean archiveOnStop)
+            throws Exception {
+        return startRecording(
+                false,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                archiveOnStop);
     }
 
     /**
@@ -280,7 +305,7 @@ public class RecordingTargetHelper {
                             return d;
                         }
                         connection.getService().stop(d);
-                        this.cancelScheduledNotificationIfExists(targetId, recordingName);
+                        this.cancelScheduledTasksIfExists(targetId, recordingName);
                         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         d,
@@ -339,7 +364,8 @@ public class RecordingTargetHelper {
                                         updatedDescriptor.get(),
                                         webServer.get().getDownloadURL(connection, rename),
                                         webServer.get().getReportURL(connection, rename),
-                                        metadata);
+                                        metadata,
+                                        false);
                             });
             future.complete(recordingDescriptor);
         } catch (Exception e) {
@@ -428,8 +454,7 @@ public class RecordingTargetHelper {
                                     IRecordingDescriptor d = descriptor.get();
                                     connection.getService().close(d);
                                     reportService.delete(connectionDescriptor, recordingName);
-                                    this.cancelScheduledNotificationIfExists(
-                                            targetId, recordingName);
+                                    this.cancelScheduledTasksIfExists(targetId, recordingName);
                                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                             new HyperlinkedSerializableRecordingDescriptor(
                                                     d,
@@ -443,7 +468,8 @@ public class RecordingTargetHelper {
                                                     recordingMetadataManager
                                                             .deleteRecordingMetadataIfExists(
                                                                     connectionDescriptor,
-                                                                    recordingName));
+                                                                    recordingName),
+                                                    false);
                                     if (issueNotification) {
                                         Matcher m = SNAPSHOT_NAME_PATTERN.matcher(recordingName);
                                         String notificationCategory =
@@ -478,9 +504,9 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    private void cancelScheduledNotificationIfExists(String targetId, String stoppedRecordingName)
+    private void cancelScheduledTasksIfExists(String targetId, String stoppedRecordingName)
             throws IOException {
-        Long id = scheduledStopNotifications.remove(Pair.of(targetId, stoppedRecordingName));
+        Long id = scheduledRecordingTasks.remove(Pair.of(targetId, stoppedRecordingName));
         if (id != null) {
             this.vertx.cancelTimer(id);
         }
@@ -540,8 +566,11 @@ public class RecordingTargetHelper {
         return builder.build();
     }
 
-    private void scheduleRecordingStopNotification(
-            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
+    private void scheduleRecordingTasks(
+            String recordingName,
+            long delay,
+            ConnectionDescriptor connectionDescriptor,
+            boolean archiveOnStop) {
         String targetId = connectionDescriptor.getTargetId();
 
         Handler<Promise<HyperlinkedSerializableRecordingDescriptor>> promiseHandler =
@@ -601,10 +630,22 @@ public class RecordingTargetHelper {
                                                 ((HyperlinkedSerializableRecordingDescriptor)
                                                         result.result()),
                                                 STOP_NOTIFICATION_CATEGORY);
+                                        if (archiveOnStop) {
+                                            try {
+                                                recordingArchiveHelper
+                                                        .saveRecording(
+                                                                connectionDescriptor, recordingName)
+                                                        .get();
+                                            } catch (InterruptedException | ExecutionException e) {
+                                                logger.error(
+                                                        "Failed to archive the active recording: "
+                                                                + e);
+                                            }
+                                        }
                                     });
                         });
 
-        scheduledStopNotifications.put(Pair.of(targetId, recordingName), task);
+        scheduledRecordingTasks.put(Pair.of(targetId, recordingName), task);
     }
 
     /**

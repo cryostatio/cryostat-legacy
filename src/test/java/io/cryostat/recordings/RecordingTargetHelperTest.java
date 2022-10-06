@@ -107,6 +107,7 @@ public class RecordingTargetHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
     @Mock RecordingMetadataManager recordingMetadataManager;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
 
     @Mock JFRConnection connection;
@@ -137,6 +138,7 @@ public class RecordingTargetHelperTest {
                         recordingOptionsBuilderFactory,
                         reportService,
                         recordingMetadataManager,
+                        recordingArchiveHelper,
                         logger);
     }
 
@@ -749,7 +751,8 @@ public class RecordingTargetHelperTest {
                 recordingOptions,
                 templateName,
                 templateType,
-                metadata);
+                metadata,
+                false);
 
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
 

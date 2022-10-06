@@ -51,6 +51,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     protected String downloadUrl;
     protected String reportUrl;
     protected Metadata metadata;
+    protected boolean archiveOnStop;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
@@ -59,6 +60,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = new Metadata();
+        this.archiveOnStop = false;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -68,6 +70,21 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
+        this.archiveOnStop = false;
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata,
+            boolean archiveOnStop)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = metadata;
+        this.archiveOnStop = archiveOnStop;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
@@ -77,6 +94,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = new Metadata();
+        this.archiveOnStop = false;
     }
 
     public String getDownloadUrl() {
@@ -89,6 +107,10 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
 
     public Metadata getMetadata() {
         return metadata;
+    }
+
+    public boolean getArchiveOnStop() {
+        return archiveOnStop;
     }
 
     @Override
@@ -114,6 +136,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
                 .append(downloadUrl, descriptor.downloadUrl)
                 .append(reportUrl, descriptor.reportUrl)
                 .append(metadata, descriptor.metadata)
+                .append(archiveOnStop, descriptor.archiveOnStop)
                 .build();
     }
 
@@ -123,6 +146,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)
+                .append(archiveOnStop)
                 .toHashCode();
     }
 }

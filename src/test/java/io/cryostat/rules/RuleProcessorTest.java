@@ -224,6 +224,8 @@ class RuleProcessorTest {
 
         ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
 
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
@@ -231,7 +233,8 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture());
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
 
@@ -474,6 +477,8 @@ class RuleProcessorTest {
 
         ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
 
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
@@ -481,7 +486,8 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture());
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
 
@@ -539,6 +545,8 @@ class RuleProcessorTest {
 
         ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
 
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
         Mockito.verify(recordingTargetHelper, never())
                 .startRecording(
                         restartCaptor.capture(),
@@ -546,6 +554,7 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture());
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
     }
 }
