@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -51,26 +50,27 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 
-class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.CleanupFailure>> {
+class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private static final String DELETE_RULE_CATEGORY = "RuleDeleted";
     static final String PATH = RuleGetHandler.PATH;
     static final String CLEAN_PARAM = "clean";
 
+    private final Vertx vertx;
     private final RuleRegistry ruleRegistry;
-    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingTargetHelper recordings;
     private final DiscoveryStorage storage;
     private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
@@ -78,17 +78,19 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
 
     @Inject
     RuleDeleteHandler(
+            Vertx vertx,
             AuthManager auth,
             RuleRegistry ruleRegistry,
-            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordings,
             DiscoveryStorage storage,
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
         super(auth, gson);
+        this.vertx = vertx;
         this.ruleRegistry = ruleRegistry;
-        this.targetConnectionManager = targetConnectionManager;
+        this.recordings = recordings;
         this.storage = storage;
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
@@ -126,8 +128,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
     }
 
     @Override
-    public IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> handle(
-            RequestParameters params) throws ApiException {
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         if (!ruleRegistry.hasRuleByName(name)) {
             throw new ApiException(404);
@@ -145,56 +146,37 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
                 .message(rule)
                 .build()
                 .send();
-        List<CleanupFailure> failures = new ArrayList<>();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            for (ServiceRef ref : storage.listDiscoverableServices()) {
-                if (!ruleRegistry.applies(rule, ref)) {
-                    continue;
-                }
-                try {
-                    targetConnectionManager.executeConnectedTask(
-                            new ConnectionDescriptor(ref, credentialsManager.getCredentials(ref)),
-                            conn -> {
-                                conn.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                rec ->
-                                                        rec.getName()
-                                                                .equals(rule.getRecordingName()))
-                                        .findFirst()
-                                        .ifPresent(
-                                                r -> {
-                                                    try {
-                                                        conn.getService().stop(r);
-                                                    } catch (Exception e) {
-                                                        logger.error(new ApiException(500, e));
-                                                        CleanupFailure failure =
-                                                                new CleanupFailure();
-                                                        failure.ref = ref;
-                                                        failure.message = e.getMessage();
-                                                        failures.add(failure);
-                                                    }
-                                                });
-                                return null;
-                            });
-                } catch (Exception e) {
-                    logger.error(new ApiException(500, e));
-                    CleanupFailure failure = new CleanupFailure();
-                    failure.ref = ref;
-                    failure.message = e.getMessage();
-                    failures.add(failure);
-                }
-            }
+            vertx.executeBlocking(
+                    promise -> {
+                        try {
+                            cleanup(rule);
+                            promise.complete();
+                        } catch (Exception e) {
+                            promise.fail(e);
+                        }
+                    });
         }
-        if (failures.size() == 0) {
-            return new IntermediateResponse<List<CleanupFailure>>().body(null);
-        } else {
-            return new IntermediateResponse<List<CleanupFailure>>().statusCode(500).body(failures);
-        }
+        return new IntermediateResponse<Void>().body(null);
     }
 
-    @SuppressFBWarnings("URF_UNREAD_FIELD")
-    static class CleanupFailure {
-        ServiceRef ref;
-        String message;
+    private void cleanup(Rule rule) {
+        for (ServiceRef ref : storage.listDiscoverableServices()) {
+            vertx.executeBlocking(
+                    promise -> {
+                        try {
+                            if (ruleRegistry.applies(rule, ref)) {
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(
+                                                ref, credentialsManager.getCredentials(ref));
+                                recordings.stopRecording(cd, rule.getRecordingName());
+                            }
+                            promise.complete();
+                        } catch (Exception e) {
+                            logger.error(e);
+                            promise.fail(e);
+                        }
+                    });
+        }
     }
 }

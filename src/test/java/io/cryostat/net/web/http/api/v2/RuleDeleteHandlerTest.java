@@ -43,28 +43,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import io.cryostat.MainModule;
+import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnection;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -81,9 +79,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RuleDeleteHandlerTest {
 
     RuleDeleteHandler handler;
+    Vertx vertx = MockVertx.vertx();
     @Mock AuthManager auth;
     @Mock RuleRegistry registry;
-    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock DiscoveryStorage storage;
     @Mock CredentialsManager credentialsManager;
     @Mock NotificationFactory notificationFactory;
@@ -110,9 +109,10 @@ class RuleDeleteHandlerTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new RuleDeleteHandler(
+                        vertx,
                         auth,
                         registry,
-                        targetConnectionManager,
+                        recordingTargetHelper,
                         storage,
                         credentialsManager,
                         notificationFactory,
@@ -185,8 +185,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             Mockito.verify(notificationFactory).createBuilder();
@@ -203,10 +202,17 @@ class RuleDeleteHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+
+            Mockito.verify(vertx, Mockito.never()).executeBlocking(Mockito.any());
+            Mockito.verify(registry, Mockito.never()).deleteRule(Mockito.any(Rule.class));
+            Mockito.verify(registry, Mockito.never()).deleteRule(Mockito.anyString());
+            Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
+            Mockito.verify(recordingTargetHelper, Mockito.never())
+                    .stopRecording(Mockito.any(), Mockito.any());
         }
 
         @Test
-        void shouldRespondWith500ForCleanupFailures() throws Exception {
+        void shouldRespondWith200ForCleanupFailures() throws Exception {
             Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("clean", "true");
@@ -230,21 +236,18 @@ class RuleDeleteHandlerTest {
 
             FlightRecorderException exception =
                     new FlightRecorderException(new Exception("test message"));
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+            Mockito.when(recordingTargetHelper.stopRecording(Mockito.any(), Mockito.any()))
                     .thenThrow(exception);
 
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(500));
+            IntermediateResponse<Void> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            RuleDeleteHandler.CleanupFailure failure = new RuleDeleteHandler.CleanupFailure();
-            failure.ref = serviceRef;
-            failure.message = exception.getMessage();
-            List<RuleDeleteHandler.CleanupFailure> actualList = response.getBody();
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            RuleDeleteHandler.CleanupFailure actual = actualList.get(0);
-            MatcherAssert.assertThat(actual.ref, Matchers.sameInstance(serviceRef));
-            MatcherAssert.assertThat(actual.message, Matchers.equalTo(exception.getMessage()));
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(registry).deleteRule(rule);
+            Mockito.verify(registry).applies(rule, serviceRef);
+            Mockito.verify(recordingTargetHelper)
+                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
+            Mockito.verify(logger).error(exception);
         }
 
         @Test
@@ -262,30 +265,17 @@ class RuleDeleteHandlerTest {
                             .build();
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
-            Mockito.when(registry.applies(Mockito.any(), Mockito.any())).thenReturn(true);
 
-            ServiceRef serviceRef =
-                    new ServiceRef(
-                            new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
-                            "io.cryostat.Cryostat");
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
 
-            JFRConnection connection = Mockito.mock(JFRConnection.class);
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                    .thenAnswer(
-                            arg0 ->
-                                    ((TargetConnectionManager.ConnectedTask<Object>)
-                                                    arg0.getArgument(1))
-                                            .execute(connection));
-
-            IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
-            Mockito.when(connection.getService()).thenReturn(service);
-
-            Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
-
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+            Mockito.verify(vertx, Mockito.times(1)).executeBlocking(Mockito.any());
+            Mockito.verify(registry).deleteRule(rule);
+            Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
+            Mockito.verify(recordingTargetHelper, Mockito.never())
+                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
         }
 
         @Test
@@ -311,86 +301,14 @@ class RuleDeleteHandlerTest {
                             "io.cryostat.Cryostat");
             Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
-            JFRConnection connection = Mockito.mock(JFRConnection.class);
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                    .thenAnswer(
-                            arg0 ->
-                                    ((TargetConnectionManager.ConnectedTask<Object>)
-                                                    arg0.getArgument(1))
-                                            .execute(connection));
-
-            IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
-            Mockito.when(connection.getService()).thenReturn(service);
-
-            IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-            Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-            Mockito.when(recording.getName()).thenReturn(rule.getRecordingName());
-
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
+            IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-            Mockito.verify(service).stop(recording);
-            Mockito.verify(service, Mockito.never()).close(recording);
-        }
-
-        @Test
-        void shouldRespondWith500AfterUnsuccessfulCleanup() throws Exception {
-            Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
-            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
-            queryParams.set("clean", "true");
-            Mockito.when(params.getQueryParams()).thenReturn(queryParams);
-
-            Rule rule =
-                    new Rule.Builder()
-                            .name(testRuleName)
-                            .matchExpression("true")
-                            .eventSpecifier("template=Continuous")
-                            .build();
-            Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
-            Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
-            Mockito.when(registry.applies(Mockito.any(), Mockito.any())).thenReturn(true);
-
-            ServiceRef serviceRef =
-                    new ServiceRef(
-                            new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
-                            "io.cryostat.Cryostat");
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
-
-            JFRConnection connection = Mockito.mock(JFRConnection.class);
-            Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                    .thenAnswer(
-                            arg0 ->
-                                    ((TargetConnectionManager.ConnectedTask<Object>)
-                                                    arg0.getArgument(1))
-                                            .execute(connection));
-
-            IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
-            Mockito.when(connection.getService()).thenReturn(service);
-
-            org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException exception =
-                    new org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException("test message");
-            Mockito.doThrow(exception).when(service).stop(Mockito.any());
-
-            IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-            Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-            Mockito.when(recording.getName()).thenReturn(rule.getRecordingName());
-
-            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
-                    handler.handle(params);
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(500));
-
-            RuleDeleteHandler.CleanupFailure failure = new RuleDeleteHandler.CleanupFailure();
-            failure.ref = serviceRef;
-            failure.message = exception.getMessage();
-            List<RuleDeleteHandler.CleanupFailure> actualList = response.getBody();
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            RuleDeleteHandler.CleanupFailure actual = actualList.get(0);
-            MatcherAssert.assertThat(actual.ref, Matchers.sameInstance(serviceRef));
-            MatcherAssert.assertThat(actual.message, Matchers.equalTo(exception.getMessage()));
-
-            Mockito.verify(service).stop(recording);
-            Mockito.verify(service, Mockito.never()).close(recording);
+            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
+            Mockito.verify(registry).deleteRule(rule);
+            Mockito.verify(registry).applies(Mockito.any(), Mockito.any());
+            Mockito.verify(recordingTargetHelper)
+                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
         }
     }
 }
