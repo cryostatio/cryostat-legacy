@@ -75,6 +75,7 @@ public class JmxAuthIT extends ExternalTargetsTest {
                         new Podman.ImageSpec(
                                 FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
+        waitForDiscovery(1);
     }
 
     @AfterAll
