@@ -276,7 +276,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        Thread.sleep(10_000L); // wait for JDP to discover new container(s)
+        Thread.sleep(15_000L); // wait for JDP to discover new container(s)
 
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
