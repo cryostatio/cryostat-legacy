@@ -159,6 +159,8 @@ overridden with `1`.
 * `CRYOSTAT_JDBC_URL`: URL for connecting to the database. Defaults to `jdbc:h2:mem:cryostat;INIT=create domain if not exists jsonb as other` for an h2 in-memory database. Also supported: `jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as other`, or a PostgreSQL URL such as `jdbc:postgresql://cryostat:5432/cryostat`.
 * `CRYOSTAT_JDBC_USERNAME`: username for JDBC connection.
 * `CRYOSTAT_JDBC_PASSWORD`: password for JDBC connection.
+* `CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD`: encryption password for stored JMX
+  credentials.
 * `CRYOSTAT_HIBERNATE_DIALECT`: Defaults to `org.hibernate.dialect.H2Dialect`. Also supported: `org.hibernate.dialect.PostgreSQL95Dialect`.
 * `CRYOSTAT_HBM2DDL`: Control Hibernate schema DDL. Defaults to `create`.
 * `CRYOSTAT_LOG_DB_QUERIES`: Enable verbose logging of database queries. Defaults to `false`.
@@ -320,7 +322,7 @@ user2=def987
 ```
 Where `abc123` and `def987` are substituted for the SHA-256 sum hexes of the
 desired user passwords. These can be obtained by ex.
-`echo -n PASS | sha256sum | cut -d' ' -f1'`.
+`echo -n PASS | sha256sum | cut -d' ' -f1`.
 
 Token-based auth managers expect an HTTP `Authorization: Bearer TOKEN` header
 and a

@@ -38,7 +38,6 @@
 package itest;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,6 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
-import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -392,32 +390,10 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         try {
             String containerId =
                     Podman.run(
-                            new Podman.ImageSpec(
-                                    FIB_DEMO_IMAGESPEC,
-                                    Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
+                            new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093")));
             // add a new target
             CONTAINERS.add(containerId);
             waitForDiscovery(NUM_EXT_CONTAINERS); // wait for JDP to discover new container(s)
-
-            // store credentials for the new target
-            CompletableFuture<Void> credentialsFuture = new CompletableFuture<>();
-            MultiMap credentialsForm = MultiMap.caseInsensitiveMultiMap();
-            credentialsForm.add("matchExpression", "target.annotations.cryostat.PORT == 9093");
-            credentialsForm.add("username", "admin");
-            credentialsForm.add("password", "adminpass123");
-
-            webClient
-                    .post("/api/v2.2/credentials")
-                    .sendForm(
-                            credentialsForm,
-                            ar -> {
-                                if (assertRequestStatus(ar, credentialsFuture)) {
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusCode(), Matchers.equalTo(201));
-                                    credentialsFuture.complete(null);
-                                }
-                            });
-            credentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // create an in-memory recording
             CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
@@ -431,11 +407,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             new Metadata(updatedLabels), new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
                     .sendForm(
                             form,
                             ar -> {
@@ -454,11 +425,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                             String.format(
                                     "/api/v1/targets/%s/recordings/%s", targetId, RECORDING_NAME))
                     .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
@@ -479,9 +445,7 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             containerId =
                     Podman.run(
-                            new Podman.ImageSpec(
-                                    FIB_DEMO_IMAGESPEC,
-                                    Map.of("JMX_PORT", "9093", "USE_AUTH", "true")));
+                            new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093")));
             CONTAINERS.add(containerId);
 
             waitForDiscovery(NUM_EXT_CONTAINERS);
@@ -492,11 +456,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
                     .sendForm(
                             form,
                             ar -> {
@@ -566,39 +525,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                 }
                             });
 
-            // get the correct credential id to delete
-            CompletableFuture<JsonObject> getCredentialsFuture = new CompletableFuture<>();
-            webClient
-                    .get("/api/v2.2/credentials")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, getCredentialsFuture)) {
-                                    getCredentialsFuture.complete(ar.result().bodyAsJsonObject());
-                                }
-                            });
-
-            JsonObject response =
-                    getCredentialsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            List<StoredCredential> actualList =
-                    gson.fromJson(
-                            response.getJsonObject("data").getValue("result").toString(),
-                            new TypeToken<List<StoredCredential>>() {}.getType());
-
-            MatcherAssert.assertThat(actualList, Matchers.hasSize(1));
-            StoredCredential storedCredential = actualList.get(0);
-
-            // delete credentials to clean up
-            CompletableFuture<JsonObject> deleteCredentialsResponse = new CompletableFuture<>();
-            webClient
-                    .delete("/api/v2.2/credentials" + "/" + storedCredential.id)
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, deleteCredentialsResponse)) {
-                                    deleteCredentialsResponse.complete(null);
-                                }
-                            });
-
             try {
                 deleteTargetRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -615,17 +541,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                                 archivedRecordingName.get(
                                         REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)),
                         e);
-            }
-            try {
-                deleteCredentialsResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            } catch (InterruptedException
-                    | ExecutionException
-                    | TimeoutException
-                    | AssertionError e) {
-                throw new ITestCleanupFailedException(
-                        String.format(
-                                "Failed to delete credentials because of exception: %s",
-                                e.getCause()));
             }
         }
     }

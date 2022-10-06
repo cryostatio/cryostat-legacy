@@ -169,7 +169,9 @@ class PeriodicArchiverTest {
 
         CompletableFuture<ArchivedRecordingInfo> deleteFuture = new CompletableFuture<>();
         deleteFuture.complete(Mockito.mock(ArchivedRecordingInfo.class));
-        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any()))
+        Mockito.when(
+                        recordingArchiveHelper.deleteRecording(
+                                Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(deleteFuture);
 
         // get the archiver into a state where it has reached its limit of preserved recordings
@@ -182,7 +184,8 @@ class PeriodicArchiverTest {
         Mockito.verify(credentialsManager, Mockito.times(3)).getCredentials(serviceRef);
         Mockito.verify(recordingArchiveHelper, Mockito.times(3))
                 .saveRecording(Mockito.any(), Mockito.anyString());
-        Mockito.verify(recordingArchiveHelper, Mockito.times(1)).deleteRecording(Mockito.any());
+        Mockito.verify(recordingArchiveHelper, Mockito.times(1))
+                .deleteRecording(Mockito.anyString(), Mockito.anyString());
     }
 
     @Test

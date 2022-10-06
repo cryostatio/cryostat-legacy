@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URI;
@@ -176,7 +175,7 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
         Credentials credentials = null;
         try {
             credentials = credentialsManager.getCredentialsByTargetId(targetId);
-        } catch (ScriptException | IOException e) {
+        } catch (ScriptException e) {
             logger.error(e);
         }
         String jmxauth = jwt.getJWTClaimsSet().getStringClaim(AssetJwtHelper.JMXAUTH_CLAIM);

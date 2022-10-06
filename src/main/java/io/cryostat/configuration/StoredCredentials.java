@@ -35,87 +35,75 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.discovery;
+package io.cryostat.configuration;
 
-import java.net.URI;
 import java.util.Objects;
-import java.util.UUID;
 
 import javax.persistence.Column;
-import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-import org.hibernate.annotations.GenericGenerator;
+import io.cryostat.core.net.Credentials;
+
+import org.hibernate.annotations.Parameter;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
+import org.jasypt.hibernate5.type.EncryptedStringType;
 
 @Entity
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
-public class PluginInfo {
+@TypeDef(
+        name = "encryptedString",
+        typeClass = EncryptedStringType.class,
+        parameters = {
+            @Parameter(name = "encryptorRegisteredName", value = "strongHibernateStringEncryptor")
+        })
+public class StoredCredentials {
 
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(updatable = false)
+    private int id;
+
+    @Column(unique = true, nullable = false)
+    private String matchExpression;
 
     @Column(unique = false, nullable = false)
-    private String realm;
+    private String username;
 
-    @Column(unique = true)
-    @Convert(converter = UriConverter.class)
-    private URI callback;
+    @Column(unique = false, nullable = false)
+    @Type(type = "encryptedString")
+    private String password;
 
-    @Type(type = "jsonb")
-    @Column(nullable = false, columnDefinition = "jsonb")
-    private String subtree;
+    StoredCredentials() {}
 
-    PluginInfo() {}
-
-    PluginInfo(String realm, URI callback, String subtree) {
-        this.realm = Objects.requireNonNull(realm, "realm");
-        this.callback = callback;
-        this.subtree = Objects.requireNonNull(subtree, "subtree");
+    StoredCredentials(int id, String matchExpression, Credentials credentials) {
+        this.id = id;
+        this.matchExpression = matchExpression;
+        this.username = credentials.getUsername();
+        this.password = credentials.getPassword();
     }
 
-    public UUID getId() {
+    StoredCredentials(String matchExpression, Credentials credentials) {
+        this(0, matchExpression, credentials);
+    }
+
+    String getMatchExpression() {
+        return this.matchExpression;
+    }
+
+    public int getId() {
         return id;
     }
 
-    public String getRealm() {
-        return realm;
-    }
-
-    public URI getCallback() {
-        return callback;
-    }
-
-    public String getSubtree() {
-        return subtree;
-    }
-
-    public void setId(UUID id) {
-        this.id = Objects.requireNonNull(id);
-    }
-
-    public void setRealm(String realm) {
-        this.realm = Objects.requireNonNull(realm);
-    }
-
-    public void setCallback(URI callback) {
-        this.callback = callback;
-    }
-
-    public void setSubtree(String subtree) {
-        this.subtree = Objects.requireNonNull(subtree);
+    Credentials getCredentials() {
+        return new Credentials(username, password);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(callback, id, realm, subtree);
+        return Objects.hash(matchExpression, username, password);
     }
 
     @Override
@@ -129,10 +117,9 @@ public class PluginInfo {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        PluginInfo other = (PluginInfo) obj;
-        return Objects.equals(callback, other.callback)
-                && Objects.equals(id, other.id)
-                && Objects.equals(realm, other.realm)
-                && Objects.equals(subtree, other.subtree);
+        StoredCredentials other = (StoredCredentials) obj;
+        return Objects.equals(matchExpression, other.matchExpression)
+                && Objects.equals(username, other.username)
+                && Objects.equals(password, other.password);
     }
 }
