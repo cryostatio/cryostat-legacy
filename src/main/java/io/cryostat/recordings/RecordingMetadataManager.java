@@ -41,7 +41,6 @@ package io.cryostat.recordings;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
@@ -64,15 +63,6 @@ import java.util.regex.Pattern;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
-
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -87,9 +77,18 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
@@ -654,7 +653,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             }
             logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             Iterator<Map.Entry<Pair<String, String>, Metadata>> it =
-                recordingMetadataMap.entrySet().iterator();
+                    recordingMetadataMap.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<Pair<String, String>, Metadata> entry = it.next();
                 if (!oldJvmId.equals(entry.getKey().getKey())) {
@@ -668,8 +667,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                         logger.error("Metadata file {} does not exist", oldMetadata);
                         continue;
                     }
-                    StoredRecordingMetadata m = gson.fromJson(fs.readFile(oldMetadata),
-                            StoredRecordingMetadata.class);
+                    StoredRecordingMetadata m =
+                            gson.fromJson(fs.readFile(oldMetadata), StoredRecordingMetadata.class);
                     m = StoredRecordingMetadata.of(targetId, newJvmId, recordingName, m);
                     this.recordingMetadataMap.put(Pair.of(newJvmId, recordingName), m);
                     Path newLocation = getMetadataPath(targetId, newJvmId, recordingName);
@@ -825,7 +824,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         return getMetadataPath(connectionDescriptor.getTargetId(), jvmId, recordingName);
     }
 
-    private Path getMetadataPath(String targetId, String jvmId, String recordingName) throws IOException {
+    private Path getMetadataPath(String targetId, String jvmId, String recordingName)
+            throws IOException {
         String subdirectory =
                 jvmId.equals(UPLOADS)
                         ? UPLOADS

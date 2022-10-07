@@ -65,11 +65,8 @@ import java.util.stream.Collectors;
 import javax.inject.Named;
 import javax.inject.Provider;
 
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.io.FileUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.MainModule;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
@@ -88,6 +85,10 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.io.FileUtils;
 
 public class RecordingArchiveHelper {
 
