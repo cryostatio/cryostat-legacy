@@ -41,14 +41,17 @@ package io.cryostat.recordings;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -61,6 +64,15 @@ import java.util.regex.Pattern;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
+
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -74,24 +86,16 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
         implements Consumer<TargetDiscoveryEvent> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
-    private static final int STALE_METADATA_TIMEOUT_SECONDS = 5;
+    private static final int STALE_METADATA_TIMEOUT_SECONDS = 10;
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
     private final ExecutorService executor;
@@ -111,6 +115,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     private final Map<Pair<String, String>, Metadata> recordingMetadataMap;
     private final Map<String, Long> staleMetadataTimers;
+    private final CountDownLatch migrationLatch = new CountDownLatch(1);
 
     RecordingMetadataManager(
             ExecutorService executor,
@@ -374,18 +379,23 @@ public class RecordingMetadataManager extends AbstractVerticle
                             "Event bus [{}]: {}",
                             DiscoveryStorage.DISCOVERY_STARTUP_ADDRESS,
                             message.body());
-                    executor.execute(
-                            () -> {
-                                try {
-                                    archiveHelper.migrate();
-                                    logger.info("Successfully migrated archives");
-                                    pruneStaleMetadata(staleMetadata);
-                                    logger.info("Successfully pruned all stale metadata");
-                                } catch (Exception e) {
-                                    logger.warn("Couldn't read archived recordings directory...");
-                                    logger.warn(e);
-                                }
-                            });
+                    new Thread(
+                                    () -> {
+                                        try {
+                                            logger.info("Starting archive migration");
+                                            archiveHelper.migrate(executor);
+                                            logger.info("Successfully migrated archives");
+                                            pruneStaleMetadata(staleMetadata);
+                                            logger.info("Successfully pruned all stale metadata");
+                                        } catch (Exception e) {
+                                            logger.warn(
+                                                    "Couldn't read archived recordings directory");
+                                            logger.warn(e);
+                                        } finally {
+                                            migrationLatch.countDown();
+                                        }
+                                    })
+                            .run();
                 });
     }
 
@@ -398,6 +408,11 @@ public class RecordingMetadataManager extends AbstractVerticle
     public void accept(TargetDiscoveryEvent tde) {
         executor.execute(
                 () -> {
+                    try {
+                        migrationLatch.await();
+                    } catch (InterruptedException e) {
+                        logger.error(e);
+                    }
                     String targetId = tde.getServiceRef().getServiceUri().toString();
 
                     ConnectionDescriptor cd;
