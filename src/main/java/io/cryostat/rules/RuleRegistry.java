@@ -183,6 +183,17 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         String name = rule.getName();
         if (enabled != rule.isEnabled()) {
             getRule(name).get().setEnabled(enabled);
+            Path destination = rulesDir.resolve(rule.getName() + ".json");
+            try {
+                this.fs.writeString(
+                        destination,
+                        gson.toJson(rule),
+                        StandardOpenOption.WRITE,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                logger.error(e);
+            }
             emit(RuleEvent.UPDATED, rule);
         }
     }

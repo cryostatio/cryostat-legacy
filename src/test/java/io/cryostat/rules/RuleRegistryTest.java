@@ -350,6 +350,8 @@ class RuleRegistryTest {
                         .maxAgeSeconds(78)
                         .enabled(false)
                         .build();
+        this.ruleJson = MainModule.provideGson(logger).toJson(rule);
+        this.fileReader = new BufferedReader(new StringReader(ruleJson));
 
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
@@ -357,6 +359,10 @@ class RuleRegistryTest {
         Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(rule);
+
+        MatcherAssert.assertThat(
+                registry.getRule(testRule.getName()).get().isEnabled(), Matchers.is(false));
+
         registry.enableRule(rule, true);
 
         MatcherAssert.assertThat(
