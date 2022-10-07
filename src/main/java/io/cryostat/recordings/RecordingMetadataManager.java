@@ -639,10 +639,12 @@ public class RecordingMetadataManager extends AbstractVerticle
             if (subdirectoryPath == null) {
                 return;
             }
+            Path filename = subdirectoryPath.getFileName();
+            if (filename == null) {
+                return;
+            }
             String oldJvmId =
-                    new String(
-                            base32.decode(subdirectoryPath.getFileName().toString()),
-                            StandardCharsets.UTF_8);
+                    new String(base32.decode(filename.toString()), StandardCharsets.UTF_8);
 
             if (oldJvmId.equals(newJvmId)) {
                 Long id = staleMetadataTimers.remove(oldJvmId);
@@ -663,7 +665,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     String recordingName = entry.getKey().getValue();
 
                     Path oldMetadata = getMetadataPath(targetId, oldJvmId, recordingName);
-                    if (!fs.exists(oldMetadata)) {
+                    if (oldMetadata == null || !fs.exists(oldMetadata)) {
                         logger.error("Metadata file {} does not exist", oldMetadata);
                         continue;
                     }
@@ -676,6 +678,12 @@ public class RecordingMetadataManager extends AbstractVerticle
                     fs.writeString(newLocation, gson.toJson(m));
 
                     Path oldParent = oldMetadata.getParent();
+                    if (oldParent == null || !fs.exists(oldParent)) {
+                        throw new IOException(
+                                String.format(
+                                        "Expected parent directory of %s, but had none",
+                                        oldMetadata));
+                    }
                     fs.deleteIfExists(oldParent.resolve("connectUrl"));
                     fs.deleteIfExists(oldMetadata);
                     if (fs.listDirectoryChildren(oldParent).isEmpty()) {
@@ -690,7 +698,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             }
             logger.info(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Metadata could not be transferred upon target restart", e);
         }
     }
@@ -767,7 +775,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     .executeConnectedTaskAsync(
                             cd, connection -> connectFuture.complete(connection.isConnected()))
                     .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
-        } catch (Exception e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             logger.warn("Target unreachable {}", cd.getTargetId());
             return false;
         }
