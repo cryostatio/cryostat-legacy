@@ -67,6 +67,7 @@ import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
@@ -78,6 +79,15 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class RecordingsModule {
 
     public static final String METADATA_SUBDIRECTORY = "metadata";
+
+    static final String JMX_CONNECTION_TIMEOUT_SECONDS = "JMX_CONNECTION_TIMEOUT_SECONDS";
+
+    @Provides
+    @Named(JMX_CONNECTION_TIMEOUT_SECONDS)
+    static long provideJmxConnectionTimeoutSeconds() {
+        // should this be configurable?
+        return 10;
+    }
 
     @Provides
     @Singleton
@@ -159,7 +169,7 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            @Named(JMX_CONNECTION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -204,16 +214,16 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
-            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
+            @Named(JMX_CONNECTION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
             Logger logger) {
         return new JvmIdHelper(
-                vertx,
                 targetConnectionManager,
                 credentialsManager,
                 connectionTimeoutSeconds,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
                 logger);
     }
 }

@@ -58,13 +58,11 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
-import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -73,11 +71,9 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
@@ -119,8 +115,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     RecordingMetadataManager(
             ExecutorService executor,
             Path recordingMetadataDir,
-            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            Path archivedRecordingsPath,
+            long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -403,7 +399,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         executor.execute(
                 () -> {
                     String targetId = tde.getServiceRef().getServiceUri().toString();
-                    String oldJvmId = jvmIdHelper.get(targetId);
 
                     ConnectionDescriptor cd;
                     try {
@@ -416,32 +411,27 @@ public class RecordingMetadataManager extends AbstractVerticle
                         return;
                     }
 
-                    if (oldJvmId == null) {
-                        logger.info("Target {} did not have a jvmId", targetId);
-                        try {
-                            String newJvmId = jvmIdHelper.getJvmId(cd);
-                            logger.info("Created jvmId {} for target {}", newJvmId, targetId);
-                        } catch (JvmIdGetException e) {
-                            logger.error(
-                                    "Could not compute jvmId on FOUND target {}, msg: {}",
-                                    targetId);
-                        }
-                        return;
-                    }
+                    try {
+                        String jvmId = jvmIdHelper.get(targetId).get();
 
-                    switch (tde.getEventKind()) {
-                        case FOUND:
-                            var archiveHelper = archiveHelperProvider.get();
-                            Path subdirectoryPath =
-                                    archiveHelper.getRecordingSubdirectoryPath(oldJvmId);
-                            this.transferMetadataIfRestarted(cd, oldJvmId);
-                            archiveHelper.transferArchivesIfRestarted(subdirectoryPath, oldJvmId);
-                            break;
-                        case LOST:
-                            this.removeLostTargetMetadata(cd, oldJvmId);
-                            break;
-                        default:
-                            throw new UnsupportedOperationException(tde.getEventKind().toString());
+                        switch (tde.getEventKind()) {
+                            case FOUND:
+                                var archiveHelper = archiveHelperProvider.get();
+                                Path subdirectoryPath =
+                                        archiveHelper.getRecordingSubdirectoryPath(jvmId);
+                                this.transferMetadataIfRestarted(cd, jvmId);
+                                archiveHelper.transferArchivesIfRestarted(subdirectoryPath, jvmId);
+                                break;
+                            case LOST:
+                                this.removeLostTargetMetadata(cd, jvmId);
+                                jvmIdHelper.remove(targetId);
+                                break;
+                            default:
+                                throw new UnsupportedOperationException(
+                                        tde.getEventKind().toString());
+                        }
+                    } catch (ExecutionException | InterruptedException e) {
+                        logger.error(e);
                     }
                 });
     }
@@ -620,15 +610,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private void transferMetadataIfRestarted(ConnectionDescriptor cd, String oldJvmId) {
         try {
             String targetId = cd.getTargetId();
-            String newJvmId = jvmIdHelper.computeJvmId(cd);
-
-            if (newJvmId == null) {
-                logger.info(
-                        "Couldn't generate a new jvmId for target {} with old jvmId {}",
-                        targetId,
-                        oldJvmId);
-                return;
-            }
+            String newJvmId = jvmIdHelper.computeJvmId(targetId).get();
 
             if (oldJvmId.equals(newJvmId)) {
                 Long id = staleMetadataTimers.remove(oldJvmId);
