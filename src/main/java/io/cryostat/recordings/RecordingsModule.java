@@ -85,7 +85,7 @@ public abstract class RecordingsModule {
     @Named(JMX_CONNECTION_TIMEOUT_SECONDS)
     static long provideJmxConnectionTimeoutSeconds() {
         // should this be configurable?
-        return 10;
+        return 3;
     }
 
     @Provides

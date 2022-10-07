@@ -220,21 +220,50 @@ public class RecordingArchiveHelper {
         }
     }
 
-    protected void transferArchivesIfRestarted(Path subdirectoryPath, String oldJvmId) {
+    protected void transferArchivesIfRestarted(String targetId) {
         try {
-            String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-            String newJvmId = jvmIdHelper.getJvmId(connectUrl);
-            if (oldJvmId.equals(newJvmId)) {
+            Path subdirectoryPath = null;
+            for (String encodedJvmId : fs.listDirectoryChildren(archivedRecordingsPath)) {
+                Path subdir = archivedRecordingsPath.resolve(encodedJvmId);
+                Path connectUrl = subdir.resolve("connectUrl");
+                if (fs.exists(connectUrl)) {
+                    String u = fs.readString(connectUrl);
+                    if (Objects.equals(targetId, u)) {
+                        subdirectoryPath = subdir;
+                        break;
+                    }
+                }
+            }
+            if (subdirectoryPath == null) {
                 return;
             }
-            logger.info(
-                    "{} Archives subdirectory rename: {} -> {}", connectUrl, oldJvmId, newJvmId);
+            String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+            String newJvmId = jvmIdHelper.getJvmId(connectUrl);
             Path jvmIdPath = getRecordingSubdirectoryPath(newJvmId);
-            Files.move(subdirectoryPath, jvmIdPath);
+
+            if (Objects.equals(subdirectoryPath, jvmIdPath)) {
+                return;
+            }
+
             logger.info(
-                    "{} Archives subdirectory successfully renamed: {} -> {}",
+                    "{} Archives subdirectory transfer: {} -> {}",
                     connectUrl,
-                    oldJvmId,
+                    subdirectoryPath,
+                    newJvmId);
+
+            fs.createDirectory(jvmIdPath);
+            for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                Path oldLocation = subdirectoryPath.resolve(file);
+                Path newLocation = jvmIdPath.resolve(file);
+                logger.info("{} -> {}", oldLocation, newLocation);
+                Files.move(oldLocation, newLocation);
+            }
+            fs.deleteIfExists(subdirectoryPath);
+
+            logger.info(
+                    "{} Archives subdirectory successfully transferred: {} -> {}",
+                    connectUrl,
+                    subdirectoryPath,
                     newJvmId);
         } catch (Exception e) {
             logger.error("Archives subdirectory could not be renamed upon target restart", e);
@@ -696,7 +725,7 @@ public class RecordingArchiveHelper {
         String jvmId = jvmIdHelper.getJvmId(serviceUri.toString());
         Path specificRecordingsPath = getRecordingSubdirectoryPath(jvmId);
         if (!fs.exists(specificRecordingsPath)) {
-            Files.createDirectory(specificRecordingsPath);
+            fs.createDirectory(specificRecordingsPath);
             fs.writeString(
                     specificRecordingsPath.resolve("connectUrl"),
                     serviceUri.toString(),

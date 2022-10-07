@@ -179,6 +179,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                         n))
                                                 .map(subdirectory::resolve)
                                                 .filter(fs::isRegularFile)
+                                                .filter(
+                                                        path ->
+                                                                !path.getFileName()
+                                                                        .toString()
+                                                                        .equals("connectUrl"))
                                                 .map(
                                                         path -> {
                                                             try {
@@ -210,8 +215,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                             String recordingName =
                                                                     srm.getRecordingName();
                                                             // jvmId should always exist
-                                                            // since we are
-                                                            // using directory structure
+                                                            // since we are using directory
+                                                            // structure
                                                             if (srm.getJvmId() != null) {
                                                                 try {
                                                                     if (!isArchivedRecording(
@@ -239,10 +244,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                                             targetId,
                                                                             e.getMessage());
                                                                 }
-                                                                // archived recording
-                                                                // metadata
-                                                                jvmIdHelper.putIfAbsent(
-                                                                        targetId, srm.getJvmId());
                                                                 recordingMetadataMap.put(
                                                                         Pair.of(
                                                                                 srm.getJvmId(),
@@ -427,15 +428,13 @@ public class RecordingMetadataManager extends AbstractVerticle
                     }
 
                     try {
-                        String jvmId = jvmIdHelper.get(targetId).get();
+                        String jvmId = jvmIdHelper.getJvmId(targetId);
 
                         switch (tde.getEventKind()) {
                             case FOUND:
                                 var archiveHelper = archiveHelperProvider.get();
-                                Path subdirectoryPath =
-                                        archiveHelper.getRecordingSubdirectoryPath(jvmId);
-                                this.transferMetadataIfRestarted(cd, jvmId);
-                                archiveHelper.transferArchivesIfRestarted(subdirectoryPath, jvmId);
+                                this.transferMetadataIfRestarted(cd);
+                                archiveHelper.transferArchivesIfRestarted(targetId);
                                 break;
                             case LOST:
                                 this.removeLostTargetMetadata(cd, jvmId);
@@ -445,8 +444,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 throw new UnsupportedOperationException(
                                         tde.getEventKind().toString());
                         }
-                    } catch (ExecutionException | InterruptedException e) {
-                        logger.error(e);
+                    } catch (JvmIdGetException e) {
                     }
                 });
     }
@@ -510,7 +508,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
 
         fs.writeString(
-                this.getMetadataPath(jvmId, recordingName),
+                this.getMetadataPath(connectionDescriptor, recordingName),
                 gson.toJson(
                         StoredRecordingMetadata.of(
                                 connectionDescriptor.getTargetId(),
@@ -580,7 +578,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
-        Path metadataPath = this.getMetadataPath(jvmId, recordingName);
+        Path metadataPath = this.getMetadataPath(connectionDescriptor, recordingName);
         if (fs.deleteIfExists(metadataPath)) {
             deleteSubdirectoryIfEmpty(metadataPath.getParent());
         }
@@ -622,10 +620,30 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private void transferMetadataIfRestarted(ConnectionDescriptor cd, String oldJvmId) {
+    private void transferMetadataIfRestarted(ConnectionDescriptor cd) {
         try {
             String targetId = cd.getTargetId();
-            String newJvmId = jvmIdHelper.computeJvmId(targetId).get();
+            String newJvmId = jvmIdHelper.getJvmId(targetId);
+
+            Path subdirectoryPath = null;
+            for (String encodedJvmId : fs.listDirectoryChildren(archivedRecordingsPath)) {
+                Path subdir = archivedRecordingsPath.resolve(encodedJvmId);
+                Path connectUrl = subdir.resolve("connectUrl");
+                if (fs.exists(connectUrl)) {
+                    String u = fs.readString(connectUrl);
+                    if (Objects.equals(targetId, u)) {
+                        subdirectoryPath = subdir;
+                        break;
+                    }
+                }
+            }
+            if (subdirectoryPath == null) {
+                return;
+            }
+            String oldJvmId =
+                    new String(
+                            base32.decode(subdirectoryPath.getFileName().toString()),
+                            StandardCharsets.UTF_8);
 
             if (oldJvmId.equals(newJvmId)) {
                 Long id = staleMetadataTimers.remove(oldJvmId);
@@ -635,27 +653,41 @@ public class RecordingMetadataManager extends AbstractVerticle
                 return;
             }
             logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
-            recordingMetadataMap.keySet().stream()
-                    .filter(
-                            keyPair ->
-                                    keyPair.getKey() != null && keyPair.getKey().equals(oldJvmId))
-                    .forEach(
-                            keyPair -> {
-                                try {
-                                    String recordingName = keyPair.getValue();
+            Iterator<Map.Entry<Pair<String, String>, Metadata>> it =
+                recordingMetadataMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Pair<String, String>, Metadata> entry = it.next();
+                if (!oldJvmId.equals(entry.getKey().getKey())) {
+                    continue;
+                }
+                try {
+                    String recordingName = entry.getKey().getValue();
 
-                                    Metadata m = this.getMetadata(cd, recordingName);
-                                    deleteRecordingMetadataIfExists(cd, recordingName);
-                                    jvmIdHelper.put(targetId, newJvmId);
-                                    setRecordingMetadata(cd, recordingName, m);
-                                    jvmIdHelper.put(targetId, oldJvmId);
+                    Path oldMetadata = getMetadataPath(targetId, oldJvmId, recordingName);
+                    if (!fs.exists(oldMetadata)) {
+                        logger.error("Metadata file {} does not exist", oldMetadata);
+                        continue;
+                    }
+                    StoredRecordingMetadata m = gson.fromJson(fs.readFile(oldMetadata),
+                            StoredRecordingMetadata.class);
+                    m = StoredRecordingMetadata.of(targetId, newJvmId, recordingName, m);
+                    this.recordingMetadataMap.put(Pair.of(newJvmId, recordingName), m);
+                    Path newLocation = getMetadataPath(targetId, newJvmId, recordingName);
+                    fs.writeString(newLocation, gson.toJson(m));
 
-                                } catch (IOException e) {
-                                    logger.error("Metadata could not be transferred", e);
-                                }
-                            });
-            jvmIdHelper.put(targetId, newJvmId);
-            jvmIdHelper.transferJvmIds(oldJvmId, newJvmId);
+                    Path oldParent = oldMetadata.getParent();
+                    fs.deleteIfExists(oldParent.resolve("connectUrl"));
+                    fs.deleteIfExists(oldMetadata);
+                    if (fs.listDirectoryChildren(oldParent).isEmpty()) {
+                        fs.deleteIfExists(oldParent);
+                    }
+                } catch (Exception e) {
+                    logger.error("Metadata could not be transferred");
+                    logger.error(e);
+                } finally {
+                    it.remove();
+                }
+            }
             logger.info(
                     "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (Exception e) {
@@ -787,17 +819,27 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private Path getMetadataPath(String jvmId, String recordingName) throws IOException {
+    private Path getMetadataPath(ConnectionDescriptor connectionDescriptor, String recordingName)
+            throws IOException {
+        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
+        return getMetadataPath(connectionDescriptor.getTargetId(), jvmId, recordingName);
+    }
+
+    private Path getMetadataPath(String targetId, String jvmId, String recordingName) throws IOException {
         String subdirectory =
                 jvmId.equals(UPLOADS)
                         ? UPLOADS
                         : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
         String filename =
                 base32.encodeAsString(recordingName.getBytes(StandardCharsets.UTF_8)) + ".json";
-        if (!fs.exists(recordingMetadataDir.resolve(subdirectory))) {
-            fs.createDirectory(recordingMetadataDir.resolve(subdirectory));
+        Path subdirPath = recordingMetadataDir.resolve(subdirectory);
+        if (!fs.exists(subdirPath)) {
+            fs.createDirectory(subdirPath);
+            if (!jvmId.equals(UPLOADS)) {
+                fs.writeString(subdirPath.resolve("connectUrl"), targetId);
+            }
         }
-        return recordingMetadataDir.resolve(subdirectory).resolve(filename);
+        return subdirPath.resolve(filename);
     }
 
     private boolean deleteMetadataPathIfExists(Path path) {

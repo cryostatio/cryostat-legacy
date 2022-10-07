@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -84,11 +83,15 @@ public class JvmIdHelper {
                         .buildAsync(new IdLoader());
     }
 
-    protected CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
+    private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+            logger.info(
+                    "JVM ID: {} -> {}",
+                    targetId,
+                    RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
             return CompletableFuture.completedFuture(
                     RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
         }
@@ -97,7 +100,9 @@ public class JvmIdHelper {
                         targetId, credentialsManager.getCredentialsByTargetId(targetId)),
                 connection -> {
                     try {
-                        return connection.getJvmId();
+                        String id = connection.getJvmId();
+                        logger.info("JVM ID: {} -> {}", targetId, id);
+                        return id;
                     } catch (Exception e) {
                         throw new JvmIdGetException(e, targetId);
                     }
@@ -116,37 +121,10 @@ public class JvmIdHelper {
         }
     }
 
-    public void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
-        if (oldJvmId.equals(newJvmId)) {
-            return;
-        }
-        ids.asMap().entrySet().stream()
-                .filter(
-                        entry -> {
-                            try {
-                                return entry.getValue().get().equals(oldJvmId);
-                            } catch (InterruptedException | ExecutionException e) {
-                                logger.error(e);
-                                return false;
-                            }
-                        })
-                .forEach(e -> ids.put(e.getKey(), CompletableFuture.completedFuture(newJvmId)));
-    }
-
-    protected Future<String> get(String targetId) {
-        return ids.get(targetId);
-    }
-
+    // FIXME this should not be called externally. This class should itself be a
+    // TargetDiscoveryListener and invalidate its own entries from notifications
     protected void remove(String targetId) {
         ids.synchronous().invalidate(targetId);
-    }
-
-    protected void put(String targetId, String jvmId) {
-        ids.put(targetId, CompletableFuture.completedFuture(jvmId));
-    }
-
-    protected Future<String> putIfAbsent(String targetId, String jvmId) {
-        return ids.asMap().putIfAbsent(targetId, CompletableFuture.completedFuture(jvmId));
     }
 
     static class JvmIdGetException extends IOException {
