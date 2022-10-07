@@ -39,7 +39,6 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -233,10 +232,18 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
+    private Set<TargetNode> findAllLeavesFrom(Collection<? extends AbstractNode> children) {
+        Set<TargetNode> leaves = new HashSet<>();
+        for (AbstractNode child : children) {
+            leaves.addAll(findLeavesFrom((child)));
+        }
+        return leaves;
+    }
+
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
-        var updatedChildren = new ArrayList<AbstractNode>();
-        for (AbstractNode child : Objects.requireNonNull(children, "children")) {
+        var updatedChildren = new HashSet<AbstractNode>();
+        for (AbstractNode child : findAllLeavesFrom(Objects.requireNonNull(children, "children"))) {
             if (child instanceof TargetNode) {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
@@ -252,6 +259,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                     }
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());
+            } else {
+                throw new IllegalArgumentException(child.getClass().getCanonicalName());
             }
             updatedChildren.add(child);
         }
@@ -278,7 +287,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
-        return original.getChildren();
+        return currentTree.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {

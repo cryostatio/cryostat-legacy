@@ -40,6 +40,7 @@ package io.cryostat.discovery;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -453,7 +454,7 @@ class DiscoveryStorageTest {
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
             Mockito.when(jvmIdHelper.resolveId(Mockito.any())).thenReturn(nextServiceRef);
-            
+
             UUID id = UUID.randomUUID();
             PluginInfo prevPlugin =
                     new PluginInfo(
@@ -462,14 +463,14 @@ class DiscoveryStorageTest {
                     new PluginInfo(
                             "test-realm", URI.create("http://example.com"), gson.toJson(next));
             Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-            Mockito.when(dao.update(id, List.of(nextTarget))).thenReturn(nextPlugin);
+            Mockito.when(dao.update(Mockito.any(), Mockito.any(Collection.class))).thenReturn(nextPlugin);
 
             List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
             storage.addTargetDiscoveryListener(discoveryEvents::add);
 
             List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
-            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(prevTarget)));
+            MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(nextTarget)));
             MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
 
             TargetDiscoveryEvent foundEvent =
@@ -651,6 +652,91 @@ class DiscoveryStorageTest {
 
             MatcherAssert.assertThat(servicesList, Matchers.hasSize(4));
             MatcherAssert.assertThat(servicesList, Matchers.containsInAnyOrder(sr1, sr2, sr3, sr4));
+        }
+    }
+
+    @Test
+    void updatesDaoWithModifiedJvmIds() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
+                .thenAnswer(
+                        new Answer<ServiceRef>() {
+                            @Override
+                            public ServiceRef answer(InvocationOnMock invocation) throws Throwable {
+                                ServiceRef ref = invocation.getArgument(0);
+                                // use alias as jvmId in test
+                                return new ServiceRef(
+                                        ref.getAlias().get(),
+                                        ref.getServiceUri(),
+                                        ref.getAlias().orElse(null));
+                            }
+                        });
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
+                        "serviceRef1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
+                        "serviceRef2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:3/jmxrmi"),
+                        "serviceRef3");
+        ServiceRef serviceRef4 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:4/jmxrmi"),
+                        "serviceRef4");
+        TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
+        TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
+        TargetNode target3 = new TargetNode(BaseNodeType.JVM, serviceRef3);
+        TargetNode target4 = new TargetNode(BaseNodeType.JVM, serviceRef4);
+
+        EnvironmentNode agent =
+                new EnvironmentNode("agent-47", BaseNodeType.AGENT, Map.of(), Set.of(target3));
+        EnvironmentNode realm1 =
+                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target4));
+        EnvironmentNode realm2 =
+                new EnvironmentNode(
+                        "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2, agent));
+
+        PluginInfo prevPlugin =
+                new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
+
+        Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
+        Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
+                .thenAnswer(
+                        new Answer<PluginInfo>() {
+                            @Override
+                            public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
+                                Set<AbstractNode> subtree = invocation.getArgument(1);
+                                EnvironmentNode next =
+                                        new EnvironmentNode(
+                                                "next", BaseNodeType.REALM, Map.of(), subtree);
+                                return new PluginInfo(
+                                        "test-realm",
+                                        URI.create("http://example.com"),
+                                        gson.toJson(next));
+                            }
+                        });
+
+        var updatedTargetNodes = storage.update(id, List.of(realm2));
+        MatcherAssert.assertThat(updatedTargetNodes, Matchers.notNullValue());
+        MatcherAssert.assertThat(updatedTargetNodes, Matchers.hasSize(3));
+        for (AbstractNode node : updatedTargetNodes) {
+            MatcherAssert.assertThat(node, Matchers.instanceOf(TargetNode.class));
+            TargetNode target = (TargetNode) node;
+            MatcherAssert.assertThat(target.getTarget().getAlias().isPresent(), Matchers.is(true));
+            MatcherAssert.assertThat(target.getTarget().getJvmId(), Matchers.notNullValue());
+            MatcherAssert.assertThat(
+                    target.getTarget().getJvmId(),
+                    Matchers.equalTo(target.getTarget().getAlias().get()));
         }
     }
 }
