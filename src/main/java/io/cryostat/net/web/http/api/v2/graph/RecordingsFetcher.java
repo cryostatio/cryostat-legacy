@@ -171,6 +171,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
             } catch (ExecutionException e) {
                 recordings.archived = List.of();
                 logger.warn("Couldn't get archived recordings for {}", targetId);
+                logger.warn(e);
             }
         }
 
