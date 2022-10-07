@@ -51,7 +51,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import itest.util.http.JvmIdWebRequest;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -139,9 +138,7 @@ public class CustomTargetsIT extends StandardSelfTest {
 
         itestJvmId =
                 JvmIdWebRequest.jvmIdRequest(
-                        URLEncodedUtils.formatSegments(
-                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi"),
-                        MultiMap.caseInsensitiveMultiMap());
+                        "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi");
         JsonObject selfJdp =
                 new JsonObject(
                         Map.of(

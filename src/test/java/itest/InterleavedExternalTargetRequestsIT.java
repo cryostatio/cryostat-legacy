@@ -133,9 +133,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         // size should not change
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
         Set<ServiceRef> expected = new HashSet<>();
-        String cryostatJvmId =
-                JvmIdWebRequest.jvmIdRequest(
-                        SELF_REFERENCE_TARGET_ID, MultiMap.caseInsensitiveMultiMap());
+        String cryostatJvmId = JvmIdWebRequest.jvmIdRequest(SELF_REFERENCE_TARGET_ID);
         ServiceRef cryostat =
                 new ServiceRef(
                         cryostatJvmId,
@@ -161,7 +159,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             String.format(
                                     "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                     Podman.POD_NAME, 9093 + i));
-            String jvmId = JvmIdWebRequest.jvmIdRequest(uri, MultiMap.caseInsensitiveMultiMap());
+            String jvmId = JvmIdWebRequest.jvmIdRequest(uri);
             ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
                     Map.of(

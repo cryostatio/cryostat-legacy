@@ -463,7 +463,8 @@ class DiscoveryStorageTest {
                     new PluginInfo(
                             "test-realm", URI.create("http://example.com"), gson.toJson(next));
             Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-            Mockito.when(dao.update(Mockito.any(), Mockito.any(Collection.class))).thenReturn(nextPlugin);
+            Mockito.when(dao.update(Mockito.any(), Mockito.any(Collection.class)))
+                    .thenReturn(nextPlugin);
 
             List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
             storage.addTargetDiscoveryListener(discoveryEvents::add);
@@ -715,7 +716,7 @@ class DiscoveryStorageTest {
                         new Answer<PluginInfo>() {
                             @Override
                             public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
-                                Set<AbstractNode> subtree = invocation.getArgument(1);
+                                List<AbstractNode> subtree = invocation.getArgument(1);
                                 EnvironmentNode next =
                                         new EnvironmentNode(
                                                 "next", BaseNodeType.REALM, Map.of(), subtree);
@@ -726,17 +727,34 @@ class DiscoveryStorageTest {
                             }
                         });
 
-        var updatedTargetNodes = storage.update(id, List.of(realm2));
-        MatcherAssert.assertThat(updatedTargetNodes, Matchers.notNullValue());
-        MatcherAssert.assertThat(updatedTargetNodes, Matchers.hasSize(3));
-        for (AbstractNode node : updatedTargetNodes) {
-            MatcherAssert.assertThat(node, Matchers.instanceOf(TargetNode.class));
-            TargetNode target = (TargetNode) node;
-            MatcherAssert.assertThat(target.getTarget().getAlias().isPresent(), Matchers.is(true));
-            MatcherAssert.assertThat(target.getTarget().getJvmId(), Matchers.notNullValue());
-            MatcherAssert.assertThat(
-                    target.getTarget().getJvmId(),
-                    Matchers.equalTo(target.getTarget().getAlias().get()));
+        var updatedSubtree = storage.update(id, List.of(realm2));
+        MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
+        MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
+        for (AbstractNode node : updatedSubtree) {
+            if (node instanceof TargetNode) {
+                TargetNode target = (TargetNode) node;
+                MatcherAssert.assertThat(
+                        target.getTarget().getAlias().isPresent(), Matchers.is(true));
+                MatcherAssert.assertThat(target.getTarget().getJvmId(), Matchers.notNullValue());
+                MatcherAssert.assertThat(
+                        target.getTarget().getJvmId(),
+                        Matchers.equalTo(target.getTarget().getAlias().get()));
+            } else {
+                MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
+                EnvironmentNode env = (EnvironmentNode) node;
+                for (AbstractNode nested : env.getChildren()) {
+                    if (nested instanceof TargetNode) {
+                        TargetNode target = (TargetNode) nested;
+                        MatcherAssert.assertThat(
+                                target.getTarget().getAlias().isPresent(), Matchers.is(true));
+                        MatcherAssert.assertThat(
+                                target.getTarget().getJvmId(), Matchers.notNullValue());
+                        MatcherAssert.assertThat(
+                                target.getTarget().getJvmId(),
+                                Matchers.equalTo(target.getTarget().getAlias().get()));
+                    }
+                }
+            }
         }
     }
 }

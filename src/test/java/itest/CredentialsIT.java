@@ -300,8 +300,7 @@ public class CredentialsIT extends ExternalTargetsTest {
         List<ServiceRef> expectedList = new ArrayList<ServiceRef>();
         URI expectedURI =
                 new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi").build();
-        String expectedJvmId =
-                JvmIdWebRequest.jvmIdRequest(expectedURI, MultiMap.caseInsensitiveMultiMap());
+        String expectedJvmId = JvmIdWebRequest.jvmIdRequest(expectedURI);
         ServiceRef expectedServiceRef =
                 new ServiceRef(expectedJvmId, expectedURI, "io.cryostat.Cryostat");
         expectedServiceRef.setCryostatAnnotations(

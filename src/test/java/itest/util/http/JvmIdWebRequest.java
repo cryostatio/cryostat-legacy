@@ -39,46 +39,76 @@ package itest.util.http;
 
 import java.net.URI;
 import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.vertx.core.MultiMap;
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+
+import com.google.gson.Gson;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import itest.bases.StandardSelfTest;
 import itest.util.Utils;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 public class JvmIdWebRequest {
+    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+
     public static final int REQUEST_TIMEOUT_SECONDS = 10;
     public static final WebClient webClient = Utils.getWebClient();
 
-    public static String jvmIdRequest(String encodedServiceUri, MultiMap form)
+    // targetId shouldn't be percent-encoded
+    public static String jvmIdRequest(String targetId)
             throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<JsonObject> jvmIdFuture = new CompletableFuture<>();
+        CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
 
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                String.format("query { targetNodes(filter: { name: \"%s\" }) { ", targetId)
+                        + " target { jvmId } } }");
         webClient
-                .get(String.format("/api/beta/targets/%s", encodedServiceUri))
+                .post("/api/v2.2/graphql")
                 .putHeader(
                         "X-JMX-Authorization",
                         "Basic "
                                 + Base64.getUrlEncoder()
                                         .encodeToString("admin:adminpass123".getBytes()))
-                .sendForm(
-                        form,
+                .sendJson(
+                        query,
                         ar -> {
-                            if (StandardSelfTest.assertRequestStatus(ar, jvmIdFuture)) {
-                                jvmIdFuture.complete(ar.result().bodyAsJsonObject());
+                            if (StandardSelfTest.assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                TargetNodesQueryResponse.class));
                             }
                         });
-        JsonObject response = jvmIdFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        return response.getJsonObject("data").getString("result");
+        TargetNodesQueryResponse response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return response.data.targetNodes.get(0).target.jvmId;
     }
 
-    public static String jvmIdRequest(URI serviceUri, MultiMap form)
+    public static String jvmIdRequest(URI serviceUri)
             throws InterruptedException, ExecutionException, TimeoutException {
-        return jvmIdRequest(URLEncodedUtils.formatSegments(serviceUri.toString()), form);
+        return jvmIdRequest(serviceUri.toString());
+    }
+
+    static class TargetNodesQueryResponse {
+        TargetNodes data;
+    }
+
+    static class TargetNodes {
+        List<TargetNode> targetNodes;
+    }
+
+    static class TargetNode {
+        Target target;
+    }
+
+    static class Target {
+        String jvmId;
     }
 }

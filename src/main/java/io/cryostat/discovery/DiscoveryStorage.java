@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -232,23 +233,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
-    private Set<TargetNode> findAllLeavesFrom(Collection<? extends AbstractNode> children) {
-        Set<TargetNode> leaves = new HashSet<>();
+    private List<AbstractNode> modifyChildrenWithJvmIds(
+            Collection<? extends AbstractNode> children) {
+        List<AbstractNode> modifiedChildren = new ArrayList<>();
         for (AbstractNode child : children) {
-            leaves.addAll(findLeavesFrom((child)));
-        }
-        return leaves;
-    }
-
-    public List<? extends AbstractNode> update(
-            UUID id, Collection<? extends AbstractNode> children) {
-        var updatedChildren = new HashSet<AbstractNode>();
-        for (AbstractNode child : findAllLeavesFrom(Objects.requireNonNull(children, "children"))) {
             if (child instanceof TargetNode) {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
-
                 } catch (Exception e) {
                     logger.warn("Failed to resolve jvmId for node {}", child.getName());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
@@ -259,15 +251,28 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                     }
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());
+                modifiedChildren.add(child);
+            } else if (child instanceof EnvironmentNode) {
+                modifiedChildren.add(
+                        new EnvironmentNode(
+                                child.getName(),
+                                child.getNodeType(),
+                                child.getLabels(),
+                                modifyChildrenWithJvmIds(((EnvironmentNode) child).getChildren())));
             } else {
-                throw new IllegalArgumentException(child.getClass().getCanonicalName());
-            }
-            updatedChildren.add(child);
+                throw new IllegalArgumentException(child.getClass().getCanonicalName());            }
         }
+        return modifiedChildren;
+    }
+
+    public List<? extends AbstractNode> update(
+            UUID id, Collection<? extends AbstractNode> children) {
+        var updatedChildren = modifyChildrenWithJvmIds(Objects.requireNonNull(children, "children"));
+
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-        plugin = dao.update(id, Objects.requireNonNull(updatedChildren));
+        plugin = dao.update(id, updatedChildren);
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
