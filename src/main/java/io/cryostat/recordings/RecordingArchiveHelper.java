@@ -57,6 +57,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -64,8 +65,11 @@ import java.util.stream.Collectors;
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.io.FileUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.MainModule;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
@@ -84,9 +88,6 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.codec.binary.Base32;
 
 public class RecordingArchiveHelper {
 
@@ -141,47 +142,81 @@ public class RecordingArchiveHelper {
     }
 
     // on startup migration and jvmId transfer method for archived recordings
-    protected void migrate() throws Exception {
+    protected void migrate(ExecutorService executor) throws Exception {
         List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
+        List<Future<Void>> futures = new ArrayList<>(subdirectories.size());
         for (String subdirectoryName : subdirectories) {
-            try {
-                logger.info("Found archived recordings subdirectory: {}", subdirectoryName);
-                // FIXME: refactor structure to remove file-uploads (v1
-                // RecordingsPostBodyHandler)
-                if (subdirectoryName.equals("file-uploads") || subdirectoryName.equals("uploads")) {
-                    continue;
-                }
-                Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-                String connectUrl;
-                try {
-                    connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                    logger.info("Found connectUrl: {}", connectUrl);
-                } catch (ExecutionException e) {
-                    // try to migrate the recording to the new structure
-                    connectUrl =
-                            new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-                }
-                String jvmId = jvmIdHelper.getJvmId(connectUrl);
-                Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
-                logger.info(
-                        "Migrating recordings from {} to {}", subdirectoryPath, encodedJvmIdPath);
-                fs.writeString(
-                        subdirectoryPath.resolve("connectUrl"),
-                        connectUrl,
-                        StandardOpenOption.CREATE);
-                if (!fs.exists(encodedJvmIdPath)) {
-                    // rename subdirectory to jvmId
-                    Files.move(subdirectoryPath, encodedJvmIdPath);
-                }
+            Future<Void> future =
+                    executor.submit(
+                            () -> {
+                                try {
+                                    logger.info(
+                                            "Found archived recordings subdirectory: {}",
+                                            subdirectoryName);
+                                    // FIXME: refactor structure to remove file-uploads (v1
+                                    // RecordingsPostBodyHandler)
+                                    if (subdirectoryName.equals("file-uploads")
+                                            || subdirectoryName.equals("uploads")) {
+                                        logger.info("Skipping: appears to be an upload location");
+                                        return null;
+                                    }
+                                    Path subdirectoryPath =
+                                            archivedRecordingsPath.resolve(subdirectoryName);
+                                    String connectUrl;
+                                    try {
+                                        connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+                                        logger.info("Found connectUrl: {}", connectUrl);
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        // try to migrate the recording to the new structure
+                                        connectUrl =
+                                                new String(
+                                                        base32.decode(subdirectoryName),
+                                                        StandardCharsets.UTF_8);
+                                    }
+                                    String jvmId = jvmIdHelper.getJvmId(connectUrl);
+                                    Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
+                                    if (Objects.equals(subdirectoryPath, encodedJvmIdPath)) {
+                                        logger.info(
+                                                "Skipping {} - no change in ID", subdirectoryPath);
+                                        return null;
+                                    }
+                                    logger.info(
+                                            "Migrating recordings from {} to {}",
+                                            subdirectoryPath,
+                                            encodedJvmIdPath);
+                                    if (!fs.exists(encodedJvmIdPath)) {
+                                        fs.createDirectory(encodedJvmIdPath);
+                                        fs.writeString(
+                                                encodedJvmIdPath.resolve("connectUrl"),
+                                                connectUrl,
+                                                StandardOpenOption.CREATE);
+                                    }
+                                    fs.deleteIfExists(subdirectoryPath.resolve("connectUrl"));
+                                    for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                                        Path oldLocation = subdirectoryPath.resolve(file);
+                                        Path newLocation = encodedJvmIdPath.resolve(file);
+                                        logger.info("{} -> {}", oldLocation, newLocation);
+                                        Files.move(oldLocation, newLocation);
+                                    }
+                                    FileUtils.deleteQuietly(subdirectoryPath.toFile());
 
-            } catch (JvmIdGetException e) {
-                logger.warn(
-                        "Could not find jvmId for targetId {}, skipping migration of"
-                                + " recordings",
-                        e.getTarget());
-            } catch (CancellationException e) {
-                logger.error(e);
-            }
+                                } catch (JvmIdGetException e) {
+                                    logger.warn(
+                                            "Could not find jvmId for targetId"
+                                                    + " {}, skipping migration of"
+                                                    + " recordings",
+                                            e.getTarget());
+                                } catch (IOException e) {
+                                    logger.warn(e);
+                                } catch (CancellationException e) {
+                                    logger.error(e);
+                                }
+                                return null;
+                            });
+            futures.add(future);
+        }
+        for (var f : futures) {
+            f.get();
         }
     }
 
