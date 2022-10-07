@@ -395,7 +395,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             migrationLatch.countDown();
                                         }
                                     })
-                            .run();
+                            .start();
                 });
     }
 
