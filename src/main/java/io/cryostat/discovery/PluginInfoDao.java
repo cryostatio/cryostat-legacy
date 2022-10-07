@@ -67,78 +67,88 @@ class PluginInfoDao extends AbstractDao<UUID, PluginInfo> {
         this.gson = gson;
     }
 
-    public PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
-        Objects.requireNonNull(realm);
-        Objects.requireNonNull(subtree);
-        return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
-    }
-
-    public List<PluginInfo> getByRealm(String realm) {
-        Objects.requireNonNull(realm);
-
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<PluginInfo> cq = cb.createQuery(klazz);
-        Root<PluginInfo> rootEntry = cq.from(klazz);
-        CriteriaQuery<PluginInfo> all = cq.select(rootEntry);
-        CriteriaQuery<PluginInfo> withRealm = all.where(cb.equal(rootEntry.get("realm"), realm));
-        TypedQuery<PluginInfo> realmQuery = entityManager.createQuery(withRealm);
-
-        return realmQuery.getResultList();
-    }
-
-    public PluginInfo update(UUID id, EnvironmentNode subtree) {
-        Objects.requireNonNull(id);
-        Objects.requireNonNull(subtree);
-        EntityTransaction transaction = entityManager.getTransaction();
-        try {
-            PluginInfo plugin =
-                    get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
-
-            transaction.begin();
-            plugin.setSubtree(gson.toJson(subtree));
-            entityManager.merge(plugin);
-            transaction.commit();
-            entityManager.detach(plugin);
-
-            return plugin;
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            logger.error(e);
-            throw e;
+    public final PluginInfo save(String realm, URI callback, EnvironmentNode subtree) {
+        synchronized (entityManager) {
+            Objects.requireNonNull(realm);
+            Objects.requireNonNull(subtree);
+            return super.save(new PluginInfo(realm, callback, gson.toJson(subtree)));
         }
     }
 
-    public PluginInfo update(UUID id, Collection<? extends AbstractNode> children) {
-        Objects.requireNonNull(id);
-        Objects.requireNonNull(children);
-        EntityTransaction transaction = entityManager.getTransaction();
-        try {
-            PluginInfo plugin =
-                    get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
-            EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+    public final List<PluginInfo> getByRealm(String realm) {
+        synchronized (entityManager) {
+            Objects.requireNonNull(realm);
 
-            EnvironmentNode subtree =
-                    new EnvironmentNode(
-                            original.getName(),
-                            original.getNodeType(),
-                            original.getLabels(),
-                            children);
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<PluginInfo> cq = cb.createQuery(klazz);
+            Root<PluginInfo> rootEntry = cq.from(klazz);
+            CriteriaQuery<PluginInfo> all = cq.select(rootEntry);
+            CriteriaQuery<PluginInfo> withRealm =
+                    all.where(cb.equal(rootEntry.get("realm"), realm));
+            TypedQuery<PluginInfo> realmQuery = entityManager.createQuery(withRealm);
 
-            transaction.begin();
-            plugin.setSubtree(gson.toJson(subtree));
-            entityManager.merge(plugin);
-            transaction.commit();
-            entityManager.detach(plugin);
+            return realmQuery.getResultList();
+        }
+    }
 
-            return plugin;
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
+    public final PluginInfo update(UUID id, EnvironmentNode subtree) {
+        synchronized (entityManager) {
+            Objects.requireNonNull(id);
+            Objects.requireNonNull(subtree);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                PluginInfo plugin =
+                        get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+
+                transaction.begin();
+                plugin.setSubtree(gson.toJson(subtree));
+                entityManager.merge(plugin);
+                transaction.commit();
+                entityManager.detach(plugin);
+
+                return plugin;
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                logger.error(e);
+                throw e;
             }
-            logger.error(e);
-            throw e;
+        }
+    }
+
+    public final PluginInfo update(UUID id, Collection<? extends AbstractNode> children) {
+        synchronized (entityManager) {
+            Objects.requireNonNull(id);
+            Objects.requireNonNull(children);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                PluginInfo plugin =
+                        get(id).orElseThrow(() -> new NoSuchElementException(id.toString()));
+                EnvironmentNode original =
+                        gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+
+                EnvironmentNode subtree =
+                        new EnvironmentNode(
+                                original.getName(),
+                                original.getNodeType(),
+                                original.getLabels(),
+                                children);
+
+                transaction.begin();
+                plugin.setSubtree(gson.toJson(subtree));
+                entityManager.merge(plugin);
+                transaction.commit();
+                entityManager.detach(plugin);
+
+                return plugin;
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                logger.error(e);
+                throw e;
+            }
         }
     }
 }

@@ -103,6 +103,7 @@ public abstract class StorageModule {
     }
 
     @Provides
+    @Singleton
     static EntityManager provideEntityManager(EntityManagerFactory emf) {
         return emf.createEntityManager();
     }

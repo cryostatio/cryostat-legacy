@@ -63,64 +63,72 @@ public abstract class AbstractDao<I, T> {
     }
 
     public final T save(T t) {
-        Objects.requireNonNull(t);
-        EntityTransaction transaction = entityManager.getTransaction();
-        try {
-            transaction.begin();
-            entityManager.persist(t);
-            transaction.commit();
-            entityManager.detach(t);
-            return t;
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
+        synchronized (entityManager) {
+            Objects.requireNonNull(t);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                transaction.begin();
+                entityManager.persist(t);
+                transaction.commit();
+                entityManager.detach(t);
+                return t;
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                logger.error(e);
+                throw e;
             }
-            logger.error(e);
-            throw e;
         }
     }
 
     public final boolean delete(I id) {
-        Objects.requireNonNull(id);
-        EntityTransaction transaction = entityManager.getTransaction();
-        try {
-            transaction.begin();
-            T t = entityManager.find(klazz, id);
-            entityManager.remove(t);
-            transaction.commit();
-            return true;
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
+        synchronized (entityManager) {
+            Objects.requireNonNull(id);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                transaction.begin();
+                T t = entityManager.find(klazz, id);
+                entityManager.remove(t);
+                transaction.commit();
+                return true;
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                logger.error(e);
+                return false;
             }
-            logger.error(e);
-            return false;
         }
     }
 
     public final Optional<T> get(I id) {
-        Objects.requireNonNull(id);
-        EntityTransaction transaction = entityManager.getTransaction();
-        try {
-            T t = entityManager.find(klazz, id);
-            if (t != null) {
-                entityManager.detach(t);
+        synchronized (entityManager) {
+            Objects.requireNonNull(id);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                T t = entityManager.find(klazz, id);
+                if (t != null) {
+                    entityManager.detach(t);
+                }
+                return Optional.ofNullable(t);
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                throw e;
             }
-            return Optional.ofNullable(t);
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            throw e;
         }
     }
 
     public final List<T> getAll() {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<T> cq = cb.createQuery(klazz);
-        Root<T> rootEntry = cq.from(klazz);
-        CriteriaQuery<T> all = cq.select(rootEntry);
-        TypedQuery<T> allQuery = entityManager.createQuery(all);
-        return allQuery.getResultList();
+        synchronized (entityManager) {
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<T> cq = cb.createQuery(klazz);
+            Root<T> rootEntry = cq.from(klazz);
+            CriteriaQuery<T> all = cq.select(rootEntry);
+            TypedQuery<T> allQuery = entityManager.createQuery(all);
+            return allQuery.getResultList();
+        }
     }
 }
