@@ -63,7 +63,6 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 

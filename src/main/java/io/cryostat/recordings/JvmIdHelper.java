@@ -84,8 +84,7 @@ public class JvmIdHelper {
                         .buildAsync(new IdLoader());
     }
 
-    protected CompletableFuture<String> computeJvmId(String targetId)
-            throws ScriptException {
+    protected CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
@@ -111,9 +110,7 @@ public class JvmIdHelper {
 
     public String getJvmId(String targetId) throws JvmIdGetException {
         try {
-            return this.ids
-                    .get(targetId)
-                    .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+            return this.ids.get(targetId).get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new JvmIdGetException(e, targetId);
         }
@@ -173,14 +170,13 @@ public class JvmIdHelper {
     private class IdLoader implements AsyncCacheLoader<String, String> {
 
         @Override
-        public CompletableFuture<String> asyncLoad(String key, Executor executor)
-                throws Exception {
+        public CompletableFuture<String> asyncLoad(String key, Executor executor) throws Exception {
             return computeJvmId(key);
         }
 
         @Override
-        public CompletableFuture<String> asyncReload(
-                String key, String prev, Executor executor) throws Exception {
+        public CompletableFuture<String> asyncReload(String key, String prev, Executor executor)
+                throws Exception {
             return asyncLoad(key, executor);
         }
     }
