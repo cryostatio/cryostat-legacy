@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -117,25 +116,6 @@ class PeriodicArchiverTest {
 
         Mockito.verify(credentialsManager).getCredentials(serviceRef);
         Mockito.verify(recordingArchiveHelper).saveRecording(Mockito.any(), Mockito.anyString());
-    }
-
-    @Test
-    void testNotifyOnExecutionFailure() throws Exception {
-        CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
-        listFuture.complete(new ArrayList<>());
-        Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
-
-        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(future);
-        ExecutionException e = Mockito.mock(ExecutionException.class);
-        Mockito.when(future.get()).thenThrow(e);
-
-        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
-
-        archiver.run();
-
-        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
     }
 
     @Test
