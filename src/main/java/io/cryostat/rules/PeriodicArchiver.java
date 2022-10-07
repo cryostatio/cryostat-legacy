@@ -46,16 +46,13 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.security.sasl.SaslException;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -127,13 +124,9 @@ class PeriodicArchiver implements Runnable {
         } catch (Exception e) {
             logger.error(e);
 
-            if (ExceptionUtils.hasCause(e, ExecutionException.class)
-                    || ExceptionUtils.hasCause(e, InterruptedException.class)
-                    || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
-                    || ExceptionUtils.hasCause(e, SecurityException.class)
-                    || ExceptionUtils.hasCause(e, SaslException.class)
-                    || ExceptionUtils.hasCause(e, ArchivePathException.class)) {
-
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
+                    || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)
+                    || AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
                 failureNotifier.apply(Pair.of(serviceRef, rule));
             }
         }
