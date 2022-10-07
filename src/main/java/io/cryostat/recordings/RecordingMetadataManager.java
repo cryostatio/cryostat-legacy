@@ -670,7 +670,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                     StoredRecordingMetadata m =
                             gson.fromJson(fs.readFile(oldMetadata), StoredRecordingMetadata.class);
                     m = StoredRecordingMetadata.of(targetId, newJvmId, recordingName, m);
-                    this.recordingMetadataMap.put(Pair.of(newJvmId, recordingName), m);
+                    this.recordingMetadataMap.put(
+                            Pair.of(newJvmId, recordingName), new Metadata(m));
                     Path newLocation = getMetadataPath(targetId, newJvmId, recordingName);
                     fs.writeString(newLocation, gson.toJson(m));
 
