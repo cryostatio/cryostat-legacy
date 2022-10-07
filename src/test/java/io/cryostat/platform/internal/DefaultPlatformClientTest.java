@@ -62,7 +62,6 @@ import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.URIUtil;
 
 import org.hamcrest.Matcher;
@@ -80,13 +79,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DefaultPlatformClientTest {
 
     @Mock Logger logger;
-    @Mock JvmIdHelper jvmIdHelper;
     @Mock JvmDiscoveryClient discoveryClient;
     DefaultPlatformClient client;
 
     @BeforeEach
     void setup() {
-        this.client = new DefaultPlatformClient(logger, jvmIdHelper, discoveryClient);
+        this.client = new DefaultPlatformClient(logger, discoveryClient);
     }
 
     @Test
@@ -102,7 +100,6 @@ class DefaultPlatformClientTest {
 
     @Test
     void testDiscoverableServiceMapping() throws Exception {
-        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
 
         DiscoveredJvmDescriptor desc1 = mock(DiscoveredJvmDescriptor.class);
         JMXServiceURL url1 =
@@ -156,7 +153,6 @@ class DefaultPlatformClientTest {
 
     @Test
     void testDiscoveryTree() throws Exception {
-        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
 
         DiscoveredJvmDescriptor desc1 = mock(DiscoveredJvmDescriptor.class);
         JMXServiceURL url1 =
@@ -230,7 +226,6 @@ class DefaultPlatformClientTest {
 
     @Test
     void testAcceptDiscoveryEvent() throws Exception {
-        when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         String javaMain = "com.example.Main";
         DiscoveredJvmDescriptor desc = mock(DiscoveredJvmDescriptor.class);

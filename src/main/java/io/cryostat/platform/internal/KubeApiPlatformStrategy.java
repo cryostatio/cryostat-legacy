@@ -45,7 +45,6 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NoopAuthManager;
-import io.cryostat.recordings.JvmIdHelper;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -106,8 +105,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), k8sClient, connectionToolkit, logger);
+        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, logger);
     }
 
     @Override

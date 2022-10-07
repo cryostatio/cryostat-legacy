@@ -52,11 +52,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import javax.security.sasl.SaslException;
-
 import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -237,36 +236,32 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
         var updatedChildren = new ArrayList<AbstractNode>();
-        for (AbstractNode child : children) {
+        for (AbstractNode child : Objects.requireNonNull(children, "children")) {
             if (child instanceof TargetNode) {
-                System.out.println("Target: " + child);
                 ServiceRef ref = ((TargetNode) child).getTarget();
-                System.out.println(ref.getJvmId());
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
-                    System.out.println(ref.getJvmId());
+
                 } catch (Exception e) {
-                    logger.warn("Failed to resolve jvmId for node {}");
-                    // if Exception is of SSL or JMX Auth 
-                    // ignore warning and use null jvmId
-                    // else, something wrong so 
-                    // continue and don't add child;      
-                    if (!(e.getCause() instanceof SecurityException || e.getCause() instanceof SaslException)) {
+                    logger.warn("Failed to resolve jvmId for node {}", child.getName());
+                    // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
+                    if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
+                            || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
                         logger.info("ignoring target child node {}", child.getName());
                         continue;
                     }
                 }
-                child = new TargetNode(child.getNodeType(), ref, child.getLabels()); 
-            }   
-            updatedChildren.add(child);    
+                child = new TargetNode(child.getNodeType(), ref, child.getLabels());
+            }
+            updatedChildren.add(child);
         }
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, Objects.requireNonNull(updatedChildren));
+        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         Set<TargetNode> previousLeaves = findLeavesFrom(original);
         Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
@@ -283,7 +278,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
-        return currentTree.getChildren();
+        return original.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {

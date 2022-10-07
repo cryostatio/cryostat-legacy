@@ -205,7 +205,6 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                         }
                     }
                     reader.endObject();
-                    System.out.println("ABSTRACT NODE TYPE ADAPTER: " + jvmId);
 
                     target = new ServiceRef(jvmId, connectUrl, alias);
                     target.setLabels(targetLabels);

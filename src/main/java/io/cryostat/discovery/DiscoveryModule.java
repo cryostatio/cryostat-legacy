@@ -94,7 +94,8 @@ public abstract class DiscoveryModule {
             Gson gson,
             WebClient http,
             Logger logger) {
-        return new DiscoveryStorage(deployer, pingPeriod, builtin, dao, jvmIdHelper, gson, http, logger);
+        return new DiscoveryStorage(
+                deployer, pingPeriod, builtin, dao, jvmIdHelper, gson, http, logger);
     }
 
     @Provides

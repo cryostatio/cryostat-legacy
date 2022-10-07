@@ -110,7 +110,8 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         int port = Integer.parseInt(matcher.group(2));
         try {
             ServiceRef sr =
-                    new ServiceRef(null,
+                    new ServiceRef(
+                            null,
                             URIUtil.convert(
                                     connectionToolkit
                                             .get()

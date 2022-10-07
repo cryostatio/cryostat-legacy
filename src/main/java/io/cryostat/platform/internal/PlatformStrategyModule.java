@@ -68,12 +68,9 @@ public abstract class PlatformStrategyModule {
             FileSystem fs,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, connectionToolkit, fs),
-                new KubeApiPlatformStrategy(
-                        logger, noopAuthManager, connectionToolkit, fs),
-                new KubeEnvPlatformStrategy(
-                        logger, fs, noopAuthManager, connectionToolkit, env),
+                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, connectionToolkit, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, fs),
+                new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }
 }

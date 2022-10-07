@@ -56,7 +56,6 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
@@ -79,15 +78,12 @@ class KubeEnvPlatformClientTest {
     KubeEnvPlatformClient client;
     final String namespace = "mynamespace";
     @Mock JFRConnectionToolkit connectionToolkit;
-    @Mock JvmIdHelper jvmIdHelper;
     @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client =
-                new KubeEnvPlatformClient(
-                        namespace, () -> connectionToolkit, jvmIdHelper, env, logger);
+        client = new KubeEnvPlatformClient(namespace, () -> connectionToolkit, env, logger);
     }
 
     @Nested
@@ -117,7 +113,6 @@ class KubeEnvPlatformClientTest {
                                     "BAR_PORT_9999_TCP_ADDR", "1.2.3.4",
                                     "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
 
-            Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
             Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                     .thenAnswer(
                             new Answer<>() {
@@ -173,7 +168,6 @@ class KubeEnvPlatformClientTest {
                                     "FOO_PORT_1234_TCP_ADDR", "127.0.0.1",
                                     "BAR_PORT_9999_TCP_ADDR", "1.2.3.4",
                                     "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
-            Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
             Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                     .thenAnswer(
                             new Answer<>() {

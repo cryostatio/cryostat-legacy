@@ -47,8 +47,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.inject.Singleton;
+
 import io.cryostat.MainModule;
-import io.cryostat.MockNodeTypeUtil;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
 import io.cryostat.core.log.Logger;
@@ -59,13 +60,11 @@ import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.PlatformDiscoveryModule;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
-import io.cryostat.util.PluggableJsonDeserializer;
-import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.Gson;
+import dagger.Component;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -95,30 +94,39 @@ class DiscoveryStorageTest {
     @Mock VerticleDeployer deployer;
     @Mock BuiltInDiscovery builtin;
     @Mock PluginInfoDao dao;
-    @Mock WebClient http;
     @Mock JvmIdHelper jvmIdHelper;
+    @Mock WebClient http;
     @Mock Logger logger;
     Vertx vertx = MockVertx.vertx();
+    Gson gson = MainModule.provideGson(logger);
 
-    PluggableTypeAdapter<?> baseAdapter;
-    PluggableJsonDeserializer<?> nodeDeserializer;
-    Set<PluggableTypeAdapter<?>> adapters;
+    @Singleton
+    @Component(modules = {MainModule.class})
+    interface Client {
+        Gson gson();
 
-    Gson gson;
+        @Component.Builder
+        interface Builder {
+            Client build();
+        }
+    }
+
     DiscoveryStorage storage;
 
     @BeforeEach
     void setup() {
-        this.baseAdapter = PlatformDiscoveryModule.provideBaseNodeTypeAdapter();
-        this.adapters =
-                Set.of(
-                        new MockNodeTypeUtil.MockAbstractNodeTypeAdapter(AbstractNode.class),
-                        baseAdapter);
-        this.nodeDeserializer = new MockNodeTypeUtil.MockNodeTypeDeserializer(adapters);
-        this.gson = MainModule.provideGson(adapters, Set.of(nodeDeserializer), logger);
+        Client client = DaggerDiscoveryStorageTest_Client.builder().build();
+        this.gson = client.gson();
         this.storage =
                 new DiscoveryStorage(
-                        deployer, Duration.ofMinutes(5), () -> builtin, dao, gson, http, logger);
+                        deployer,
+                        Duration.ofMinutes(5),
+                        () -> builtin,
+                        dao,
+                        () -> jvmIdHelper,
+                        gson,
+                        http,
+                        logger);
         this.storage.init(vertx, null);
     }
 
@@ -420,17 +428,18 @@ class DiscoveryStorageTest {
 
         @Test
         void throwsIfChildrenNull() {
-            Assertions.assertThrows(
-                    NullPointerException.class, () -> storage.update(UUID.randomUUID(), null));
+            UUID id = UUID.randomUUID();
+            Assertions.assertThrows(NullPointerException.class, () -> storage.update(id, null));
         }
 
         @Test
-        void updatesDaoAndEmitsFoundAndLostNotifications() throws InterruptedException {
+        void updatesDaoAndEmitsFoundAndLostNotifications() throws Exception {
             ServiceRef prevServiceRef =
                     new ServiceRef(
                             "id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
                             "prevServiceRef");
+
             TargetNode prevTarget = new TargetNode(BaseNodeType.JVM, prevServiceRef);
             EnvironmentNode prev =
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
@@ -443,7 +452,8 @@ class DiscoveryStorageTest {
             TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
-
+            Mockito.when(jvmIdHelper.resolveId(Mockito.any())).thenReturn(nextServiceRef);
+            
             UUID id = UUID.randomUUID();
             PluginInfo prevPlugin =
                     new PluginInfo(
@@ -493,12 +503,12 @@ class DiscoveryStorageTest {
 
             ServiceRef serviceRef1 =
                     new ServiceRef(
-                            "id1",
+                            "id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
                             "serviceRef1");
             ServiceRef serviceRef2 =
                     new ServiceRef(
-                            "id2",
+                            "id",
                             URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
                             "serviceRef2");
             TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
@@ -547,14 +557,14 @@ class DiscoveryStorageTest {
                     new TargetNode(
                             BaseNodeType.JVM,
                             new ServiceRef(
-                                    "id1",
+                                    "id",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"),
                                     "leaf1"));
             TargetNode leaf2 =
                     new TargetNode(
                             BaseNodeType.JVM,
                             new ServiceRef(
-                                    "id2",
+                                    "id",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
                                     "leaf2"));
             EnvironmentNode realm1 =
@@ -567,14 +577,14 @@ class DiscoveryStorageTest {
                     new TargetNode(
                             BaseNodeType.JVM,
                             new ServiceRef(
-                                    "id3",
+                                    "id",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
                                     "leaf3"));
             TargetNode leaf4 =
                     new TargetNode(
                             BaseNodeType.JVM,
                             new ServiceRef(
-                                    "id4",
+                                    "id",
                                     URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
                                     "leaf4"));
             EnvironmentNode realm2 =
@@ -609,15 +619,11 @@ class DiscoveryStorageTest {
         void listsAllTreeLeaves() {
             ServiceRef sr1 =
                     new ServiceRef(
-                            "id1",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"),
-                            "sr1");
+                            "id", URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"), "sr1");
             TargetNode leaf1 = new TargetNode(BaseNodeType.JVM, sr1);
             ServiceRef sr2 =
                     new ServiceRef(
-                            "id2",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
-                            "sr2");
+                            "id", URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"), "sr2");
             TargetNode leaf2 = new TargetNode(BaseNodeType.JVM, sr2);
             EnvironmentNode realm1 =
                     new EnvironmentNode(
@@ -627,15 +633,11 @@ class DiscoveryStorageTest {
 
             ServiceRef sr3 =
                     new ServiceRef(
-                            "id3",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
-                            "sr3");
+                            "id", URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"), "sr3");
             TargetNode leaf3 = new TargetNode(BaseNodeType.JVM, sr3);
             ServiceRef sr4 =
                     new ServiceRef(
-                            "id4",
-                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
-                            "sr4");
+                            "id", URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"), "sr4");
             TargetNode leaf4 = new TargetNode(BaseNodeType.JVM, sr4);
             EnvironmentNode realm2 =
                     new EnvironmentNode(

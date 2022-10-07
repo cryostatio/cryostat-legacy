@@ -105,18 +105,26 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                             break;
                     }
                 });
+                
+    public ServiceRef resolveId(ServiceRef sr) throws Exception {
+        if (sr.getJvmId() != null) return sr;
+        String id = getIdServiceRef(sr);
+        return new ServiceRef(
+                id, sr.getServiceUri(), sr.getAlias().orElse(sr.getServiceUri().toString()));
     }
 
     // Get jvmIds for DiscoveryStorage ServiceRefs (throws Exception)
     private String getIdServiceRef(ServiceRef ref) throws Exception {
         String targetId = ref.getServiceUri().toString();
-        ConnectionDescriptor cd = new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
         try {
-            String jvmId = this.targetConnectionManager.executeConnectedTask(
-                    cd,
-                    connection -> {
-                            return connection.getJvmId();
-                    });
+            String jvmId =
+                    this.targetConnectionManager.executeConnectedTask(
+                            cd,
+                            connection -> {
+                                return connection.getJvmId();
+                            });
             jvmIdMap.put(targetId, jvmId);
             return jvmId;
         } catch (Exception e) {

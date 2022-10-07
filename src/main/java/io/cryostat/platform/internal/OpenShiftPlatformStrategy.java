@@ -45,7 +45,6 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
-import io.cryostat.recordings.JvmIdHelper;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -105,8 +104,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), osClient, connectionToolkit, logger);
+        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
     }
 
     @Override

@@ -60,7 +60,6 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.URIUtil;
 
 import io.fabric8.kubernetes.api.model.EndpointAddressBuilder;
@@ -92,15 +91,13 @@ class KubeApiPlatformClientTest {
     KubernetesClient k8sClient;
     KubernetesMockServer server;
     @Mock JFRConnectionToolkit connectionToolkit;
-    @Mock JvmIdHelper jvmIdHelper;
     @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() throws Exception {
         this.platformClient =
-                new KubeApiPlatformClient(
-                        NAMESPACE, k8sClient, () -> connectionToolkit, jvmIdHelper, logger);
+                new KubeApiPlatformClient(NAMESPACE, k8sClient, () -> connectionToolkit, logger);
     }
 
     @Test
@@ -212,7 +209,6 @@ class KubeApiPlatformClientTest {
 
         k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
 
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -306,7 +302,6 @@ class KubeApiPlatformClientTest {
 
     @Test
     void shouldReturnDiscoveryTree() throws Exception {
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -467,7 +462,6 @@ class KubeApiPlatformClientTest {
         CompletableFuture<TargetDiscoveryEvent> eventFuture = new CompletableFuture<>();
         platformClient.addTargetDiscoveryListener(eventFuture::complete);
 
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -536,7 +530,6 @@ class KubeApiPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncDeleted() throws Exception {
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
@@ -625,7 +618,6 @@ class KubeApiPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncModified() throws Exception {
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("mockId");
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
                         new Answer<>() {
