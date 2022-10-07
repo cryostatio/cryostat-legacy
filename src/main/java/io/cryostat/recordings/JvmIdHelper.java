@@ -109,8 +109,15 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     public ServiceRef resolveId(ServiceRef sr) throws Exception {
         if (sr.getJvmId() != null) return sr;
         String id = getIdServiceRef(sr);
-        return new ServiceRef(
-                id, sr.getServiceUri(), sr.getAlias().orElse(sr.getServiceUri().toString()));
+        ServiceRef updated =
+                new ServiceRef(
+                        id,
+                        sr.getServiceUri(),
+                        sr.getAlias().orElse(sr.getServiceUri().toString()));
+        updated.setLabels(sr.getLabels());
+        updated.setPlatformAnnotations(sr.getPlatformAnnotations());
+        updated.setCryostatAnnotations(sr.getCryostatAnnotations());
+        return updated;
     }
 
     // Get jvmIds for DiscoveryStorage ServiceRefs (throws Exception)

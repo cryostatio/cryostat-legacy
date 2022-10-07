@@ -89,6 +89,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private long timerId = -1L;
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
+    public static final String DISCOVERY_FOUND_ADDRESS = "discovery-found";
 
     DiscoveryStorage(
             VerticleDeployer deployer,
@@ -240,7 +241,18 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             if (child instanceof TargetNode) {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
+                    String oldJvmId = jvmIdHelper.get().get(ref.getServiceUri().toString());
                     ref = jvmIdHelper.get().resolveId(ref);
+                    if (oldJvmId != null) {
+                        vertx.eventBus()
+                                .send(
+                                        DISCOVERY_FOUND_ADDRESS,
+                                        String.format(
+                                                "%s %s %s",
+                                                ref.getServiceUri().toString(),
+                                                oldJvmId,
+                                                ref.getJvmId()));
+                    }
                 } catch (Exception e) {
                     logger.warn("Failed to resolve jvmId for node {}", child.getName());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
@@ -260,14 +272,16 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 child.getLabels(),
                                 modifyChildrenWithJvmIds(((EnvironmentNode) child).getChildren())));
             } else {
-                throw new IllegalArgumentException(child.getClass().getCanonicalName());            }
+                throw new IllegalArgumentException(child.getClass().getCanonicalName());
+            }
         }
         return modifiedChildren;
     }
 
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
-        var updatedChildren = modifyChildrenWithJvmIds(Objects.requireNonNull(children, "children"));
+        var updatedChildren =
+                modifyChildrenWithJvmIds(Objects.requireNonNull(children, "children"));
 
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
