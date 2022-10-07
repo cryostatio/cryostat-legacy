@@ -54,9 +54,11 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -79,13 +81,10 @@ public abstract class RecordingsModule {
 
     public static final String METADATA_SUBDIRECTORY = "metadata";
 
-    static final String JMX_CONNECTION_TIMEOUT_SECONDS = "JMX_CONNECTION_TIMEOUT_SECONDS";
-
     @Provides
-    @Named(JMX_CONNECTION_TIMEOUT_SECONDS)
-    static long provideJmxConnectionTimeoutSeconds() {
-        // should this be configurable?
-        return 3;
+    @Named(Variables.JMX_CONNECTION_TIMEOUT)
+    static long provideJmxConnectionTimeoutSeconds(Environment env) {
+        return Math.max(1, Long.parseLong(env.getEnv(Variables.JMX_CONNECTION_TIMEOUT, "3")));
     }
 
     @Provides
@@ -168,7 +167,7 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(JMX_CONNECTION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -214,7 +213,7 @@ public abstract class RecordingsModule {
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
             TargetConnectionManager targetConnectionManager,
-            @Named(JMX_CONNECTION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
             Logger logger) {
         return new JvmIdHelper(

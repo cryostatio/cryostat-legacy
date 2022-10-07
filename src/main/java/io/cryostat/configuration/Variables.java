@@ -78,6 +78,7 @@ public final class Variables {
     public static final String TARGET_MAX_CONCURRENT_CONNECTIONS =
             "CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS";
     public static final String TARGET_CACHE_TTL = "CRYOSTAT_TARGET_CACHE_TTL";
+    public static final String JMX_CONNECTION_TIMEOUT = "CRYOSTAT_JMX_CONNECTION_TIMEOUT_SECONDS";
 
     // paths configuration
     public static final String ARCHIVE_PATH = "CRYOSTAT_ARCHIVE_PATH";
