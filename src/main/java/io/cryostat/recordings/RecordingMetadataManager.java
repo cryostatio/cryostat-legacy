@@ -437,7 +437,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 break;
                             case LOST:
                                 this.removeLostTargetMetadata(cd, jvmId);
-                                jvmIdHelper.remove(targetId);
                                 break;
                             default:
                                 throw new UnsupportedOperationException(

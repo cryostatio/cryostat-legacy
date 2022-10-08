@@ -50,6 +50,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
@@ -68,6 +69,7 @@ public class JvmIdHelper {
     JvmIdHelper(
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
+            PlatformClient platform,
             long connectionTimeoutSeconds,
             Executor executor,
             Scheduler scheduler,
@@ -81,6 +83,19 @@ public class JvmIdHelper {
                         .executor(executor)
                         .scheduler(scheduler)
                         .buildAsync(new IdLoader());
+
+        platform.addTargetDiscoveryListener(
+                tde -> {
+                    switch (tde.getEventKind()) {
+                        case LOST:
+                            ids.synchronous()
+                                    .invalidate(tde.getServiceRef().getServiceUri().toString());
+                            break;
+                        default:
+                            // ignored
+                            break;
+                    }
+                });
     }
 
     private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
@@ -119,12 +134,6 @@ public class JvmIdHelper {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new JvmIdGetException(e, targetId);
         }
-    }
-
-    // FIXME this should not be called externally. This class should itself be a
-    // TargetDiscoveryListener and invalidate its own entries from notifications
-    protected void remove(String targetId) {
-        ids.synchronous().invalidate(targetId);
     }
 
     static class JvmIdGetException extends IOException {

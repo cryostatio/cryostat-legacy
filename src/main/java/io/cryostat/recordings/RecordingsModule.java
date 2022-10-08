@@ -215,10 +215,12 @@ public abstract class RecordingsModule {
             TargetConnectionManager targetConnectionManager,
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
+            DiscoveryStorage storage,
             Logger logger) {
         return new JvmIdHelper(
                 targetConnectionManager,
                 credentialsManager,
+                storage,
                 connectionTimeoutSeconds,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
