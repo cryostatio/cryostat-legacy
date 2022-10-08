@@ -51,7 +51,6 @@ import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
@@ -60,6 +59,7 @@ import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -109,10 +109,15 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static MatchExpressionEvaluator provideMatchExpressionEvaluator(
-            ScriptEngine scriptEngine, @Named(Variables.TARGET_CACHE_TTL) Duration cacheTtl) {
-        // TODO reuses the TargetConnectionManager JMX connection cache TTL. Should it be different?
+            ScriptEngine scriptEngine,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long cacheTtl) {
+        // TODO reuses the report generation/sidecar HTTP request timeout duration as TTL. Determine
+        // a better value, maybe make this configurable
         return new MatchExpressionEvaluator(
-                scriptEngine, ForkJoinPool.commonPool(), Scheduler.systemScheduler(), cacheTtl);
+                scriptEngine,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
+                Duration.ofSeconds(cacheTtl));
     }
 
     @Provides
