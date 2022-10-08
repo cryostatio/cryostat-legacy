@@ -41,6 +41,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -49,6 +51,7 @@ import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
@@ -62,6 +65,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
@@ -104,8 +108,11 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
-        return new MatchExpressionEvaluator(scriptEngine);
+    static MatchExpressionEvaluator provideMatchExpressionEvaluator(
+            ScriptEngine scriptEngine, @Named(Variables.TARGET_CACHE_TTL) Duration cacheTtl) {
+        // TODO reuses the TargetConnectionManager JMX connection cache TTL. Should it be different?
+        return new MatchExpressionEvaluator(
+                scriptEngine, ForkJoinPool.commonPool(), Scheduler.systemScheduler(), cacheTtl);
     }
 
     @Provides

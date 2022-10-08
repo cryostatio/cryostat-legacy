@@ -38,6 +38,7 @@
 package io.cryostat.rules;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -46,10 +47,12 @@ import java.util.Set;
 import javax.script.Bindings;
 import javax.script.ScriptException;
 
+import io.cryostat.DirectExecutor;
 import io.cryostat.MainModule;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -78,7 +81,12 @@ class MatchExpressionEvaluatorTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.ruleMatcher = new MatchExpressionEvaluator(MainModule.provideScriptEngine());
+        this.ruleMatcher =
+                new MatchExpressionEvaluator(
+                        MainModule.provideScriptEngine(),
+                        new DirectExecutor(),
+                        Scheduler.disabledScheduler(),
+                        Duration.ofSeconds(5));
 
         this.serviceUri = new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         this.alias = "someAlias";

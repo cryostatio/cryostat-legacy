@@ -43,6 +43,7 @@ import java.util.concurrent.ForkJoinPool;
 
 import javax.management.remote.JMXServiceURL;
 
+import io.cryostat.DirectExecutor;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -76,8 +77,8 @@ class TargetConnectionManagerTest {
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
                         platformClient,
-                        ForkJoinPool.commonPool(),
-                        Scheduler.systemScheduler(),
+                        new DirectExecutor(),
+                        Scheduler.disabledScheduler(),
                         TTL,
                         -1,
                         logger);

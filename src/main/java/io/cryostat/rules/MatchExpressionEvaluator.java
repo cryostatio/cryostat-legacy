@@ -37,8 +37,11 @@
  */
 package io.cryostat.rules;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
@@ -46,33 +49,55 @@ import javax.script.ScriptException;
 
 import io.cryostat.platform.ServiceRef;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class MatchExpressionEvaluator {
 
     private final ScriptEngine scriptEngine;
+    private final LoadingCache<Pair<String, ServiceRef>, Boolean> cache;
 
-    MatchExpressionEvaluator(ScriptEngine scriptEngine) {
+    MatchExpressionEvaluator(
+            ScriptEngine scriptEngine, Executor executor, Scheduler scheduler, Duration cacheTtl) {
         this.scriptEngine = scriptEngine;
+        this.cache =
+                Caffeine.newBuilder()
+                        .executor(executor)
+                        .scheduler(scheduler)
+                        .expireAfterAccess(cacheTtl)
+                        .build(k -> compute(k.getKey(), k.getValue()));
+    }
+
+    private boolean compute(String matchExpression, ServiceRef serviceRef) throws ScriptException {
+        Object r = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
+        if (r instanceof Boolean) {
+            return (Boolean) r;
+        } else {
+            throw new ScriptException(
+                    String.format(
+                            "Non-boolean match expression evaluation result: %s",
+                            matchExpression, r));
+        }
     }
 
     public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
+        Pair<String, ServiceRef> key = Pair.of(matchExpression, serviceRef);
         MatchExpressionAppliesEvent evt = new MatchExpressionAppliesEvent(matchExpression);
         try {
             evt.begin();
-            Object result = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
-            if (result instanceof Boolean) {
-                return (Boolean) result;
-            } else {
-                throw new ScriptException(
-                        String.format(
-                                "Non-boolean match expression evaluation result: %s",
-                                matchExpression, result));
+            return cache.get(key);
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ScriptException) {
+                throw (ScriptException) e.getCause();
             }
+            throw e;
         } finally {
             evt.end();
             if (evt.shouldCommit()) {
