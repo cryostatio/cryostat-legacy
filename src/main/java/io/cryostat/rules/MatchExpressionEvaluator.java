@@ -77,12 +77,14 @@ public class MatchExpressionEvaluator {
 
     private boolean compute(String matchExpression, ServiceRef serviceRef) throws ScriptException {
         Object r = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
-        if (r instanceof Boolean) {
+        if (r == null) {
+            throw new ScriptException(String.format("Null match expression evaluation result: %s"));
+        } else if (r instanceof Boolean) {
             return (Boolean) r;
         } else {
             throw new ScriptException(
                     String.format(
-                            "Non-boolean match expression evaluation result: %s",
+                            "Non-boolean match expression evaluation result: %s -> %s",
                             matchExpression, r));
         }
     }
@@ -92,7 +94,11 @@ public class MatchExpressionEvaluator {
         MatchExpressionAppliesEvent evt = new MatchExpressionAppliesEvent(matchExpression);
         try {
             evt.begin();
-            return cache.get(key);
+            Boolean result = cache.get(key);
+            if (result == null) {
+                throw new IllegalStateException();
+            }
+            return result;
         } catch (CompletionException e) {
             if (e.getCause() instanceof ScriptException) {
                 throw (ScriptException) e.getCause();
