@@ -104,7 +104,15 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                         });
 
                 platform.addTargetDiscoveryListener(
-                        tde -> storage.update(id, platform.getDiscoveryTree().getChildren()));
+                        tde ->
+                                getVertx()
+                                        .executeBlocking(
+                                                promise ->
+                                                        promise.complete(
+                                                                storage.update(
+                                                                        id,
+                                                                        platform.getDiscoveryTree()
+                                                                                .getChildren()))));
                 Promise<EnvironmentNode> promise = Promise.promise();
                 promise.future().onSuccess(subtree -> storage.update(id, subtree.getChildren()));
                 platform.start();
