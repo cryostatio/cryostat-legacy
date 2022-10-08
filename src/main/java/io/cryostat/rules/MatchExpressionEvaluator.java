@@ -78,14 +78,17 @@ public class MatchExpressionEvaluator {
     private boolean compute(String matchExpression, ServiceRef serviceRef) throws ScriptException {
         Object r = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
         if (r == null) {
-            throw new ScriptException(String.format("Null match expression evaluation result: %s"));
+            throw new ScriptException(
+                    String.format(
+                            "Null match expression evaluation result: %s (%s)",
+                            matchExpression, serviceRef));
         } else if (r instanceof Boolean) {
             return (Boolean) r;
         } else {
             throw new ScriptException(
                     String.format(
-                            "Non-boolean match expression evaluation result: %s -> %s",
-                            matchExpression, r));
+                            "Non-boolean match expression evaluation result: %s (%s) -> %s",
+                            matchExpression, serviceRef, r));
         }
     }
 
