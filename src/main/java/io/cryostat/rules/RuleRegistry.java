@@ -107,8 +107,8 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                                 "Rule with name \"%s\" already exists; refusing to overwrite",
                                 rule.getName()));
             }
+            rules.add(rule);
             persistRule(rule);
-            loadRules();
         }
         emit(RuleEvent.ADDED, rule);
         return rule;
@@ -153,19 +153,20 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public void deleteRule(String name) throws IOException {
         for (String child : this.fs.listDirectoryChildren(rulesDir)) {
-            if (!Objects.equals(child, name + ".json")) {
-                continue;
+            if (Objects.equals(child, name + ".json")) {
+                fs.deleteIfExists(rulesDir.resolve(child));
+                break;
             }
-            fs.deleteIfExists(rulesDir.resolve(child));
         }
-        this.rules.stream()
-                .filter(r -> Objects.equals(r.getName(), name))
-                .findFirst()
-                .ifPresent(
-                        rule -> {
-                            emit(RuleEvent.REMOVED, rule);
-                            this.rules.remove(rule);
-                        });
+        var it = rules.iterator();
+        while (it.hasNext()) {
+            Rule rule = it.next();
+            if (Objects.equals(rule.getName(), name)) {
+                emit(RuleEvent.REMOVED, rule);
+                it.remove();
+                break;
+            }
+        }
     }
 
     public void deleteRules(ServiceRef serviceRef) throws IOException {
