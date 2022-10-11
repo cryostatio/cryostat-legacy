@@ -63,8 +63,6 @@ import java.util.regex.Pattern;
 import javax.inject.Provider;
 import javax.script.ScriptException;
 
-import org.openjdk.jmc.rjmx.ConnectionException;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -786,36 +784,14 @@ public class RecordingMetadataManager extends AbstractVerticle
             return this.targetConnectionManager
                     .executeConnectedTaskAsync(
                             cd,
-                            conn -> {
-                                try {
-                                    return conn.getService().getAvailableRecordings().stream()
+                            conn ->
+                                    conn.getService().getAvailableRecordings().stream()
                                             .anyMatch(
                                                     r ->
                                                             future.complete(
                                                                     Objects.equals(
                                                                             recordingName,
-                                                                            r.getName())));
-                                } catch (ConnectionException e) {
-                                    if (e.getCause() instanceof SecurityException) {
-                                        // don't have credentials to access target
-                                        if (cd.getCredentials().isEmpty()) {
-                                            logger.warn(
-                                                    "Target {} requires credentials to access"
-                                                            + " recordings",
-                                                    cd.getTargetId());
-                                            throw e;
-                                        } else {
-                                            logger.warn(
-                                                    "Target {} credentials are invalid",
-                                                    cd.getTargetId());
-                                            throw e;
-                                        }
-                                    } else {
-                                        e.printStackTrace();
-                                        throw e;
-                                    }
-                                }
-                            })
+                                                                            r.getName()))))
                     .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException te) {
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
