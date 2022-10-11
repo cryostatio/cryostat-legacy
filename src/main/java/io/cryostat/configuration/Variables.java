@@ -93,4 +93,7 @@ public final class Variables {
     public static final String HIBERNATE_DIALECT = "CRYOSTAT_HIBERNATE_DIALECT";
     public static final String HBM2DDL = "CRYOSTAT_HBM2DDL";
     public static final String LOG_QUERIES = "CRYOSTAT_LOG_DB_QUERIES";
+
+    // archived recordings compress configuration
+    public static final String DISABLE_ARCHIVE_COMPRESS = "CRYOSTAT_DISABLE_ARCHIVE_COMPRESS";
 }
