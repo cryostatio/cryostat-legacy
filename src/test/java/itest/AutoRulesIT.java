@@ -78,9 +78,6 @@ class AutoRulesIT extends ExternalTargetsTest {
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
     final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
 
-    // test persistence
-    final String ruleName = "Disabled_Rule";
-    final String recordingName = "auto_Disabled_Rule";
     final String jmxServiceUrl2 =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9096/jmxrmi", Podman.POD_NAME);
     final String jmxServiceUrlEncoded2 = jmxServiceUrl2.replaceAll("/", "%2F");
@@ -284,7 +281,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        Thread.sleep(15_000L); // wait for JDP to discover new container(s)
+        waitForDiscovery(CONTAINERS.size()); // wait for JDP to discover new container(s)
+        Thread.sleep(3_000L); // wait for rule activation
 
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
@@ -546,6 +544,8 @@ class AutoRulesIT extends ExternalTargetsTest {
     @Test
     @Order(7)
     void testAddRuleDisabledAndPatchEnable() throws Exception {
+        final String ruleName = "Disabled_Rule";
+        final String recordingName = "auto_Disabled_Rule";
 
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
@@ -589,7 +589,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                             new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9096")));
             // add a new target
             CONTAINERS.add(containerId);
-            waitForDiscovery(2);
+            waitForDiscovery(CONTAINERS.size());
 
             CompletableFuture<JsonArray> getResp = new CompletableFuture<>();
 
@@ -694,132 +694,6 @@ class AutoRulesIT extends ExternalTargetsTest {
                         String.format("Failed to delete rule %s", ruleName), e);
             }
 
-            // restart the target
-            Podman.kill(containerId);
-            CONTAINERS.remove(containerId);
-            waitForDiscovery(1);
-        }
-    }
-
-    @Test
-    @Order(8)
-    void testRuleStatePreservedWhenTargetRestarted() throws Exception {
-
-        try {
-            String containerId =
-                    Podman.run(
-                            new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9096")));
-            CONTAINERS.add(containerId);
-
-            waitForDiscovery(2);
-
-            // check that the disabled_rule created disabled is now enabled
-            CompletableFuture<JsonObject> getResp = new CompletableFuture<>();
-            webClient
-                    .get("/api/v2/rules")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, getResp)) {
-                                    getResp.complete(ar.result().bodyAsJsonObject());
-                                }
-                            });
-
-            JsonObject expectedRule =
-                    new JsonObject(
-                            Map.of(
-                                    "name",
-                                    "Disabled_Rule",
-                                    "description",
-                                    "AutoRulesIT automated rule created disabled",
-                                    "eventSpecifier",
-                                    "template=Continuous,type=TARGET",
-                                    "matchExpression",
-                                    "target.annotations.cryostat.PORT == 9096",
-                                    "archivalPeriodSeconds",
-                                    0,
-                                    "initialDelaySeconds",
-                                    0,
-                                    "preservedArchives",
-                                    0,
-                                    "maxAgeSeconds",
-                                    0,
-                                    "maxSizeBytes",
-                                    -1,
-                                    "enabled",
-                                    true));
-
-            JsonObject expectedRuleResponse =
-                    new JsonObject(
-                            Map.of(
-                                    "meta",
-                                            Map.of(
-                                                    "type",
-                                                    HttpMimeType.JSON.mime(),
-                                                    "status",
-                                                    "OK"),
-                                    "data", Map.of("result", List.of(expectedRule))));
-            MatcherAssert.assertThat(getResp.get(), Matchers.equalTo(expectedRuleResponse));
-
-            Thread.sleep(3_000);
-
-            CompletableFuture<JsonArray> getResp2 = new CompletableFuture<>();
-            webClient
-                    .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded2))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, getResp2)) {
-                                    getResp2.complete(ar.result().bodyAsJsonArray());
-                                }
-                            });
-
-            JsonObject recording2 = getResp2.get().getJsonObject(0);
-            MatcherAssert.assertThat(recording2.getInteger("id"), Matchers.equalTo(1));
-            MatcherAssert.assertThat(recording2.getString("name"), Matchers.equalTo(recordingName));
-            MatcherAssert.assertThat(recording2.getString("state"), Matchers.equalTo("RUNNING"));
-            MatcherAssert.assertThat(recording2.getInteger("duration"), Matchers.equalTo(0));
-            MatcherAssert.assertThat(recording2.getInteger("maxAge"), Matchers.equalTo(0));
-            MatcherAssert.assertThat(recording2.getInteger("maxSize"), Matchers.equalTo(0));
-            MatcherAssert.assertThat(recording2.getBoolean("continuous"), Matchers.equalTo(true));
-            MatcherAssert.assertThat(recording2.getBoolean("toDisk"), Matchers.equalTo(true));
-            MatcherAssert.assertThat(
-                    recording2.getString("downloadUrl"),
-                    Matchers.equalTo(
-                            "http://"
-                                    + Utils.WEB_HOST
-                                    + ":"
-                                    + Utils.WEB_PORT
-                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9096%2Fjmxrmi/recordings/"
-                                    + recordingName));
-            MatcherAssert.assertThat(
-                    recording2.getString("reportUrl"),
-                    Matchers.equalTo(
-                            "http://"
-                                    + Utils.WEB_HOST
-                                    + ":"
-                                    + Utils.WEB_PORT
-                                    + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9096%2Fjmxrmi/reports/"
-                                    + recordingName));
-
-        } finally {
-
-            // Delete the rule
-            CompletableFuture<JsonObject> response = new CompletableFuture<>();
-            webClient
-                    .delete(String.format("/api/v2/rules/%s", ruleName))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, response)) {
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusCode(), Matchers.equalTo(200));
-                                    response.complete(ar.result().bodyAsJsonObject());
-                                }
-                            });
-
             // Delete active recordings generated by the above rule
             CompletableFuture<Buffer> deleteRecResponse = new CompletableFuture<>();
             webClient
@@ -853,7 +727,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(9)
+    @Order(8)
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
@@ -891,7 +765,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(10)
+    @Order(9)
     void testGetNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -909,7 +783,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(11)
+    @Order(10)
     void testDeleteNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
