@@ -106,13 +106,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                                 "Rule with name \"%s\" already exists; refusing to overwrite",
                                 rule.getName()));
             }
-            Path destination = rulesDir.resolve(rule.getName() + ".json");
-            this.fs.writeString(
-                    destination,
-                    gson.toJson(rule),
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
+            persistRule(rule);
             loadRules();
         }
         emit(RuleEvent.ADDED, rule);
@@ -179,12 +173,23 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         }
     }
 
-    public void enableRule(Rule rule, boolean enabled) {
+    public void enableRule(Rule rule, boolean enabled) throws IOException {
         String name = rule.getName();
         if (enabled != rule.isEnabled()) {
             getRule(name).get().setEnabled(enabled);
+            persistRule(rule);
             emit(RuleEvent.UPDATED, rule);
         }
+    }
+
+    private void persistRule(Rule rule) throws IOException {
+        Path destination = rulesDir.resolve(rule.getName() + ".json");
+        this.fs.writeString(
+                destination,
+                gson.toJson(rule),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
     }
 
     enum RuleEvent implements EventType {
