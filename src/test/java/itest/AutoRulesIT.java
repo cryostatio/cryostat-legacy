@@ -799,4 +799,24 @@ class AutoRulesIT extends ExternalTargetsTest {
                 ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
+
+    @Test
+    @Order(11)
+    void testNoRulesAfterRun() throws Exception {
+        CompletableFuture<JsonObject> preRules = new CompletableFuture<>();
+        webClient
+                .get("/api/v2/rules")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, preRules)) {
+                                preRules.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        JsonObject expectedPreRules =
+                new JsonObject(
+                        Map.of(
+                                "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                "data", Map.of("result", List.of())));
+        MatcherAssert.assertThat(preRules.get(), Matchers.equalTo(expectedPreRules));
+    }
 }
