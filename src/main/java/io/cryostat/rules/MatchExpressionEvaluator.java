@@ -119,19 +119,13 @@ public class MatchExpressionEvaluator {
     }
 
     private void invalidate(String matchExpression) {
-        logger.info("Invalidating expression evaluations for {}", matchExpression);
         var it = cache.asMap().keySet().iterator();
         while (it.hasNext()) {
             Pair<String, ServiceRef> entry = it.next();
             if (Objects.equals(matchExpression, entry.getKey())) {
-                logger.info(
-                        "Invalidating cached expression evaluation result: {} ({})",
-                        entry.getKey(),
-                        entry.getValue());
                 cache.invalidate(entry);
             }
         }
-        logger.info("cache: {}", cache.asMap());
     }
 
     public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
@@ -154,7 +148,6 @@ public class MatchExpressionEvaluator {
             if (evt.shouldCommit()) {
                 evt.commit();
             }
-            logger.info("cache: {}", cache.asMap());
         }
     }
 
