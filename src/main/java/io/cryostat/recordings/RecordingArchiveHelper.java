@@ -112,6 +112,7 @@ public class RecordingArchiveHelper {
     // FIXME: remove ARCHIVES after 2.2.0 release since we either use "uploads" or sourceTarget
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
+    public static final String LOST_RECORDINGS_SUBDIRECTORY = "lost";
     public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
     private static final String CONNECT_URL = "connectUrl";
 
@@ -285,6 +286,8 @@ public class RecordingArchiveHelper {
         } else if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                 || subdirectory.getFileName().toString().equals("file-uploads")) {
             future.complete(UPLOADED_RECORDINGS_SUBDIRECTORY);
+        } else if (subdirectory.getFileName().toString().equals("LOST")) {
+            future.complete(LOST_RECORDINGS_SUBDIRECTORY);
         } else {
             Optional<String> connectUrl = Optional.empty();
             try {
