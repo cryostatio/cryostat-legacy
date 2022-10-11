@@ -244,7 +244,6 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(3)
-    @Disabled
     void testAddCredentials() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
@@ -276,7 +275,8 @@ class AutoRulesIT extends ExternalTargetsTest {
     void testNewContainerHasRuleApplied() throws Exception {
 
         CONTAINERS.add(
-                Podman.run(new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093"))));
+                Podman.run(new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093",
+                            "USE_AUTH", "true"))));
         CompletableFuture.allOf(
                         CONTAINERS.stream()
                                 .map(id -> Podman.waitForContainerState(id, "running"))
@@ -857,7 +857,6 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(9)
-    @Disabled
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
