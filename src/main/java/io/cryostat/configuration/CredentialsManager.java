@@ -174,8 +174,7 @@ public class CredentialsManager
         for (StoredCredentials sc : dao.getAll()) {
             if (Objects.equals(matchExpression, sc.getMatchExpression())) {
                 int id = sc.getId();
-                dao.delete(id);
-                emit(CredentialsEvent.REMOVED, matchExpression);
+                delete(id);
                 return id;
             }
         }
@@ -250,6 +249,9 @@ public class CredentialsManager
     }
 
     public boolean delete(int id) {
+        dao.get(id)
+                .map(StoredCredentials::getMatchExpression)
+                .ifPresent(c -> emit(CredentialsEvent.REMOVED, c));
         return dao.delete(id);
     }
 
