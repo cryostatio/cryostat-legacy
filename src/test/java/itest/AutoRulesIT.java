@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -62,7 +61,6 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -273,8 +271,10 @@ class AutoRulesIT extends ExternalTargetsTest {
     void testNewContainerHasRuleApplied() throws Exception {
 
         CONTAINERS.add(
-                Podman.run(new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093",
-                            "USE_AUTH", "true"))));
+                Podman.run(
+                        new Podman.ImageSpec(
+                                FIB_DEMO_IMAGESPEC,
+                                Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
         CompletableFuture.allOf(
                         CONTAINERS.stream()
                                 .map(id -> Podman.waitForContainerState(id, "running"))
@@ -698,7 +698,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     "data",
                                     NULL_RESULT));
             try {
-                MatcherAssert.assertThat(deleteRuleResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+                MatcherAssert.assertThat(
+                        deleteRuleResponse.get(), Matchers.equalTo(expectedDeleteResponse));
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete rule %s", ruleName), e);
