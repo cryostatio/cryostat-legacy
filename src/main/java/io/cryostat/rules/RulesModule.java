@@ -41,8 +41,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -59,14 +57,13 @@ import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.MultiMap;
@@ -85,7 +82,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -110,14 +107,10 @@ public abstract class RulesModule {
     @Singleton
     static MatchExpressionEvaluator provideMatchExpressionEvaluator(
             ScriptEngine scriptEngine,
-            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long cacheTtl) {
-        // TODO reuses the report generation/sidecar HTTP request timeout duration as TTL. Determine
-        // a better value, maybe make this configurable
-        return new MatchExpressionEvaluator(
-                scriptEngine,
-                ForkJoinPool.commonPool(),
-                Scheduler.systemScheduler(),
-                Duration.ofSeconds(cacheTtl));
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Logger logger) {
+        return new MatchExpressionEvaluator(scriptEngine, credentialsManager, ruleRegistry, logger);
     }
 
     @Provides

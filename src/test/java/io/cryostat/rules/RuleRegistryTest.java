@@ -84,7 +84,8 @@ class RuleRegistryTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.registry = new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
+        this.registry =
+                new RuleRegistry(rulesDir, () -> matchExpressionEvaluator, fs, gson, logger);
         this.testRule =
                 new Rule.Builder()
                         .name("test rule")

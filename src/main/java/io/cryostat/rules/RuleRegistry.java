@@ -56,11 +56,12 @@ import io.cryostat.util.events.AbstractEventEmitter;
 import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
-    private final MatchExpressionEvaluator matchExpressionEvaluator;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
@@ -68,7 +69,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     RuleRegistry(
             Path rulesDir,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -123,7 +124,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
         try {
-            return matchExpressionEvaluator.applies(rule.getMatchExpression(), serviceRef);
+            return matchExpressionEvaluator.get().applies(rule.getMatchExpression(), serviceRef);
         } catch (ScriptException se) {
             logger.error(se);
             try {

@@ -87,7 +87,7 @@ class CredentialsManagerTest {
                 new CredentialsManager(
                         credentialsDir,
                         matchExpressionValidator,
-                        matchExpressionEvaluator,
+                        () -> matchExpressionEvaluator,
                         platformClient,
                         dao,
                         fs,

@@ -37,21 +37,21 @@
  */
 package io.cryostat.rules;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Scheduler;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
@@ -63,16 +63,42 @@ public class MatchExpressionEvaluator {
 
     private final ScriptEngine scriptEngine;
     private final LoadingCache<Pair<String, ServiceRef>, Boolean> cache;
+    private final Logger logger;
 
     MatchExpressionEvaluator(
-            ScriptEngine scriptEngine, Executor executor, Scheduler scheduler, Duration cacheTtl) {
+            ScriptEngine scriptEngine,
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Logger logger) {
         this.scriptEngine = scriptEngine;
+        this.logger = logger;
         this.cache =
                 Caffeine.newBuilder()
-                        .executor(executor)
-                        .scheduler(scheduler)
-                        .expireAfterAccess(cacheTtl)
+                        .maximumSize(1024) // should this be configurable?
                         .build(k -> compute(k.getKey(), k.getValue()));
+
+        credentialsManager.addListener(
+                e -> {
+                    switch (e.getEventType()) {
+                        case REMOVED:
+                            invalidate(e.getPayload());
+                            break;
+                        default:
+                            // ignore
+                            break;
+                    }
+                });
+        ruleRegistry.addListener(
+                e -> {
+                    switch (e.getEventType()) {
+                        case REMOVED:
+                            invalidate(e.getPayload().getMatchExpression());
+                            break;
+                        default:
+                            // ignore
+                            break;
+                    }
+                });
     }
 
     private boolean compute(String matchExpression, ServiceRef serviceRef) throws ScriptException {
@@ -90,6 +116,22 @@ public class MatchExpressionEvaluator {
                             "Non-boolean match expression evaluation result: %s (%s) -> %s",
                             matchExpression, serviceRef, r));
         }
+    }
+
+    private void invalidate(String matchExpression) {
+        logger.info("Invalidating expression evaluations for {}", matchExpression);
+        var it = cache.asMap().keySet().iterator();
+        while (it.hasNext()) {
+            Pair<String, ServiceRef> entry = it.next();
+            if (Objects.equals(matchExpression, entry.getKey())) {
+                logger.info(
+                        "Invalidating cached expression evaluation result: {} ({})",
+                        entry.getKey(),
+                        entry.getValue());
+                cache.invalidate(entry);
+            }
+        }
+        logger.info("cache: {}", cache.asMap());
     }
 
     public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
@@ -112,6 +154,7 @@ public class MatchExpressionEvaluator {
             if (evt.shouldCommit()) {
                 evt.commit();
             }
+            logger.info("cache: {}", cache.asMap());
         }
     }
 

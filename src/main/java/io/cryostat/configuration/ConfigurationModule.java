@@ -52,6 +52,7 @@ import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidator;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
@@ -74,7 +75,7 @@ public abstract class ConfigurationModule {
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir,
             MatchExpressionValidator matchExpressionValidator,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             DiscoveryStorage discovery,
             StoredCredentialsDao dao,
             FileSystem fs,
