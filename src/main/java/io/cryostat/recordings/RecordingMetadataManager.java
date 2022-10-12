@@ -657,28 +657,33 @@ public class RecordingMetadataManager extends AbstractVerticle
             if (subdirectoryPath == null) {
                 return;
             }
-            Path filename = subdirectoryPath.getFileName();
-            if (filename == null) {
+            Path subdirName = subdirectoryPath.getFileName();
+            if (subdirName == null) {
                 return;
             }
             String oldJvmId =
-                    new String(base32.decode(filename.toString()), StandardCharsets.UTF_8);
+                    new String(base32.decode(subdirName.toString()), StandardCharsets.UTF_8);
+
+            if (Objects.equals(oldJvmId, newJvmId)) {
+                logger.info("Skipping {} metadata transfer: {}", targetId, oldJvmId);
+                return;
+            }
 
             logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             Path oldParent = getMetadataPath(oldJvmId);
             for (String encodedFilename : fs.listDirectoryChildren(oldParent)) {
-                String recordingName =
-                        new String(base32.decode(encodedFilename), StandardCharsets.UTF_8);
                 try {
-
-                    Path oldMetadata = oldParent.resolve(encodedFilename);
-                    StoredRecordingMetadata m =
-                            gson.fromJson(fs.readFile(oldMetadata), StoredRecordingMetadata.class);
-                    m = StoredRecordingMetadata.of(targetId, newJvmId, recordingName, m);
+                    Path oldMetadataPath = oldParent.resolve(encodedFilename);
+                    StoredRecordingMetadata srm =
+                            gson.fromJson(
+                                    fs.readFile(oldMetadataPath), StoredRecordingMetadata.class);
+                    String recordingName = srm.recordingName;
+                    StoredRecordingMetadata updatedSrm =
+                            StoredRecordingMetadata.of(targetId, newJvmId, recordingName, srm);
                     Path newLocation = getMetadataPath(newJvmId, recordingName);
-                    fs.writeString(newLocation, gson.toJson(m));
+                    fs.writeString(newLocation, gson.toJson(updatedSrm));
 
-                    fs.deleteIfExists(oldMetadata);
+                    fs.deleteIfExists(oldMetadataPath);
                 } catch (Exception e) {
                     logger.error("Metadata could not be transferred");
                     logger.error(e);
