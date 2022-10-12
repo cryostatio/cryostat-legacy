@@ -377,6 +377,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             logger.info("Successfully migrated archives");
                                             pruneStaleMetadata(staleMetadata);
                                             logger.info("Successfully pruned all stale metadata");
+                                            platformClient.listDiscoverableServices().stream()
+                                                    .forEach(this::handleFoundTarget);
                                         } catch (Exception e) {
                                             logger.warn(
                                                     "Couldn't read archived recordings directory");
@@ -430,9 +432,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                     e.getMessage());
             return;
         }
-        var archiveHelper = archiveHelperProvider.get();
         this.transferMetadataIfRestarted(cd);
-        archiveHelper.transferArchivesIfRestarted(cd.getTargetId());
+        archiveHelperProvider.get().transferArchivesIfRestarted(cd.getTargetId());
     }
 
     @Override
