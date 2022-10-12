@@ -103,28 +103,24 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     }
 
     private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
-        CompletableFuture<String> future;
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            future =
-                    CompletableFuture.completedFuture(
-                            RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
-        } else {
-            future =
-                    this.targetConnectionManager.executeConnectedTaskAsync(
-                            new ConnectionDescriptor(
-                                    targetId,
-                                    credentialsManager.getCredentialsByTargetId(targetId)),
-                            connection -> {
-                                try {
-                                    return connection.getJvmId();
-                                } catch (Exception e) {
-                                    throw new JvmIdGetException(e, targetId);
-                                }
-                            });
+            return CompletableFuture.completedFuture(
+                    RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
         }
+        CompletableFuture<String> future =
+                this.targetConnectionManager.executeConnectedTaskAsync(
+                        new ConnectionDescriptor(
+                                targetId, credentialsManager.getCredentialsByTargetId(targetId)),
+                        connection -> {
+                            try {
+                                return connection.getJvmId();
+                            } catch (Exception e) {
+                                throw new JvmIdGetException(e, targetId);
+                            }
+                        });
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
         return future;
     }
