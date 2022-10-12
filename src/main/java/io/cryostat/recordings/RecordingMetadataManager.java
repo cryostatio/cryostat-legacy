@@ -71,6 +71,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
@@ -403,22 +404,9 @@ public class RecordingMetadataManager extends AbstractVerticle
                         logger.error(e);
                     }
 
-                    ConnectionDescriptor cd;
-                    try {
-                        cd = getConnectionDescriptorWithCredentials(tde);
-                    } catch (IOException | ScriptException e) {
-                        logger.error(
-                                "Could not get credentials on FOUND target {}, msg: {}",
-                                tde.getServiceRef().getServiceUri().toString(),
-                                e.getMessage());
-                        return;
-                    }
-
                     switch (tde.getEventKind()) {
                         case FOUND:
-                            var archiveHelper = archiveHelperProvider.get();
-                            this.transferMetadataIfRestarted(cd);
-                            archiveHelper.transferArchivesIfRestarted(cd.getTargetId());
+                            handleFoundTarget(tde.getServiceRef());
                             break;
                         case LOST:
                             // don't handle directly, let the JvmIdHelper invalidate its cached
@@ -429,6 +417,22 @@ public class RecordingMetadataManager extends AbstractVerticle
                             throw new UnsupportedOperationException(tde.getEventKind().toString());
                     }
                 });
+    }
+
+    private void handleFoundTarget(ServiceRef serviceRef) {
+        ConnectionDescriptor cd;
+        try {
+            cd = getConnectionDescriptorWithCredentials(serviceRef);
+        } catch (IOException | ScriptException e) {
+            logger.error(
+                    "Could not get credentials on FOUND target {}, msg: {}",
+                    serviceRef.getServiceUri().toString(),
+                    e.getMessage());
+            return;
+        }
+        var archiveHelper = archiveHelperProvider.get();
+        this.transferMetadataIfRestarted(cd);
+        archiveHelper.transferArchivesIfRestarted(cd.getTargetId());
     }
 
     @Override
@@ -823,10 +827,10 @@ public class RecordingMetadataManager extends AbstractVerticle
         return false;
     }
 
-    private ConnectionDescriptor getConnectionDescriptorWithCredentials(TargetDiscoveryEvent tde)
+    private ConnectionDescriptor getConnectionDescriptorWithCredentials(ServiceRef serviceRef)
             throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
-        Credentials credentials = credentialsManager.getCredentials(tde.getServiceRef());
-        return new ConnectionDescriptor(tde.getServiceRef(), credentials);
+        Credentials credentials = credentialsManager.getCredentials(serviceRef);
+        return new ConnectionDescriptor(serviceRef, credentials);
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(String targetId)
