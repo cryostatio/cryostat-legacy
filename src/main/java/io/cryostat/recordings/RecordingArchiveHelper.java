@@ -50,6 +50,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -555,6 +556,89 @@ public class RecordingArchiveHelper {
             future.completeExceptionally(e);
         }
 
+        return future;
+    }
+
+    public static class ArchiveDirectory {
+        private final String connectUrl;
+        private final String jvmId;
+        private final List<ArchivedRecordingInfo> recordings;
+
+        ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
+            this.connectUrl = connectUrl;
+            this.jvmId = jvmId;
+            this.recordings = recordings;
+        }
+
+        public String getConnectUrl() {
+            return connectUrl;
+        }
+
+        public String getJvmId() {
+            return jvmId;
+        }
+
+        public List<ArchivedRecordingInfo> getRecordings() {
+            return recordings;
+        }
+    }
+
+    public Future<List<ArchiveDirectory>> getRecordingsAndDirectories() {
+        CompletableFuture<List<ArchiveDirectory>> future = new CompletableFuture<>();
+        try {
+            if (!fs.exists(archivedRecordingsPath)) {
+                throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
+            }
+            if (!fs.isReadable(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not readable");
+            }
+            if (!fs.isDirectory(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not a directory");
+            }
+            WebServer webServer = webServerProvider.get();
+            List<ArchiveDirectory> directories = new ArrayList<>();
+            List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
+            for (String subdirectoryName : subdirectories) {
+                if (subdirectoryName.equals("file-uploads")) {
+                    continue;
+                }
+                List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
+                Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
+                String targetId = getConnectUrlFromPath(subdirectory).get();
+                List<String> files = this.fs.listDirectoryChildren(subdirectory);
+                List<ArchivedRecordingInfo> temp =
+                        files.stream()
+                                .filter(filename -> !filename.equals(CONNECT_URL))
+                                .map(
+                                        file -> {
+                                            try {
+                                                return new ArchivedRecordingInfo(
+                                                        subdirectoryName,
+                                                        file,
+                                                        webServer.getArchivedDownloadURL(
+                                                                targetId, file),
+                                                        webServer.getArchivedReportURL(
+                                                                targetId, file),
+                                                        recordingMetadataManager.getMetadata(
+                                                                new ConnectionDescriptor(targetId),
+                                                                file),
+                                                        getFileSize(file));
+                                            } catch (IOException | URISyntaxException e) {
+                                                logger.warn(e);
+                                                return null;
+                                            }
+                                        })
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                archivedRecordings.addAll(temp);
+                directories.add(new ArchiveDirectory(targetId, subdirectoryName, archivedRecordings));
+            }
+            future.complete(directories);
+        } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        }
         return future;
     }
 
