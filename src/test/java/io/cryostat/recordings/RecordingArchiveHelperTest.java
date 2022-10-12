@@ -788,7 +788,7 @@ class RecordingArchiveHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.any(), Mockito.anyString()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         Path tempSubdirectory = Mockito.mock(Path.class);

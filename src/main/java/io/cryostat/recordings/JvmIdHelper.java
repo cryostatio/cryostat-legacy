@@ -51,13 +51,15 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.util.events.AbstractEventEmitter;
+import io.cryostat.util.events.EventType;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
-public class JvmIdHelper {
+public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
@@ -82,14 +84,16 @@ public class JvmIdHelper {
                 Caffeine.newBuilder()
                         .executor(executor)
                         .scheduler(scheduler)
+                        .<String, String>removalListener(
+                                (targetId, jvmId, cause) -> emit(IdEvent.INVALIDATED, jvmId))
                         .buildAsync(new IdLoader());
 
         platform.addTargetDiscoveryListener(
                 tde -> {
                     switch (tde.getEventKind()) {
                         case LOST:
-                            ids.synchronous()
-                                    .invalidate(tde.getServiceRef().getServiceUri().toString());
+                            String targetId = tde.getServiceRef().getServiceUri().toString();
+                            ids.synchronous().invalidate(targetId);
                             break;
                         default:
                             // ignored
@@ -99,29 +103,30 @@ public class JvmIdHelper {
     }
 
     private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
+        CompletableFuture<String> future;
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            logger.info(
-                    "JVM ID: {} -> {}",
-                    targetId,
-                    RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
-            return CompletableFuture.completedFuture(
-                    RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
+            future =
+                    CompletableFuture.completedFuture(
+                            RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
+        } else {
+            future =
+                    this.targetConnectionManager.executeConnectedTaskAsync(
+                            new ConnectionDescriptor(
+                                    targetId,
+                                    credentialsManager.getCredentialsByTargetId(targetId)),
+                            connection -> {
+                                try {
+                                    return connection.getJvmId();
+                                } catch (Exception e) {
+                                    throw new JvmIdGetException(e, targetId);
+                                }
+                            });
         }
-        return this.targetConnectionManager.executeConnectedTaskAsync(
-                new ConnectionDescriptor(
-                        targetId, credentialsManager.getCredentialsByTargetId(targetId)),
-                connection -> {
-                    try {
-                        String id = connection.getJvmId();
-                        logger.info("JVM ID: {} -> {}", targetId, id);
-                        return id;
-                    } catch (Exception e) {
-                        throw new JvmIdGetException(e, targetId);
-                    }
-                });
+        future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
+        return future;
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
@@ -166,5 +171,9 @@ public class JvmIdHelper {
                 throws Exception {
             return asyncLoad(key, executor);
         }
+    }
+
+    public enum IdEvent implements EventType {
+        INVALIDATED,
     }
 }
