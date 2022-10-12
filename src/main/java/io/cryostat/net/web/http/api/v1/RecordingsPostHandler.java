@@ -259,7 +259,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                     .resolve(subdirectoryName)
                                                     .resolve(fsName);
 
-                                    if (recordingArchiveHelper.compress(recordingPath.toString())) {
+                                    if (recordingArchiveHelper.gzip(recordingPath.toString())) {
                                         fsName += ".gz";
                                         recordingPath =
                                                 savedRecordingsPath

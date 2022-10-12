@@ -988,7 +988,7 @@ public class RecordingArchiveHelper {
 
             fs.copy(bufferedStream, destinationPath);
 
-            if (compress(destinationPath.toString())) {
+            if (gzip(destinationPath.toString())) {
                 destination += ".gz";
                 destinationPath = specificRecordingsPath.resolve(destination);
             }
@@ -1045,12 +1045,12 @@ public class RecordingArchiveHelper {
         }
     }
 
-    public boolean compress(String original) {
+    public boolean gzip(String originalFile) {
         if (env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS)) {
             return false;
         }
-        try (FileInputStream input = new FileInputStream(original);
-                FileOutputStream output = new FileOutputStream(original + ".gz");
+        try (FileInputStream input = new FileInputStream(originalFile);
+                FileOutputStream output = new FileOutputStream(originalFile + ".gz");
                 GZIPOutputStream gzip = new GZIPOutputStream(output); ) {
             byte[] buffer = new byte[1024];
             int len;
@@ -1058,7 +1058,7 @@ public class RecordingArchiveHelper {
                 gzip.write(buffer, 0, len);
             }
             // delete the original file
-            fs.deleteIfExists(Paths.get(original));
+            fs.deleteIfExists(Paths.get(originalFile));
             return true;
         } catch (IOException e) {
             logger.error("Failed to compress the file: " + e);

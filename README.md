@@ -166,6 +166,7 @@ overridden with `1`.
 #### Configuration for Archiving
 
 * `CRYOSTAT_ARCHIVE_PATH`: the storage path for archived recordings
+* `CRYOSTAT_DISABLE_ARCHIVE_COMPRESS`: set to `true` to disable the archived recordings gzip compress. 
 
 #### Configuration for database
 
