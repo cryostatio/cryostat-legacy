@@ -40,9 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.SocketException;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -104,6 +102,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final NotificationFactory notificationFactory;
     private final Provider<WebServer> webServer;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final Logger logger;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
@@ -119,6 +118,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
             RecordingMetadataManager recordingMetadataManager,
+            RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.vertx = httpServer.getVertx();
@@ -128,6 +128,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.notificationFactory = notificationFactory;
         this.webServer = webServer;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.logger = logger;
     }
 
@@ -227,7 +228,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
         Metadata metadata = new Metadata(labels);
 
-        long size = upload.size();
         String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
@@ -252,8 +252,21 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         ctx.fail(res2.cause());
                                         return;
                                     }
-
                                     String fsName = res2.result();
+
+                                    Path recordingPath =
+                                            savedRecordingsPath
+                                                    .resolve(subdirectoryName)
+                                                    .resolve(fsName);
+
+                                    if (recordingArchiveHelper.compress(recordingPath.toString())) {
+                                        fsName += ".gz";
+                                        recordingPath =
+                                                savedRecordingsPath
+                                                        .resolve(subdirectoryName)
+                                                        .resolve(fsName);
+                                    }
+
                                     try {
                                         if (hasLabels) {
                                             recordingMetadataManager
@@ -292,14 +305,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                                         subdirectoryName,
                                                                                         fsName),
                                                                         metadata,
-                                                                        size),
+                                                                        recordingArchiveHelper
+                                                                                .getFileSize(
+                                                                                        fsName)),
                                                                 "target",
                                                                 subdirectoryName))
                                                 .build()
                                                 .send();
-                                    } catch (URISyntaxException
-                                            | UnknownHostException
-                                            | SocketException e) {
+                                    } catch (URISyntaxException | IOException e) {
                                         logger.error(e);
                                         ctx.fail(new HttpException(500, e));
                                         return;

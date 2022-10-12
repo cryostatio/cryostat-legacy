@@ -38,7 +38,9 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -47,6 +49,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -62,6 +65,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -69,10 +73,12 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
@@ -104,6 +110,7 @@ public class RecordingArchiveHelper {
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
+    private final Environment env;
     private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
@@ -129,6 +136,7 @@ public class RecordingArchiveHelper {
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
+            Environment env,
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
@@ -141,6 +149,7 @@ public class RecordingArchiveHelper {
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
+        this.env = env;
         this.base32 = base32;
     }
 
@@ -978,6 +987,11 @@ public class RecordingArchiveHelper {
             bufferedStream.reset();
 
             fs.copy(bufferedStream, destinationPath);
+
+            if (compress(destinationPath.toString())) {
+                destination += ".gz";
+                destinationPath = specificRecordingsPath.resolve(destination);
+            }
         }
         return destinationPath;
     }
@@ -990,7 +1004,7 @@ public class RecordingArchiveHelper {
                 .findFirst();
     }
 
-    private long getFileSize(String recordingName) {
+    public long getFileSize(String recordingName) {
         try {
             return Files.size(getRecordingPath(recordingName).get());
         } catch (IOException | InterruptedException | ExecutionException e) {
@@ -1028,6 +1042,27 @@ public class RecordingArchiveHelper {
 
         public List<ArchivedRecordingInfo> getRecordings() {
             return Collections.unmodifiableList(recordings);
+        }
+    }
+
+    public boolean compress(String original) {
+        if (env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS)) {
+            return false;
+        }
+        try (FileInputStream input = new FileInputStream(original);
+                FileOutputStream output = new FileOutputStream(original + ".gz");
+                GZIPOutputStream gzip = new GZIPOutputStream(output); ) {
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = input.read(buffer)) != -1) {
+                gzip.write(buffer, 0, len);
+            }
+            // delete the original file
+            fs.deleteIfExists(Paths.get(original));
+            return true;
+        } catch (IOException e) {
+            logger.error("Failed to compress the file: " + e);
+            return false;
         }
     }
 }

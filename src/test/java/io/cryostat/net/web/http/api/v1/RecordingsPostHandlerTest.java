@@ -106,6 +106,7 @@ class RecordingsPostHandlerTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock RecordingMetadataManager recordingMetadataManager;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -135,6 +136,7 @@ class RecordingsPostHandlerTest {
                         notificationFactory,
                         () -> webServer,
                         recordingMetadataManager,
+                        recordingArchiveHelper,
                         logger);
     }
 

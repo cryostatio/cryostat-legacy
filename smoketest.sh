@@ -55,7 +55,8 @@ runCryostat() {
         CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD="smoketest" \
         CRYOSTAT_HBM2DDL="$HBM2DDL" \
         CRYOSTAT_DEV_MODE="true" \
-        exec "$DIR/run.sh"
+        CRYOSTAT_DISABLE_ARCHIVE_COMPRESS="${CRYOSTAT_DISABLE_ARCHIVE_COMPRESS}" \
+	exec "$DIR/run.sh"
 }
 
 runPostgres() {

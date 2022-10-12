@@ -62,6 +62,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -113,6 +114,7 @@ class RecordingArchiveHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock Environment env;
 
     String targetId = "fooTarget";
     String recordingName = "someRecording";
@@ -163,6 +165,7 @@ class RecordingArchiveHelperTest {
                         platformClient,
                         notificationFactory,
                         jvmIdHelper,
+                        env,
                         base32);
     }
 
