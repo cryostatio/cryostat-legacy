@@ -503,8 +503,16 @@ public class RecordingMetadataManager extends AbstractVerticle
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
         this.recordingMetadataMap.put(Pair.of(jvmId, recordingName), metadata);
 
+        Path metadataPath = this.getMetadataPath(jvmId, recordingName);
+        Path parentDir = metadataPath.getParent();
+        if (parentDir == null) {
+            throw new IllegalStateException();
+        }
+        if (!fs.isDirectory(parentDir)) {
+            fs.createDirectory(parentDir);
+        }
         fs.writeString(
-                this.getMetadataPath(connectionDescriptor, recordingName),
+                metadataPath,
                 gson.toJson(
                         StoredRecordingMetadata.of(
                                 connectionDescriptor.getTargetId(),
@@ -574,7 +582,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
         Metadata deleted = this.recordingMetadataMap.remove(Pair.of(jvmId, recordingName));
-        Path metadataPath = this.getMetadataPath(connectionDescriptor, recordingName);
+        Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         if (fs.deleteIfExists(metadataPath)) {
             deleteSubdirectoryIfEmpty(metadataPath.getParent());
         }
@@ -661,7 +669,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 try {
                     String recordingName = entry.getKey().getValue();
 
-                    Path oldMetadata = getMetadataPath(targetId, oldJvmId, recordingName);
+                    Path oldMetadata = getMetadataPath(oldJvmId, recordingName);
                     if (oldMetadata == null || !fs.exists(oldMetadata)) {
                         logger.error("Metadata file {} does not exist", oldMetadata);
                         continue;
@@ -671,7 +679,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                     m = StoredRecordingMetadata.of(targetId, newJvmId, recordingName, m);
                     this.recordingMetadataMap.put(
                             Pair.of(newJvmId, recordingName), new Metadata(m));
-                    Path newLocation = getMetadataPath(targetId, newJvmId, recordingName);
+                    Path newLocation = getMetadataPath(newJvmId, recordingName);
                     fs.writeString(newLocation, gson.toJson(m));
 
                     Path oldParent = oldMetadata.getParent();
@@ -802,28 +810,19 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private Path getMetadataPath(ConnectionDescriptor connectionDescriptor, String recordingName)
-            throws IOException {
-        String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
-        return getMetadataPath(connectionDescriptor.getTargetId(), jvmId, recordingName);
-    }
-
-    private Path getMetadataPath(String targetId, String jvmId, String recordingName)
-            throws IOException {
+    private Path getMetadataPath(String jvmId) {
         String subdirectory =
                 jvmId.equals(UPLOADS)
                         ? UPLOADS
                         : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
+        return recordingMetadataDir.resolve(subdirectory);
+    }
+
+    private Path getMetadataPath(String jvmId, String recordingName) throws IOException {
+        Path subdirectory = getMetadataPath(jvmId);
         String filename =
                 base32.encodeAsString(recordingName.getBytes(StandardCharsets.UTF_8)) + ".json";
-        Path subdirPath = recordingMetadataDir.resolve(subdirectory);
-        if (!fs.exists(subdirPath)) {
-            fs.createDirectory(subdirPath);
-            if (!jvmId.equals(UPLOADS)) {
-                fs.writeString(subdirPath.resolve("connectUrl"), targetId);
-            }
-        }
-        return subdirPath.resolve(filename);
+        return subdirectory.resolve(filename);
     }
 
     private boolean deleteMetadataPathIfExists(Path path) {
