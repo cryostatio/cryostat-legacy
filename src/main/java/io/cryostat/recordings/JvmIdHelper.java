@@ -38,120 +38,103 @@
 package io.cryostat.recordings;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import javax.inject.Named;
+import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportsModule;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.util.events.AbstractEventEmitter;
+import io.cryostat.util.events.EventType;
 
-import io.vertx.core.Vertx;
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Scheduler;
 
-public class JvmIdHelper {
+public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
+
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
+    private final long connectionTimeoutSeconds;
     private final Logger logger;
 
-    private final Map<String, String> jvmIdMap;
+    private final AsyncLoadingCache<String, String> ids;
 
     JvmIdHelper(
-            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            PlatformClient platform,
+            long connectionTimeoutSeconds,
+            Executor executor,
+            Scheduler scheduler,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
+        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.logger = logger;
-        this.jvmIdMap = new ConcurrentHashMap<>();
+        this.ids =
+                Caffeine.newBuilder()
+                        .executor(executor)
+                        .scheduler(scheduler)
+                        .<String, String>removalListener(
+                                (targetId, jvmId, cause) -> emit(IdEvent.INVALIDATED, jvmId))
+                        .buildAsync(new IdLoader());
+
+        platform.addTargetDiscoveryListener(
+                tde -> {
+                    switch (tde.getEventKind()) {
+                        case LOST:
+                            String targetId = tde.getServiceRef().getServiceUri().toString();
+                            ids.synchronous().invalidate(targetId);
+                            break;
+                        default:
+                            // ignored
+                            break;
+                    }
+                });
     }
 
-    protected String computeJvmId(ConnectionDescriptor cd) {
-        String targetId = cd.getTargetId();
-        if (targetId.equals(RecordingArchiveHelper.ARCHIVES)
-                || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
-        }
-        try {
-            if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                targetId, credentialsManager.getCredentialsByTargetId(targetId));
-            }
-            final ConnectionDescriptor desc = cd;
-            return this.targetConnectionManager.executeConnectedTask(
-                    desc,
-                    connection -> {
-                        try {
-                            return connection.getJvmId();
-                        } catch (Exception e) {
-                            if (e.getCause() instanceof SecurityException) {
-                                // don't have credentials to access target
-                                logger.warn(
-                                        "Target {} credentials are invalid", desc.getTargetId());
-                            } else {
-                                logger.warn(e);
-                            }
-                            return null;
-                        }
-                    });
-        } catch (Exception e) {
-            logger.warn(e);
-            return null;
-        }
-    }
-
-    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
-        String targetId = connectionDescriptor.getTargetId();
+    private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
+            return CompletableFuture.completedFuture(
+                    RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
         }
-        String jvmId =
-                this.jvmIdMap.computeIfAbsent(targetId, k -> computeJvmId(connectionDescriptor));
-        if (jvmId == null) {
-            throw new JvmIdGetException("Could not connect to target: " + targetId, targetId);
-        }
-        return jvmId;
+        CompletableFuture<String> future =
+                this.targetConnectionManager.executeConnectedTaskAsync(
+                        new ConnectionDescriptor(
+                                targetId, credentialsManager.getCredentialsByTargetId(targetId)),
+                        connection -> {
+                            try {
+                                return connection.getJvmId();
+                            } catch (Exception e) {
+                                throw new JvmIdGetException(e, targetId);
+                            }
+                        });
+        future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
+        return future;
+    }
+
+    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
+        return getJvmId(connectionDescriptor.getTargetId());
     }
 
     public String getJvmId(String targetId) throws JvmIdGetException {
-        if (targetId == null
-                || targetId.equals(RecordingArchiveHelper.ARCHIVES)
-                || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
-            return RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
+        try {
+            return this.ids.get(targetId).get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new JvmIdGetException(e, targetId);
         }
-        return getJvmId(new ConnectionDescriptor(targetId));
-    }
-
-    public void transferJvmIds(String oldJvmId, String newJvmId) throws IOException {
-        if (oldJvmId.equals(newJvmId)) {
-            return;
-        }
-        jvmIdMap.entrySet().stream()
-                .filter(e -> e.getValue().equals(oldJvmId))
-                .forEach(
-                        e -> {
-                            jvmIdMap.put(e.getKey(), newJvmId);
-                        });
-    }
-
-    protected String get(String targetId) {
-        return jvmIdMap.get(targetId);
-    }
-
-    protected void put(String targetId, String jvmId) {
-        jvmIdMap.put(targetId, jvmId);
-    }
-
-    protected String putIfAbsent(String targetId, String jvmId) {
-        return jvmIdMap.putIfAbsent(targetId, jvmId);
     }
 
     static class JvmIdGetException extends IOException {
@@ -170,5 +153,23 @@ public class JvmIdHelper {
         public String getTarget() {
             return targetId;
         }
+    }
+
+    private class IdLoader implements AsyncCacheLoader<String, String> {
+
+        @Override
+        public CompletableFuture<String> asyncLoad(String key, Executor executor) throws Exception {
+            return computeJvmId(key);
+        }
+
+        @Override
+        public CompletableFuture<String> asyncReload(String key, String prev, Executor executor)
+                throws Exception {
+            return asyncLoad(key, executor);
+        }
+    }
+
+    public enum IdEvent implements EventType {
+        INVALIDATED,
     }
 }

@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -53,19 +54,21 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
@@ -77,6 +80,12 @@ import org.apache.commons.codec.binary.Base32;
 public abstract class RecordingsModule {
 
     public static final String METADATA_SUBDIRECTORY = "metadata";
+
+    @Provides
+    @Named(Variables.JMX_CONNECTION_TIMEOUT)
+    static long provideJmxConnectionTimeoutSeconds(Environment env) {
+        return Math.max(1, Long.parseLong(env.getEnv(Variables.JMX_CONNECTION_TIMEOUT, "3")));
+    }
 
     @Provides
     @Singleton
@@ -154,12 +163,11 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
-            Vertx vertx,
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
@@ -182,7 +190,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    vertx,
+                    ForkJoinPool.commonPool(),
                     metadataDir,
                     archivedRecordingsPath,
                     connectionTimeoutSeconds,
@@ -204,16 +212,18 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
-            Vertx vertx,
             TargetConnectionManager targetConnectionManager,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long connectionTimeoutSeconds,
+            DiscoveryStorage storage,
             Logger logger) {
         return new JvmIdHelper(
-                vertx,
                 targetConnectionManager,
                 credentialsManager,
+                storage,
                 connectionTimeoutSeconds,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
                 logger);
     }
 }

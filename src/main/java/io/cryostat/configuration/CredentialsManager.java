@@ -65,6 +65,7 @@ import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 
 public class CredentialsManager
@@ -72,7 +73,7 @@ public class CredentialsManager
 
     private final Path credentialsDir;
     private final MatchExpressionValidator matchExpressionValidator;
-    private final MatchExpressionEvaluator matchExpressionEvaluator;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final PlatformClient platformClient;
     private final StoredCredentialsDao dao;
     private final FileSystem fs;
@@ -82,7 +83,7 @@ public class CredentialsManager
     CredentialsManager(
             Path credentialsDir,
             MatchExpressionValidator matchExpressionValidator,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             PlatformClient platformClient,
             StoredCredentialsDao dao,
             FileSystem fs,
@@ -174,8 +175,7 @@ public class CredentialsManager
         for (StoredCredentials sc : dao.getAll()) {
             if (Objects.equals(matchExpression, sc.getMatchExpression())) {
                 int id = sc.getId();
-                dao.delete(id);
-                emit(CredentialsEvent.REMOVED, matchExpression);
+                delete(id);
                 return id;
             }
         }
@@ -193,7 +193,7 @@ public class CredentialsManager
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
         for (StoredCredentials sc : dao.getAll()) {
-            if (matchExpressionEvaluator.applies(sc.getMatchExpression(), serviceRef)) {
+            if (matchExpressionEvaluator.get().applies(sc.getMatchExpression(), serviceRef)) {
                 return sc.getCredentials();
             }
         }
@@ -223,7 +223,7 @@ public class CredentialsManager
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
-                if (matchExpressionEvaluator.applies(matchExpression.get(), target)) {
+                if (matchExpressionEvaluator.get().applies(matchExpression.get(), target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
@@ -238,7 +238,7 @@ public class CredentialsManager
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
-                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                if (matchExpressionEvaluator.get().applies(matchExpression, target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
@@ -250,6 +250,9 @@ public class CredentialsManager
     }
 
     public boolean delete(int id) {
+        dao.get(id)
+                .map(StoredCredentials::getMatchExpression)
+                .ifPresent(c -> emit(CredentialsEvent.REMOVED, c));
         return dao.delete(id);
     }
 

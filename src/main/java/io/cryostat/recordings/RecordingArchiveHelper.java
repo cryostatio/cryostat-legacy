@@ -57,6 +57,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -87,6 +88,7 @@ import io.cryostat.util.URIUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.io.FileUtils;
 
 public class RecordingArchiveHelper {
 
@@ -141,65 +143,128 @@ public class RecordingArchiveHelper {
     }
 
     // on startup migration and jvmId transfer method for archived recordings
-    protected void migrate() throws Exception {
+    protected void migrate(ExecutorService executor) throws Exception {
         List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
+        List<Future<Void>> futures = new ArrayList<>(subdirectories.size());
         for (String subdirectoryName : subdirectories) {
-            try {
-                logger.info("Found archived recordings subdirectory: {}", subdirectoryName);
-                // FIXME: refactor structure to remove file-uploads (v1
-                // RecordingsPostBodyHandler)
-                if (subdirectoryName.equals("file-uploads") || subdirectoryName.equals("uploads")) {
-                    continue;
-                }
-                Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-                String connectUrl;
-                try {
-                    connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                    logger.info("Found connectUrl: {}", connectUrl);
-                } catch (ExecutionException e) {
-                    // try to migrate the recording to the new structure
-                    connectUrl =
-                            new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-                }
-                String jvmId = jvmIdHelper.getJvmId(connectUrl);
-                Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
-                logger.info(
-                        "Migrating recordings from {} to {}", subdirectoryPath, encodedJvmIdPath);
-                fs.writeString(
-                        subdirectoryPath.resolve("connectUrl"),
-                        connectUrl,
-                        StandardOpenOption.CREATE);
-                if (!fs.exists(encodedJvmIdPath)) {
-                    // rename subdirectory to jvmId
-                    Files.move(subdirectoryPath, encodedJvmIdPath);
-                }
+            Future<Void> future =
+                    executor.submit(
+                            () -> {
+                                try {
+                                    logger.info(
+                                            "Found archived recordings subdirectory: {}",
+                                            subdirectoryName);
+                                    // FIXME: refactor structure to remove file-uploads (v1
+                                    // RecordingsPostBodyHandler)
+                                    if (subdirectoryName.equals("file-uploads")
+                                            || subdirectoryName.equals("uploads")) {
+                                        logger.info("Skipping: appears to be an upload location");
+                                        return null;
+                                    }
+                                    Path subdirectoryPath =
+                                            archivedRecordingsPath.resolve(subdirectoryName);
+                                    String connectUrl;
+                                    try {
+                                        connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+                                        logger.info("Found connectUrl: {}", connectUrl);
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        // try to migrate the recording to the new structure
+                                        connectUrl =
+                                                new String(
+                                                        base32.decode(subdirectoryName),
+                                                        StandardCharsets.UTF_8);
+                                    }
+                                    String jvmId = jvmIdHelper.getJvmId(connectUrl);
+                                    Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
+                                    if (Objects.equals(subdirectoryPath, encodedJvmIdPath)) {
+                                        logger.info(
+                                                "Skipping {} - no change in ID", subdirectoryPath);
+                                        return null;
+                                    }
+                                    logger.info(
+                                            "Migrating recordings from {} to {}",
+                                            subdirectoryPath,
+                                            encodedJvmIdPath);
+                                    if (!fs.exists(encodedJvmIdPath)) {
+                                        fs.createDirectory(encodedJvmIdPath);
+                                        fs.writeString(
+                                                encodedJvmIdPath.resolve("connectUrl"),
+                                                connectUrl,
+                                                StandardOpenOption.CREATE);
+                                    }
+                                    fs.deleteIfExists(subdirectoryPath.resolve("connectUrl"));
+                                    for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                                        Path oldLocation = subdirectoryPath.resolve(file);
+                                        Path newLocation = encodedJvmIdPath.resolve(file);
+                                        logger.info("{} -> {}", oldLocation, newLocation);
+                                        Files.move(oldLocation, newLocation);
+                                    }
+                                    FileUtils.deleteQuietly(subdirectoryPath.toFile());
 
-            } catch (JvmIdGetException e) {
-                logger.warn(
-                        "Could not find jvmId for targetId {}, skipping migration of"
-                                + " recordings",
-                        e.getTarget());
-            } catch (CancellationException e) {
-                logger.error(e);
-            }
+                                } catch (JvmIdGetException e) {
+                                    logger.warn(
+                                            "Could not find jvmId for targetId"
+                                                    + " {}, skipping migration of"
+                                                    + " recordings",
+                                            e.getTarget());
+                                } catch (IOException e) {
+                                    logger.warn(e);
+                                } catch (CancellationException e) {
+                                    logger.error(e);
+                                }
+                                return null;
+                            });
+            futures.add(future);
+        }
+        for (var f : futures) {
+            f.get();
         }
     }
 
-    protected void transferArchivesIfRestarted(Path subdirectoryPath, String oldJvmId) {
+    protected void transferArchivesIfRestarted(String targetId) {
         try {
-            String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-            String newJvmId = jvmIdHelper.getJvmId(connectUrl);
-            if (oldJvmId.equals(newJvmId)) {
+            Path subdirectoryPath = null;
+            for (String encodedJvmId : fs.listDirectoryChildren(archivedRecordingsPath)) {
+                Path subdir = archivedRecordingsPath.resolve(encodedJvmId);
+                Path connectUrl = subdir.resolve("connectUrl");
+                if (fs.exists(connectUrl)) {
+                    String u = fs.readString(connectUrl);
+                    if (Objects.equals(targetId, u)) {
+                        subdirectoryPath = subdir;
+                        break;
+                    }
+                }
+            }
+            if (subdirectoryPath == null) {
                 return;
             }
-            logger.info(
-                    "{} Archives subdirectory rename: {} -> {}", connectUrl, oldJvmId, newJvmId);
+            String connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+            String newJvmId = jvmIdHelper.getJvmId(connectUrl);
             Path jvmIdPath = getRecordingSubdirectoryPath(newJvmId);
-            Files.move(subdirectoryPath, jvmIdPath);
+
+            if (Objects.equals(subdirectoryPath, jvmIdPath)) {
+                return;
+            }
+
             logger.info(
-                    "{} Archives subdirectory successfully renamed: {} -> {}",
+                    "{} Archives subdirectory transfer: {} -> {}",
                     connectUrl,
-                    oldJvmId,
+                    subdirectoryPath,
+                    newJvmId);
+
+            fs.createDirectory(jvmIdPath);
+            for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                Path oldLocation = subdirectoryPath.resolve(file);
+                Path newLocation = jvmIdPath.resolve(file);
+                logger.info("{} -> {}", oldLocation, newLocation);
+                Files.move(oldLocation, newLocation);
+            }
+            fs.deleteIfExists(subdirectoryPath);
+
+            logger.info(
+                    "{} Archives subdirectory successfully transferred: {} -> {}",
+                    connectUrl,
+                    subdirectoryPath,
                     newJvmId);
         } catch (Exception e) {
             logger.error("Archives subdirectory could not be renamed upon target restart", e);
@@ -661,7 +726,7 @@ public class RecordingArchiveHelper {
         String jvmId = jvmIdHelper.getJvmId(serviceUri.toString());
         Path specificRecordingsPath = getRecordingSubdirectoryPath(jvmId);
         if (!fs.exists(specificRecordingsPath)) {
-            Files.createDirectory(specificRecordingsPath);
+            fs.createDirectory(specificRecordingsPath);
             fs.writeString(
                     specificRecordingsPath.resolve("connectUrl"),
                     serviceUri.toString(),

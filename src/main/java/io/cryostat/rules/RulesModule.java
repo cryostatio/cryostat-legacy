@@ -63,6 +63,7 @@ import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.MultiMap;
@@ -81,7 +82,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -104,8 +105,12 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
-        return new MatchExpressionEvaluator(scriptEngine);
+    static MatchExpressionEvaluator provideMatchExpressionEvaluator(
+            ScriptEngine scriptEngine,
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Logger logger) {
+        return new MatchExpressionEvaluator(scriptEngine, credentialsManager, ruleRegistry, logger);
     }
 
     @Provides

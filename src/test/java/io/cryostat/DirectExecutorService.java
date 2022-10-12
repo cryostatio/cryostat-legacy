@@ -37,47 +37,37 @@
  */
 package io.cryostat;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import io.cryostat.core.tui.ClientWriter;
+public class DirectExecutorService extends AbstractExecutorService {
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+    @Override
+    public void shutdown() {}
 
-public class TestBase {
-    protected PrintStream mockStdout;
-    protected ClientWriter mockClientWriter;
-    private ByteArrayOutputStream baos;
-    private boolean echoStdout = false;
-
-    protected void setEcho(boolean echo) {
-        this.echoStdout = echo;
+    @Override
+    public List<Runnable> shutdownNow() {
+        return List.of();
     }
 
-    @BeforeEach
-    void stdoutSetup() {
-        baos = new ByteArrayOutputStream();
-        mockStdout = new PrintStream(baos);
-        mockClientWriter = mockStdout::print;
+    @Override
+    public boolean isShutdown() {
+        return false;
     }
 
-    @AfterEach
-    void echoStdout() {
-        if (echoStdout) {
-            System.out.println(mockStdout.toString());
-        }
+    @Override
+    public boolean isTerminated() {
+        return false;
     }
 
-    protected String stdout() {
-        return baos.toString();
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        return false;
     }
 
-    protected void testLog(String tag, String msg) {
-        System.out.println(String.format("[%s] %s", tag, msg));
-    }
-
-    protected void testLog(String msg) {
-        System.out.println(msg);
+    @Override
+    public void execute(Runnable command) {
+        command.run();
     }
 }

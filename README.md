@@ -131,8 +131,12 @@ Cryostat can be configured via the following environment variables:
 
 * `CRYOSTAT_REPORT_GENERATION_MAX_HEAP`: the maximum heap size used by the container subprocess which forks to perform automated rules analysis report generation. The default is `200`, representing a `200MiB` maximum heap size. Too small of a heap size will lead to report generation failing due to Out-Of-Memory errors. Too large of a heap size may lead to the subprocess being forcibly killed and the parent process failing to detect the reason for the failure, leading to inaccurate failure error messages and API responses.
 
-#### Configuration for JMX Cache
+#### Configuration for JMX Connections and Cache
 
+* `CRYOSTAT_JMX_CONNECTION_TIMEOUT_SECONDS`: the maximum wait time for a JMX
+  connection to open and a single operation to complete. This is only used for
+  specific internally-fired operations that are expected to execute very quickly
+  after the connection opens. Default `3`, minimum `1`.
 * `CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS`: the maximum number of concurrent
   JMX connections open. When this number of connections are open any requests
   requiring further connections will block until a previous connection closes.

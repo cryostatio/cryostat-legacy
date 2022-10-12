@@ -84,7 +84,8 @@ class RuleRegistryTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.registry = new RuleRegistry(rulesDir, matchExpressionEvaluator, fs, gson, logger);
+        this.registry =
+                new RuleRegistry(rulesDir, () -> matchExpressionEvaluator, fs, gson, logger);
         this.testRule =
                 new Rule.Builder()
                         .name("test rule")
@@ -131,8 +132,6 @@ class RuleRegistryTest {
     void testAddRule() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         CompletableFuture<Event<RuleEvent, Rule>> eventListener = new CompletableFuture<>();
         registry.addListener(eventListener::complete);
@@ -149,7 +148,6 @@ class RuleRegistryTest {
                         StandardOpenOption.WRITE,
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING);
-        inOrder.verify(fs).listDirectoryChildren(rulesDir);
 
         Event<RuleEvent, Rule> event = eventListener.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventType(), Matchers.equalTo(RuleEvent.ADDED));
@@ -214,8 +212,6 @@ class RuleRegistryTest {
     void testGetRulebyName() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(testRule);
         Optional<Rule> getResult = registry.getRule("test_rule");
@@ -226,8 +222,6 @@ class RuleRegistryTest {
     void testGetAllRules() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(testRule);
 
@@ -236,11 +230,6 @@ class RuleRegistryTest {
 
     @Test
     void testGetRulesByServiceRef() throws Exception {
-        Path rulePath = Mockito.mock(Path.class);
-        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
-
         Mockito.when(matchExpressionEvaluator.applies(Mockito.any(), Mockito.any()))
                 .thenReturn(true);
 
@@ -278,8 +267,6 @@ class RuleRegistryTest {
     void testGetRulesReturnsCopy() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(testRule);
 
@@ -304,7 +291,6 @@ class RuleRegistryTest {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
         Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(testRule);
 
@@ -323,9 +309,8 @@ class RuleRegistryTest {
     @Test
     void testDeletePropagatesFileDeletionException() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
-        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
         Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
+        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
         Mockito.when(fs.deleteIfExists(rulePath)).thenThrow(IOException.class);
 
         registry.addRule(testRule);
@@ -352,11 +337,6 @@ class RuleRegistryTest {
                         .build();
         this.ruleJson = MainModule.provideGson(logger).toJson(rule);
         this.fileReader = new BufferedReader(new StringReader(ruleJson));
-
-        Path rulePath = Mockito.mock(Path.class);
-        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
-        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
         registry.addRule(rule);
 

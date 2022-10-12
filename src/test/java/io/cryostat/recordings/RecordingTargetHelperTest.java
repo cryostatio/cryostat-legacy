@@ -222,7 +222,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.any(), Mockito.anyString()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -272,7 +272,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.any(), Mockito.anyString()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -337,7 +337,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.any(), Mockito.anyString()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
@@ -374,7 +374,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                Mockito.any(), Mockito.anyString()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
                 .thenReturn(new Metadata());
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();

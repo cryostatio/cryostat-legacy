@@ -84,8 +84,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC,
-                            Map.of("JMX_PORT", String.valueOf(9093 + i), "USE_AUTH", "true")));
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));

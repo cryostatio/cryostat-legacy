@@ -145,4 +145,4 @@ podman run \
     -e CRYOSTAT_HBM2DDL="$CRYOSTAT_HBM2DDL" \
     -e CRYOSTAT_LOG_DB_QUERIES="true" \
     -e CRYOSTAT_DEV_MODE="$CRYOSTAT_DEV_MODE" \
-    --rm -it "$CRYOSTAT_IMAGE" "$@"
+    --rm -it "$CRYOSTAT_IMAGE" "$@" 2>&1 | tee cryostat-run.log
