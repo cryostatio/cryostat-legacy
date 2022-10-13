@@ -50,6 +50,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -380,17 +381,25 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     public void deleteRecordingFromPath(String subdirectoryName, String recordingName)
             throws IOException, URISyntaxException, InterruptedException, ExecutionException {
         String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
         Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
         Path recordingPath = subdirectoryPath.resolve(recordingName);
-        String filename = recordingPath.getFileName().toString();
+        validateSavePath(recordingName, recordingPath);
+        Path filenamePath = recordingPath.getFileName();
+        String filename = filenamePath.toString();
         String targetId = getConnectUrlFromPath(subdirectoryPath).get();
         ArchivedRecordingInfo archivedRecordingInfo =
                 new ArchivedRecordingInfo(
                         targetId,
-                        recordingPath.getFileName().toString(),
+                        recordingName,
                         webServerProvider.get().getArchivedDownloadURL(targetId, filename),
                         webServerProvider.get().getArchivedReportURL(targetId, filename),
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
@@ -947,7 +956,7 @@ public class RecordingArchiveHelper {
         }
 
         public List<ArchivedRecordingInfo> getRecordings() {
-            return recordings;
+            return Collections.unmodifiableList(recordings);
         }
     }
 }
