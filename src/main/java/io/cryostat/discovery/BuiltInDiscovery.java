@@ -49,6 +49,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.internal.CustomTargetPlatformClient;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -78,50 +79,61 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     @Override
     public void start(Promise<Void> start) {
-        try {
-            if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
-                return;
-            }
-            storage.addTargetDiscoveryListener(this);
+        storage.addTargetDiscoveryListener(this);
+        platformClients.stream()
+                .filter(
+                        pc -> {
+                            // TODO refactor so this doesn't use an instanceof check
+                            if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
+                                return pc instanceof CustomTargetPlatformClient;
+                            } else {
+                                return true;
+                            }
+                        })
+                .forEach(
+                        platform -> {
+                            logger.info(
+                                    "Starting built-in discovery with {}",
+                                    platform.getClass().getSimpleName());
+                            String realmName = platform.getDiscoveryTree().getName();
 
-            for (PlatformClient platform : this.platformClients) {
-                logger.info(
-                        "Starting built-in discovery with {}", platform.getClass().getSimpleName());
-                String realmName = platform.getDiscoveryTree().getName();
+                            UUID id =
+                                    storage.getBuiltInPluginByRealm(realmName)
+                                            .map(PluginInfo::getId)
+                                            .orElseGet(
+                                                    () -> {
+                                                        try {
+                                                            return storage.register(
+                                                                    realmName,
+                                                                    DiscoveryStorage.NO_CALLBACK);
+                                                        } catch (RegistrationException e) {
+                                                            start.fail(e);
+                                                            return null;
+                                                        }
+                                                    });
 
-                UUID id =
-                        storage.getBuiltInPluginByRealm(realmName)
-                                .map(PluginInfo::getId)
-                                .orElseGet(
-                                        () -> {
-                                            try {
-                                                return storage.register(
-                                                        realmName, DiscoveryStorage.NO_CALLBACK);
-                                            } catch (RegistrationException e) {
-                                                start.fail(e);
-                                                return null;
-                                            }
-                                        });
-
-                platform.addTargetDiscoveryListener(
-                        tde ->
-                                getVertx()
-                                        .executeBlocking(
-                                                promise ->
-                                                        promise.complete(
-                                                                storage.update(
-                                                                        id,
-                                                                        platform.getDiscoveryTree()
-                                                                                .getChildren()))));
-                Promise<EnvironmentNode> promise = Promise.promise();
-                promise.future().onSuccess(subtree -> storage.update(id, subtree.getChildren()));
-                platform.start();
-                platform.load(promise);
-            }
-            start.complete();
-        } catch (Exception e) {
-            start.fail(e);
-        }
+                            platform.addTargetDiscoveryListener(
+                                    tde ->
+                                            getVertx()
+                                                    .executeBlocking(
+                                                            promise ->
+                                                                    promise.complete(
+                                                                            storage.update(
+                                                                                    id,
+                                                                                    platform.getDiscoveryTree()
+                                                                                            .getChildren()))));
+                            Promise<EnvironmentNode> promise = Promise.promise();
+                            promise.future()
+                                    .onSuccess(
+                                            subtree -> storage.update(id, subtree.getChildren()));
+                            try {
+                                platform.start();
+                                platform.load(promise);
+                            } catch (Exception e) {
+                                start.fail(e);
+                            }
+                        });
+        start.tryComplete();
     }
 
     @Override
