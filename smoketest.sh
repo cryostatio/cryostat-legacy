@@ -23,14 +23,14 @@ runCryostat() {
     elif [ "$1" = "h2mem" ]; then
         JDBC_URL="jdbc:h2:mem:cryostat;DB_CLOSE_DELAY=-1;INIT=create domain if not exists jsonb as varchar"
         JDBC_DRIVER="org.h2.Driver"
-        JDBC_USERNAME="sa"
+        JDBC_USERNAME="cryostat"
         JDBC_PASSWORD=""
         HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
         HBM2DDL="create"
     else
         JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"
         JDBC_DRIVER="org.h2.Driver"
-        JDBC_USERNAME="sa"
+        JDBC_USERNAME="cryostat"
         JDBC_PASSWORD=""
         HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
         HBM2DDL="update"
