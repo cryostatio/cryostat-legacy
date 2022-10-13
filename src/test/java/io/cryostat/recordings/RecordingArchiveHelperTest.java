@@ -77,6 +77,7 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -115,6 +116,7 @@ class RecordingArchiveHelperTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Environment env;
+    @Mock Vertx vertx;
 
     String targetId = "fooTarget";
     String recordingName = "someRecording";
@@ -166,6 +168,7 @@ class RecordingArchiveHelperTest {
                         notificationFactory,
                         jvmIdHelper,
                         env,
+                        vertx,
                         base32);
     }
 

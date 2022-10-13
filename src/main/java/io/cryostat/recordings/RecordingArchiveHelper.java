@@ -49,7 +49,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -70,6 +69,9 @@ import java.util.zip.GZIPOutputStream;
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
+import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
@@ -94,6 +96,11 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
 
@@ -111,6 +118,7 @@ public class RecordingArchiveHelper {
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
     private final Environment env;
+    private final Vertx vertx;
     private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
@@ -137,6 +145,7 @@ public class RecordingArchiveHelper {
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Environment env,
+            Vertx vertx,
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
@@ -150,6 +159,7 @@ public class RecordingArchiveHelper {
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
         this.env = env;
+        this.vertx = vertx;
         this.base32 = base32;
     }
 
@@ -1045,7 +1055,7 @@ public class RecordingArchiveHelper {
         }
     }
 
-    public boolean gzip(Path originalFile){
+    public boolean gzip(Path originalFile) {
         if (env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS)) {
             return false;
         }
@@ -1063,5 +1073,162 @@ public class RecordingArchiveHelper {
             logger.error("Failed to compress the file: " + e);
             return false;
         }
+    }
+
+    public void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
+        vertx.executeBlocking(
+                event -> {
+                    try {
+                        // try loading chunk info to see if it's a valid file
+                        try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
+                            var supplier = FlightRecordingLoader.createChunkSupplier(is);
+                            var chunks = FlightRecordingLoader.readChunkInfo(supplier);
+                            if (chunks.size() < 1) {
+                                throw new InvalidJfrFileException();
+                            }
+                        }
+                        event.complete();
+                    } catch (CouldNotLoadRecordingException | IOException e) {
+                        event.fail(e);
+                    }
+                },
+                res -> {
+                    if (res.failed()) {
+                        Throwable t;
+                        if (res.cause() instanceof CouldNotLoadRecordingException) {
+                            t =
+                                    new HttpException(
+                                            400, "Not a valid JFR recording file", res.cause());
+                        } else {
+                            t = res.cause();
+                        }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
+
+                        handler.handle(makeFailedAsyncResult(t));
+                        return;
+                    }
+
+                    handler.handle(makeAsyncResult(null));
+                });
+    }
+
+    public void saveRecording(
+            String subdirectoryName,
+            String basename,
+            String tmpFile,
+            int counter,
+            Handler<AsyncResult<String>> handler) {
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
+        // are also differentiated by second-resolution timestamp
+        if (counter >= Byte.MAX_VALUE) {
+            handler.handle(
+                    makeFailedAsyncResult(
+                            new IOException(
+                                    "Recording could not be saved. File already exists and rename"
+                                            + " attempts were exhausted.")));
+            return;
+        }
+
+        String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectoryName);
+
+        if (!fs.exists(specificRecordingsPath)) {
+            try {
+                Files.createDirectory(specificRecordingsPath);
+            } catch (IOException e) {
+                handler.handle(makeFailedAsyncResult(e));
+                return;
+            }
+        }
+
+        vertx.fileSystem()
+                .exists(
+                        specificRecordingsPath.resolve(filename).toString(),
+                        (res) -> {
+                            if (res.failed()) {
+                                handler.handle(makeFailedAsyncResult(res.cause()));
+                                return;
+                            }
+
+                            if (res.result()) {
+                                saveRecording(
+                                        subdirectoryName, basename, tmpFile, counter + 1, handler);
+                                return;
+                            }
+
+                            // verified no name clash at this time
+                            vertx.fileSystem()
+                                    .move(
+                                            tmpFile,
+                                            specificRecordingsPath.resolve(filename).toString(),
+                                            (res2) -> {
+                                                if (res2.failed()) {
+                                                    handler.handle(
+                                                            makeFailedAsyncResult(res2.cause()));
+                                                    return;
+                                                }
+
+                                                if (gzip(
+                                                        specificRecordingsPath.resolve(filename))) {
+                                                    handler.handle(
+                                                            makeAsyncResult(filename + ".gz"));
+                                                } else {
+                                                    handler.handle(makeAsyncResult(filename));
+                                                }
+                                            });
+                        });
+    }
+
+    public void deleteTempFileUpload(FileUpload upload) {
+        Path p = archivedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        vertx.fileSystem().deleteBlocking(p.toString());
+    }
+
+    private <T> AsyncResult<T> makeAsyncResult(T result) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return result;
+            }
+
+            @Override
+            public Throwable cause() {
+                return null;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return true;
+            }
+
+            @Override
+            public boolean failed() {
+                return false;
+            }
+        };
+    }
+
+    private <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return null;
+            }
+
+            @Override
+            public Throwable cause() {
+                return cause;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return false;
+            }
+
+            @Override
+            public boolean failed() {
+                return true;
+            }
+        };
     }
 }
