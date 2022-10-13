@@ -71,6 +71,35 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
+    Future<Path> getFromPath(String subdirectoryName, String recordingName) {
+        CompletableFuture<Path> f = new CompletableFuture<>();
+        Path dest = null;
+        try {
+        dest = recordingArchiveHelper.getCachedReportPathFromPath(subdirectoryName, recordingName).get();
+        if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+            f.complete(dest);
+            return f;
+        }
+        Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
+            Path saveFile =
+                    reportGeneratorServiceProvider
+                            .get()
+                            .exec(archivedRecording, dest, "")
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+            f.complete(saveFile);
+        } catch (Exception e) {
+            logger.error(e);
+            f.completeExceptionally(e);
+            try {
+                fs.deleteIfExists(dest);
+            } catch (IOException ioe) {
+                logger.warn(ioe);
+            }
+        }
+        return f;
+    }
+
     Future<Path> get(String recordingName, String filter) {
         return this.get(null, recordingName, filter);
     }
@@ -78,7 +107,6 @@ class ArchivedRecordingReportCache {
     Future<Path> get(String sourceTarget, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
-
         try {
             dest = recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName).get();
             /* NOTE: This is just a temporary solution: If a request includes a filter,

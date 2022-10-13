@@ -53,6 +53,10 @@ public class ReportService {
         this.archivedCache = archivedCache;
     }
 
+    public Future<Path> getFromPath(String subdirectoryName, String recordingName) {
+        return archivedCache.getFromPath(subdirectoryName, recordingName);
+    }
+
     public Future<Path> get(String recordingName, String filter) {
         return archivedCache.get(recordingName, filter);
     }

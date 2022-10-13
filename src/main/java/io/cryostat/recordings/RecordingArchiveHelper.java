@@ -503,6 +503,20 @@ notificationFactory
         }
     }
 
+    public CompletableFuture<Path> getCachedReportPathFromPath(String subdirectoryName, String recordingName) {
+        CompletableFuture<Path> future = new CompletableFuture<>();
+        try {
+            Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
+            if (!fs.exists(tempSubdirectory)) {
+                tempSubdirectory = fs.createDirectory(tempSubdirectory);
+            }
+            future.complete(tempSubdirectory.resolve(recordingName).toAbsolutePath());
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
     public Future<Path> getCachedReportPath(String sourceTarget, String recordingName) {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
@@ -644,9 +658,9 @@ notificationFactory
                                                         subdirectoryName,
                                                         file,
                                                         webServer.getArchivedDownloadURL(
-                                                                targetId, file),
+                                                            subdirectoryName, file).replace("beta/recordings", "beta/fs/recordings"),
                                                         webServer.getArchivedReportURL(
-                                                                targetId, file),
+                                                            subdirectoryName, file).replace("beta/reports", "beta/fs/reports"),
                                                         recordingMetadataManager.getMetadataFromPathIfExists(jvmId, file),
                                                         getFileSize(file));
                                             } catch (IOException | URISyntaxException e) {
@@ -719,6 +733,10 @@ notificationFactory
         }
 
         return future;
+    }
+
+    public Path getRecordingPathFromPath(String subdirectoryName, String recordingName) {
+        return archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
     }
 
     public Future<Path> getRecordingPath(String recordingName) {
