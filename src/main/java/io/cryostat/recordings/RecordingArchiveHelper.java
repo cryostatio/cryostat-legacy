@@ -384,6 +384,32 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public void deleteRecordingFromPath(String subdirectoryName, String recordingName) throws IOException, URISyntaxException, InterruptedException, ExecutionException {
+        String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+        Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+        Path recordingPath = subdirectoryPath.resolve(recordingName);
+        String filename = recordingPath.getFileName().toString();
+        String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+        ArchivedRecordingInfo archivedRecordingInfo =
+        new ArchivedRecordingInfo(
+                targetId,
+                recordingPath.getFileName().toString(),
+                webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                webServerProvider.get().getArchivedReportURL(targetId, filename),
+                recordingMetadataManager.deleteRecordingMetadataIfExists(
+                    jvmId, recordingName),
+                getFileSize(filename));
+notificationFactory
+        .createBuilder()
+        .metaCategory(DELETE_NOTIFICATION_CATEGORY)
+        .metaType(HttpMimeType.JSON)
+        .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+        .build()
+        .send();
+        fs.deleteIfExists(recordingPath);
+        checkEmptySubdirectory(subdirectoryPath);
+    }
+
     public Future<ArchivedRecordingInfo> deleteRecording(
             String sourceTarget, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
@@ -604,9 +630,9 @@ public class RecordingArchiveHelper {
                 if (subdirectoryName.equals("file-uploads")) {
                     continue;
                 }
-                List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
                 Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
                 String targetId = getConnectUrlFromPath(subdirectory).get();
+                String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
                 List<String> files = this.fs.listDirectoryChildren(subdirectory);
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
@@ -621,9 +647,7 @@ public class RecordingArchiveHelper {
                                                                 targetId, file),
                                                         webServer.getArchivedReportURL(
                                                                 targetId, file),
-                                                        recordingMetadataManager.getMetadata(
-                                                                new ConnectionDescriptor(targetId),
-                                                                file),
+                                                        recordingMetadataManager.getMetadataFromPathIfExists(jvmId, file),
                                                         getFileSize(file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
@@ -632,8 +656,7 @@ public class RecordingArchiveHelper {
                                         })
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                archivedRecordings.addAll(temp);
-                directories.add(new ArchiveDirectory(targetId, subdirectoryName, archivedRecordings));
+                directories.add(new ArchiveDirectory(targetId, subdirectoryName, temp));
             }
             future.complete(directories);
         } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {

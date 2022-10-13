@@ -578,6 +578,18 @@ public class RecordingMetadataManager extends AbstractVerticle
         return metadata;
     }
 
+    // Public metadata getter which doesn't rely on target being available 
+    public Metadata getMetadataFromPathIfExists(String jvmId, String recordingName) throws IOException {
+        Objects.requireNonNull(jvmId);
+        Objects.requireNonNull(recordingName);
+        Path metadataPath = getMetadataPath(jvmId, recordingName);
+        if (!fs.isRegularFile(metadataPath)) {
+            return new Metadata();
+        }
+        return gson.fromJson(fs.readFile(metadataPath), Metadata.class);
+    }
+
+
     public Metadata deleteRecordingMetadataIfExists(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws IOException {
         Objects.requireNonNull(connectionDescriptor);

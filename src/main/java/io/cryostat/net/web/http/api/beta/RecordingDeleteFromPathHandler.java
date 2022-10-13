@@ -35,49 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.DeprecatedApi;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
-@DeprecatedApi(
-        deprecated = @Deprecated(forRemoval = true),
-        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
-public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Void> {
+
+    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingDeleteHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, logger);
+    RecordingDeleteFromPathHandler(
+            AuthManager auth, Gson gson, RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
+
+    @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -92,7 +93,12 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
 
     @Override
     public String path() {
-        return basePath() + "recordings/:recordingName";
+        return basePath() + PATH;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -101,16 +107,10 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        try {
-            recordingArchiveHelper.deleteRecording(recordingName).get();
-            ctx.response().end();
-        } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpException(404, e.getMessage(), e);
-            }
-            throw e;
-        }
+    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        recordingArchiveHelper.deleteRecordingFromPath(subdirectoryName, recordingName);
+        return new IntermediateResponse<Void>().body(null);
     }
 }

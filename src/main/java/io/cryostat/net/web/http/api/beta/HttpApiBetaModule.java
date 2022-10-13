@@ -95,5 +95,9 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingsGeRequestHandler(RecordingsGetHandler handler);
+    abstract RequestHandler bindRecordingsGetFromPathRequestHandler(RecordingsGetFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingDeleteFromPathRequestHandler(RecordingDeleteFromPathHandler handler);
 }

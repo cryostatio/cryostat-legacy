@@ -62,13 +62,13 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingsGetFromPathHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Gson gson;
 
     @Inject
-    RecordingsGetHandler(
+    RecordingsGetFromPathHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             RecordingArchiveHelper recordingArchiveHelper,
@@ -96,7 +96,7 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "recordings";
+        return basePath() + "fs/recordings";
     }
 
     @Override
