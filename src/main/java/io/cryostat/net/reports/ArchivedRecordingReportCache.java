@@ -71,21 +71,26 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> getFromPath(String subdirectoryName, String recordingName) {
+    Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
-        dest = recordingArchiveHelper.getCachedReportPathFromPath(subdirectoryName, recordingName).get();
-        if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
-            f.complete(dest);
-            return f;
-        }
-        Path archivedRecording =
-                    recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
+            dest =
+                    recordingArchiveHelper
+                            .getCachedReportPathFromPath(subdirectoryName, recordingName)
+                            .get();
+            if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
+                f.complete(dest);
+                return f;
+            }
+            Path archivedRecording =
+                    recordingArchiveHelper.getRecordingPathFromPath(
+                            subdirectoryName, recordingName);
+                        
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, "")
+                            .exec(archivedRecording, dest, filter)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {

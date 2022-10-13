@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.nio.file.Path;
-import java.util.EnumSet;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -47,35 +45,21 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
-import io.cryostat.recordings.RecordingArchiveHelper;
 
-import com.nimbusds.jwt.JWT;
-import dagger.Lazy;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-public class RecordingGetFromPathHandler extends AbstractAssetJwtConsumingHandler {
+class RecordingMetadataLabelsPostFromPathBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "fs/recordings/:subdirectoryName/:recordingName/jwt";
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
-    RecordingGetFromPathHandler(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            AssetJwtHelper jwtFactory,
-            Lazy<WebServer> webServer,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager, jwtFactory, webServer, logger);
-        this.recordingArchiveHelper = recordingArchiveHelper;
+    RecordingMetadataLabelsPostFromPathBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
@@ -84,36 +68,27 @@ public class RecordingGetFromPathHandler extends AbstractAssetJwtConsumingHandle
     }
 
     @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_RECORDING);
+        return ResourceAction.NONE;
     }
 
     @Override
     public String path() {
-        return basePath() + PATH;
+        return basePath() + RecordingMetadataLabelsPostFromPathHandler.PATH;
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
-    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-        String subdirectoryName = ctx.pathParam("subdirectoryName");
-        String recordingName = ctx.pathParam("recordingName");
-        Path archivedRecording =
-                recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
-        ctx.response()
-                .putHeader(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        String.format("attachment; filename=\"%s\"", recordingName));
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }

@@ -59,7 +59,6 @@ import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -128,9 +127,11 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
         try {
+            List<String> queriedFilter = params.getQueryParams().getAll("filter");
+            String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             return new IntermediateResponse<Path>().body(report);
         } catch (ExecutionException | CompletionException e) {

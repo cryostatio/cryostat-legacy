@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -55,7 +54,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingArchiveHelper.ArchiveDirectory;
 import io.cryostat.rules.ArchivePathException;
-import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -112,7 +110,8 @@ class RecordingsGetFromPathHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
-            List<ArchiveDirectory> result = recordingArchiveHelper.getRecordingsAndDirectories().get();
+            List<ArchiveDirectory> result =
+                    recordingArchiveHelper.getRecordingsAndDirectories().get();
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {

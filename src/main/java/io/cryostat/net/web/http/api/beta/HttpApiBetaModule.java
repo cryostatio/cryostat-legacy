@@ -99,7 +99,8 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingDeleteFromPathHandler(RecordingDeleteFromPathHandler handler);
+    abstract RequestHandler bindRecordingDeleteFromPathHandler(
+            RecordingDeleteFromPathHandler handler);
 
     @Binds
     @IntoSet
@@ -111,5 +112,21 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingUploadPostFromPathHandler(RecordingUploadPostFromPathHandler handler);
+    abstract RequestHandler bindRecordingUploadPostFromPathHandler(
+            RecordingUploadPostFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetFromPathWithJwtHandler(
+            ReportGetFromPathWithJwtHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathHandler(
+            RecordingMetadataLabelsPostFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathBodyHandler(
+            RecordingMetadataLabelsPostFromPathBodyHandler handler);
 }

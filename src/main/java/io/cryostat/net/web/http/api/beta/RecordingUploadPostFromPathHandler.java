@@ -44,7 +44,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -167,8 +166,8 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
     private ResponseMessage doPost(String subdirectoryName, String recordingName, URL uploadUrl)
             throws Exception {
         Path recordingPath = null;
-        recordingPath = recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
-
+        recordingPath =
+                recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
 
         MultipartForm form =
                 MultipartForm.create()

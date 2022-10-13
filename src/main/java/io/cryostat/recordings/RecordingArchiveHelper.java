@@ -50,7 +50,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -113,7 +112,6 @@ public class RecordingArchiveHelper {
     // FIXME: remove ARCHIVES after 2.2.0 release since we either use "uploads" or sourceTarget
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
-    public static final String LOST_RECORDINGS_SUBDIRECTORY = "lost";
     public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
     private static final String CONNECT_URL = "connectUrl";
 
@@ -279,7 +277,7 @@ public class RecordingArchiveHelper {
                     "SpotBugs false positive. The following checks ensures that the"
                             + " getFileName() of the Path are not null, barring some exceptional"
                             + " circumstance like some external filesystem access race.")
-    private Future<String> getConnectUrlFromPath(Path subdirectory) {
+    public Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future =
                 new CompletableFuture<String>().orTimeout(FS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         if (subdirectory == null || subdirectory.getFileName() == null) {
@@ -287,8 +285,6 @@ public class RecordingArchiveHelper {
         } else if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                 || subdirectory.getFileName().toString().equals("file-uploads")) {
             future.complete(UPLOADED_RECORDINGS_SUBDIRECTORY);
-        } else if (subdirectory.getFileName().toString().equals("LOST")) {
-            future.complete(LOST_RECORDINGS_SUBDIRECTORY);
         } else {
             Optional<String> connectUrl = Optional.empty();
             try {
@@ -384,28 +380,29 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public void deleteRecordingFromPath(String subdirectoryName, String recordingName) throws IOException, URISyntaxException, InterruptedException, ExecutionException {
+    public void deleteRecordingFromPath(String subdirectoryName, String recordingName)
+            throws IOException, URISyntaxException, InterruptedException, ExecutionException {
         String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
         Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
         Path recordingPath = subdirectoryPath.resolve(recordingName);
         String filename = recordingPath.getFileName().toString();
         String targetId = getConnectUrlFromPath(subdirectoryPath).get();
         ArchivedRecordingInfo archivedRecordingInfo =
-        new ArchivedRecordingInfo(
-                targetId,
-                recordingPath.getFileName().toString(),
-                webServerProvider.get().getArchivedDownloadURL(targetId, filename),
-                webServerProvider.get().getArchivedReportURL(targetId, filename),
-                recordingMetadataManager.deleteRecordingMetadataIfExists(
-                    jvmId, recordingName),
-                getFileSize(filename));
-notificationFactory
-        .createBuilder()
-        .metaCategory(DELETE_NOTIFICATION_CATEGORY)
-        .metaType(HttpMimeType.JSON)
-        .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
-        .build()
-        .send();
+                new ArchivedRecordingInfo(
+                        targetId,
+                        recordingPath.getFileName().toString(),
+                        webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                        webServerProvider.get().getArchivedReportURL(targetId, filename),
+                        recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                jvmId, recordingName),
+                        getFileSize(filename));
+        notificationFactory
+                .createBuilder()
+                .metaCategory(DELETE_NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+                .build()
+                .send();
         fs.deleteIfExists(recordingPath);
         checkEmptySubdirectory(subdirectoryPath);
     }
@@ -503,7 +500,8 @@ notificationFactory
         }
     }
 
-    public CompletableFuture<Path> getCachedReportPathFromPath(String subdirectoryName, String recordingName) {
+    public CompletableFuture<Path> getCachedReportPathFromPath(
+            String subdirectoryName, String recordingName) {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
@@ -599,30 +597,6 @@ notificationFactory
         return future;
     }
 
-    public static class ArchiveDirectory {
-        private final String connectUrl;
-        private final String jvmId;
-        private final List<ArchivedRecordingInfo> recordings;
-
-        ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
-            this.connectUrl = connectUrl;
-            this.jvmId = jvmId;
-            this.recordings = recordings;
-        }
-
-        public String getConnectUrl() {
-            return connectUrl;
-        }
-
-        public String getJvmId() {
-            return jvmId;
-        }
-
-        public List<ArchivedRecordingInfo> getRecordings() {
-            return recordings;
-        }
-    }
-
     public Future<List<ArchiveDirectory>> getRecordingsAndDirectories() {
         CompletableFuture<List<ArchiveDirectory>> future = new CompletableFuture<>();
         try {
@@ -654,14 +628,25 @@ notificationFactory
                                 .map(
                                         file -> {
                                             try {
+                                                // FIXME: string replacing
                                                 return new ArchivedRecordingInfo(
                                                         subdirectoryName,
                                                         file,
-                                                        webServer.getArchivedDownloadURL(
-                                                            subdirectoryName, file).replace("beta/recordings", "beta/fs/recordings"),
-                                                        webServer.getArchivedReportURL(
-                                                            subdirectoryName, file).replace("beta/reports", "beta/fs/reports"),
-                                                        recordingMetadataManager.getMetadataFromPathIfExists(jvmId, file),
+                                                        webServer
+                                                                .getArchivedDownloadURL(
+                                                                        subdirectoryName, file)
+                                                                .replace(
+                                                                        "beta/recordings",
+                                                                        "beta/fs/recordings"),
+                                                        webServer
+                                                                .getArchivedReportURL(
+                                                                        subdirectoryName, file)
+                                                                .replace(
+                                                                        "beta/reports",
+                                                                        "beta/fs/reports"),
+                                                        recordingMetadataManager
+                                                                .getMetadataFromPathIfExists(
+                                                                        jvmId, file),
                                                         getFileSize(file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
@@ -939,6 +924,30 @@ notificationFactory
         } catch (IOException | InterruptedException | ExecutionException e) {
             logger.error("Invalid path: {}", recordingName);
             return 0;
+        }
+    }
+
+    public static class ArchiveDirectory {
+        private final String connectUrl;
+        private final String jvmId;
+        private final List<ArchivedRecordingInfo> recordings;
+
+        ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
+            this.connectUrl = connectUrl;
+            this.jvmId = jvmId;
+            this.recordings = recordings;
+        }
+
+        public String getConnectUrl() {
+            return connectUrl;
+        }
+
+        public String getJvmId() {
+            return jvmId;
+        }
+
+        public List<ArchivedRecordingInfo> getRecordings() {
+            return recordings;
         }
     }
 }
