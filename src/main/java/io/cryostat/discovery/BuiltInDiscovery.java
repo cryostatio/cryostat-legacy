@@ -60,6 +60,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     private final DiscoveryStorage storage;
     private final Set<PlatformClient> platformClients;
+    private final PlatformClient customTargets;
     private final Environment env;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
@@ -67,11 +68,13 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     BuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
+            CustomTargetPlatformClient customTargets,
             Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.storage = storage;
         this.platformClients = platformClients;
+        this.customTargets = customTargets;
         this.env = env;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -80,16 +83,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         storage.addTargetDiscoveryListener(this);
-        platformClients.stream()
-                .filter(
-                        pc -> {
-                            // TODO refactor so this doesn't use an instanceof check
-                            if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
-                                return pc instanceof CustomTargetPlatformClient;
-                            } else {
-                                return true;
-                            }
-                        })
+        (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY) ? Set.of(customTargets) : platformClients)
                 .forEach(
                         platform -> {
                             logger.info(

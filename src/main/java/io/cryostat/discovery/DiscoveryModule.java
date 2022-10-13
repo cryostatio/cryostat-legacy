@@ -100,10 +100,12 @@ public abstract class DiscoveryModule {
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
+            CustomTargetPlatformClient customTargets,
             Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
-        return new BuiltInDiscovery(storage, platformClients, env, notificationFactory, logger);
+        return new BuiltInDiscovery(
+                storage, platformClients, customTargets, env, notificationFactory, logger);
     }
 
     @Provides
