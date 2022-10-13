@@ -37,12 +37,17 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.AgentJMXHelper;
+import io.cryostat.core.agent.Event;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -111,16 +116,25 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
                     connection.connect();
+                    List<String> response = new ArrayList<String>();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                     String probes = helper.retrieveEventProbes();
+                    if (probes != null && !probes.isBlank()) {
+                        ProbeTemplate template = new ProbeTemplate();
+                        template.deserialize(new ByteArrayInputStream(probes.getBytes()));
+                        for (Event e : template.getEvents()) {
+                            response.add(e.toString());
+                        }
+                    }
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
                             .message(Map.of("targetId", targetId))
+                            .message(Map.of("probes", response.toString()))
                             .build()
                             .send();
-                    return new IntermediateResponse<String>().body(probes);
+                    return new IntermediateResponse<String>().body(response.toString());
                 });
     }
 
