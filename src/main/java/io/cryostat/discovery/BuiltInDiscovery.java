@@ -51,6 +51,7 @@ import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 
+import dagger.Lazy;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
@@ -60,7 +61,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     private final DiscoveryStorage storage;
     private final Set<PlatformClient> platformClients;
-    private final PlatformClient customTargets;
+    private final Lazy<CustomTargetPlatformClient> customTargets;
     private final Environment env;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
@@ -68,7 +69,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     BuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
-            CustomTargetPlatformClient customTargets,
+            Lazy<CustomTargetPlatformClient> customTargets,
             Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
@@ -83,7 +84,9 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         storage.addTargetDiscoveryListener(this);
-        (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY) ? Set.of(customTargets) : platformClients)
+        (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)
+                        ? Set.of(customTargets.get())
+                        : platformClients)
                 .forEach(
                         platform -> {
                             logger.info(

@@ -51,6 +51,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.Gson;
@@ -100,7 +101,7 @@ public abstract class DiscoveryModule {
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
             Set<PlatformClient> platformClients,
-            CustomTargetPlatformClient customTargets,
+            Lazy<CustomTargetPlatformClient> customTargets,
             Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
