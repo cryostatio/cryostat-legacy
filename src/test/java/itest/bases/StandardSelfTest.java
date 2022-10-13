@@ -37,6 +37,9 @@
  */
 package itest.bases;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -45,6 +48,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.zip.GZIPInputStream;
 
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
@@ -58,6 +62,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
+import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -181,5 +186,24 @@ public abstract class StandardSelfTest {
                             future.complete(Paths.get(file));
                         });
         return future;
+    }
+
+    public static void unGzip(Path gzipFile) throws Exception {
+        try (GZIPInputStream output = new GZIPInputStream(new FileInputStream(gzipFile.toFile()));
+                FileOutputStream uncompressedFile =
+                        new FileOutputStream(
+                                gzipFile.toString()
+                                        .substring(0, gzipFile.toString().length() - 3)); ) {
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = output.read(buffer)) != -1) {
+                uncompressedFile.write(buffer, 0, len);
+            }
+            FileSystem fs = Utils.getFileSystem();
+            fs.delete(gzipFile.toFile().toString());
+        } catch (IOException e) {
+            throw new ITestCleanupFailedException(
+                    String.format("Failed to decompress %s", gzipFile), e);
+        }
     }
 }

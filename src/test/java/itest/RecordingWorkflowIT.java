@@ -183,7 +183,10 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"),
                     Matchers.matchesRegex(
-                            TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr"));
+                            TARGET_ALIAS
+                                    + "_"
+                                    + TEST_RECORDING_NAME
+                                    + "_[\\d]{8}T[\\d]{6}Z.jfr.gz"));
             String savedDownloadUrl = recordingInfo.getString("downloadUrl");
 
             Thread.sleep(3_000L); // wait for the dump to complete
@@ -214,14 +217,21 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             // the fully completed in-memory recording is larger than the saved partial copy
             String inMemoryDownloadUrl = recordingInfo.getString("downloadUrl");
             Path inMemoryDownloadPath =
-                    downloadFileAbs(inMemoryDownloadUrl, TEST_RECORDING_NAME, ".jfr")
+                    downloadFileAbs(inMemoryDownloadUrl, TEST_RECORDING_NAME, ".jfr.gz")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Path savedDownloadPath =
-                    downloadFileAbs(savedDownloadUrl, TEST_RECORDING_NAME + "_saved", ".jfr")
+                    downloadFileAbs(savedDownloadUrl, TEST_RECORDING_NAME + "_saved", ".jfr.gz")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
             MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
+
+            unGzip(savedDownloadPath);
+            savedDownloadPath =
+                    savedDownloadPath.resolve(
+                            savedDownloadPath
+                                    .toString()
+                                    .substring(0, savedDownloadPath.toString().length() - 3));
 
             List<RecordedEvent> inMemoryEvents = RecordingFile.readAllEvents(inMemoryDownloadPath);
             List<RecordedEvent> savedEvents = RecordingFile.readAllEvents(savedDownloadPath);
