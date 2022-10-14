@@ -50,6 +50,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -277,7 +278,7 @@ public class RecordingArchiveHelper {
                     "SpotBugs false positive. The following checks ensures that the"
                             + " getFileName() of the Path are not null, barring some exceptional"
                             + " circumstance like some external filesystem access race.")
-    private Future<String> getConnectUrlFromPath(Path subdirectory) {
+    protected Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future =
                 new CompletableFuture<String>().orTimeout(FS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         if (subdirectory == null || subdirectory.getFileName() == null) {
@@ -380,6 +381,50 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
+    public Future<ArchivedRecordingInfo> deleteRecordingFromPath(
+            String subdirectoryName, String recordingName) {
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
+        try {
+            String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            Path recordingPath = subdirectoryPath.resolve(recordingName);
+            validateSavePath(recordingName, recordingPath);
+            Path filenamePath = recordingPath.getFileName();
+            String filename = filenamePath.toString();
+            String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            targetId,
+                            recordingName,
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
+                            recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                    jvmId, recordingName),
+                            getFileSize(filename));
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(DELETE_NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+                    .build()
+                    .send();
+            fs.deleteIfExists(recordingPath);
+            checkEmptySubdirectory(subdirectoryPath);
+            future.complete(archivedRecordingInfo);
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        } finally {
+            deleteReportFromPath(subdirectoryName, recordingName);
+        }
+        return future;
+    }
+
     public Future<ArchivedRecordingInfo> deleteRecording(
             String sourceTarget, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
@@ -463,6 +508,17 @@ public class RecordingArchiveHelper {
         }
     }
 
+    public boolean deleteReportFromPath(String subdirectoryName, String recordingName) {
+        try {
+            logger.trace("Invalidating archived report cache for {}", recordingName);
+            return fs.deleteIfExists(
+                    getCachedReportPathFromPath(subdirectoryName, recordingName).get());
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.warn(e);
+            return false;
+        }
+    }
+
     public boolean deleteReport(String sourceTarget, String recordingName) {
         try {
             logger.trace("Invalidating archived report cache for {}", recordingName);
@@ -471,6 +527,21 @@ public class RecordingArchiveHelper {
             logger.warn(e);
             return false;
         }
+    }
+
+    public CompletableFuture<Path> getCachedReportPathFromPath(
+            String subdirectoryName, String recordingName) {
+        CompletableFuture<Path> future = new CompletableFuture<>();
+        try {
+            Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
+            if (!fs.exists(tempSubdirectory)) {
+                tempSubdirectory = fs.createDirectory(tempSubdirectory);
+            }
+            future.complete(tempSubdirectory.resolve(recordingName).toAbsolutePath());
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     public Future<Path> getCachedReportPath(String sourceTarget, String recordingName) {
@@ -555,6 +626,73 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public Future<List<ArchiveDirectory>> getRecordingsAndDirectories() {
+        CompletableFuture<List<ArchiveDirectory>> future = new CompletableFuture<>();
+        try {
+            if (!fs.exists(archivedRecordingsPath)) {
+                throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
+            }
+            if (!fs.isReadable(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not readable");
+            }
+            if (!fs.isDirectory(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not a directory");
+            }
+            WebServer webServer = webServerProvider.get();
+            List<ArchiveDirectory> directories = new ArrayList<>();
+            List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
+            for (String subdirectoryName : subdirectories) {
+                if (subdirectoryName.equals("file-uploads")) {
+                    continue;
+                }
+                Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
+                String targetId = getConnectUrlFromPath(subdirectory).get();
+                String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                List<String> files = this.fs.listDirectoryChildren(subdirectory);
+                List<ArchivedRecordingInfo> temp =
+                        files.stream()
+                                .filter(filename -> !filename.equals(CONNECT_URL))
+                                .map(
+                                        file -> {
+                                            try {
+                                                // FIXME: string replacing
+                                                return new ArchivedRecordingInfo(
+                                                        targetId,
+                                                        file,
+                                                        webServer
+                                                                .getArchivedDownloadURL(
+                                                                        subdirectoryName, file)
+                                                                .replace(
+                                                                        "beta/recordings",
+                                                                        "beta/fs/recordings"),
+                                                        webServer
+                                                                .getArchivedReportURL(
+                                                                        subdirectoryName, file)
+                                                                .replace(
+                                                                        "beta/reports",
+                                                                        "beta/fs/reports"),
+                                                        recordingMetadataManager
+                                                                .getMetadataFromPathIfExists(
+                                                                        jvmId, file),
+                                                        getFileSize(file));
+                                            } catch (IOException | URISyntaxException e) {
+                                                logger.warn(e);
+                                                return null;
+                                            }
+                                        })
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                directories.add(new ArchiveDirectory(targetId, subdirectoryName, temp));
+            }
+            future.complete(directories);
+        } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
     public Future<List<ArchivedRecordingInfo>> getRecordings() {
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
@@ -584,7 +722,7 @@ public class RecordingArchiveHelper {
                                         file -> {
                                             try {
                                                 return new ArchivedRecordingInfo(
-                                                        subdirectoryName,
+                                                        targetId,
                                                         file,
                                                         webServer.getArchivedDownloadURL(
                                                                 targetId, file),
@@ -609,6 +747,16 @@ public class RecordingArchiveHelper {
         }
 
         return future;
+    }
+
+    public Future<Path> getRecordingPathFromPath(String subdirectoryName, String recordingName) {
+        try {
+            Path path = archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
+            validateRecordingPath(Optional.of(path), recordingName, false);
+            return CompletableFuture.completedFuture(path);
+        } catch (RecordingNotFoundException | ArchivePathException e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     public Future<Path> getRecordingPath(String recordingName) {
@@ -811,6 +959,38 @@ public class RecordingArchiveHelper {
         } catch (IOException | InterruptedException | ExecutionException e) {
             logger.error("Invalid path: {}", recordingName);
             return 0;
+        }
+    }
+
+    // FIXME: override equals() so that tests are easier to write
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "This class is never used by the client and is not stored, it is simply"
+                        + " constructed upon request so it wouldn't matter even if somehow the List"
+                        + " was modified")
+    public static class ArchiveDirectory {
+        private final String connectUrl;
+        private final String jvmId;
+        private final List<ArchivedRecordingInfo> recordings;
+
+        public ArchiveDirectory(
+                String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
+            this.connectUrl = connectUrl;
+            this.jvmId = jvmId;
+            this.recordings = recordings;
+        }
+
+        public String getConnectUrl() {
+            return connectUrl;
+        }
+
+        public String getJvmId() {
+            return jvmId;
+        }
+
+        public List<ArchivedRecordingInfo> getRecordings() {
+            return Collections.unmodifiableList(recordings);
         }
     }
 }

@@ -92,4 +92,43 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindJvmIdGetHandler(JvmIdGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindArchivedDirectoriesGetHandler(
+            ArchivedDirectoriesGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingDeleteFromPathHandler(
+            RecordingDeleteFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingGetFromPathWithJwtHandler(
+            RecordingGetFromPathWithJwtHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetFromPathHandler(ReportGetFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetFromPathWithJwtHandler(
+            ReportGetFromPathWithJwtHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingUploadPostFromPathHandler(
+            RecordingUploadPostFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathHandler(
+            RecordingMetadataLabelsPostFromPathHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathBodyHandler(
+            RecordingMetadataLabelsPostFromPathBodyHandler handler);
 }

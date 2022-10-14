@@ -35,50 +35,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.reports;
+package io.cryostat.net.web.http.api.beta;
 
-import java.nio.file.Path;
-import java.util.concurrent.Future;
+import java.util.Set;
 
-import io.cryostat.net.ConnectionDescriptor;
+import javax.inject.Inject;
 
-public class ReportService {
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    private final ActiveRecordingReportCache activeCache;
-    private final ArchivedRecordingReportCache archivedCache;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-    ReportService(
-            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
-        this.activeCache = activeCache;
-        this.archivedCache = archivedCache;
+class RecordingMetadataLabelsPostFromPathBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
+
+    @Inject
+    RecordingMetadataLabelsPostFromPathBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
-    public Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
-        return archivedCache.getFromPath(subdirectoryName, recordingName, filter);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
     }
 
-    public Future<Path> get(String recordingName, String filter) {
-        return archivedCache.get(recordingName, filter);
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
-    public Future<Path> get(String sourceTarget, String recordingName, String filter) {
-        return archivedCache.get(sourceTarget, recordingName, filter);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
     }
 
-    public boolean delete(String recordingName) {
-        return archivedCache.delete(recordingName);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
-    public boolean delete(String sourceTarget, String recordingName) {
-        return archivedCache.delete(sourceTarget, recordingName);
+    @Override
+    public String path() {
+        return basePath() + RecordingMetadataLabelsPostFromPathHandler.PATH;
     }
 
-    public Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
-        return activeCache.get(connectionDescriptor, recordingName, filter);
-    }
-
-    public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return activeCache.delete(connectionDescriptor, recordingName);
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }
