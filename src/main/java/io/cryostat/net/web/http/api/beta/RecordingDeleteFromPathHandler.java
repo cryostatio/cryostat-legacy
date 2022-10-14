@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.beta;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -48,9 +49,11 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -107,7 +110,14 @@ public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Voi
     public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
-        recordingArchiveHelper.deleteRecordingFromPath(subdirectoryName, recordingName);
-        return new IntermediateResponse<Void>().body(null);
+        try {
+            recordingArchiveHelper.deleteRecordingFromPath(subdirectoryName, recordingName).get();
+            return new IntermediateResponse<Void>().body(null);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
     }
 }

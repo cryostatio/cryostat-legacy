@@ -387,33 +387,41 @@ public class RecordingArchiveHelper {
                     "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
                             + " getFileName() of the Path are not null, barring some exceptional"
                             + " circumstance like some external filesystem access race.")
-    public void deleteRecordingFromPath(String subdirectoryName, String recordingName)
-            throws IOException, URISyntaxException, InterruptedException, ExecutionException {
-        String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
-        Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
-        Path recordingPath = subdirectoryPath.resolve(recordingName);
-        validateSavePath(recordingName, recordingPath);
-        Path filenamePath = recordingPath.getFileName();
-        String filename = filenamePath.toString();
-        String targetId = getConnectUrlFromPath(subdirectoryPath).get();
-        ArchivedRecordingInfo archivedRecordingInfo =
-                new ArchivedRecordingInfo(
-                        targetId,
-                        recordingName,
-                        webServerProvider.get().getArchivedDownloadURL(targetId, filename),
-                        webServerProvider.get().getArchivedReportURL(targetId, filename),
-                        recordingMetadataManager.deleteRecordingMetadataIfExists(
-                                jvmId, recordingName),
-                        getFileSize(filename));
-        notificationFactory
-                .createBuilder()
-                .metaCategory(DELETE_NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
-                .build()
-                .send();
-        fs.deleteIfExists(recordingPath);
-        checkEmptySubdirectory(subdirectoryPath);
+    public Future<ArchivedRecordingInfo> deleteRecordingFromPath(String subdirectoryName, String recordingName) {
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
+        try {
+            String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            Path recordingPath = subdirectoryPath.resolve(recordingName);
+            validateSavePath(recordingName, recordingPath);
+            Path filenamePath = recordingPath.getFileName();
+            String filename = filenamePath.toString();
+            String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            targetId,
+                            recordingName,
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
+                            recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                    jvmId, recordingName),
+                            getFileSize(filename));
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(DELETE_NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("recording", archivedRecordingInfo, "target", targetId))
+                    .build()
+                    .send();
+            fs.deleteIfExists(recordingPath);
+            checkEmptySubdirectory(subdirectoryPath);
+            future.complete(archivedRecordingInfo);
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            future.completeExceptionally(e);
+        } finally {
+            deleteReportFromPath(subdirectoryName, recordingName);
+        }
+        return future;
     }
 
     public Future<ArchivedRecordingInfo> deleteRecording(
@@ -496,6 +504,16 @@ public class RecordingArchiveHelper {
         if (path.getFileName() == null) {
             throw new IOException(
                     String.format("Filesystem path for %s could not be determined", recordingName));
+        }
+    }
+
+    public boolean deleteReportFromPath(String subdirectoryName, String recordingName) {
+        try {
+            logger.trace("Invalidating archived report cache for {}", recordingName);
+            return fs.deleteIfExists(getCachedReportPathFromPath(subdirectoryName, recordingName).get());
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.warn(e);
+            return false;
         }
     }
 
@@ -729,8 +747,15 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Path getRecordingPathFromPath(String subdirectoryName, String recordingName) {
-        return archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
+    public Future<Path> getRecordingPathFromPath(String subdirectoryName, String recordingName) {
+        try {
+            Path path = archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
+            validateRecordingPath(Optional.of(path), recordingName, false);
+            return CompletableFuture.completedFuture(path);
+        }
+        catch (RecordingNotFoundException | ArchivePathException e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     public Future<Path> getRecordingPath(String recordingName) {
@@ -941,7 +966,7 @@ public class RecordingArchiveHelper {
         private final String jvmId;
         private final List<ArchivedRecordingInfo> recordings;
 
-        ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
+        public ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
             this.connectUrl = connectUrl;
             this.jvmId = jvmId;
             this.recordings = recordings;

@@ -44,6 +44,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -61,6 +62,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
@@ -166,8 +168,15 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
     private ResponseMessage doPost(String subdirectoryName, String recordingName, URL uploadUrl)
             throws Exception {
         Path recordingPath = null;
-        recordingPath =
-                recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName);
+        try {
+            recordingPath =
+            recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName).get();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new ApiException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
 
         MultipartForm form =
                 MultipartForm.create()

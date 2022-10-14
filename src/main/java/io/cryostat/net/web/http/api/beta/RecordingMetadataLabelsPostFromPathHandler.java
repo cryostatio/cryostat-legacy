@@ -63,6 +63,7 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
 
     static final String PATH = "fs/recordings/:subdirectoryName/:recordingName/metadata/labels";
 
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
 
     @Inject
@@ -72,6 +73,7 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager) {
         super(auth, gson);
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
     }
 
@@ -114,11 +116,12 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
-        System.out.println(params.getBody());
 
         try {
             Metadata metadata =
                     new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
+
+            recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName).get();
 
             Metadata updatedMetadata =
                     recordingMetadataManager
