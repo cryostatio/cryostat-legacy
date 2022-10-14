@@ -306,7 +306,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             for (Object savedRecording : savedRecordings) {
                 String recordingName = ((JsonObject) savedRecording).getString("name");
                 if (recordingName.matches(
-                        TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
+                        TARGET_ALIAS + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr.gz")) {
                     CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
                     webClient
                             .delete(
