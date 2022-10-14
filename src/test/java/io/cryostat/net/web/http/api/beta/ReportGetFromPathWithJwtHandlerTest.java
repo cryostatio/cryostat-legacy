@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 

@@ -84,8 +84,9 @@ class ArchivedRecordingReportCache {
                 return f;
             }
             Path archivedRecording =
-                    recordingArchiveHelper.getRecordingPathFromPath(
-                            subdirectoryName, recordingName).get();
+                    recordingArchiveHelper
+                            .getRecordingPathFromPath(subdirectoryName, recordingName)
+                            .get();
 
             Path saveFile =
                     reportGeneratorServiceProvider

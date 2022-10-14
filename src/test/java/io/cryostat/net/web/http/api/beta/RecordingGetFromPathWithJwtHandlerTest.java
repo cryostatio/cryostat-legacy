@@ -75,7 +75,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class RecordingGetFromPathWithJwtHandlerTest {
 
-    RecordingGetFromPathWithJwtHandler  handler;
+    RecordingGetFromPathWithJwtHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
@@ -107,7 +107,8 @@ class RecordingGetFromPathWithJwtHandlerTest {
         void shouldUseExpectedPath() {
             MatcherAssert.assertThat(
                     handler.path(),
-                    Matchers.equalTo("/api/beta/fs/recordings/:subdirectoryName/:recordingName/jwt"));
+                    Matchers.equalTo(
+                            "/api/beta/fs/recordings/:subdirectoryName/:recordingName/jwt"));
         }
 
         @Test

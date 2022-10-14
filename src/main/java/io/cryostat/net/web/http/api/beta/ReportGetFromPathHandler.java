@@ -60,6 +60,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivePathException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -140,7 +141,8 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
                         (ReportGenerationException) ExceptionUtils.getRootCause(e);
                 throw new ApiException(rge.getStatusCode(), e.getMessage());
             }
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException
+                    || ExceptionUtils.getRootCause(e) instanceof ArchivePathException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;

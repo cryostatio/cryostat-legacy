@@ -106,7 +106,7 @@ class ArchivedDirectoriesGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWith501IfArchivePathException() throws Exception {
+    void shouldRespondWith500IfArchivePathException() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -115,8 +115,7 @@ class ArchivedDirectoriesGetHandlerTest {
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        CompletableFuture<List<ArchiveDirectory>> future =
-                Mockito.mock(CompletableFuture.class);
+        CompletableFuture<List<ArchiveDirectory>> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.getRecordingsAndDirectories()).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
@@ -124,7 +123,7 @@ class ArchivedDirectoriesGetHandlerTest {
 
         HttpException httpEx =
                 Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
+        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(500));
         MatcherAssert.assertThat(
                 httpEx.getCause().getCause().getMessage(),
                 Matchers.equalTo("Archive path /some/path test"));
@@ -134,20 +133,19 @@ class ArchivedDirectoriesGetHandlerTest {
     void testCustomJsonSerialization() throws Exception {
         CompletableFuture<List<ArchiveDirectory>> listFuture = new CompletableFuture<>();
 
-        ArchivedRecordingInfo recording = new ArchivedRecordingInfo(
-                "encodedServiceUriFoo",
-                "recordingFoo",
-                "/some/path/download/recordingFoo",
-                "/some/path/archive/recordingFoo",
-                new Metadata(),
-                0);
+        ArchivedRecordingInfo recording =
+                new ArchivedRecordingInfo(
+                        "encodedServiceUriFoo",
+                        "recordingFoo",
+                        "/some/path/download/recordingFoo",
+                        "/some/path/archive/recordingFoo",
+                        new Metadata(),
+                        0);
 
         listFuture.complete(
                 List.of(
                         new ArchiveDirectory(
-                                "encodedServiceUriFoo",
-                                "someJvmId",
-                                List.of(recording))));
+                                "encodedServiceUriFoo", "someJvmId", List.of(recording))));
         Mockito.when(recordingArchiveHelper.getRecordingsAndDirectories()).thenReturn(listFuture);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);

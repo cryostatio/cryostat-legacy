@@ -115,7 +115,7 @@ class ArchivedDirectoriesGetHandler extends AbstractAuthenticatedRequestHandler 
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {
-                throw new HttpException(501, e.getMessage(), e);
+                throw new HttpException(500, e.getMessage(), e);
             }
             throw e;
         }

@@ -55,7 +55,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -145,13 +144,18 @@ class ReportGetFromPathHandlerTest {
             String subdirectoryName = "someDirectory";
             when(params.getPathParams())
                     .thenReturn(
-                            Map.of("subdirectoryName", subdirectoryName, "recordingName", recordingName));
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException(subdirectoryName, recordingName));
-            when(reportService.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reportService.getFromPath(
+                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             ApiException ex =
@@ -168,12 +172,17 @@ class ReportGetFromPathHandlerTest {
             String subdirectoryName = "subdirectoryName";
             when(params.getPathParams())
                     .thenReturn(
-                            Map.of("subdirectoryName", subdirectoryName, "recordingName", recordingName));
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
 
-            when(reportService.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reportService.getFromPath(
+                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -192,12 +201,17 @@ class ReportGetFromPathHandlerTest {
             String subdirectoryName = "subdirectoryName";
             when(params.getPathParams())
                     .thenReturn(
-                            Map.of("subdirectoryName", subdirectoryName, "recordingName", recordingName));
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
 
             Path fakePath = Mockito.mock(Path.class);
 
-            when(reportService.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reportService.getFromPath(
+                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);

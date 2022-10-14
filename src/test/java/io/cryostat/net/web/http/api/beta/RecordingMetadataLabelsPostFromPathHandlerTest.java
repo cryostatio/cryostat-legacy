@@ -172,7 +172,8 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
 
             when(recordingMetadataManager.parseRecordingLabels(requestLabels)).thenReturn(labels);
 
-            when(recordingMetadataManager.setRecordingMetadataFromPath(subdirectoryName, recordingName, metadata))
+            when(recordingMetadataManager.setRecordingMetadataFromPath(
+                            subdirectoryName, recordingName, metadata))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);

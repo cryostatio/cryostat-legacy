@@ -95,7 +95,8 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindArchivedDirectoriesGetHandler(ArchivedDirectoriesGetHandler handler);
+    abstract RequestHandler bindArchivedDirectoriesGetHandler(
+            ArchivedDirectoriesGetHandler handler);
 
     @Binds
     @IntoSet
@@ -104,7 +105,8 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingGetFromPathWithJwtHandler(RecordingGetFromPathWithJwtHandler handler);
+    abstract RequestHandler bindRecordingGetFromPathWithJwtHandler(
+            RecordingGetFromPathWithJwtHandler handler);
 
     @Binds
     @IntoSet
@@ -112,13 +114,13 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingUploadPostFromPathHandler(
-            RecordingUploadPostFromPathHandler handler);
+    abstract RequestHandler bindReportGetFromPathWithJwtHandler(
+            ReportGetFromPathWithJwtHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetFromPathWithJwtHandler(
-            ReportGetFromPathWithJwtHandler handler);
+    abstract RequestHandler bindRecordingUploadPostFromPathHandler(
+            RecordingUploadPostFromPathHandler handler);
 
     @Binds
     @IntoSet

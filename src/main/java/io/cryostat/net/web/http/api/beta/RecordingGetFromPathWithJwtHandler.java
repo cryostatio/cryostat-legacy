@@ -56,6 +56,7 @@ import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivePathException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -112,7 +113,9 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
         String recordingName = ctx.pathParam("recordingName");
         try {
             Path archivedRecording =
-            recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName).get();
+                    recordingArchiveHelper
+                            .getRecordingPathFromPath(subdirectoryName, recordingName)
+                            .get();
             ctx.response()
                     .putHeader(
                             HttpHeaders.CONTENT_DISPOSITION,
@@ -120,7 +123,8 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
             ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException
+                    || e.getCause() instanceof ArchivePathException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;

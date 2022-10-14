@@ -138,12 +138,17 @@ class RecordingDeleteFromPathHandlerTest {
             String subdirectoryName = "someSubdirectory";
             when(params.getPathParams())
                     .thenReturn(
-                            Map.of("subdirectoryName", subdirectoryName, "recordingName", recordingName));
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
 
             Future<ArchivedRecordingInfo> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException(subdirectoryName, recordingName));
-            when(recordingArchiveHelper.deleteRecordingFromPath(Mockito.anyString(), Mockito.anyString()))
+            when(recordingArchiveHelper.deleteRecordingFromPath(
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             ApiException ex =
@@ -157,10 +162,15 @@ class RecordingDeleteFromPathHandlerTest {
             String subdirectoryName = "someSubdirectory";
             when(params.getPathParams())
                     .thenReturn(
-                            Map.of("recordingName", recordingName, "subdirectoryName", subdirectoryName));
+                            Map.of(
+                                    "recordingName",
+                                    recordingName,
+                                    "subdirectoryName",
+                                    subdirectoryName));
 
             CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
-            when(recordingArchiveHelper.deleteRecordingFromPath(Mockito.anyString(), Mockito.anyString()))
+            when(recordingArchiveHelper.deleteRecordingFromPath(
+                            Mockito.anyString(), Mockito.anyString()))
                     .thenReturn(future);
 
             IntermediateResponse<Void> response = handler.handle(params);
@@ -168,7 +178,8 @@ class RecordingDeleteFromPathHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
             verify(recordingArchiveHelper)
-                    .deleteRecordingFromPath(Mockito.eq(subdirectoryName), Mockito.eq(recordingName));
+                    .deleteRecordingFromPath(
+                            Mockito.eq(subdirectoryName), Mockito.eq(recordingName));
         }
     }
 }

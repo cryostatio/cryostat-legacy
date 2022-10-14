@@ -54,6 +54,7 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivePathException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -114,7 +115,8 @@ public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Voi
             recordingArchiveHelper.deleteRecordingFromPath(subdirectoryName, recordingName).get();
             return new IntermediateResponse<Void>().body(null);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException
+                    || e.getCause() instanceof ArchivePathException) {
                 throw new ApiException(404, e.getMessage(), e);
             }
             throw e;

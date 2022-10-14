@@ -387,7 +387,8 @@ public class RecordingArchiveHelper {
                     "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
                             + " getFileName() of the Path are not null, barring some exceptional"
                             + " circumstance like some external filesystem access race.")
-    public Future<ArchivedRecordingInfo> deleteRecordingFromPath(String subdirectoryName, String recordingName) {
+    public Future<ArchivedRecordingInfo> deleteRecordingFromPath(
+            String subdirectoryName, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
         try {
             String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
@@ -510,7 +511,8 @@ public class RecordingArchiveHelper {
     public boolean deleteReportFromPath(String subdirectoryName, String recordingName) {
         try {
             logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(getCachedReportPathFromPath(subdirectoryName, recordingName).get());
+            return fs.deleteIfExists(
+                    getCachedReportPathFromPath(subdirectoryName, recordingName).get());
         } catch (IOException | InterruptedException | ExecutionException e) {
             logger.warn(e);
             return false;
@@ -657,7 +659,7 @@ public class RecordingArchiveHelper {
                                             try {
                                                 // FIXME: string replacing
                                                 return new ArchivedRecordingInfo(
-                                                        subdirectoryName,
+                                                        targetId,
                                                         file,
                                                         webServer
                                                                 .getArchivedDownloadURL(
@@ -720,7 +722,7 @@ public class RecordingArchiveHelper {
                                         file -> {
                                             try {
                                                 return new ArchivedRecordingInfo(
-                                                        subdirectoryName,
+                                                        targetId,
                                                         file,
                                                         webServer.getArchivedDownloadURL(
                                                                 targetId, file),
@@ -752,8 +754,7 @@ public class RecordingArchiveHelper {
             Path path = archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
             validateRecordingPath(Optional.of(path), recordingName, false);
             return CompletableFuture.completedFuture(path);
-        }
-        catch (RecordingNotFoundException | ArchivePathException e) {
+        } catch (RecordingNotFoundException | ArchivePathException e) {
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -961,12 +962,19 @@ public class RecordingArchiveHelper {
         }
     }
 
+    // FIXME: override equals() so that tests are easier to write
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "This class is never used by the client and is not stored so it wouldn't matter"
+                            + " if the List was modified")
     public static class ArchiveDirectory {
         private final String connectUrl;
         private final String jvmId;
         private final List<ArchivedRecordingInfo> recordings;
 
-        public ArchiveDirectory(String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
+        public ArchiveDirectory(
+                String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
             this.connectUrl = connectUrl;
             this.jvmId = jvmId;
             this.recordings = recordings;

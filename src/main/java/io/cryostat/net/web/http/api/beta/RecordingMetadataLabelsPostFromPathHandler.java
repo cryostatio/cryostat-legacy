@@ -55,6 +55,7 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivePathException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -130,7 +131,8 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException
+                    || e.getCause() instanceof ArchivePathException) {
                 throw new ApiException(404, e);
             }
             throw new ApiException(500, e);
