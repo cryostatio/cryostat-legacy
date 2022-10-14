@@ -278,7 +278,7 @@ public class RecordingArchiveHelper {
                     "SpotBugs false positive. The following checks ensures that the"
                             + " getFileName() of the Path are not null, barring some exceptional"
                             + " circumstance like some external filesystem access race.")
-    public Future<String> getConnectUrlFromPath(Path subdirectory) {
+    protected Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future =
                 new CompletableFuture<String>().orTimeout(FS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         if (subdirectory == null || subdirectory.getFileName() == null) {
@@ -966,8 +966,7 @@ public class RecordingArchiveHelper {
     @SuppressFBWarnings(
             value = "EI_EXPOSE_REP2",
             justification =
-                    "This class is never used by the client and is not stored so it wouldn't matter"
-                            + " if the List was modified")
+                    "This class is never used by the client and is not stored, it is simply constructed upon request so it wouldn't matter even if somehow the List was modified")
     public static class ArchiveDirectory {
         private final String connectUrl;
         private final String jvmId;
