@@ -202,12 +202,6 @@ public class RecordingArchiveHelper {
                                     }
                                     FileUtils.deleteQuietly(subdirectoryPath.toFile());
 
-                                } catch (JvmIdGetException e) {
-                                    logger.warn(
-                                            "Could not find jvmId for targetId"
-                                                    + " {}, skipping migration of"
-                                                    + " recordings",
-                                            e.getTarget());
                                 } catch (IOException e) {
                                     logger.warn(e);
                                 } catch (CancellationException e) {
@@ -788,7 +782,12 @@ public class RecordingArchiveHelper {
                         sourceTarget,
                         StandardOpenOption.CREATE);
             }
+            System.out.println(subdirectory);
+            System.out.println("??");
+
             Path archivedRecording = searchSubdirectory(subdirectory, recordingName);
+            System.out.println(archivedRecording);
+
             if (archivedRecording == null) {
                 throw new RecordingNotFoundException(sourceTarget, recordingName);
             }

@@ -390,8 +390,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             logger.info("Successfully migrated archives");
                                             pruneStaleMetadata(staleMetadata);
                                             logger.info("Successfully pruned all stale metadata");
-                                            platformClient.listDiscoverableServices().stream()
-                                                    .forEach(this::handleFoundTarget);
+                                            // platformClient.listDiscoverableServices().stream()
+                                            //         .forEach(this::handleFoundTarget);
                                         } catch (Exception e) {
                                             logger.warn(
                                                     "Couldn't read archived recordings directory");
@@ -512,7 +512,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(subdirectoryName);
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(metadata);
-        System.out.println(subdirectoryName + " " + recordingName);
         String connectUrl =
                 this.archiveHelperProvider
                         .get()
@@ -525,7 +524,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 gson.toJson(StoredRecordingMetadata.of(connectUrl, jvmId, recordingName, metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
+                StandardOpenOption.TRUNCATE_EXISTING);                
 
         notificationFactory
                 .createBuilder()
@@ -637,7 +636,9 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            return new Metadata();
+            Metadata metadata = new Metadata();
+            fs.writeString(metadataPath, gson.toJson(metadata));
+            return metadata;
         }
         return gson.fromJson(fs.readFile(metadataPath), Metadata.class);
     }
