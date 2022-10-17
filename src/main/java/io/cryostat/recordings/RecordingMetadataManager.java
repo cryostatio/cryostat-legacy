@@ -390,8 +390,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             logger.info("Successfully migrated archives");
                                             pruneStaleMetadata(staleMetadata);
                                             logger.info("Successfully pruned all stale metadata");
-                                            // platformClient.listDiscoverableServices().stream()
-                                            //         .forEach(this::handleFoundTarget);
                                         } catch (Exception e) {
                                             logger.warn(
                                                     "Couldn't read archived recordings directory");
@@ -464,7 +462,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     // previously active recording
     // Asynchronous since testing connections to targets takes long, especially for many targets
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
-        logger.info("Trying to prune stale metadata");
+        logger.info("Beginning to prune potentially stale metadata...");
         staleMetadata.forEach(
                 (srm, path) -> {
                     String targetId = srm.getTargetId();
@@ -474,14 +472,14 @@ public class RecordingMetadataManager extends AbstractVerticle
                         cd = getConnectionDescriptorWithCredentials(targetId);
                     } catch (Exception e) {
                         logger.error(
-                                "Could not get credentials for" + " targetId {}, msg: {}",
+                                "Could not get credentials for targetId {}, msg: {}",
                                 targetId,
                                 e.getMessage());
                         return;
                     }
                     logger.info(
-                            "Trying to prune stale recording metadata {}, of target"
-                                    + " {}, from path {}",
+                            "Attempting to prune potentially stale recording metadata {}, from"
+                                    + " target {}, on path {}",
                             recordingName,
                             targetId,
                             path);
@@ -492,13 +490,13 @@ public class RecordingMetadataManager extends AbstractVerticle
                     } else {
                         // target still up
                         logger.info(
-                                "Found metadata corresponding to active recording:" + " {}",
+                                "Found active recording corresponding to recording metadata: {}",
                                 recordingName);
                         try {
                             setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
                         } catch (IOException e) {
                             logger.error(
-                                    "Could not set metadata for recording: {}, msg:" + " {}",
+                                    "Could not set metadata for recording: {}, msg: {}",
                                     recordingName,
                                     e.getMessage());
                         }
@@ -524,7 +522,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 gson.toJson(StoredRecordingMetadata.of(connectUrl, jvmId, recordingName, metadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);                
+                StandardOpenOption.TRUNCATE_EXISTING);
 
         notificationFactory
                 .createBuilder()

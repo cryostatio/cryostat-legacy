@@ -81,7 +81,6 @@ import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -782,12 +781,7 @@ public class RecordingArchiveHelper {
                         sourceTarget,
                         StandardOpenOption.CREATE);
             }
-            System.out.println(subdirectory);
-            System.out.println("??");
-
             Path archivedRecording = searchSubdirectory(subdirectory, recordingName);
-            System.out.println(archivedRecording);
-
             if (archivedRecording == null) {
                 throw new RecordingNotFoundException(sourceTarget, recordingName);
             }
