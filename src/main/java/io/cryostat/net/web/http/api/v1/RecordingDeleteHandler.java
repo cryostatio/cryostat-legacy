@@ -47,6 +47,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -57,6 +58,9 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
 public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;

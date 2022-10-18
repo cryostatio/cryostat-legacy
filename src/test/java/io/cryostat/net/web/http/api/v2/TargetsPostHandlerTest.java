@@ -46,11 +46,11 @@ import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -77,15 +77,14 @@ class TargetsPostHandlerTest {
 
     TargetsPostHandler handler;
     @Mock AuthManager auth;
-    @Mock PlatformClient platformClient;
+    @Mock DiscoveryStorage storage;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetsPostHandler(auth, gson, platformClient, customTargetPlatformClient);
+        this.handler = new TargetsPostHandler(auth, gson, storage, customTargetPlatformClient);
     }
 
     @Test
@@ -115,8 +114,8 @@ class TargetsPostHandlerTest {
     }
 
     @Test
-    void shouldHaveJsonMimeType() {
-        MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+    void shouldProduceJson() {
+        MatcherAssert.assertThat(handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
     }
 
     @Test
@@ -135,7 +134,7 @@ class TargetsPostHandlerTest {
         RequestParameters requestParameters = Mockito.mock(RequestParameters.class);
         Mockito.when(requestParameters.getFormAttributes()).thenReturn(attrs);
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
-        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of());
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         String alias = "TestTarget";
@@ -151,7 +150,9 @@ class TargetsPostHandlerTest {
         MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
         MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
         MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
-        MatcherAssert.assertThat(captured.getCryostatAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                captured.getCryostatAnnotations(),
+                Matchers.equalTo(Map.of(AnnotationKey.REALM, "Custom Targets")));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 
@@ -226,7 +227,13 @@ class TargetsPostHandlerTest {
         MatcherAssert.assertThat(
                 captured.getCryostatAnnotations(),
                 Matchers.equalTo(
-                        Map.of(AnnotationKey.HOST, "app.example.com", AnnotationKey.PID, "1234")));
+                        Map.of(
+                                AnnotationKey.HOST,
+                                "app.example.com",
+                                AnnotationKey.PID,
+                                "1234",
+                                AnnotationKey.REALM,
+                                "Custom Targets")));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 

@@ -37,12 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.persistence.RollbackException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
@@ -57,6 +58,8 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hibernate.exception.ConstraintViolationException;
 
 class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
@@ -102,8 +105,8 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -142,11 +145,20 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
                     this.credentialsManager.addCredentials(
                             matchExpression, new Credentials(username, password));
 
+            int numMatchingTargets = this.credentialsManager.resolveMatchingTargets(id).size();
+
             notificationFactory
                     .createBuilder()
                     .metaCategory("CredentialsStored")
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .message(
+                            Map.of(
+                                    "id",
+                                    id,
+                                    "matchExpression",
+                                    matchExpression,
+                                    "numMatchingTargets",
+                                    numMatchingTargets))
                     .build()
                     .send();
 
@@ -154,10 +166,13 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
                     .statusCode(201)
                     .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
                     .body(null);
+        } catch (RollbackException e) {
+            if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
+                throw new ApiException(400, "Duplicate matchExpression", e);
+            }
+            throw new ApiException(500, e);
         } catch (MatchExpressionValidationException e) {
             throw new ApiException(400, e);
-        } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }
     }
 }

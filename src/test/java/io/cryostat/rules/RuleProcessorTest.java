@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import static org.mockito.Mockito.never;
+
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
@@ -61,12 +64,14 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.util.events.Event;
+import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -78,7 +83,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class RuleProcessorTest {
@@ -95,7 +102,6 @@ class RuleProcessorTest {
     @Mock RecordingMetadataManager metadataManager;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
-    @Mock Base32 base32;
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -115,8 +121,7 @@ class RuleProcessorTest {
                         recordingTargetHelper,
                         metadataManager,
                         periodicArchiverFactory,
-                        logger,
-                        base32);
+                        logger);
     }
 
     @Test
@@ -155,13 +160,15 @@ class RuleProcessorTest {
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
         Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
+                        targetConnectionManager.executeConnectedTaskAsync(
+                                Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                ((TargetConnectionManager.ConnectedTask<Object>)
-                                                arg0.getArgument(1))
-                                        .execute(connection));
+                                CompletableFuture.completedFuture(
+                                        ((TargetConnectionManager.ConnectedTask<Object>)
+                                                        arg0.getArgument(1))
+                                                .execute(connection)));
+
         Mockito.when(connection.getService()).thenReturn(service);
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
@@ -193,7 +200,6 @@ class RuleProcessorTest {
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
-                                Mockito.any(),
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
@@ -216,13 +222,19 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
-                        templateTypeCaptor.capture());
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
 
@@ -240,6 +252,8 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
+        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+
         ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
         Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());
 
@@ -256,13 +270,15 @@ class RuleProcessorTest {
     @Test
     void testSuccessfulArchiverRuleActivationWithCredentials() throws Exception {
         Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
+                        targetConnectionManager.executeConnectedTaskAsync(
+                                Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                ((TargetConnectionManager.ConnectedTask<Object>)
-                                                arg0.getArgument(1))
-                                        .execute(connection));
+                                CompletableFuture.completedFuture(
+                                        ((TargetConnectionManager.ConnectedTask<Object>)
+                                                        arg0.getArgument(1))
+                                                .execute(connection)));
+
         Mockito.when(connection.getService()).thenReturn(service);
 
         IRecordingDescriptor snapshot = Mockito.mock(IRecordingDescriptor.class);
@@ -346,7 +362,6 @@ class RuleProcessorTest {
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
-                                Mockito.any(),
                                 Mockito.any()))
                 .thenReturn(periodicArchiver);
 
@@ -362,13 +377,184 @@ class RuleProcessorTest {
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),
-                        functionCaptor.capture(),
-                        Mockito.any());
+                        functionCaptor.capture());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
         Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.TIMER_ID);
 
         failureFunction.apply(Pair.of(serviceRef, rule));
 
         Mockito.verify(vertx).cancelTimer(MockVertx.TIMER_ID);
+    }
+
+    @Test
+    void testEventCallOnCredentialsChange() throws Exception {
+
+        Credentials credentials = new Credentials("foouser", "barpassword");
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        String matchExpression = "target.alias == 'com.example.App'";
+
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilder.name(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.toDisk(Mockito.anyBoolean()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxAge(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTaskAsync(
+                                Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        arg0 ->
+                                CompletableFuture.completedFuture(
+                                        ((TargetConnectionManager.ConnectedTask<Object>)
+                                                        arg0.getArgument(1))
+                                                .execute(connection)));
+        Mockito.when(connection.getService()).thenReturn(service);
+
+        Event<CredentialsEvent, String> event = Mockito.mock(Event.class);
+        Mockito.when(event.getEventType()).thenReturn(CredentialsEvent.ADDED);
+        Mockito.when(credentialsManager.resolveMatchingTargets(event.getPayload()))
+                .thenReturn(Set.of(serviceRef));
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression(matchExpression)
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(5)
+                        .archivalPeriodSeconds(67)
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        EventListener<CredentialsManager.CredentialsEvent, String> listener =
+                processor.credentialsListener();
+
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                listener.onEvent(event);
+                                return null;
+                            }
+                        })
+                .when(credentialsManager)
+                .addCredentials(matchExpression, credentials);
+
+        MatcherAssert.assertThat(
+                credentialsManager.addCredentials(matchExpression, credentials),
+                Matchers.greaterThan(-1));
+
+        Mockito.verify(recordingOptionsBuilder).name("auto_Test_Rule");
+        Mockito.verify(recordingOptionsBuilder).maxAge(30);
+        Mockito.verify(recordingOptionsBuilder).maxSize(1234);
+
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
+
+        ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
+                ArgumentCaptor.forClass(IConstrainedMap.class);
+
+        ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<TemplateType> templateTypeCaptor =
+                ArgumentCaptor.forClass(TemplateType.class);
+
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        Mockito.verify(recordingTargetHelper)
+                .startRecording(
+                        restartCaptor.capture(),
+                        connectionDescriptorCaptor.capture(),
+                        recordingOptionsCaptor.capture(),
+                        templateNameCaptor.capture(),
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
+
+        Assertions.assertTrue(restartCaptor.getValue());
+
+        IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
+        MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
+
+        MatcherAssert.assertThat(templateNameCaptor.getValue(), Matchers.equalTo("Continuous"));
+
+        MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
+
+        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+    }
+
+    @Test
+    void testSuccessfulRuleNonActivationWithCredentials() throws Exception {
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+
+        TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression("target.alias == 'com.example.App'")
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(5)
+                        .archivalPeriodSeconds(67)
+                        .enabled(false)
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        processor.accept(tde);
+
+        Mockito.verify(recordingOptionsBuilder, never()).name("auto_Test_Rule");
+
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
+
+        ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
+                ArgumentCaptor.forClass(IConstrainedMap.class);
+
+        ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<TemplateType> templateTypeCaptor =
+                ArgumentCaptor.forClass(TemplateType.class);
+
+        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+
+        ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        Mockito.verify(recordingTargetHelper, never())
+                .startRecording(
+                        restartCaptor.capture(),
+                        connectionDescriptorCaptor.capture(),
+                        recordingOptionsCaptor.capture(),
+                        templateNameCaptor.capture(),
+                        templateTypeCaptor.capture(),
+                        metadataCaptor.capture(),
+                        archiveOnStopCaptor.capture());
     }
 }

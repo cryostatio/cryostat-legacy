@@ -172,6 +172,14 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRulePatchBodyHandler(RulePatchBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulePatchHandler(RulePatchHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRulesPostHandler(RulesPostHandler handler);
 
     @Binds
@@ -181,6 +189,28 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryRegistrationHandler(DiscoveryRegistrationHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryRegistrationBodyHandler(
+            DiscoveryRegistrationBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryDeregistrationHandler(
+            DiscoveryDeregistrationHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryPostHandler(DiscoveryPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindDiscoveryPostBodyHandler(DiscoveryPostBodyHandler handler);
 
     @Binds
     @IntoSet

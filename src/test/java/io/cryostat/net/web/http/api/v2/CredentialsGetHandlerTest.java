@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +50,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -101,8 +103,9 @@ class CredentialsGetHandlerTest {
         }
 
         @Test
-        void shouldReturnJsonMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -121,9 +124,11 @@ class CredentialsGetHandlerTest {
             Cred cred1 = new Cred();
             cred1.id = 1;
             cred1.matchExpression = "target.alias == \"foo\"";
+            cred1.numMatchingTargets = 1;
             Cred cred2 = new Cred();
             cred1.id = 10;
             cred2.matchExpression = "target.alias == \"bar\"";
+            cred2.numMatchingTargets = 2;
             Mockito.when(credentialsManager.getAll())
                     .thenReturn(
                             Map.of(
@@ -131,6 +136,15 @@ class CredentialsGetHandlerTest {
                                     cred1.matchExpression,
                                     cred2.id,
                                     cred2.matchExpression));
+            ServiceRef mockTarget1 = Mockito.mock(ServiceRef.class);
+            ServiceRef mockTarget2 = Mockito.mock(ServiceRef.class);
+            Set<ServiceRef> set1 = new HashSet<>();
+            set1.add(mockTarget1);
+            Set<ServiceRef> set2 = new HashSet<>();
+            set2.add(mockTarget1);
+            set2.add(mockTarget2);
+            Mockito.when(credentialsManager.resolveMatchingTargets(cred1.id)).thenReturn(set1);
+            Mockito.when(credentialsManager.resolveMatchingTargets(cred2.id)).thenReturn(set2);
 
             IntermediateResponse<List<Cred>> response = handler.handle(requestParams);
 
@@ -142,6 +156,8 @@ class CredentialsGetHandlerTest {
             MatcherAssert.assertThat(actual, Matchers.hasSize(2));
 
             Mockito.verify(credentialsManager).getAll();
+            Mockito.verify(credentialsManager, Mockito.times(2))
+                    .resolveMatchingTargets(Mockito.anyInt());
         }
     }
 }

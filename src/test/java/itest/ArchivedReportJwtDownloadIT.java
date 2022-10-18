@@ -45,8 +45,11 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import org.apache.http.client.utils.URIBuilder;
@@ -84,7 +87,15 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
                 cleanupCreatedResources(resource.getPath());
             }
             if (archivedResource != null) {
-                cleanupCreatedResources(archivedResource.getPath());
+                // updated because of v1 RecordingDeleteHandler deprecation
+                String updatedArchivedPath =
+                        archivedResource
+                                .getPath()
+                                .replaceFirst("/api/v1/", "/api/beta/")
+                                .replaceFirst(
+                                        "/recordings/",
+                                        String.format("/recordings%s/", SELF_REFERENCE_TARGET_ID));
+                cleanupCreatedResources(updatedArchivedPath);
             }
             if (assetDownload != null) {
                 Files.deleteIfExists(assetDownload);
@@ -114,6 +125,7 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
         CompletableFuture<URL> future = new CompletableFuture<>();
         webClient
                 .patch(resource.getPath())
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
                 .sendBuffer(
                         Buffer.buffer("SAVE"),
                         ar -> {

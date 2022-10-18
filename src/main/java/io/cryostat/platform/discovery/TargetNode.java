@@ -47,7 +47,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class TargetNode extends AbstractNode {
 
-    private final ServiceRef target;
+    private ServiceRef target;
 
     public TargetNode(TargetNode other) {
         this(other.nodeType, other.target, other.labels);

@@ -37,12 +37,16 @@
  */
 package io.cryostat.net.security.jwt;
 
+import java.time.Duration;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.web.WebServer;
@@ -64,7 +68,7 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
-    static AssetJwtHelper provideJwtFactory(
+    static AssetJwtHelper provideAssetJwtFactory(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,
@@ -81,6 +85,25 @@ public abstract class JwtModule {
                     decrypter,
                     !AuthenticationScheme.NONE.equals(auth.getScheme()),
                     logger);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Singleton
+    static DiscoveryJwtHelper provideDiscoveryJwtFactory(
+            Lazy<WebServer> webServer,
+            JWSSigner signer,
+            JWSVerifier verifier,
+            JWEEncrypter encrypter,
+            JWEDecrypter decrypter,
+            AuthManager auth,
+            @Named(DiscoveryModule.DISCOVERY_PING_DURATION) Duration discoveryPingPeriod,
+            Logger logger) {
+        try {
+            return new DiscoveryJwtHelper(
+                    webServer, signer, verifier, encrypter, decrypter, discoveryPingPeriod, logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

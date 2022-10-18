@@ -1,0 +1,35 @@
+query {
+    environmentNodes(filter: { name: "JDP" }) {
+        name
+        nodeType
+        descendantTargets {
+            recordings {
+                active {
+                    data {
+                        name
+                        state
+                        metadata {
+                            labels
+                        }
+                    }
+                    aggregate {
+                        count
+                    }
+                }
+                archived {
+                    data {
+                        name
+                        metadata {
+                            labels
+                        }
+                        size
+                    }
+                    aggregate {
+                        count
+                        size
+                    }
+                }
+            }
+        }
+    }
+}

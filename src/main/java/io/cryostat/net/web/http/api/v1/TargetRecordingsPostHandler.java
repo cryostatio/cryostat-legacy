@@ -40,11 +40,10 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -143,6 +142,16 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         MultiMap attrs = ctx.request().formAttributes();
         String recordingName = attrs.get("recordingName");
@@ -171,11 +180,14 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                             Long.parseLong(attrs.get("duration"))));
                                 }
                                 if (attrs.contains("toDisk")) {
-                                    Pattern bool = Pattern.compile("true|false");
-                                    Matcher m = bool.matcher(attrs.get("toDisk"));
-                                    if (!m.matches())
+                                    if (attrs.get("toDisk").equals("true")
+                                            || attrs.get("toDisk").equals("false")) {
+                                        builder =
+                                                builder.toDisk(
+                                                        Boolean.valueOf(attrs.get("toDisk")));
+                                    } else {
                                         throw new HttpException(400, "Invalid options");
-                                    builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
+                                    }
                                 }
                                 if (attrs.contains("maxAge")) {
                                     builder = builder.maxAge(Long.parseLong(attrs.get("maxAge")));
@@ -183,19 +195,23 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
-
+                                Metadata metadata = new Metadata();
                                 if (attrs.contains("metadata")) {
-                                    Metadata metadata =
+                                    metadata =
                                             gson.fromJson(
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
-                                    recordingMetadataManager
-                                            .setRecordingMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName,
-                                                    metadata)
-                                            .get();
                                 }
+                                boolean archiveOnStop = false;
+                                if (attrs.contains("archiveOnStop")) {
+                                    if (attrs.get("archiveOnStop").equals("true")
+                                            || attrs.get("archiveOnStop").equals("false")) {
+                                        archiveOnStop = Boolean.valueOf(attrs.get("archiveOnStop"));
+                                    } else {
+                                        throw new HttpException(400, "Invalid options");
+                                    }
+                                }
+
                                 Pair<String, TemplateType> template =
                                         RecordingTargetHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);
@@ -204,7 +220,9 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),
-                                                template.getRight());
+                                                template.getRight(),
+                                                metadata,
+                                                archiveOnStop);
 
                                 try {
                                     WebServer webServer = webServerProvider.get();
@@ -215,8 +233,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                             webServer.getReportURL(
                                                     connection, descriptor.getName()),
                                             recordingMetadataManager.getMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recordingName));
+                                                    connectionDescriptor, recordingName),
+                                            archiveOnStop);
                                 } catch (QuantityConversionException
                                         | URISyntaxException
                                         | IOException e) {

@@ -72,8 +72,7 @@ class DiscoveryIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            "quay.io/andrewazores/vertx-fib-demo:0.7.0",
-                            Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
@@ -143,11 +142,11 @@ class DiscoveryIT extends ExternalTargetsTest {
         // Custom Targets should have no children or labels, and should not be a target
         // TODO define a custom target and ensure it appears in this part of the response
         MatcherAssert.assertThat(customTargets.children, Matchers.empty());
-        MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.empty());
+        MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(customTargets.target, Matchers.nullValue());
 
         // JDP should have no labels and should not be a target, but it should have children
-        MatcherAssert.assertThat(jdp.labels.keySet(), Matchers.empty());
+        MatcherAssert.assertThat(jdp.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(jdp.target, Matchers.nullValue());
         MatcherAssert.assertThat(
                 jdp.children,
@@ -207,6 +206,8 @@ class DiscoveryIT extends ExternalTargetsTest {
                 cryostat.target.annotations.cryostat,
                 Matchers.equalTo(
                         Map.of(
+                                "REALM",
+                                "JDP",
                                 "HOST",
                                 Podman.POD_NAME,
                                 "PORT",
@@ -223,6 +224,8 @@ class DiscoveryIT extends ExternalTargetsTest {
                 demoApp.target.annotations.cryostat,
                 Matchers.equalTo(
                         Map.of(
+                                "REALM",
+                                "JDP",
                                 "HOST",
                                 Podman.POD_NAME,
                                 "PORT",

@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -118,6 +119,8 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        "application/json",
+                        InetAddress.getByName("127.0.01"),
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
@@ -186,6 +189,8 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        "application/json",
+                        InetAddress.getByName("127.0.0.1"),
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),

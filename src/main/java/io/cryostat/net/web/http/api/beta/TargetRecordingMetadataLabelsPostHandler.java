@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +46,6 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -71,7 +71,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetRecordingMetadataLabelsPostHandler(
@@ -79,13 +78,11 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
             Gson gson,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            RecordingMetadataManager recordingMetadataManager,
-            NotificationFactory notificationFactory) {
+            RecordingMetadataManager recordingMetadataManager) {
         super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -117,8 +114,8 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -136,30 +133,18 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
             Metadata metadata = new Metadata(labels);
 
-            if (!this.targetRecordingFound(
-                    getConnectionDescriptorFromParams(params), recordingName)) {
+            ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(params);
+
+            if (!this.targetRecordingFound(connectionDescriptor, recordingName)) {
                 throw new RecordingNotFoundException(targetId, recordingName);
             }
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(targetId, recordingName, metadata)
+                            .setRecordingMetadata(
+                                    connectionDescriptor, recordingName, metadata, true)
                             .get();
 
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(RecordingMetadataManager.NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recordingName",
-                                    recordingName,
-                                    "target",
-                                    targetId,
-                                    "metadata",
-                                    updatedMetadata))
-                    .build()
-                    .send();
             return new IntermediateResponse<Metadata>().body(updatedMetadata);
         } catch (RecordingNotFoundException e) {
             throw new ApiException(404, e);

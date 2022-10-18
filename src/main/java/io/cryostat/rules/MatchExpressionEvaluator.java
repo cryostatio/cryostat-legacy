@@ -39,40 +39,110 @@ package io.cryostat.rules;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletionException;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class MatchExpressionEvaluator {
 
     private final ScriptEngine scriptEngine;
+    private final LoadingCache<Pair<String, ServiceRef>, Boolean> cache;
+    private final Logger logger;
 
-    MatchExpressionEvaluator(ScriptEngine scriptEngine) {
+    MatchExpressionEvaluator(
+            ScriptEngine scriptEngine,
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Logger logger) {
         this.scriptEngine = scriptEngine;
+        this.logger = logger;
+        this.cache =
+                Caffeine.newBuilder()
+                        .maximumSize(1024) // should this be configurable?
+                        .build(k -> compute(k.getKey(), k.getValue()));
+
+        credentialsManager.addListener(
+                e -> {
+                    switch (e.getEventType()) {
+                        case REMOVED:
+                            invalidate(e.getPayload());
+                            break;
+                        default:
+                            // ignore
+                            break;
+                    }
+                });
+        ruleRegistry.addListener(
+                e -> {
+                    switch (e.getEventType()) {
+                        case REMOVED:
+                            invalidate(e.getPayload().getMatchExpression());
+                            break;
+                        default:
+                            // ignore
+                            break;
+                    }
+                });
+    }
+
+    private boolean compute(String matchExpression, ServiceRef serviceRef) throws ScriptException {
+        Object r = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
+        if (r == null) {
+            throw new ScriptException(
+                    String.format(
+                            "Null match expression evaluation result: %s (%s)",
+                            matchExpression, serviceRef));
+        } else if (r instanceof Boolean) {
+            return (Boolean) r;
+        } else {
+            throw new ScriptException(
+                    String.format(
+                            "Non-boolean match expression evaluation result: %s (%s) -> %s",
+                            matchExpression, serviceRef, r));
+        }
+    }
+
+    private void invalidate(String matchExpression) {
+        var it = cache.asMap().keySet().iterator();
+        while (it.hasNext()) {
+            Pair<String, ServiceRef> entry = it.next();
+            if (Objects.equals(matchExpression, entry.getKey())) {
+                cache.invalidate(entry);
+            }
+        }
     }
 
     public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
+        Pair<String, ServiceRef> key = Pair.of(matchExpression, serviceRef);
         MatchExpressionAppliesEvent evt = new MatchExpressionAppliesEvent(matchExpression);
         try {
             evt.begin();
-            Object result = this.scriptEngine.eval(matchExpression, createBindings(serviceRef));
-            if (result instanceof Boolean) {
-                return (Boolean) result;
-            } else {
-                throw new ScriptException(
-                        String.format(
-                                "Non-boolean match expression evaluation result: %s",
-                                matchExpression, result));
+            Boolean result = cache.get(key);
+            if (result == null) {
+                throw new IllegalStateException();
             }
+            return result;
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ScriptException) {
+                throw (ScriptException) e.getCause();
+            }
+            throw e;
         } finally {
             evt.end();
             if (evt.shouldCommit()) {

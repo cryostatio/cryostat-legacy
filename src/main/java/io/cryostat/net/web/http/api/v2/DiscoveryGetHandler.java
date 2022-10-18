@@ -38,15 +38,16 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 import com.google.gson.Gson;
@@ -54,12 +55,12 @@ import io.vertx.core.http.HttpMethod;
 
 class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage storage;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
         super(auth, gson);
-        this.platformClient = platformClient;
+        this.storage = storage;
     }
 
     @Override
@@ -88,8 +89,8 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -99,6 +100,6 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
 
     @Override
     public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<EnvironmentNode>().body(platformClient.getDiscoveryTree());
+        return new IntermediateResponse<EnvironmentNode>().body(storage.getDiscoveryTree());
     }
 }

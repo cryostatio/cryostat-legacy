@@ -1,0 +1,25 @@
+query {
+    targetNodes {
+        name
+        nodeType
+        labels
+        target {
+            alias
+            serviceUri
+        }                
+        recordings {            
+            active {
+                data {
+                    name
+                    state
+                    metadata {
+                        labels
+                    }
+                }
+                aggregate {
+                    count
+                }
+            }
+        }
+    }
+}

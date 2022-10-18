@@ -43,6 +43,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -70,7 +71,7 @@ import graphql.schema.DataFetchingEnvironment;
 
 class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
-    private final TargetConnectionManager tcm;
+    private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper archiveHelper;
     private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
@@ -80,14 +81,14 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Inject
     RecordingsFetcher(
             AuthManager auth,
-            TargetConnectionManager tcm,
+            TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper archiveHelper,
             CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
         super(auth);
-        this.tcm = tcm;
+        this.targetConnectionManager = targetConnectionManager;
         this.archiveHelper = archiveHelper;
         this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
@@ -126,7 +127,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
             // FIXME populating these two struct members are each async tasks. we should do them in
             // parallel
             recordings.active =
-                    tcm.executeConnectedTask(
+                    targetConnectionManager.executeConnectedTask(
                             cd,
                             conn -> {
                                 return conn.getService().getAvailableRecordings().stream()
@@ -145,7 +146,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                                                 conn, r.getName());
                                                         Metadata metadata =
                                                                 metadataManager.getMetadata(
-                                                                        targetId, r.getName());
+                                                                        cd, r.getName());
                                                         return new GraphRecordingDescriptor(
                                                                 target,
                                                                 r,
@@ -161,12 +162,17 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                                                 })
                                         .filter(Objects::nonNull)
                                         .collect(Collectors.toList());
-                            },
-                            false);
+                            });
         }
 
         if (requestedFields.contains("archived")) {
-            recordings.archived = archiveHelper.getRecordings(targetId).get();
+            try {
+                recordings.archived = archiveHelper.getRecordings(targetId).get();
+            } catch (ExecutionException e) {
+                recordings.archived = List.of();
+                logger.warn("Couldn't get archived recordings for {}", targetId);
+                logger.warn(e);
+            }
         }
 
         return recordings;

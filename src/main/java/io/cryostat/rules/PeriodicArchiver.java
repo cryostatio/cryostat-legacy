@@ -37,26 +37,22 @@
  */
 package io.cryostat.rules;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.security.sasl.SaslException;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -71,7 +67,6 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
-    private final Base32 base32;
 
     private final Queue<String> previousRecordings;
 
@@ -81,15 +76,13 @@ class PeriodicArchiver implements Runnable {
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
-        this.base32 = base32;
 
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
@@ -105,20 +98,18 @@ class PeriodicArchiver implements Runnable {
             if (previousRecordings.isEmpty()) {
                 String serviceUri = serviceRef.getServiceUri().toString();
                 List<ArchivedRecordingInfo> archivedRecordings =
-                        recordingArchiveHelper.getRecordings().get();
+                        recordingArchiveHelper
+                                .getRecordings(serviceRef.getServiceUri().toString())
+                                .get();
 
                 for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
-                    String decodedServiceUri =
-                            new String(
-                                    base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
-                                    StandardCharsets.UTF_8);
                     String fileName = archivedRecordingInfo.getName();
                     Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
                     if (m.matches()) {
                         String recordingName = m.group(2);
 
-                        if (decodedServiceUri.equals(serviceUri)
-                                && recordingName.equals(rule.getRecordingName())) {
+                        if (Objects.equals(serviceUri, archivedRecordingInfo.getServiceUri())
+                                && Objects.equals(recordingName, rule.getRecordingName())) {
                             previousRecordings.add(fileName);
                         }
                     }
@@ -133,13 +124,9 @@ class PeriodicArchiver implements Runnable {
         } catch (Exception e) {
             logger.error(e);
 
-            if (ExceptionUtils.hasCause(e, ExecutionException.class)
-                    || ExceptionUtils.hasCause(e, InterruptedException.class)
-                    || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
-                    || ExceptionUtils.hasCause(e, SecurityException.class)
-                    || ExceptionUtils.hasCause(e, SaslException.class)
-                    || ExceptionUtils.hasCause(e, ArchivePathException.class)) {
-
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
+                    || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)
+                    || AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
                 failureNotifier.apply(Pair.of(serviceRef, rule));
             }
         }
@@ -156,7 +143,9 @@ class PeriodicArchiver implements Runnable {
     }
 
     private void pruneArchive(String recordingName) throws Exception {
-        recordingArchiveHelper.deleteRecording(recordingName).get();
+        recordingArchiveHelper
+                .deleteRecording(serviceRef.getServiceUri().toString(), recordingName)
+                .get();
         previousRecordings.remove(recordingName);
     }
 

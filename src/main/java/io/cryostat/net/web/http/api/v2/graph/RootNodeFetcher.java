@@ -42,21 +42,21 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
 import graphql.schema.DataFetchingEnvironment;
 
 class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
 
-    private final PlatformClient client;
+    private final DiscoveryStorage storage;
 
     @Inject
-    RootNodeFetcher(AuthManager auth, PlatformClient client) {
+    RootNodeFetcher(AuthManager auth, DiscoveryStorage storage) {
         super(auth);
-        this.client = client;
+        this.storage = storage;
     }
 
     @Override
@@ -66,6 +66,6 @@ class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
 
     @Override
     public EnvironmentNode getAuthenticated(DataFetchingEnvironment environment) throws Exception {
-        return client.getDiscoveryTree();
+        return storage.getDiscoveryTree();
     }
 }

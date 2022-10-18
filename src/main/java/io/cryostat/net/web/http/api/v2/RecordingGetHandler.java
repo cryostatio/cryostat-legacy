@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -61,7 +62,10 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingGetHandler extends AbstractJwtConsumingHandler {
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = true),
+        alternateLocation = "/api/beta/recordings/:sourceTarget/:recordingName")
+class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
 

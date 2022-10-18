@@ -53,6 +53,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -64,7 +65,9 @@ import io.cryostat.util.URIUtil;
 public class DefaultPlatformClient extends AbstractPlatformClient
         implements Consumer<JvmDiscoveryEvent> {
 
-    public static final JDPNodeType NODE_TYPE = JDPNodeType.JVM;
+    private static final String REALM = "JDP";
+
+    public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
@@ -78,6 +81,13 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     public void start() throws IOException {
         discoveryClient.addListener(this);
         discoveryClient.start();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        discoveryClient.removeListener(this);
+        discoveryClient.stop();
     }
 
     @Override
@@ -112,9 +122,14 @@ public class DefaultPlatformClient extends AbstractPlatformClient
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc.getMainClass(),
-                        AnnotationKey.HOST, rmiTarget.getHost(),
-                        AnnotationKey.PORT, Integer.toString(rmiTarget.getPort())));
+                        AnnotationKey.REALM,
+                        REALM,
+                        AnnotationKey.JAVA_MAIN,
+                        desc.getMainClass(),
+                        AnnotationKey.HOST,
+                        rmiTarget.getHost(),
+                        AnnotationKey.PORT,
+                        Integer.toString(rmiTarget.getPort())));
         return serviceRef;
     }
 
@@ -124,21 +139,6 @@ public class DefaultPlatformClient extends AbstractPlatformClient
                 listDiscoverableServices().stream()
                         .map(sr -> new TargetNode(NODE_TYPE, sr))
                         .toList();
-        return new EnvironmentNode("JDP", BaseNodeType.REALM, Collections.emptyMap(), targets);
-    }
-
-    public enum JDPNodeType implements NodeType {
-        JVM,
-        ;
-
-        @Override
-        public String getKind() {
-            return "JVM";
-        }
-
-        @Override
-        public String toString() {
-            return getKind();
-        }
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), targets);
     }
 }

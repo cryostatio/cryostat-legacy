@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.BaseNodeType;
@@ -74,6 +75,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
+    private static final String REALM = "KubernetesApi";
     private final KubernetesClient k8sClient;
     private SharedIndexInformer<Endpoints> endpointsInformer;
     private Integer memoHash;
@@ -207,10 +209,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         EnvironmentNode nsNode = new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
         EnvironmentNode realmNode =
                 new EnvironmentNode(
-                        "KubernetesApi",
-                        BaseNodeType.REALM,
-                        Collections.emptyMap(),
-                        Set.of(nsNode));
+                        REALM, BaseNodeType.REALM, Collections.emptyMap(), Set.of(nsNode));
         try {
             store.stream()
                     .flatMap(endpoints -> getTargetTuples(endpoints).stream())
@@ -387,6 +386,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 }
                 serviceRef.setCryostatAnnotations(
                         Map.of(
+                                AnnotationKey.REALM,
+                                REALM,
                                 AnnotationKey.HOST,
                                 addr.getIp(),
                                 AnnotationKey.PORT,

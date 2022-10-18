@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -112,8 +113,14 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(
+                HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM, HttpMimeType.JSON);
     }
 
     @Override
@@ -129,15 +136,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
-        if (rawMime == null) {
-            throw new ApiException(415, "Bad content type: null");
-        }
-        String firstMime = rawMime.split(";")[0];
-        HttpMimeType mime = HttpMimeType.fromString(firstMime);
-        if (mime == null) {
-            throw new ApiException(415, "Bad content type: " + rawMime);
-        }
+        HttpMimeType mime =
+                HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
         switch (mime) {
             case MULTIPART_FORM:
             case URLENCODED_FORM:
@@ -160,7 +160,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 }
                 break;
             default:
-                throw new ApiException(415, "Bad content type: " + rawMime);
+                throw new ApiException(415, mime.mime());
         }
 
         try {

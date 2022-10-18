@@ -46,8 +46,11 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,11 +75,14 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -97,6 +103,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final NotificationFactory notificationFactory;
     private final Provider<WebServer> webServer;
+    private final RecordingMetadataManager recordingMetadataManager;
     private final Logger logger;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
@@ -111,6 +118,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             Gson gson,
             NotificationFactory notificationFactory,
             Provider<WebServer> webServer,
+            RecordingMetadataManager recordingMetadataManager,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.vertx = httpServer.getVertx();
@@ -119,6 +127,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.gson = gson;
         this.notificationFactory = notificationFactory;
         this.webServer = webServer;
+        this.recordingMetadataManager = recordingMetadataManager;
         this.logger = logger;
     }
 
@@ -158,7 +167,18 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
+
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpException(503, "Recording saving not available");
         }
@@ -193,6 +213,21 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             throw new HttpException(400, "Incorrect recording file name pattern");
         }
 
+        MultiMap attrs = ctx.request().formAttributes();
+        Map<String, String> labels = new HashMap<>();
+        Boolean hasLabels = ((attrs.contains("labels") ? true : false));
+
+        try {
+            if (hasLabels) {
+                labels = recordingMetadataManager.parseRecordingLabels(attrs.get("labels"));
+            }
+        } catch (IllegalArgumentException e) {
+            deleteTempFileUpload(upload);
+            throw new HttpException(400, "Invalid labels");
+        }
+        Metadata metadata = new Metadata(labels);
+
+        long size = upload.size();
         String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
@@ -219,13 +254,23 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     }
 
                                     String fsName = res2.result();
-                                    ctx.response()
-                                            .putHeader(
-                                                    HttpHeaders.CONTENT_TYPE,
-                                                    HttpMimeType.JSON.mime())
-                                            .end(gson.toJson(Map.of("name", fsName)));
+                                    try {
+                                        if (hasLabels) {
+                                            recordingMetadataManager
+                                                    .setRecordingMetadata(fsName, metadata)
+                                                    .get();
+                                        }
+
+                                    } catch (InterruptedException
+                                            | ExecutionException
+                                            | IOException e) {
+                                        logger.error(e);
+                                        ctx.fail(new HttpException(500, e));
+                                        return;
+                                    }
 
                                     try {
+
                                         notificationFactory
                                                 .createBuilder()
                                                 .metaCategory(NOTIFICATION_CATEGORY)
@@ -234,25 +279,43 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                         Map.of(
                                                                 "recording",
                                                                 new ArchivedRecordingInfo(
-                                                                        "archive",
+                                                                        subdirectoryName,
                                                                         fsName,
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedDownloadURL(
+                                                                                        subdirectoryName,
                                                                                         fsName),
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedReportURL(
-                                                                                        fsName)),
+                                                                                        subdirectoryName,
+                                                                                        fsName),
+                                                                        metadata,
+                                                                        size),
                                                                 "target",
-                                                                ""))
+                                                                subdirectoryName))
                                                 .build()
                                                 .send();
-                                    } catch (UnknownHostException
-                                            | SocketException
-                                            | URISyntaxException e) {
+                                    } catch (URISyntaxException
+                                            | UnknownHostException
+                                            | SocketException e) {
                                         logger.error(e);
+                                        ctx.fail(new HttpException(500, e));
+                                        return;
                                     }
+
+                                    ctx.response()
+                                            .putHeader(
+                                                    HttpHeaders.CONTENT_TYPE,
+                                                    HttpMimeType.JSON.mime())
+                                            .end(
+                                                    gson.toJson(
+                                                            Map.of(
+                                                                    "name",
+                                                                    fsName,
+                                                                    "metadata",
+                                                                    metadata)));
                                 }));
     }
 

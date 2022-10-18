@@ -64,6 +64,7 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
+import itest.util.http.StoredCredential;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
@@ -288,7 +289,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     void testWorkflow() throws Exception {
         List<URI> targetIds = startTargets();
 
@@ -360,7 +361,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "Created"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "Created"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(
@@ -400,6 +401,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 storedCredential.matchExpression, Matchers.equalTo(MATCH_EXPRESSION));
         MatcherAssert.assertThat(storedCredential.id, Matchers.greaterThanOrEqualTo(0));
+        MatcherAssert.assertThat(storedCredential.numMatchingTargets, Matchers.equalTo(2));
 
         // Check that resolving the credential includes our targets
         CompletableFuture<JsonObject> resolveResponse = new CompletableFuture<>();
@@ -443,6 +445,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main");
         expectedTarget1.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,
@@ -457,6 +461,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                         "es.andrewazor.demo.Main");
         expectedTarget2.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,
@@ -489,7 +495,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     void testDeletion() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
@@ -526,7 +532,7 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(
@@ -538,11 +544,11 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         List<Podman.ImageSpec> specs = new ArrayList<>();
         specs.add(
                 new Podman.ImageSpec(
-                        "quay.io/andrewazores/vertx-fib-demo:0.7.0",
+                        FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9094), "USE_AUTH", "true")));
         specs.add(
                 new Podman.ImageSpec(
-                        "quay.io/andrewazores/vertx-fib-demo:0.7.0",
+                        FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9095), "USE_AUTH", "true")));
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
@@ -565,11 +571,6 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                                             port));
                         })
                 .collect(Collectors.toList());
-    }
-
-    private static class StoredCredential {
-        int id;
-        String matchExpression;
     }
 
     private static class MatchedCredential {

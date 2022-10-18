@@ -39,15 +39,16 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
@@ -71,13 +72,13 @@ class DiscoveryGetHandlerTest {
 
     AbstractV2RequestHandler<EnvironmentNode> handler;
     @Mock AuthManager auth;
-    @Mock PlatformClient platformClient;
+    @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new DiscoveryGetHandler(auth, platformClient, gson);
+        this.handler = new DiscoveryGetHandler(auth, storage, gson);
     }
 
     @Nested
@@ -93,7 +94,7 @@ class DiscoveryGetHandlerTest {
         }
 
         @Test
-        void shouldBePOSTHandler() {
+        void shouldBeGETHandler() {
             MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
         }
 
@@ -110,8 +111,9 @@ class DiscoveryGetHandlerTest {
         }
 
         @Test
-        void shouldHavePlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
+        void shouldProducePlaintext() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -159,7 +161,7 @@ class DiscoveryGetHandlerTest {
 
         @Test
         void shouldRespondWithEnvironmentNode() throws Exception {
-            Mockito.when(platformClient.getDiscoveryTree()).thenReturn(expected);
+            Mockito.when(storage.getDiscoveryTree()).thenReturn(expected);
 
             IntermediateResponse<EnvironmentNode> response = handler.handle(params);
 
@@ -168,8 +170,8 @@ class DiscoveryGetHandlerTest {
             EnvironmentNode actual = response.getBody();
 
             MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
-            Mockito.verify(platformClient).getDiscoveryTree();
-            Mockito.verifyNoMoreInteractions(platformClient);
+            Mockito.verify(storage).getDiscoveryTree();
+            Mockito.verifyNoMoreInteractions(storage);
         }
     }
 }

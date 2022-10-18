@@ -76,7 +76,7 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
     static void setup() throws Exception {
         Podman.ImageSpec spec =
                 new Podman.ImageSpec(
-                        "quay.io/andrewazores/vertx-fib-demo:0.7.0",
+                        FIB_DEMO_IMAGESPEC,
                         Map.of(
                                 "JMX_PORT",
                                 String.valueOf(TARGET_JMX_PORT),
@@ -110,6 +110,6 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(
-                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(500));
+                ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(504));
     }
 }

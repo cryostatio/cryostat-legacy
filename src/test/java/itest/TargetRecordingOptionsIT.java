@@ -48,6 +48,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
@@ -67,6 +68,7 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
     static final String OPTIONS_LIST_REQ_URL =
             String.format("/api/v2/targets/%s/recordingOptionsList", SELF_REFERENCE_TARGET_ID);
     static final String RECORDING_NAME = "test_recording";
+    static final String ARCHIVED_REQ_URL = "/api/v1/recordings";
 
     @AfterAll
     static void resetDefaultRecordingOptions() throws Exception {
@@ -304,5 +306,97 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                 new JsonObject(Map.of("maxAge", 60, "toDisk", true, "maxSize", 1000));
 
         MatcherAssert.assertThat(getResponse.get(), Matchers.equalTo(expectedGetResponse));
+    }
+
+    @Test
+    @Order(6)
+    public void testPostRecordingSetsArchiveOnStop() throws Exception {
+        String recordingName = "ArchiveOnStop";
+        String archivedgName = "";
+        try {
+            CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", recordingName);
+            form.add("duration", "5");
+            form.add("events", "template=ALL");
+            form.add("archiveOnStop", "true");
+
+            webClient
+                    .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, postResponse)) {
+                                    postResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            JsonObject response1 = postResponse.get();
+            MatcherAssert.assertThat(response1.getString("name"), Matchers.equalTo(recordingName));
+
+            Thread.sleep(8_000L);
+            // Assert that the recording was archived
+            CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+            webClient
+                    .get(ARCHIVED_REQ_URL)
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture1)) {
+                                    listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+
+            JsonObject response2 = listRespFuture1.get().getJsonObject(0);
+            MatcherAssert.assertThat(
+                    response2.getString("name").contains(recordingName), Matchers.is(true));
+            archivedgName = response2.getString("name");
+
+        } finally {
+            // Delete the recording
+            CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, recordingName))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRespFuture)) {
+                                    deleteRespFuture.complete(null);
+                                }
+                            });
+
+            try {
+                deleteRespFuture.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", recordingName), e);
+            }
+
+            // Delete the archive
+            CompletableFuture<Void> deleteArchiveRespFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/beta/recordings/%s/%s",
+                                    SELF_REFERENCE_TARGET_ID, archivedgName))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteArchiveRespFuture)) {
+                                    deleteArchiveRespFuture.complete(null);
+                                }
+                            });
+
+            try {
+                deleteArchiveRespFuture.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format(
+                                "Failed to delete target archive recording %s", archivedgName),
+                        e);
+            }
+        }
     }
 }

@@ -56,11 +56,12 @@ import io.cryostat.util.events.AbstractEventEmitter;
 import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
-    private final MatchExpressionEvaluator matchExpressionEvaluator;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
@@ -68,7 +69,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     RuleRegistry(
             Path rulesDir,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -106,14 +107,8 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                                 "Rule with name \"%s\" already exists; refusing to overwrite",
                                 rule.getName()));
             }
-            Path destination = rulesDir.resolve(rule.getName() + ".json");
-            this.fs.writeString(
-                    destination,
-                    gson.toJson(rule),
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            loadRules();
+            rules.add(rule);
+            persistRule(rule);
         }
         emit(RuleEvent.ADDED, rule);
         return rule;
@@ -129,7 +124,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
         try {
-            return matchExpressionEvaluator.applies(rule.getMatchExpression(), serviceRef);
+            return matchExpressionEvaluator.get().applies(rule.getMatchExpression(), serviceRef);
         } catch (ScriptException se) {
             logger.error(se);
             try {
@@ -158,19 +153,20 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public void deleteRule(String name) throws IOException {
         for (String child : this.fs.listDirectoryChildren(rulesDir)) {
-            if (!Objects.equals(child, name + ".json")) {
-                continue;
+            if (Objects.equals(child, name + ".json")) {
+                fs.deleteIfExists(rulesDir.resolve(child));
+                break;
             }
-            fs.deleteIfExists(rulesDir.resolve(child));
         }
-        this.rules.stream()
-                .filter(r -> Objects.equals(r.getName(), name))
-                .findFirst()
-                .ifPresent(
-                        rule -> {
-                            emit(RuleEvent.REMOVED, rule);
-                            this.rules.remove(rule);
-                        });
+        var it = rules.iterator();
+        while (it.hasNext()) {
+            Rule rule = it.next();
+            if (Objects.equals(rule.getName(), name)) {
+                emit(RuleEvent.REMOVED, rule);
+                it.remove();
+                break;
+            }
+        }
     }
 
     public void deleteRules(ServiceRef serviceRef) throws IOException {
@@ -179,9 +175,29 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         }
     }
 
+    public void enableRule(Rule rule, boolean enabled) throws IOException {
+        String name = rule.getName();
+        if (enabled != rule.isEnabled()) {
+            getRule(name).get().setEnabled(enabled);
+            persistRule(rule);
+            emit(RuleEvent.UPDATED, rule);
+        }
+    }
+
+    private void persistRule(Rule rule) throws IOException {
+        Path destination = rulesDir.resolve(rule.getName() + ".json");
+        this.fs.writeString(
+                destination,
+                gson.toJson(rule),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
     enum RuleEvent implements EventType {
         ADDED,
         REMOVED,
+        UPDATED,
         ;
     }
 }

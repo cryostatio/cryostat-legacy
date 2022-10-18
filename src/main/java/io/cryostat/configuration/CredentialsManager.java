@@ -37,12 +37,8 @@
  */
 package io.cryostat.configuration;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.script.ScriptException;
@@ -58,72 +55,105 @@ import javax.script.ScriptException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.MatchExpressionValidator;
+import io.cryostat.util.events.AbstractEventEmitter;
+import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.JsonObject;
+import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 
-public class CredentialsManager {
+public class CredentialsManager
+        extends AbstractEventEmitter<CredentialsManager.CredentialsEvent, String> {
 
     private final Path credentialsDir;
     private final MatchExpressionValidator matchExpressionValidator;
-    private final MatchExpressionEvaluator matchExpressionEvaluator;
-    private final FileSystem fs;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final PlatformClient platformClient;
+    private final StoredCredentialsDao dao;
+    private final FileSystem fs;
     private final Gson gson;
     private final Logger logger;
-
-    private int nextId = 0;
 
     CredentialsManager(
             Path credentialsDir,
             MatchExpressionValidator matchExpressionValidator,
-            MatchExpressionEvaluator matchExpressionEvaluator,
-            FileSystem fs,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             PlatformClient platformClient,
-            NotificationFactory notificationFactory,
+            StoredCredentialsDao dao,
+            FileSystem fs,
             Gson gson,
             Logger logger) {
         this.credentialsDir = credentialsDir;
         this.matchExpressionValidator = matchExpressionValidator;
         this.matchExpressionEvaluator = matchExpressionEvaluator;
-        this.fs = fs;
         this.platformClient = platformClient;
+        this.dao = dao;
+        this.fs = fs;
         this.gson = gson;
         this.logger = logger;
     }
 
+    // TODO remove after 2.2 release
     public void migrate() throws Exception {
+        if (!fs.exists(credentialsDir)) {
+            return;
+        }
         for (String file : this.fs.listDirectoryChildren(credentialsDir)) {
-            BufferedReader reader;
+            String fileContent;
             try {
                 Path path = credentialsDir.resolve(file);
-                reader = fs.readFile(path);
-                TargetSpecificStoredCredentials targetSpecificCredential =
-                        gson.fromJson(reader, TargetSpecificStoredCredentials.class);
+                fileContent = fs.readString(path);
+                JsonObject json = gson.fromJson(fileContent, JsonObject.class);
 
-                String targetId = targetSpecificCredential.getTargetId();
-                if (StringUtils.isNotBlank(targetId)) {
-                    addCredentials(
-                            targetIdToMatchExpression(targetSpecificCredential.getTargetId()),
-                            targetSpecificCredential.getCredentials());
+                JsonObject rawCredentials = json.get("credentials").getAsJsonObject();
+                if (rawCredentials == null) {
                     fs.deleteIfExists(path);
-                    logger.info("Migrated {}", path);
+                    continue;
                 }
-            } catch (IOException e) {
+                String username = rawCredentials.get("username").getAsString();
+                String password = rawCredentials.get("password").getAsString();
+                if (StringUtils.isAnyBlank(username, password)) {
+                    fs.deleteIfExists(path);
+                    continue;
+                }
+                Credentials credentials = new Credentials(username, password);
+
+                if (json.has("targetId")) {
+                    // migrate old target-specific credentials to the matchExpression format in the
+                    // database...
+                    String targetId = json.get("targetId").getAsString();
+                    if (StringUtils.isNotBlank(targetId)) {
+                        addCredentials(targetIdToMatchExpression(targetId), credentials);
+                        fs.deleteIfExists(path);
+                        logger.info("Migrated {}", path);
+                        continue;
+                    }
+                } else if (json.has("matchExpression")) {
+                    // ... and migrate matchExpression-formatted files into the database
+                    String matchExpression = json.get("matchExpression").getAsString();
+                    if (StringUtils.isNotBlank(matchExpression)) {
+                        addCredentials(matchExpression, credentials);
+                        fs.deleteIfExists(path);
+                        logger.info("Migrated {}", path);
+                    }
+                }
+            } catch (IOException | IllegalStateException e) {
                 logger.warn(e);
                 continue;
             }
         }
+        if (fs.isDirectory(credentialsDir) && fs.listDirectoryChildren(credentialsDir).isEmpty()) {
+            fs.deleteIfExists(credentialsDir);
+        }
     }
 
+    @Deprecated
     public static String targetIdToMatchExpression(String targetId) {
         if (StringUtils.isBlank(targetId)) {
             return null;
@@ -131,69 +161,28 @@ public class CredentialsManager {
         return String.format("target.connectUrl == \"%s\"", targetId);
     }
 
-    public void load() throws IOException {
-        this.nextId =
-                this.fs.listDirectoryChildren(credentialsDir).stream()
-                        .peek(n -> logger.trace("Credentials file: {}", n))
-                        .map(credentialsDir::resolve)
-                        .map(
-                                path -> {
-                                    try {
-                                        String filename = path.getFileName().toString();
-                                        return Integer.parseInt(filename);
-                                    } catch (NumberFormatException nfe) {
-                                        logger.error(nfe);
-                                        try {
-                                            fs.deleteIfExists(path);
-                                        } catch (IOException ioe) {
-                                            logger.error(ioe);
-                                        }
-                                        return 0;
-                                    }
-                                })
-                        .reduce(Math::max)
-                        .orElse(0);
-    }
-
     public int addCredentials(String matchExpression, Credentials credentials)
-            throws IOException, MatchExpressionValidationException {
+            throws MatchExpressionValidationException {
         matchExpressionValidator.validate(matchExpression);
-        Path destination = getPersistedPath(nextId);
-        fs.writeString(
-                destination,
-                gson.toJson(new StoredCredentials(matchExpression, credentials)),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-        fs.setPosixFilePermissions(
-                destination,
-                Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        return nextId++;
+        StoredCredentials saved = dao.save(new StoredCredentials(matchExpression, credentials));
+        emit(CredentialsEvent.ADDED, matchExpression);
+        return saved.getId();
     }
 
-    public int removeCredentials(String matchExpression)
-            throws IOException, MatchExpressionValidationException {
+    @Deprecated
+    public int removeCredentials(String matchExpression) throws MatchExpressionValidationException {
         matchExpressionValidator.validate(matchExpression);
-        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
-            Path path = credentialsDir.resolve(pathString);
-            try (BufferedReader br = fs.readFile(path)) {
-                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-                if (Objects.equals(matchExpression, sc.getMatchExpression())) {
-                    Path filenamePath = path.getFileName();
-                    if (filenamePath == null) {
-                        throw new IllegalStateException(path.toString());
-                    }
-                    String filename = filenamePath.toString();
-                    fs.deleteIfExists(path);
-                    return Integer.parseInt(filename);
-                }
+        for (StoredCredentials sc : dao.getAll()) {
+            if (Objects.equals(matchExpression, sc.getMatchExpression())) {
+                int id = sc.getId();
+                delete(id);
+                return id;
             }
         }
-        throw new FileNotFoundException();
+        return -1;
     }
 
-    public Credentials getCredentialsByTargetId(String targetId)
-            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+    public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
                 return getCredentials(service);
@@ -202,22 +191,16 @@ public class CredentialsManager {
         return null;
     }
 
-    public Credentials getCredentials(ServiceRef serviceRef)
-            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
-        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
-            Path path = credentialsDir.resolve(pathString);
-            try (BufferedReader br = fs.readFile(path)) {
-                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-                if (matchExpressionEvaluator.applies(sc.getMatchExpression(), serviceRef)) {
-                    return sc.getCredentials();
-                }
+    public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
+        for (StoredCredentials sc : dao.getAll()) {
+            if (matchExpressionEvaluator.get().applies(sc.getMatchExpression(), serviceRef)) {
+                return sc.getCredentials();
             }
         }
         return null;
     }
 
-    public Collection<ServiceRef> getServiceRefsWithCredentials()
-            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
+    public Collection<ServiceRef> getServiceRefsWithCredentials() throws ScriptException {
         List<ServiceRef> result = new ArrayList<>();
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             Credentials credentials = getCredentials(service);
@@ -228,23 +211,19 @@ public class CredentialsManager {
         return result;
     }
 
-    public String get(int id) throws IOException {
-        Path path = credentialsDir.resolve(String.valueOf(id));
-        if (!fs.isRegularFile(path)) {
-            throw new FileNotFoundException();
-        }
-        try (BufferedReader br = fs.readFile(path)) {
-            StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-            return sc.getMatchExpression();
-        }
+    public Optional<String> get(int id) {
+        return dao.get(id).map(StoredCredentials::getMatchExpression);
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(int id) throws IOException {
-        String matchExpression = get(id);
+    public Set<ServiceRef> resolveMatchingTargets(int id) {
+        Optional<String> matchExpression = get(id);
+        if (matchExpression.isEmpty()) {
+            return Set.of();
+        }
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
-                if (matchExpressionEvaluator.applies(matchExpression, target)) {
+                if (matchExpressionEvaluator.get().applies(matchExpression.get(), target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
@@ -255,35 +234,34 @@ public class CredentialsManager {
         return matchedTargets;
     }
 
-    public void delete(int id) throws IOException {
-        Path path = credentialsDir.resolve(String.valueOf(id));
-        if (!fs.isRegularFile(path)) {
-            throw new FileNotFoundException();
+    public Set<ServiceRef> resolveMatchingTargets(String matchExpression) {
+        Set<ServiceRef> matchedTargets = new HashSet<>();
+        for (ServiceRef target : platformClient.listDiscoverableServices()) {
+            try {
+                if (matchExpressionEvaluator.get().applies(matchExpression, target)) {
+                    matchedTargets.add(target);
+                }
+            } catch (ScriptException e) {
+                logger.error(e);
+                break;
+            }
         }
-        fs.deleteIfExists(path);
+        return matchedTargets;
     }
 
-    public Map<Integer, String> getAll()
-            throws JsonSyntaxException, JsonIOException, NumberFormatException, IOException {
+    public boolean delete(int id) {
+        dao.get(id)
+                .map(StoredCredentials::getMatchExpression)
+                .ifPresent(c -> emit(CredentialsEvent.REMOVED, c));
+        return dao.delete(id);
+    }
+
+    public Map<Integer, String> getAll() {
         Map<Integer, String> result = new HashMap<>();
-
-        for (String pathString : this.fs.listDirectoryChildren(credentialsDir)) {
-            Path path = credentialsDir.resolve(pathString);
-            Path filenamePath = path.getFileName();
-            if (filenamePath == null) {
-                continue;
-            }
-            try (BufferedReader br = fs.readFile(path)) {
-                StoredCredentials sc = gson.fromJson(br, StoredCredentials.class);
-                result.put(Integer.valueOf(filenamePath.toString()), sc.getMatchExpression());
-            }
+        for (StoredCredentials sc : dao.getAll()) {
+            result.put(sc.getId(), sc.getMatchExpression());
         }
-
         return result;
-    }
-
-    private Path getPersistedPath(int id) {
-        return credentialsDir.resolve(String.valueOf(id));
     }
 
     public static class MatchedCredentials {
@@ -325,45 +303,6 @@ public class CredentialsManager {
         }
     }
 
-    static class StoredCredentials {
-        private final String matchExpression;
-        private final Credentials credentials;
-
-        StoredCredentials(String matchExpression, Credentials credentials) {
-            this.matchExpression = matchExpression;
-            this.credentials = credentials;
-        }
-
-        String getMatchExpression() {
-            return this.matchExpression;
-        }
-
-        Credentials getCredentials() {
-            return this.credentials;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(credentials, matchExpression);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            StoredCredentials other = (StoredCredentials) obj;
-            return Objects.equals(credentials, other.credentials)
-                    && Objects.equals(matchExpression, other.matchExpression);
-        }
-    }
-
     @Deprecated(since = "2.2", forRemoval = true)
     static class TargetSpecificStoredCredentials {
         private final String targetId;
@@ -402,5 +341,11 @@ public class CredentialsManager {
             return Objects.equals(credentials, other.credentials)
                     && Objects.equals(targetId, other.targetId);
         }
+    }
+
+    public enum CredentialsEvent implements EventType {
+        ADDED,
+        REMOVED,
+        ;
     }
 }

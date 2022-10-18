@@ -38,10 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,54 +47,44 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.Promise;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
+    public static final String REALM = "Custom Targets";
     public static final CustomTargetNodeType NODE_TYPE = CustomTargetNodeType.CUSTOM_TARGET;
 
-    static final String SAVEFILE_NAME = "custom_targets.json";
-
+    private final Lazy<DiscoveryStorage> storage;
     private final SortedSet<ServiceRef> targets;
-    private final Path saveFile;
-    private final FileSystem fs;
-    private final Gson gson;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Field is never mutated")
-    public CustomTargetPlatformClient(Path confDir, FileSystem fs, Gson gson) {
+    public CustomTargetPlatformClient(Lazy<DiscoveryStorage> storage) {
+        this.storage = storage;
         this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
-        this.saveFile = confDir.resolve(SAVEFILE_NAME);
-        this.fs = fs;
-        this.gson = gson;
     }
 
     @Override
-    public void start() throws IOException {
-        if (fs.isRegularFile(saveFile) && fs.isReadable(saveFile)) {
-            try (Reader reader = fs.readFile(saveFile)) {
-                this.targets.addAll(
-                        gson.fromJson(reader, new TypeToken<List<ServiceRef>>() {}.getType()));
-            }
-        }
+    public void load(Promise<EnvironmentNode> promise) {
+        storage.get()
+                .getBuiltInPluginByRealm(REALM)
+                .ifPresent(
+                        plugin -> targets.addAll(storage.get().listDiscoverableServices(plugin)));
+        super.load(promise);
     }
 
     public boolean addTarget(ServiceRef serviceRef) throws IOException {
         boolean v = targets.add(serviceRef);
         if (v) {
-            fs.writeString(
-                    saveFile,
-                    gson.toJson(targets),
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.CREATE);
             notifyAsyncTargetDiscovery(EventKind.FOUND, serviceRef);
         }
         return v;
@@ -106,11 +93,6 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     public boolean removeTarget(ServiceRef serviceRef) throws IOException {
         boolean v = targets.remove(serviceRef);
         if (v) {
-            fs.writeString(
-                    saveFile,
-                    gson.toJson(targets),
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.CREATE);
             notifyAsyncTargetDiscovery(EventKind.LOST, serviceRef);
         }
         return v;
@@ -139,8 +121,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     public EnvironmentNode getDiscoveryTree() {
         List<TargetNode> children =
                 targets.stream().map(sr -> new TargetNode(NODE_TYPE, sr)).toList();
-        return new EnvironmentNode(
-                "Custom Targets", BaseNodeType.REALM, Collections.emptyMap(), children);
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
     }
 
     public enum CustomTargetNodeType implements NodeType {

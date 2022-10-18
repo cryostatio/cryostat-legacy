@@ -78,8 +78,7 @@ class GraphQLIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            "quay.io/andrewazores/vertx-fib-demo:0.6.0",
-                            Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
@@ -188,6 +187,8 @@ class GraphQLIT extends ExternalTargetsTest {
         Annotations cryostatAnnotations = new Annotations();
         cryostatAnnotations.cryostat =
                 Map.of(
+                        "REALM",
+                        "JDP",
                         "JAVA_MAIN",
                         "io.cryostat.Cryostat",
                         "HOST",
@@ -215,6 +216,8 @@ class GraphQLIT extends ExternalTargetsTest {
             Annotations annotations = new Annotations();
             annotations.cryostat =
                     Map.of(
+                            "REALM",
+                            "JDP",
                             "JAVA_MAIN",
                             mainClass,
                             "HOST",
@@ -269,8 +272,8 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                     + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                    + " template: \"Profiling\", templateType: \"TARGET\"  }) { name state duration"
-                    + " }} }");
+                    + " template: \"Profiling\", templateType: \"TARGET\", metadata: { labels: {"
+                    + " newLabel: someValue } }  }) { name state duration }} }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -291,6 +294,15 @@ class GraphQLIT extends ExternalTargetsTest {
         recording.name = "graphql-itest";
         recording.duration = 30_000L;
         recording.state = "RUNNING";
+        recording.metadata =
+                RecordingMetadata.of(
+                        Map.of(
+                                "template.name",
+                                "Profiling",
+                                "template.type",
+                                "TARGET",
+                                "newLabel",
+                                "someValue"));
 
         StartRecording startRecording = new StartRecording();
         startRecording.doStartRecording = recording;
@@ -309,7 +321,7 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
-                        + " active { name doArchive { name } } } } }");
+                        + " active { data { name doArchive { name } } } } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -328,9 +340,9 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
 
-        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
 
         MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
 
@@ -343,14 +355,118 @@ class GraphQLIT extends ExternalTargetsTest {
 
     @Test
     @Order(5)
+    void testActiveRecordingMetadataMutation() throws Exception {
+        CompletableFuture<ActiveMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + "recordings { active {"
+                        + " data {"
+                        + " doPutMetadata(metadata: { labels: ["
+                        + " {key:\"template.name\",value:\"Profiling\"},"
+                        + " {key:\"template.type\",value:\"TARGET\"},"
+                        + " {key:\"newLabel\",value:\"newValue\"}] })"
+                        + " { metadata { labels } } } } } } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                ActiveMutationResponse.class));
+                            }
+                        });
+        ActiveMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        TargetNode node = actual.data.targetNodes.get(0);
+
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
+
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
+
+        MatcherAssert.assertThat(
+                activeRecording.metadata,
+                Matchers.equalTo(
+                        RecordingMetadata.of(
+                                Map.of(
+                                        "template.name",
+                                        "Profiling",
+                                        "template.type",
+                                        "TARGET",
+                                        "newLabel",
+                                        "newValue"))));
+    }
+
+    @Test
+    @Order(6)
+    void testArchivedRecordingMetadataMutation() throws Exception {
+        CompletableFuture<ArchiveMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + "recordings { archived {"
+                        + " data { name size "
+                        + " doPutMetadata(metadata: { labels: ["
+                        + " {key:\"template.name\",value:\"Profiling\"},"
+                        + " {key:\"template.type\",value:\"TARGET\"},"
+                        + " {key:\"newArchivedLabel\",value:\"newArchivedValue\"}] })"
+                        + " { metadata { labels } } } } } } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                ArchiveMutationResponse.class));
+                            }
+                        });
+        ArchiveMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
+
+        TargetNode node = actual.data.targetNodes.get(0);
+
+        MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
+
+        ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
+        MatcherAssert.assertThat(archivedRecording.size, Matchers.greaterThan(0L));
+
+        MatcherAssert.assertThat(
+                archivedRecording.metadata,
+                Matchers.equalTo(
+                        RecordingMetadata.of(
+                                Map.of(
+                                        "template.name",
+                                        "Profiling",
+                                        "template.type",
+                                        "TARGET",
+                                        "newArchivedLabel",
+                                        "newArchivedValue"))));
+    }
+
+    @Test
+    @Order(7)
     void testDeleteMutation() throws Exception {
         CompletableFuture<DeleteMutationResponse> resp = new CompletableFuture<>();
         JsonObject query = new JsonObject();
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { recordings {"
-                    + " active { name doDelete { name } } archived { data { name doDelete { name }"
-                    + " } aggregate { count } } } } }");
+                        + " active { data { name doDelete { name }"
+                        + " } aggregate { count } }"
+                        + " archived { data { name doDelete { name }"
+                        + " } aggregate { count size } }"
+                        + " } } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -369,11 +485,12 @@ class GraphQLIT extends ExternalTargetsTest {
 
         TargetNode node = actual.data.targetNodes.get(0);
 
-        MatcherAssert.assertThat(node.recordings.active, Matchers.hasSize(1));
+        MatcherAssert.assertThat(node.recordings.active.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.data, Matchers.hasSize(1));
         MatcherAssert.assertThat(node.recordings.archived.aggregate.count, Matchers.equalTo(1L));
+        MatcherAssert.assertThat(node.recordings.archived.aggregate.size, Matchers.greaterThan(0L));
 
-        ActiveRecording activeRecording = node.recordings.active.get(0);
+        ActiveRecording activeRecording = node.recordings.active.data.get(0);
         ArchivedRecording archivedRecording = node.recordings.archived.data.get(0);
 
         MatcherAssert.assertThat(activeRecording.name, Matchers.equalTo("graphql-itest"));
@@ -383,8 +500,6 @@ class GraphQLIT extends ExternalTargetsTest {
                 archivedRecording.name,
                 Matchers.matchesRegex(
                         "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
-        MatcherAssert.assertThat(
-                archivedRecording.doDelete.name, Matchers.equalTo(archivedRecording.name));
     }
 
     static class Target {
@@ -446,6 +561,7 @@ class GraphQLIT extends ExternalTargetsTest {
         String reportUrl;
         String downloadUrl;
         RecordingMetadata metadata;
+        long size;
 
         ArchivedRecording doDelete;
 
@@ -461,12 +577,14 @@ class GraphQLIT extends ExternalTargetsTest {
                     + name
                     + ", reportUrl="
                     + reportUrl
+                    + ", size="
+                    + size
                     + "]";
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl);
+            return Objects.hash(doDelete, downloadUrl, metadata, name, reportUrl, size);
         }
 
         @Override
@@ -485,36 +603,34 @@ class GraphQLIT extends ExternalTargetsTest {
                     && Objects.equals(downloadUrl, other.downloadUrl)
                     && Objects.equals(metadata, other.metadata)
                     && Objects.equals(name, other.name)
-                    && Objects.equals(reportUrl, other.reportUrl);
+                    && Objects.equals(reportUrl, other.reportUrl)
+                    && Objects.equals(size, other.size);
         }
     }
 
     static class AggregateInfo {
-        Long count;
+        long count;
+        long size;
 
         @Override
         public String toString() {
-            return "AggregateInfo [count=" + count + "]";
+            return "AggregateInfo [count=" + count + ", size=" + size + "]";
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(count);
+            return Objects.hash(count, size);
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
             AggregateInfo other = (AggregateInfo) obj;
-            return Objects.equals(count, other.count);
+            if (count != other.count) return false;
+            if (size != other.size) return false;
+            return true;
         }
     }
 
@@ -549,7 +665,7 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     static class Recordings {
-        List<ActiveRecording> active;
+        Active active;
         Archived archived;
 
         @Override
@@ -682,6 +798,36 @@ class GraphQLIT extends ExternalTargetsTest {
         }
     }
 
+    static class Active {
+        List<ActiveRecording> data;
+        AggregateInfo aggregate;
+
+        @Override
+        public String toString() {
+            return "Active [data=" + data + ", aggregate=" + aggregate + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(data, aggregate);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Active other = (Active) obj;
+            return Objects.equals(data, other.data) && Objects.equals(aggregate, other.aggregate);
+        }
+    }
+
     static class ActiveRecording {
         String name;
         String reportUrl;
@@ -778,6 +924,10 @@ class GraphQLIT extends ExternalTargetsTest {
     static class RecordingMetadata {
         Map<String, String> labels;
 
+        public static RecordingMetadata of(Map<String, String> of) {
+            return null;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(labels);
@@ -807,10 +957,11 @@ class GraphQLIT extends ExternalTargetsTest {
     static class StartRecording {
         ActiveRecording doStartRecording;
         ArchivedRecording doArchive;
+        ActiveRecording doPutMetadata;
 
         @Override
         public int hashCode() {
-            return Objects.hash(doArchive, doStartRecording);
+            return Objects.hash(doArchive, doStartRecording, doPutMetadata);
         }
 
         @Override
@@ -826,7 +977,8 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             StartRecording other = (StartRecording) obj;
             return Objects.equals(doArchive, other.doArchive)
-                    && Objects.equals(doStartRecording, other.doStartRecording);
+                    && Objects.equals(doStartRecording, other.doStartRecording)
+                    && Objects.equals(doPutMetadata, other.doPutMetadata);
         }
 
         @Override
@@ -835,6 +987,8 @@ class GraphQLIT extends ExternalTargetsTest {
                     + doArchive
                     + ", doStartRecording="
                     + doStartRecording
+                    + ", doPutMetadata="
+                    + doPutMetadata
                     + "]";
         }
     }
@@ -1034,6 +1188,13 @@ class GraphQLIT extends ExternalTargetsTest {
             }
             ArchiveMutationResponse other = (ArchiveMutationResponse) obj;
             return Objects.equals(data, other.data);
+        }
+    }
+
+    static class ActiveMutationResponse extends ArchiveMutationResponse {
+        @Override
+        public String toString() {
+            return "ActiveMutationResponse [data=" + data + "]";
         }
     }
 

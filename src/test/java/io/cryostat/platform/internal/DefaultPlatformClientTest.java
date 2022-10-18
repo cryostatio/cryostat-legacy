@@ -124,16 +124,26 @@ class DefaultPlatformClientTest {
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc1.getMainClass(),
-                        AnnotationKey.HOST, "cryostat",
-                        AnnotationKey.PORT, "9091"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        desc1.getMainClass(),
+                        AnnotationKey.HOST,
+                        "cryostat",
+                        AnnotationKey.PORT,
+                        "9091"));
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc3.getMainClass(),
-                        AnnotationKey.HOST, "cryostat",
-                        AnnotationKey.PORT, "9092"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        desc3.getMainClass(),
+                        AnnotationKey.HOST,
+                        "cryostat",
+                        AnnotationKey.PORT,
+                        "9092"));
 
         assertThat(results, equalTo(List.of(exp1, exp2)));
     }
@@ -164,16 +174,26 @@ class DefaultPlatformClientTest {
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc1.getMainClass(),
-                        AnnotationKey.HOST, "cryostat",
-                        AnnotationKey.PORT, "9091"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        desc1.getMainClass(),
+                        AnnotationKey.HOST,
+                        "cryostat",
+                        AnnotationKey.PORT,
+                        "9091"));
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, desc3.getMainClass(),
-                        AnnotationKey.HOST, "cryostat",
-                        AnnotationKey.PORT, "9092"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        desc3.getMainClass(),
+                        AnnotationKey.HOST,
+                        "cryostat",
+                        AnnotationKey.PORT,
+                        "9092"));
 
         MatcherAssert.assertThat(realmNode.getName(), Matchers.equalTo("JDP"));
         MatcherAssert.assertThat(realmNode.getNodeType(), Matchers.equalTo(BaseNodeType.REALM));
@@ -221,9 +241,14 @@ class DefaultPlatformClientTest {
         ServiceRef serviceRef = new ServiceRef(URIUtil.convert(url), javaMain);
         serviceRef.setCryostatAnnotations(
                 Map.of(
-                        AnnotationKey.JAVA_MAIN, "com.example.Main",
-                        AnnotationKey.HOST, "cryostat",
-                        AnnotationKey.PORT, "9091"));
+                        AnnotationKey.REALM,
+                        "JDP",
+                        AnnotationKey.JAVA_MAIN,
+                        "com.example.Main",
+                        AnnotationKey.HOST,
+                        "cryostat",
+                        AnnotationKey.PORT,
+                        "9091"));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 }

@@ -59,7 +59,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
+class TargetTemplateGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final TargetConnectionManager targetConnectionManager;
 

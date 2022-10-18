@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 import javax.script.ScriptException;
@@ -54,6 +56,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.templates.TemplateType;
@@ -73,11 +76,9 @@ import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RuleProcessor extends AbstractVerticle
-        implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
+public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
@@ -89,7 +90,6 @@ public class RuleProcessor extends AbstractVerticle
     private final RecordingMetadataManager metadataManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
-    private final Base32 base32;
 
     private final Map<Pair<ServiceRef, Rule>, Set<Long>> tasks;
 
@@ -104,8 +104,7 @@ public class RuleProcessor extends AbstractVerticle
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         this.vertx = vertx;
         this.platformClient = platformClient;
         this.registry = registry;
@@ -117,10 +116,10 @@ public class RuleProcessor extends AbstractVerticle
         this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
-        this.base32 = base32;
         this.tasks = new HashMap<>();
 
-        this.registry.addListener(this);
+        this.registry.addListener(this.ruleListener());
+        this.credentialsManager.addListener(this.credentialsListener());
     }
 
     @Override
@@ -135,29 +134,86 @@ public class RuleProcessor extends AbstractVerticle
         this.tasks.clear();
     }
 
-    @Override
-    public synchronized void onEvent(Event<RuleEvent, Rule> event) {
-        switch (event.getEventType()) {
-            case ADDED:
-                vertx.<List<ServiceRef>>executeBlocking(
-                        promise -> promise.complete(platformClient.listDiscoverableServices()),
-                        false,
-                        result ->
-                                result.result().stream()
-                                        .filter(
-                                                serviceRef ->
-                                                        registry.applies(
-                                                                event.getPayload(), serviceRef))
-                                        .forEach(
-                                                serviceRef ->
-                                                        activate(event.getPayload(), serviceRef)));
-                break;
-            case REMOVED:
-                deactivate(event.getPayload(), null);
-                break;
-            default:
-                throw new UnsupportedOperationException(event.getEventType().toString());
-        }
+    public EventListener<RuleRegistry.RuleEvent, Rule> ruleListener() {
+        return new EventListener<RuleRegistry.RuleEvent, Rule>() {
+
+            @Override
+            public void onEvent(Event<RuleEvent, Rule> event) {
+                switch (event.getEventType()) {
+                    case ADDED:
+                        vertx.<List<ServiceRef>>executeBlocking(
+                                promise ->
+                                        promise.complete(platformClient.listDiscoverableServices()),
+                                false,
+                                result ->
+                                        result.result().stream()
+                                                .filter(
+                                                        serviceRef ->
+                                                                event.getPayload().isEnabled()
+                                                                        && registry.applies(
+                                                                                event.getPayload(),
+                                                                                serviceRef))
+                                                .forEach(
+                                                        serviceRef ->
+                                                                activate(
+                                                                        event.getPayload(),
+                                                                        serviceRef)));
+                        break;
+                    case REMOVED:
+                        deactivate(event.getPayload(), null);
+                        break;
+                    case UPDATED:
+                        if (!event.getPayload().isEnabled()) {
+                            deactivate(event.getPayload(), null);
+                        } else {
+                            vertx.<List<ServiceRef>>executeBlocking(
+                                    promise ->
+                                            promise.complete(
+                                                    platformClient.listDiscoverableServices()),
+                                    false,
+                                    result ->
+                                            result.result().stream()
+                                                    .filter(
+                                                            serviceRef ->
+                                                                    registry.applies(
+                                                                            event.getPayload(),
+                                                                            serviceRef))
+                                                    .forEach(
+                                                            serviceRef ->
+                                                                    activate(
+                                                                            event.getPayload(),
+                                                                            serviceRef)));
+                        }
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(event.getEventType().toString());
+                }
+            }
+        };
+    }
+
+    public EventListener<CredentialsManager.CredentialsEvent, String> credentialsListener() {
+        return new EventListener<CredentialsManager.CredentialsEvent, String>() {
+
+            @Override
+            public void onEvent(Event<CredentialsEvent, String> event) {
+                switch (event.getEventType()) {
+                    case ADDED:
+                        credentialsManager
+                                .resolveMatchingTargets(event.getPayload())
+                                .forEach(
+                                        sr ->
+                                                registry.getRules(sr).stream()
+                                                        .filter(Rule::isEnabled)
+                                                        .forEach(rule -> activate(rule, sr)));
+                        break;
+                    case REMOVED:
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(event.getEventType().toString());
+                }
+            }
+        };
     }
 
     @Override
@@ -165,7 +221,12 @@ public class RuleProcessor extends AbstractVerticle
         switch (tde.getEventKind()) {
             case FOUND:
                 registry.getRules(tde.getServiceRef())
-                        .forEach(rule -> activate(rule, tde.getServiceRef()));
+                        .forEach(
+                                rule -> {
+                                    if (rule.isEnabled()) {
+                                        activate(rule, tde.getServiceRef());
+                                    }
+                                });
                 break;
             case LOST:
                 deactivate(null, tde.getServiceRef());
@@ -176,6 +237,14 @@ public class RuleProcessor extends AbstractVerticle
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
+        if (!rule.isEnabled()) {
+            this.logger.trace(
+                    "Activating rule {} for target {} aborted, rule is disabled {} ",
+                    rule.getName(),
+                    serviceRef.getServiceUri(),
+                    rule.isEnabled());
+            return;
+        }
         this.logger.trace(
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
@@ -184,7 +253,7 @@ public class RuleProcessor extends AbstractVerticle
                             try {
                                 Credentials creds = credentialsManager.getCredentials(serviceRef);
                                 promise.complete(creds);
-                            } catch (IOException | ScriptException e) {
+                            } catch (ScriptException e) {
                                 promise.fail(e);
                             }
                         })
@@ -214,8 +283,7 @@ public class RuleProcessor extends AbstractVerticle
                                                 credentialsManager,
                                                 rule,
                                                 recordingArchiveHelper,
-                                                this::archivalFailureHandler,
-                                                base32);
+                                                this::archivalFailureHandler);
                                 Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
                                 Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
                                 long initialTask =
@@ -275,101 +343,85 @@ public class RuleProcessor extends AbstractVerticle
     }
 
     private void archiveRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
-        vertx.executeBlocking(
-                promise -> {
-                    try {
-                        targetConnectionManager.executeConnectedTask(
-                                connectionDescriptor,
-                                connection -> {
-                                    IRecordingDescriptor descriptor =
-                                            connection.getService().getSnapshotRecording();
-                                    try {
-                                        recordingArchiveHelper
-                                                .saveRecording(
-                                                        connectionDescriptor, descriptor.getName())
-                                                .get();
-                                    } finally {
-                                        connection.getService().close(descriptor);
-                                    }
+        try {
+            targetConnectionManager
+                    .executeConnectedTaskAsync(
+                            connectionDescriptor,
+                            connection -> {
+                                IRecordingDescriptor descriptor =
+                                        connection.getService().getSnapshotRecording();
+                                try {
+                                    recordingArchiveHelper
+                                            .saveRecording(
+                                                    connectionDescriptor, descriptor.getName())
+                                            .get();
+                                } finally {
+                                    connection.getService().close(descriptor);
+                                }
 
-                                    return null;
-                                },
-                                false);
-                        promise.complete();
-                    } catch (Exception e) {
-                        promise.fail(e);
-                    }
-                },
-                false,
-                result -> {
-                    if (result.failed()) {
-                        logger.error(new RuleException(result.cause()));
-                    }
-                });
+                                return null;
+                            })
+                    .get();
+        } catch (Exception e) {
+            logger.error(new RuleException(e));
+        }
     }
 
     private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
-        vertx.<IRecordingDescriptor>executeBlocking(
-                promise -> {
-                    try {
-                        IRecordingDescriptor recording =
-                                targetConnectionManager.executeConnectedTask(
-                                        connectionDescriptor,
-                                        connection -> {
-                                            RecordingOptionsBuilder builder =
-                                                    recordingOptionsBuilderFactory
-                                                            .create(connection.getService())
-                                                            .name(rule.getRecordingName());
-                                            if (rule.getMaxAgeSeconds() > 0) {
-                                                builder =
-                                                        builder.maxAge(rule.getMaxAgeSeconds())
-                                                                .toDisk(true);
-                                            }
-                                            if (rule.getMaxSizeBytes() > 0) {
-                                                builder =
-                                                        builder.maxSize(rule.getMaxSizeBytes())
-                                                                .toDisk(true);
-                                            }
-                                            Pair<String, TemplateType> template =
-                                                    RecordingTargetHelper
-                                                            .parseEventSpecifierToTemplate(
-                                                                    rule.getEventSpecifier());
-                                            return recordingTargetHelper.startRecording(
-                                                    true,
-                                                    connectionDescriptor,
-                                                    builder.build(),
-                                                    template.getLeft(),
-                                                    template.getRight());
-                                        },
-                                        false);
-                        promise.complete(recording);
-                    } catch (Exception e) {
-                        promise.fail(e);
-                    }
-                },
-                false,
-                result -> {
-                    if (result.failed()) {
-                        logger.error(new RuleException(result.cause()));
-                        return;
-                    }
-                    IRecordingDescriptor recording = result.result();
-                    Map<String, String> labels =
-                            new HashMap<>(
-                                    metadataManager
-                                            .getMetadata(
-                                                    connectionDescriptor.getTargetId(),
-                                                    recording.getName())
-                                            .getLabels());
-                    labels.put("rule", rule.getName());
-                    try {
-                        metadataManager.setRecordingMetadata(
-                                connectionDescriptor.getTargetId(),
-                                recording.getName(),
-                                new Metadata(labels));
-                    } catch (IOException ioe) {
-                        logger.error(ioe);
-                    }
-                });
+        CompletableFuture<IRecordingDescriptor> future =
+                targetConnectionManager.executeConnectedTaskAsync(
+                        connectionDescriptor,
+                        connection -> {
+                            RecordingOptionsBuilder builder =
+                                    recordingOptionsBuilderFactory
+                                            .create(connection.getService())
+                                            .name(rule.getRecordingName());
+                            if (rule.getMaxAgeSeconds() > 0) {
+                                builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
+                            }
+                            if (rule.getMaxSizeBytes() > 0) {
+                                builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
+                            }
+                            Pair<String, TemplateType> template =
+                                    RecordingTargetHelper.parseEventSpecifierToTemplate(
+                                            rule.getEventSpecifier());
+                            return recordingTargetHelper.startRecording(
+                                    true,
+                                    connectionDescriptor,
+                                    builder.build(),
+                                    template.getLeft(),
+                                    template.getRight(),
+                                    new Metadata(),
+                                    false);
+                        });
+        try {
+            future.handleAsync(
+                            (recording, throwable) -> {
+                                if (throwable != null) {
+                                    logger.error(new RuleException(throwable));
+                                    return null;
+                                }
+                                try {
+                                    Map<String, String> labels =
+                                            new HashMap<>(
+                                                    metadataManager
+                                                            .getMetadata(
+                                                                    connectionDescriptor,
+                                                                    recording.getName())
+                                                            .getLabels());
+                                    labels.put("rule", rule.getName());
+                                    metadataManager.setRecordingMetadata(
+                                            connectionDescriptor,
+                                            recording.getName(),
+                                            new Metadata(labels));
+                                } catch (IOException ioe) {
+                                    logger.error(ioe);
+                                }
+                                return null;
+                            })
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(new RuleException(e));
+        }
     }
 }

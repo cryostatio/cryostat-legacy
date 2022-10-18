@@ -37,10 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -97,8 +97,8 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -114,24 +114,30 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         int id = Integer.parseInt(params.getPathParams().get("id"));
-        try {
-            String matchExpression = credentialsManager.get(id);
-            this.credentialsManager.delete(id);
+        Optional<String> matchExpression = credentialsManager.get(id);
+        if (matchExpression.isEmpty()) {
+            return new IntermediateResponse<Void>().statusCode(404);
+        }
 
+        String expr = matchExpression.get();
+        int numMatchingTargets = credentialsManager.resolveMatchingTargets(expr).size();
+        if (this.credentialsManager.delete(id)) {
             notificationFactory
                     .createBuilder()
                     .metaCategory("CredentialsDeleted")
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("id", id, "matchExpression", matchExpression))
+                    .message(
+                            Map.of(
+                                    "id",
+                                    id,
+                                    "matchExpression",
+                                    expr,
+                                    "numMatchingTargets",
+                                    numMatchingTargets))
                     .build()
                     .send();
-
             return new IntermediateResponse<Void>().statusCode(200);
-        } catch (FileNotFoundException e) {
-            throw new ApiException(404, e);
-        } catch (IOException e) {
-            throw new ApiException(
-                    500, "IOException occurred while clearing persisted credentials", e);
         }
+        throw new ApiException(500);
     }
 }

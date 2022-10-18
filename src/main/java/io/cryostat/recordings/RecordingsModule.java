@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -52,18 +53,22 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
@@ -77,6 +82,12 @@ public abstract class RecordingsModule {
     public static final String METADATA_SUBDIRECTORY = "metadata";
 
     @Provides
+    @Named(Variables.JMX_CONNECTION_TIMEOUT)
+    static long provideJmxConnectionTimeoutSeconds(Environment env) {
+        return Math.max(1, Long.parseLong(env.getEnv(Variables.JMX_CONNECTION_TIMEOUT, "3")));
+    }
+
+    @Provides
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
             Vertx vertx,
@@ -87,6 +98,7 @@ public abstract class RecordingsModule {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             RecordingMetadataManager recordingMetadataManager,
+            RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         return new RecordingTargetHelper(
                 vertx,
@@ -97,6 +109,7 @@ public abstract class RecordingsModule {
                 recordingOptionsBuilderFactory,
                 reportService,
                 recordingMetadataManager,
+                recordingArchiveHelper,
                 logger);
     }
 
@@ -111,8 +124,9 @@ public abstract class RecordingsModule {
             TargetConnectionManager targetConnectionManager,
             RecordingMetadataManager recordingMetadataManager,
             Clock clock,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             NotificationFactory notificationFactory,
+            JvmIdHelper jvmIdHelper,
             Base32 base32) {
         return new RecordingArchiveHelper(
                 fs,
@@ -123,8 +137,9 @@ public abstract class RecordingsModule {
                 targetConnectionManager,
                 recordingMetadataManager,
                 clock,
-                platformClient,
+                storage,
                 notificationFactory,
+                jvmIdHelper,
                 base32);
     }
 
@@ -151,7 +166,15 @@ public abstract class RecordingsModule {
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             FileSystem fs,
+            Provider<RecordingArchiveHelper> archiveHelperProvider,
+            TargetConnectionManager targetConnectionManager,
+            CredentialsManager credentialsManager,
+            DiscoveryStorage storage,
+            NotificationFactory notificationFactory,
+            JvmIdHelper jvmIdHelper,
             Gson gson,
             Base32 base32,
             Logger logger) {
@@ -166,9 +189,41 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new RecordingMetadataManager(metadataDir, fs, gson, base32, logger);
+            return new RecordingMetadataManager(
+                    ForkJoinPool.commonPool(),
+                    metadataDir,
+                    archivedRecordingsPath,
+                    connectionTimeoutSeconds,
+                    fs,
+                    archiveHelperProvider,
+                    targetConnectionManager,
+                    credentialsManager,
+                    storage,
+                    notificationFactory,
+                    jvmIdHelper,
+                    gson,
+                    base32,
+                    logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static JvmIdHelper provideJvmIdHelper(
+            TargetConnectionManager targetConnectionManager,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
+            CredentialsManager credentialsManager,
+            DiscoveryStorage storage,
+            Logger logger) {
+        return new JvmIdHelper(
+                targetConnectionManager,
+                credentialsManager,
+                storage,
+                connectionTimeoutSeconds,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
+                logger);
     }
 }

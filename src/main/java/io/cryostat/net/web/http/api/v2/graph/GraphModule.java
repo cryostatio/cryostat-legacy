@@ -46,16 +46,17 @@ import javax.inject.Singleton;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -68,6 +69,7 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class GraphModule {
@@ -106,6 +108,8 @@ public abstract class GraphModule {
             SnapshotOnTargetMutator snapshotOnTargetMutator,
             StopRecordingMutator stopRecordingMutator,
             ArchiveRecordingMutator archiveRecordingMutator,
+            PutActiveRecordingMetadataMutator putActiveRecordingMetadataMutator,
+            PutArchivedRecordingMetadataMutator putArchivedRecordingMetadataMutator,
             DeleteActiveRecordingMutator deleteActiveRecordingMutator,
             DeleteArchivedRecordingMutator deleteArchivedRecordingMutator) {
         RuntimeWiring wiring =
@@ -165,6 +169,15 @@ public abstract class GraphModule {
                                         .dataFetcher("doStop", stopRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
+                                        .dataFetcher(
+                                                "doPutMetadata", putActiveRecordingMetadataMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
+                                        .dataFetcher(
+                                                "doPutMetadata",
+                                                putArchivedRecordingMetadataMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("doDelete", deleteActiveRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
@@ -191,8 +204,8 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static RootNodeFetcher provideRootNodeFetcher(AuthManager auth, PlatformClient client) {
-        return new RootNodeFetcher(auth, client);
+    static RootNodeFetcher provideRootNodeFetcher(AuthManager auth, DiscoveryStorage storage) {
+        return new RootNodeFetcher(auth, storage);
     }
 
     @Provides
@@ -211,6 +224,12 @@ public abstract class GraphModule {
     @Provides
     static ActiveRecordingsFetcher provideActiveRecordingsFetcher(AuthManager auth) {
         return new ActiveRecordingsFetcher(auth);
+    }
+
+    @Provides
+    static AllArchivedRecordingsFetcher provideAllArchivedRecordingsFetcher(
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Logger logger) {
+        return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper, logger);
     }
 
     @Provides
@@ -259,14 +278,18 @@ public abstract class GraphModule {
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
-            Provider<WebServer> webServer) {
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson) {
         return new StartRecordingOnTargetMutator(
                 auth,
                 targetConnectionManager,
                 recordingTargetHelper,
                 recordingOptionsBuilderFactory,
                 credentialsManager,
-                webServer);
+                metadataManager,
+                webServer,
+                gson);
     }
 
     @Provides
@@ -300,6 +323,32 @@ public abstract class GraphModule {
                 credentialsManager,
                 metadataManager,
                 webServer);
+    }
+
+    @Provides
+    static PutActiveRecordingMetadataMutator providePutActiveRecordingMetadataMutator(
+            CredentialsManager credentialsManager,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson) {
+        return new PutActiveRecordingMetadataMutator(
+                credentialsManager,
+                targetConnectionManager,
+                recordingTargetHelper,
+                metadataManager,
+                webServer,
+                gson);
+    }
+
+    @Provides
+    static PutArchivedRecordingMetadataMutator providePutArchivedRecordingMetadataMutator(
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson,
+            Base32 base32) {
+        return new PutArchivedRecordingMetadataMutator(metadataManager, webServer, gson, base32);
     }
 
     @Provides

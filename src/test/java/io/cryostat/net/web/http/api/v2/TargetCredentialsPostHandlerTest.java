@@ -37,7 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -128,8 +128,9 @@ class TargetCredentialsPostHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -252,24 +253,6 @@ class TargetCredentialsPostHandlerTest {
             Mockito.verify(notificationBuilder).message(Map.of("target", matchExpression));
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
-        }
-
-        @Test
-        void shouldWrapIOExceptions() throws Exception {
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
-
-            MultiMap form = MultiMap.caseInsensitiveMultiMap();
-            form.set("username", "adminuser");
-            form.set("password", "abc123");
-            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
-
-            Mockito.when(credentialsManager.addCredentials(Mockito.anyString(), Mockito.any()))
-                    .thenThrow(IOException.class);
-
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
     }
 }

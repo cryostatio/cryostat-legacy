@@ -206,10 +206,27 @@ public class WebServer extends AbstractVerticle {
                     Route route;
                     if (RequestHandler.ALL_PATHS.equals(handler.path())) {
                         route = router.route();
+                    } else if (handler.pathRegex() != null) {
+                        route = router.routeWithRegex(handler.httpMethod(), handler.pathRegex());
                     } else {
                         route = router.route(handler.httpMethod(), handler.path());
                     }
                     route = route.order(handler.getPriority());
+                    for (HttpMimeType mime : handler.produces()) {
+                        route = route.produces(mime.mime());
+                    }
+                    for (HttpMimeType mime : handler.consumes()) {
+                        route = route.consumes(mime.mime());
+                    }
+                    DeprecatedApi deprecated =
+                            handler.getClass().getAnnotation(DeprecatedApi.class);
+                    if (deprecated != null) {
+                        route =
+                                route.handler(
+                                        new DeprecatedHandlerDecorator(
+                                                deprecated.deprecated().forRemoval(),
+                                                deprecated.alternateLocation()));
+                    }
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
@@ -305,9 +322,9 @@ public class WebServer extends AbstractVerticle {
     }
 
     // FIXME this has an implicit dependency on the RecordingGetHandler path
-    public String getArchivedDownloadURL(String recordingName)
+    public String getArchivedDownloadURL(String sourceTarget, String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
-        return getAssetDownloadURL(ApiVersion.V1, "recordings", recordingName);
+        return getAssetDownloadURL(ApiVersion.BETA, "recordings", sourceTarget, recordingName);
     }
 
     // FIXME this has a an implicit dependency on the TargetRecordingGetHandler path
@@ -318,9 +335,9 @@ public class WebServer extends AbstractVerticle {
     }
 
     // FIXME this has a an implicit dependency on the ReportGetHandler path
-    public String getArchivedReportURL(String recordingName)
+    public String getArchivedReportURL(String sourceTarget, String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
-        return getAssetDownloadURL(ApiVersion.V1, "reports", recordingName);
+        return getAssetDownloadURL(ApiVersion.BETA, "reports", sourceTarget, recordingName);
     }
 
     // FIXME this has a an implicit dependency on the TargetReportGetHandler path

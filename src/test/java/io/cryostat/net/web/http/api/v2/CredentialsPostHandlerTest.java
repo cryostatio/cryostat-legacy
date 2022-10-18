@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +51,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
@@ -130,8 +132,9 @@ class CredentialsPostHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -159,6 +162,8 @@ class CredentialsPostHandlerTest {
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
             Mockito.when(credentialsManager.addCredentials(Mockito.anyString(), Mockito.any()))
                     .thenReturn(id);
+            ServiceRef target = Mockito.mock(ServiceRef.class);
+            Mockito.when(credentialsManager.resolveMatchingTargets(10)).thenReturn(Set.of(target));
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 

@@ -106,14 +106,13 @@ class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordin
                     IRecordingDescriptor desc =
                             recordingTargetHelper.stopRecording(cd, source.getName(), true);
                     WebServer ws = webServer.get();
-                    Metadata metadata = metadataManager.getMetadata(uri, desc.getName());
+                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
                     return new GraphRecordingDescriptor(
                             target,
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
                             metadata);
-                },
-                true);
+                });
     }
 }

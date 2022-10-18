@@ -48,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -55,6 +56,9 @@ import io.cryostat.platform.ServiceRef;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
+@DeprecatedApi(
+        deprecated = @Deprecated(forRemoval = false),
+        alternateLocation = "/api/v2.2/credentials")
 class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceRef>> {
 
     private final CredentialsManager credentialsManager;
@@ -92,8 +96,8 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override

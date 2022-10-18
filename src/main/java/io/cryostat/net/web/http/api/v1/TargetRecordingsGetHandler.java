@@ -113,6 +113,11 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         WebServer webServer = webServerProvider.get();
         List<HyperlinkedSerializableRecordingDescriptor> descriptors =
@@ -131,8 +136,7 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                                                         connection, desc.getName()),
                                                 webServer.getReportURL(connection, desc.getName()),
                                                 recordingMetadataManager.getMetadata(
-                                                        getConnectionDescriptorFromContext(ctx)
-                                                                .getTargetId(),
+                                                        getConnectionDescriptorFromContext(ctx),
                                                         desc.getName())));
                             }
                             return list;

@@ -37,8 +37,8 @@
  */
 package io.cryostat;
 
+import java.io.IOException;
 import java.security.Security;
-import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
 
@@ -46,68 +46,106 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
-import io.vertx.core.DeploymentOptions;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
-class Cryostat {
+class Cryostat extends AbstractVerticle {
 
-    public static void main(String[] args) throws Exception {
+    private final Environment environment = new Environment();
+    private final Client client;
+    private final Logger logger = Logger.INSTANCE;
+
+    private Cryostat(Client client) {
+        this.client = client;
+    }
+
+    @Override
+    public void start(Promise<Void> future) {
+        logger.trace("env: {}", environment.getEnv().toString());
+
+        try {
+            client.credentialsManager().migrate();
+            client.ruleRegistry().loadRules();
+        } catch (Exception e) {
+            logger.error(e);
+            future.fail(e);
+            return;
+        }
+
+        logger.info(
+                "{} started, version: {}.", instanceName(), client.version().getVersionString());
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> shutdown(null)));
+
+        client.deployer()
+                .deploy(client.httpServer(), false)
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.webServer(), false);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.messagingServer(), false);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.ruleProcessor(), true);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer()
+                                    .deploy(client.recordingMetadataManager(), true);
+                        })
+                .compose(
+                        (m) -> {
+                            return client.deployer().deploy(client.discoveryStorage(), true);
+                        })
+                .onSuccess(cf -> future.complete())
+                .onFailure(
+                        t -> {
+                            future.fail((Throwable) t);
+                            shutdown((Throwable) t);
+                        });
+    }
+
+    @Override
+    public void stop() {
+        shutdown(null);
+    }
+
+    private String instanceName() {
+        return System.getProperty("java.rmi.server.hostname", "cryostat");
+    }
+
+    private void shutdown(Throwable cause) {
+        if (cause != null) {
+            if (!(cause instanceof Exception)) {
+                cause = new RuntimeException(cause);
+            }
+            logger.error((RuntimeException) cause);
+        }
+        logger.info("{} shutting down...", instanceName());
+        client.vertx().close().onComplete(n -> logger.info("Shutdown complete"));
+    }
+
+    public static void main(String[] args) throws IOException {
+        final Client client = DaggerCryostat_Client.builder().build();
         CryostatCore.initialize();
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        Client client = DaggerCryostat_Client.builder().build();
-
-        logger.info(
-                "{} started, version: {}.",
-                System.getProperty("java.rmi.server.hostname", "cryostat"),
-                client.version().getVersionString());
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        client.httpServer().addShutdownListener(() -> future.complete(null));
-
-        client.credentialsManager().migrate();
-        client.credentialsManager().load();
-        client.ruleRegistry().loadRules();
-        client.vertx()
-                .deployVerticle(
-                        client.httpServer(),
-                        new DeploymentOptions(),
-                        res -> logger.info("HTTP Server Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.webServer(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("WebServer Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.messagingServer(),
-                        new DeploymentOptions(),
-                        res -> logger.info("MessagingServer Verticle Started"));
-        client.vertx()
-                .deployVerticle(
-                        client.ruleProcessor(),
-                        new DeploymentOptions().setWorker(true),
-                        res -> logger.info("RuleProcessor Verticle Started"));
-        client.platformClient().start();
-        client.recordingMetadataManager().load();
-
-        future.join();
+        client.vertx().deployVerticle(new Cryostat(client));
     }
 
     @Singleton
@@ -115,21 +153,23 @@ class Cryostat {
     interface Client {
         ApplicationVersion version();
 
+        Vertx vertx();
+
+        VerticleDeployer deployer();
+
+        DiscoveryStorage discoveryStorage();
+
         CredentialsManager credentialsManager();
 
         RuleRegistry ruleRegistry();
 
         RuleProcessor ruleProcessor();
 
-        Vertx vertx();
-
         HttpServer httpServer();
 
         WebServer webServer();
 
         MessagingServer messagingServer();
-
-        PlatformClient platformClient();
 
         RecordingMetadataManager recordingMetadataManager();
 

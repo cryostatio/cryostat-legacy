@@ -38,49 +38,74 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.AggregateInfo;
+import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class AllArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecordingInfo>> {
+class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     private final RecordingArchiveHelper archiveHelper;
+    private final Logger logger;
 
     @Inject
-    AllArchivedRecordingsFetcher(RecordingArchiveHelper archiveHelper) {
+    AllArchivedRecordingsFetcher(
+            AuthManager auth, RecordingArchiveHelper archiveHelper, Logger logger) {
+        super(auth);
         this.archiveHelper = archiveHelper;
+        this.logger = logger;
     }
 
-    public List<ArchivedRecordingInfo> get(DataFetchingEnvironment environment) throws Exception {
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
+    }
+
+    @Override
+    Archived getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
-        List<ArchivedRecordingInfo> result = new ArrayList<>();
+        List<ArchivedRecordingInfo> recordings = new ArrayList<>();
         if (filter.contains(FilterInput.Key.SOURCE_TARGET)) {
             String targetId = filter.get(FilterInput.Key.SOURCE_TARGET);
-            result = archiveHelper.getRecordings(targetId).get();
+            try {
+                recordings = archiveHelper.getRecordings(targetId).get();
+            } catch (ExecutionException e) {
+                logger.warn(
+                        "Failed to fetch archived recordings for target {}, msg: {}",
+                        targetId,
+                        e.getMessage());
+                recordings = List.of();
+            }
         } else {
-            result = archiveHelper.getRecordings().get();
+            recordings = archiveHelper.getRecordings().get();
         }
         if (filter.contains(FilterInput.Key.NAME)) {
             String recordingName = filter.get(FilterInput.Key.NAME);
-            result =
-                    result.stream()
+            recordings =
+                    recordings.stream()
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
-                result =
-                        result.stream()
+                recordings =
+                        recordings.stream()
                                 .filter(
                                         r ->
                                                 LabelSelectorMatcher.parse(label)
@@ -88,6 +113,28 @@ class AllArchivedRecordingsFetcher implements DataFetcher<List<ArchivedRecording
                                 .collect(Collectors.toList());
             }
         }
-        return result;
+        if (filter.contains(FilterInput.Key.SIZE_GE)) {
+            long fileSize = filter.get(FilterInput.Key.SIZE_GE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getSize() >= fileSize)
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.SIZE_LE)) {
+            long fileSize = filter.get(FilterInput.Key.SIZE_LE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getSize() <= fileSize)
+                            .collect(Collectors.toList());
+        }
+
+        Archived archived = new Archived();
+        AggregateInfo aggregate = new AggregateInfo();
+        archived.data = recordings;
+        aggregate.count = archived.data.size();
+        aggregate.size = archived.data.stream().mapToLong(ArchivedRecordingInfo::getSize).sum();
+        archived.aggregate = aggregate;
+
+        return archived;
     }
 }

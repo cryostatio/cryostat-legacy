@@ -52,24 +52,24 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
 
 @Module
@@ -82,7 +82,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            MatchExpressionEvaluator matchExpressionEvaluator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -105,15 +105,19 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static MatchExpressionEvaluator provideMatchExpressionEvaluator(ScriptEngine scriptEngine) {
-        return new MatchExpressionEvaluator(scriptEngine);
+    static MatchExpressionEvaluator provideMatchExpressionEvaluator(
+            ScriptEngine scriptEngine,
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Logger logger) {
+        return new MatchExpressionEvaluator(scriptEngine, credentialsManager, ruleRegistry, logger);
     }
 
     @Provides
     @Singleton
     static RuleProcessor provideRuleProcessor(
             Vertx vertx,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
@@ -122,11 +126,10 @@ public abstract class RulesModule {
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger,
-            Base32 base32) {
+            Logger logger) {
         return new RuleProcessor(
                 vertx,
-                platformClient,
+                storage,
                 registry,
                 credentialsManager,
                 recordingOptionsBuilderFactory,
@@ -135,8 +138,7 @@ public abstract class RulesModule {
                 recordingTargetHelper,
                 metadataManager,
                 periodicArchiverFactory,
-                logger,
-                base32);
+                logger);
     }
 
     @Provides

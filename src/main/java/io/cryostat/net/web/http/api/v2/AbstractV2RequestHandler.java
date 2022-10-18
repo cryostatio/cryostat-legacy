@@ -37,24 +37,20 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import static io.cryostat.util.StringUtil.requireNonBlank;
+
 import java.io.File;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.rmi.ConnectIOException;
 import java.util.Base64;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.openjdk.jmc.rjmx.ConnectionException;
-
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
@@ -62,12 +58,12 @@ import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
 
 import com.google.gson.Gson;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.vertx.ext.web.handler.HttpException;
 
 public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
@@ -89,48 +85,31 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     public abstract IntermediateResponse<T> handle(RequestParameters requestParams)
             throws Exception;
 
-    public abstract HttpMimeType mimeType();
-
     @Override
     public final void handle(RoutingContext ctx) {
         RequestParameters requestParams = RequestParameters.from(ctx);
         try {
             if (requiresAuthentication()) {
-                try {
-                    boolean permissionGranted =
-                            validateRequestAuthorization(
-                                            requestParams
-                                                    .getHeaders()
-                                                    .get(HttpHeaders.AUTHORIZATION))
-                                    .get();
-                    if (!permissionGranted) {
-                        // expected to go into catch clause below
-                        throw new ApiException(401, "HTTP Authorization Failure");
-                    }
-                } catch (ExecutionException ee) {
-                    Throwable cause = ee.getCause();
-                    if (cause instanceof PermissionDeniedException
-                            || cause instanceof AuthorizationErrorException
-                            || cause instanceof KubernetesClientException) {
-                        throw new ApiException(401, "HTTP Authorization Failure", ee);
-                    }
-                    throw new ApiException(500, ee);
+                boolean permissionGranted =
+                        validateRequestAuthorization(
+                                        requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                                .get();
+                if (!permissionGranted) {
+                    // expected to go into catch clause below
+                    throw new ApiException(401, "HTTP Authorization Failure");
                 }
             }
             writeResponse(ctx, handle(requestParams));
-        } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            if (cause instanceof ConnectionException) {
-                handleConnectionException(ctx, (ConnectionException) cause);
-            }
-            throw new ApiException(500, ee.getMessage(), ee);
-        } catch (ApiException e) {
+        } catch (ApiException | HttpException e) {
             throw e;
-        } catch (ConnectionException e) {
-            handleConnectionException(ctx, e);
-            throw new ApiException(500, e.getMessage(), e);
         } catch (Exception e) {
-            throw new ApiException(500, e.getMessage(), e);
+            if (AbstractAuthenticatedRequestHandler.isAuthFailure(e)) {
+                throw new ApiException(401, "HTTP Authorization Failure", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isTargetConnectionFailure(e)) {
+                handleConnectionException(ctx, e);
+            }
+            throw new ApiException(500, e);
         }
     }
 
@@ -189,12 +168,16 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             response.setStatusMessage(intermediateResponse.getStatusMessage());
         }
         intermediateResponse.getHeaders().forEach(response::putHeader);
-        response.putHeader(HttpHeaders.CONTENT_TYPE, mimeType().mime());
+        HttpMimeType contentType = HttpMimeType.fromString(ctx.getAcceptableContentType());
+        if (contentType == HttpMimeType.UNKNOWN && !produces().isEmpty()) {
+            contentType = produces().get(0);
+        }
+        response.putHeader(HttpHeaders.CONTENT_TYPE, contentType.mime());
 
-        switch (mimeType()) {
+        switch (contentType) {
             case PLAINTEXT:
             case JSON:
-                ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
+                ApiMeta meta = new ApiMeta(contentType, response.getStatusMessage());
                 ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
                 ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
@@ -214,18 +197,29 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         }
     }
 
-    private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof SecurityException) {
+    protected String getNonBlankFormAttribute(RequestParameters params, String key)
+            throws IllegalArgumentException {
+        return requireNonBlank(params.getFormAttributes().get(key), key);
+    }
+
+    protected String getNonBlankJsonAttribute(RequestParameters params, String key)
+            throws IllegalArgumentException {
+        return requireNonBlank(new JsonObject(params.getBody()).getString(key), key);
+    }
+
+    private void handleConnectionException(RoutingContext ctx, Exception e) {
+        if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)) {
             ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-            // FIXME should be 401, needs web-client to be adapted for V2 format
             throw new ApiException(427, "Authentication Failure", "JMX Authentication Failure", e);
         }
-        Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof ConnectIOException) {
-            throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
-        } else if (rootCause instanceof UnknownHostException) {
+        if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
             throw new ApiException(404, "Connection Failure", "Target Not Found", e);
+        }
+        if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+            throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
+        }
+        if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+            throw new ApiException(504, "Connection Failure", "Non-JMX Port", e);
         }
     }
 }

@@ -39,6 +39,8 @@ input ArchivedRecordingFilterInput {
     name: String
     labels: [String]
     sourceTarget: String
+    sizeBytesGreaterThanEqual: Long
+    sizeBytesLessThanEqual: Long
 }
 
 type ServiceRef {
@@ -82,7 +84,7 @@ interface Node {
 }
 
 type Recordings {
-    active(filter: ActiveRecordingFilterInput): [ActiveRecording!]!
+    active(filter: ActiveRecordingFilterInput): Active!
     archived(filter: ArchivedRecordingFilterInput): Archived!
 }
 
@@ -104,6 +106,7 @@ type ActiveRecording implements Recording {
     doArchive: ArchivedRecording!
     doStop: ActiveRecording!
     doDelete: ActiveRecording!
+    doPutMetadata(metadata: Object): ActiveRecording!
 }
 
 type ArchivedRecording implements Recording {
@@ -111,8 +114,15 @@ type ArchivedRecording implements Recording {
     reportUrl: Url!
     downloadUrl: Url!
     metadata: RecordingMetadata!
+    size: Long!
 
     doDelete: ArchivedRecording!
+    doPutMetadata(metadata: Object): ArchivedRecording!
+}
+
+type Active {
+    data: [ActiveRecording!]!
+    aggregate: AggregateInfo!
 }
 
 type Archived {
@@ -122,6 +132,7 @@ type Archived {
 
 type AggregateInfo {
     count: Long!
+    size: Long!
 }
 
 interface Recording {
@@ -144,4 +155,5 @@ input RecordingSettings {
     toDisk: Boolean
     maxSize: Long
     maxAge: Long
+    metadata: Object
 }

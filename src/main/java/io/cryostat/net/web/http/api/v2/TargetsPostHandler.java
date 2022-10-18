@@ -42,17 +42,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -67,17 +68,17 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
     static final String PATH = "targets";
 
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage storage;
     private final CustomTargetPlatformClient customTargetPlatformClient;
 
     @Inject
     TargetsPostHandler(
             AuthManager auth,
             Gson gson,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             CustomTargetPlatformClient customTargetPlatformClient) {
         super(auth, gson);
-        this.platformClient = platformClient;
+        this.storage = storage;
         this.customTargetPlatformClient = customTargetPlatformClient;
     }
 
@@ -107,8 +108,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -119,6 +120,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
     }
 
     @Override
@@ -134,7 +140,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "\"alias\" form parameter must be provided");
             }
             URI uri = URIUtil.createAbsolute(connectUrl);
-            for (ServiceRef serviceRef : platformClient.listDiscoverableServices()) {
+            for (ServiceRef serviceRef : storage.listDiscoverableServices()) {
                 if (Objects.equals(uri, serviceRef.getServiceUri())) {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
@@ -149,6 +155,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     cryostatAnnotations.put(ak, attrs.get(formKey));
                 }
             }
+            cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
             boolean v = customTargetPlatformClient.addTarget(serviceRef);

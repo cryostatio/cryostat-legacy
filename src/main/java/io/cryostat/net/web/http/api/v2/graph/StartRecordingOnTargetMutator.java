@@ -57,9 +57,13 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
@@ -69,7 +73,9 @@ class StartRecordingOnTargetMutator
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final CredentialsManager credentialsManager;
+    private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
+    private final Gson gson;
 
     @Inject
     StartRecordingOnTargetMutator(
@@ -78,13 +84,17 @@ class StartRecordingOnTargetMutator
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
-            Provider<WebServer> webServer) {
+            RecordingMetadataManager metadataManager,
+            Provider<WebServer> webServer,
+            Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.credentialsManager = credentialsManager;
+        this.metadataManager = metadataManager;
         this.webServer = webServer;
+        this.gson = gson;
     }
 
     @Override
@@ -127,19 +137,29 @@ class StartRecordingOnTargetMutator
                     if (settings.containsKey("maxSize")) {
                         builder = builder.maxSize((Long) settings.get("maxSize"));
                     }
+                    Metadata m = new Metadata();
+                    if (settings.containsKey("metadata")) {
+                        m =
+                                (Metadata)
+                                        gson.fromJson(
+                                                settings.get("metadata").toString(),
+                                                new TypeToken<Metadata>() {}.getType());
+                    }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
                                     cd,
                                     builder.build(),
                                     (String) settings.get("template"),
                                     TemplateType.valueOf(
-                                            ((String) settings.get("templateType")).toUpperCase()));
+                                            ((String) settings.get("templateType")).toUpperCase()),
+                                    m);
                     WebServer ws = webServer.get();
+                    Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
-                            ws.getReportURL(conn, desc.getName()));
-                },
-                true);
+                            ws.getReportURL(conn, desc.getName()),
+                            metadata);
+                });
     }
 }

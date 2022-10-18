@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -150,8 +151,9 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void shouldHavePlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -176,7 +178,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("null"));
         }
 
         @Test
@@ -187,7 +188,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -198,7 +198,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("NOTAMIME"));
         }
 
         @Test
@@ -209,7 +208,6 @@ class RulesPostHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("text/plain"));
         }
 
         @ParameterizedTest
@@ -314,6 +312,7 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");
             form.set(Rule.Attribute.MAX_AGE_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.MAX_SIZE_BYTES.getSerialKey(), "8192");
+            form.set(Rule.Attribute.ENABLED.getSerialKey(), "true");
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
@@ -337,6 +336,7 @@ class RulesPostHandlerTest {
                                     .preservedArchives(5)
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
+                                    .enabled(true)
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
@@ -366,7 +366,9 @@ class RulesPostHandlerTest {
                                     "maxAgeSeconds",
                                     60,
                                     "maxSizeBytes",
-                                    8192));
+                                    8192,
+                                    "enabled",
+                                    true));
             Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
@@ -392,6 +394,7 @@ class RulesPostHandlerTest {
                                     .preservedArchives(5)
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
+                                    .enabled(true)
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();

@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import static io.cryostat.util.StringUtil.requireNonBlank;
+
 import java.util.function.Function;
 
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -44,7 +46,6 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.vertx.core.MultiMap;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -64,13 +65,15 @@ public class Rule {
     private final int preservedArchives;
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
+    private boolean enabled;
 
     Rule(Builder builder) throws MatchExpressionValidationException {
         this.eventSpecifier = builder.eventSpecifier;
         if (isArchiver()) {
             this.name = builder.name;
         } else {
-            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+            this.name =
+                    sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
         }
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
@@ -90,6 +93,7 @@ public class Rule {
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
+        this.enabled = builder.enabled;
         this.validate();
     }
 
@@ -138,22 +142,23 @@ public class Rule {
         return this.maxSizeBytes;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public static String sanitizeRuleName(String name) {
         // FIXME this is not robust
         return name.replaceAll("\\s", "_");
     }
 
-    private static String requireNonBlank(String s, Attribute attr) {
-        if (StringUtils.isBlank(s)) {
-            throw new IllegalArgumentException(
-                    String.format("\"%s\" cannot be blank, was \"%s\"", attr, s));
-        }
-        return s;
-    }
-
     public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
-        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
-        validateEventSpecifier(requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER));
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION.getSerialKey());
+        validateEventSpecifier(
+                requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER.getSerialKey()));
         validateMatchExpression(this);
 
         if (isArchiver()) {
@@ -163,7 +168,7 @@ public class Rule {
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
         } else {
-            requireNonBlank(this.name, Attribute.NAME);
+            requireNonBlank(this.name, Attribute.NAME.getSerialKey());
             requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
             requireNonNegative(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
@@ -221,6 +226,7 @@ public class Rule {
         private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
+        private boolean enabled = true;
 
         public Builder name(String name) {
             this.name = name;
@@ -267,6 +273,11 @@ public class Rule {
             return this;
         }
 
+        public Builder enabled(boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
+
         public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
         }
@@ -282,7 +293,11 @@ public class Rule {
                                     formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
                             .eventSpecifier(
                                     formAttributes.get(
-                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()))
+                            .enabled(
+                                    getBoolean(
+                                            formAttributes.get(
+                                                    Rule.Attribute.ENABLED.getSerialKey())));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, formAttributes);
@@ -303,7 +318,11 @@ public class Rule {
                             .description(getAsNullableString(jsonObj, Rule.Attribute.DESCRIPTION))
                             .eventSpecifier(
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
-                                            .getAsString());
+                                            .getAsString())
+                            .enabled(
+                                    getBoolean(
+                                            getAsNullableString(jsonObj, Rule.Attribute.ENABLED)));
+
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
@@ -311,6 +330,13 @@ public class Rule {
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
 
             return builder;
+        }
+
+        private static boolean getBoolean(String enabled) {
+            if (enabled == null) {
+                return true;
+            }
+            return Boolean.parseBoolean(enabled);
         }
 
         private static String getAsNullableString(JsonObject jsonObj, Rule.Attribute attr) {
@@ -406,7 +432,7 @@ public class Rule {
         PRESERVED_ARCHIVES("preservedArchives"),
         MAX_AGE_SECONDS("maxAgeSeconds"),
         MAX_SIZE_BYTES("maxSizeBytes"),
-        ;
+        ENABLED("enabled");
 
         private final String serialKey;
 

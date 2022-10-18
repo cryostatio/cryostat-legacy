@@ -43,6 +43,11 @@ public enum BaseNodeType implements NodeType {
     // represents a division of the deployment scenario - the universe may consist of a
     // Kubernetes Realm and a JDP Realm, for example
     REALM("Realm"),
+    // represents a plain target JVM, connectable over JMX
+    JVM("JVM"),
+    // represents a target JVM using the Cryostat Agent, *not* connectable over JMX. Agent instances
+    // that do publish a JMX Service URL should publish themselves with the JVM NodeType.
+    AGENT("CryostatAgent"),
     ;
 
     private final String kind;

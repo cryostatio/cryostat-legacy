@@ -37,18 +37,18 @@
  */
 package io.cryostat.platform.discovery;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class EnvironmentNode extends AbstractNode {
 
-    private final SortedSet<AbstractNode> children;
+    private List<AbstractNode> children;
 
     public EnvironmentNode(EnvironmentNode other) {
         this(other.name, other.nodeType, other.labels, other.children);
@@ -59,7 +59,7 @@ public class EnvironmentNode extends AbstractNode {
     }
 
     public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
-        this(name, nodeType, labels, Collections.emptySortedSet());
+        this(name, nodeType, labels, Collections.emptyList());
     }
 
     public EnvironmentNode(
@@ -68,15 +68,22 @@ public class EnvironmentNode extends AbstractNode {
             Map<String, String> labels,
             Collection<? extends AbstractNode> children) {
         super(name, nodeType, labels);
-        this.children = new ConcurrentSkipListSet<>(children);
+        this.children = new ArrayList<>(children);
+        Collections.sort(this.children);
     }
 
-    public SortedSet<AbstractNode> getChildren() {
-        return Collections.unmodifiableSortedSet(children);
+    public List<AbstractNode> getChildren() {
+        return Collections.unmodifiableList(children);
     }
 
     public void addChildNode(AbstractNode child) {
         this.children.add(child);
+        Collections.sort(this.children);
+    }
+
+    public void addChildren(Collection<? extends AbstractNode> children) {
+        this.children.addAll(children);
+        Collections.sort(this.children);
     }
 
     @Override

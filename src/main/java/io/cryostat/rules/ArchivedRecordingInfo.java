@@ -45,32 +45,30 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 // FIXME move to a more appropriate package
 public class ArchivedRecordingInfo {
 
-    private final transient String encodedServiceUri;
+    private final transient String serviceUri;
     private final String downloadUrl;
     private final String name;
     private final String reportUrl;
     private final Metadata metadata;
+    private final long size;
 
     public ArchivedRecordingInfo(
-            String encodedServiceUri, String name, String downloadUrl, String reportUrl) {
-        this(encodedServiceUri, name, downloadUrl, reportUrl, new Metadata());
-    }
-
-    public ArchivedRecordingInfo(
-            String encodedServiceUri,
+            String serviceUri,
             String name,
             String downloadUrl,
             String reportUrl,
-            Metadata metadata) {
-        this.encodedServiceUri = encodedServiceUri;
+            Metadata metadata,
+            long size) {
+        this.serviceUri = serviceUri;
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
+        this.size = size;
     }
 
-    public String getEncodedServiceUri() {
-        return this.encodedServiceUri;
+    public String getServiceUri() {
+        return this.serviceUri;
     }
 
     public String getName() {
@@ -89,6 +87,10 @@ public class ArchivedRecordingInfo {
         return this.metadata;
     }
 
+    public long getSize() {
+        return this.size;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == null) {
@@ -102,22 +104,24 @@ public class ArchivedRecordingInfo {
         }
         ArchivedRecordingInfo ari = (ArchivedRecordingInfo) other;
         return new EqualsBuilder()
-                .append(encodedServiceUri, ari.encodedServiceUri)
+                .append(serviceUri, ari.serviceUri)
                 .append(name, ari.name)
                 .append(downloadUrl, ari.downloadUrl)
                 .append(reportUrl, ari.reportUrl)
                 .append(metadata, ari.metadata)
+                .append(size, ari.size)
                 .isEquals();
     }
 
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
-                .append(encodedServiceUri)
+                .append(serviceUri)
                 .append(name)
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)
+                .append(size)
                 .hashCode();
     }
 }

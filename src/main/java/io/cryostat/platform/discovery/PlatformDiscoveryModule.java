@@ -37,8 +37,12 @@
  */
 package io.cryostat.platform.discovery;
 
+import java.util.Set;
+
+import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
@@ -60,13 +64,14 @@ public abstract class PlatformDiscoveryModule {
 
     @Provides
     @IntoSet
-    static PluggableTypeAdapter<?> provideJDPNodeTypeAdapter() {
-        return new JDPNodeTypeAdapter();
+    static PluggableTypeAdapter<?> provideKubernetesNodeTypeAdapter() {
+        return new KubernetesNodeTypeAdapter();
     }
 
     @Provides
     @IntoSet
-    static PluggableTypeAdapter<?> provideKubernetesNodeTypeAdapter() {
-        return new KubernetesNodeTypeAdapter();
+    static PluggableJsonDeserializer<?> provideNodeTypeDeserializer(
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
+        return new NodeTypeDeserializer(adapters);
     }
 }

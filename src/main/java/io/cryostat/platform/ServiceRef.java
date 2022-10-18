@@ -206,6 +206,7 @@ public class ServiceRef {
         SERVICE_NAME,
         CONTAINER_NAME,
         POD_NAME,
+        REALM,
         ;
     }
 }

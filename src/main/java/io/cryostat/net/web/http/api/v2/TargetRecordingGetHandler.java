@@ -66,7 +66,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
+class TargetRecordingGetHandler extends AbstractAssetJwtConsumingHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private final TargetConnectionManager targetConnectionManager;

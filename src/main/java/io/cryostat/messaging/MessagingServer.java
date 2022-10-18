@@ -220,7 +220,15 @@ public class MessagingServer extends AbstractVerticle
 
     @Override
     public void onNotification(Notification notification) {
-        writeMessage(notification);
+        getVertx()
+                .executeBlocking(
+                        promise -> {
+                            try {
+                                writeMessage(notification);
+                            } finally {
+                                promise.complete();
+                            }
+                        });
     }
 
     void writeMessage(Object message) {

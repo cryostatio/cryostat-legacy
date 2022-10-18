@@ -270,7 +270,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(
@@ -303,6 +303,8 @@ public class CredentialsIT extends ExternalTargetsTest {
                         "io.cryostat.Cryostat");
         expectedServiceRef.setCryostatAnnotations(
                 Map.of(
+                        AnnotationKey.REALM,
+                        "JDP",
                         AnnotationKey.HOST,
                         "cryostat-itests",
                         AnnotationKey.PORT,
@@ -350,7 +352,7 @@ public class CredentialsIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
         MatcherAssert.assertThat(

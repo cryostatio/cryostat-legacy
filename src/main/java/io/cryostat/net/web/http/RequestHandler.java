@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http;
 
+import java.util.List;
+
 import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -67,7 +69,24 @@ public interface RequestHandler extends Handler<RoutingContext>, PermissionedAct
 
     String path();
 
+    /**
+     * Implementations should only implement this OR {@link path()}, not both. Either return
+     * non-null here to have the WebServer treat this as a regex path, or leave this as null and use
+     * {@link path()} as a non-regex path.
+     */
+    default String pathRegex() {
+        return null;
+    }
+
     HttpMethod httpMethod();
+
+    default List<HttpMimeType> produces() {
+        return List.of();
+    }
+
+    default List<HttpMimeType> consumes() {
+        return List.of();
+    }
 
     default boolean isAvailable() {
         return true;

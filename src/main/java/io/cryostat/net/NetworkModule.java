@@ -53,11 +53,11 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.openshift.OpenShiftNetworkModule;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
-import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
@@ -99,28 +99,29 @@ public abstract class NetworkModule {
     }
 
     @Provides
-    @Named(Variables.TARGET_CACHE_SIZE)
+    @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS)
     static int provideMaxTargetConnections(Environment env) {
-        return Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_SIZE, "-1"));
+        return Integer.parseInt(env.getEnv(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS, "-1"));
     }
 
     @Provides
     @Named(Variables.TARGET_CACHE_TTL)
     static Duration provideMaxTargetTTL(Environment env) {
-        return Duration.ofSeconds(Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_TTL, "10")));
+        return Duration.ofSeconds(
+                Math.max(1, Integer.parseInt(env.getEnv(Variables.TARGET_CACHE_TTL, "10"))));
     }
 
     @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            PlatformClient platformClient,
+            DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
-            @Named(Variables.TARGET_CACHE_SIZE) int maxTargetConnections,
+            @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
-                platformClient,
+                storage,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 maxTargetTtl,

@@ -37,8 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
@@ -50,12 +51,12 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -124,8 +125,9 @@ class CredentialDeleteHandlerTest {
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
         }
 
         @Test
@@ -142,8 +144,13 @@ class CredentialDeleteHandlerTest {
         @Test
         void shouldDelegateToCredentialsManager() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
+            ServiceRef target = Mockito.mock(ServiceRef.class);
             String matchExpression = "target.alias == \"foo\"";
-            Mockito.when(credentialsManager.get(Mockito.eq(10))).thenReturn(matchExpression);
+            Mockito.when(credentialsManager.get(Mockito.eq(10)))
+                    .thenReturn(Optional.of(matchExpression));
+            Mockito.when(credentialsManager.resolveMatchingTargets(Mockito.eq(matchExpression)))
+                    .thenReturn(Set.of(target));
+            Mockito.when(credentialsManager.delete(Mockito.eq(10))).thenReturn(true);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
@@ -154,15 +161,12 @@ class CredentialDeleteHandlerTest {
 
         @Test
         void shouldRespond404IfIdUnknown() throws Exception {
-            Mockito.when(credentialsManager.get(Mockito.anyInt()))
-                    .thenThrow(FileNotFoundException.class);
+            Mockito.when(credentialsManager.get(Mockito.anyInt())).thenReturn(Optional.empty());
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("id", "10"));
 
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handle(requestParams));
+            IntermediateResponse<?> resp = handler.handle(requestParams);
 
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(404));
         }
     }
 }
