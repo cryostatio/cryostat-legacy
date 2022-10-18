@@ -38,9 +38,6 @@ STARTFLAGS=(
     "failsafe:integration-test"
     "failsafe:verify"
     "-DfailIfNoTests=true"
-    "-Dcryostat.itest.jdp.poll.period=2500"
-    "-Dcryostat.itest.jdp.poll.count=1"
-    "-Dcryostat.itest.jdp.poll.timeout=17500"
 )
 
 if [ -n "$2" ]; then
