@@ -133,6 +133,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         try {
             return this.ids.get(targetId).get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            logger.warn("Could not get jvmId for target {}", targetId);
             throw new JvmIdGetException(e, targetId);
         }
     }
