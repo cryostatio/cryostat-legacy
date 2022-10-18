@@ -81,7 +81,6 @@ import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -202,12 +201,6 @@ public class RecordingArchiveHelper {
                                     }
                                     FileUtils.deleteQuietly(subdirectoryPath.toFile());
 
-                                } catch (JvmIdGetException e) {
-                                    logger.warn(
-                                            "Could not find jvmId for targetId"
-                                                    + " {}, skipping migration of"
-                                                    + " recordings",
-                                            e.getTarget());
                                 } catch (IOException e) {
                                     logger.warn(e);
                                 } catch (CancellationException e) {
