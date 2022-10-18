@@ -1,11 +1,11 @@
 pull_request_rules:
-  - name: backport patches to cryostat-v2.1 branch
+  - name: backport patches to cryostat-v2.2 branch
     conditions:
       - base=main
       - label=backport
     actions:
       backport:
         branches:
-          - cryostat-v2.1
+          - cryostat-v2.2
         assignees:
           - "{{ author }}"
