@@ -9,3 +9,14 @@ pull_request_rules:
           - cryostat-v2.2
         assignees:
           - "{{ author }}"
+
+  - name: block pull requests that manually update web-client submodule
+    conditions:
+      - or:
+        - files=web-client
+        - files~=web-client/
+    actions:
+      review:
+        type: REQUEST_CHANGES
+        message: >-
+            Pull Request blocked. `web-client` submodule updates are performed automatically by CI when that repository is updated. Please revert or drop all changes to the `web-client` submodule from this PR and perform any required frontend work by opening and merging a PR against [cryostat-web](https://github.com/cryostatio/cryostat-web).
