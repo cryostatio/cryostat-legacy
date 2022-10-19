@@ -19,4 +19,7 @@ pull_request_rules:
       review:
         type: REQUEST_CHANGES
         message: >-
-            Pull Request blocked. `web-client` submodule updates are performed automatically by CI when that repository is updated. Please revert or drop all changes to the `web-client` submodule from this PR and perform any required frontend work by opening and merging a PR against [cryostat-web](https://github.com/cryostatio/cryostat-web).
+            Pull Request blocked. `web-client` submodule updates are performed automatically by CI when that repository
+            is updated. Please revert or drop all changes to the `web-client` submodule from this PR and perform any
+            required frontend work by opening and merging a PR against
+            [cryostat-web](https://github.com/cryostatio/cryostat-web).
