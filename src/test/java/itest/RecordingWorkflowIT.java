@@ -221,7 +221,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
-            MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));            
+            MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
 
             unGzip(savedDownloadPath.toString());
 
