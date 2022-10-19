@@ -112,3 +112,11 @@ jobs:
     - name: Print image URL
       run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
+    - name: Save OCI tarball
+      run: podman save --format docker-archive --output ./oci.tar ${{ env.CRYOSTAT_IMG }}:${{ github.event.number }}
+      if: ${{ github.event_name == 'pull_request' }}
+    - uses: actions/upload-artifact@v3
+      with:
+        name: oci.tar
+        path: ./oci.tar
+      if: ${{ github.event_name == 'pull_request' }}

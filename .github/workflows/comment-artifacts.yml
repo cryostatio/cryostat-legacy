@@ -1,0 +1,29 @@
+name: comment-artifacts
+on:
+  workflow_run:
+    workflows: [CI build and push]
+    types: [completed]
+
+jobs:
+  artifacts-url-comments:
+    name: Comment artifact links on PR
+    runs-on: ubuntu-latest
+    steps:
+    - name: Comment on PR with OCI archive artifact link
+      uses: tonyhallett/artifacts-url-comments@v1.1.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        includes: oci.tar
+        prefix: OCI test image tarball is available.
+        suffix: |
+          Click the link above to download the asset (requires GitHub authentication).
+          ```bash
+          $ unzip ~/Downloads/oci-tar.zip
+          $ podman load -i ~/Downloads/oci.tar
+          $ rm ~/Downloads/oci.tar
+          ```
+          `cd` into your Cryostat project directory,
+          ```bash
+          $ CRYOSTAT_IMAGE=cryostat:pr-test sh smoketest.sh
+          ```
