@@ -42,6 +42,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +56,7 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
@@ -188,22 +190,22 @@ public abstract class StandardSelfTest {
         return future;
     }
 
-    public static void unGzip(Path gzipFile) throws Exception {
-        try (GZIPInputStream output = new GZIPInputStream(new FileInputStream(gzipFile.toFile()));
-                FileOutputStream uncompressedFile =
-                        new FileOutputStream(
-                                gzipFile.toString()
-                                        .substring(0, gzipFile.toString().length() - 3)); ) {
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = output.read(buffer)) != -1) {
-                uncompressedFile.write(buffer, 0, len);
-            }
-            FileSystem fs = Utils.getFileSystem();
-            fs.delete(gzipFile.toFile().toString());
+    public static void unGzip(String gzipFile) throws ITestCleanupFailedException{
+        FileSystem fs = Utils.getFileSystem();
+        fs.copyBlocking(gzipFile, gzipFile + ".tmp");
+        try (GZIPInputStream input =
+                            new GZIPInputStream(new FileInputStream(gzipFile + ".tmp"));
+                    FileOutputStream uncompressedFile =
+                            new FileOutputStream(gzipFile); ) {
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = input.read(buffer)) != -1) {
+                    uncompressedFile.write(buffer, 0, len);
+                }
+                fs.delete(gzipFile + ".tmp");            
         } catch (IOException e) {
             throw new ITestCleanupFailedException(
                     String.format("Failed to decompress %s", gzipFile), e);
-        }
+        }        
     }
 }

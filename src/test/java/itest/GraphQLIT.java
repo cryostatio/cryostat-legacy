@@ -401,7 +401,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 archivedRecording.name,
                 Matchers.matchesRegex(
-                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr.gz$"));
+                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
     }
 
     @Test
@@ -550,7 +550,7 @@ class GraphQLIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 archivedRecording.name,
                 Matchers.matchesRegex(
-                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr.gz$"));
+                        "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
     }
 
     static class Target {
