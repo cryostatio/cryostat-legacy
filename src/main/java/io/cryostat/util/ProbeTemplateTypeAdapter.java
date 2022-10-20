@@ -39,11 +39,11 @@ package io.cryostat.util;
 
 import java.io.IOException;
 
+import io.cryostat.core.agent.ProbeTemplate;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-
-import io.cryostat.core.agent.ProbeTemplate;
 
 public class ProbeTemplateTypeAdapter extends TypeAdapter<ProbeTemplate> {
 
@@ -62,6 +62,4 @@ public class ProbeTemplateTypeAdapter extends TypeAdapter<ProbeTemplate> {
         // Unused, we never read ProbeTemplates from Json, only write them
         return null;
     }
-    
-    
 }

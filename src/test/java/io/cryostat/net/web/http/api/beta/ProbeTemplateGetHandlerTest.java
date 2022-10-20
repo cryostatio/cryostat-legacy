@@ -37,17 +37,8 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
-
-import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.agent.LocalProbeTemplateService;
@@ -63,7 +54,6 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -89,9 +79,7 @@ public class ProbeTemplateGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new ProbeTemplateGetHandler(
-                        auth, templateService, fs, gson);
+        this.handler = new ProbeTemplateGetHandler(auth, templateService, fs, gson);
     }
 
     @Nested
@@ -108,14 +96,14 @@ public class ProbeTemplateGetHandlerTest {
 
         @Test
         void shouldHaveExpectedPath() {
-            MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/probes"));
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2/probes"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
-                    handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_PROBE_TEMPLATE)));
+                    handler.resourceActions(),
+                    Matchers.equalTo(Set.of(ResourceAction.READ_PROBE_TEMPLATE)));
         }
 
         @Test

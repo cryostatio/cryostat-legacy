@@ -108,8 +108,10 @@ public class ProbeTemplateGetHandler extends AbstractV2RequestHandler<List<Probe
     }
 
     @Override
-    public IntermediateResponse<List<ProbeTemplate>> handle(RequestParameters params) throws Exception {
-        return new IntermediateResponse<List<ProbeTemplate>>().body(probeTemplateService.getTemplates());
+    public IntermediateResponse<List<ProbeTemplate>> handle(RequestParameters params)
+            throws Exception {
+        return new IntermediateResponse<List<ProbeTemplate>>()
+                .body(probeTemplateService.getTemplates());
     }
 
     @Override

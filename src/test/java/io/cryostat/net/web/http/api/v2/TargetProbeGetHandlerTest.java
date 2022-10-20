@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 
 import java.util.List;
 import java.util.Map;
@@ -91,9 +90,7 @@ public class TargetProbeGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetProbesGetHandler(
-                        auth, targetConnectionManager, gson);
+        this.handler = new TargetProbesGetHandler(auth, targetConnectionManager, gson);
     }
 
     @Nested

@@ -65,10 +65,7 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
     private final TargetConnectionManager connectionManager;
 
     @Inject
-    TargetProbesGetHandler(
-            AuthManager auth,
-            TargetConnectionManager connectionManager,
-            Gson gson) {
+    TargetProbesGetHandler(AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
         super(auth, gson);
         this.connectionManager = connectionManager;
     }
@@ -99,7 +96,8 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
     }
 
     @Override
-    public IntermediateResponse<List<Event>> handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<List<Event>> handle(RequestParameters requestParams)
+            throws Exception {
         Map<String, String> pathParams = requestParams.getPathParams();
         String targetId = pathParams.get("targetId");
         StringBuilder sb = new StringBuilder();
