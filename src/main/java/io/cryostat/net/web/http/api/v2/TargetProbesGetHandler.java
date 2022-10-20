@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +115,8 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
                     String probes = helper.retrieveEventProbes();
                     if (probes != null && !probes.isBlank()) {
                         ProbeTemplate template = new ProbeTemplate();
-                        template.deserialize(new ByteArrayInputStream(probes.getBytes()));
+                        template.deserialize(
+                                new ByteArrayInputStream(probes.getBytes(StandardCharsets.UTF_8)));
                         for (Event e : template.getEvents()) {
                             response.add(e);
                         }
