@@ -79,7 +79,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 public class RecordingMetadataManagerTest {
@@ -121,6 +123,15 @@ public class RecordingMetadataManagerTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient()
+                .when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                            }
+                        });
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
