@@ -1,5 +1,4 @@
 #!/bin/sh
-# shellcheck disable=SC3043
 
 work_dir="$(mktemp -d)"
 

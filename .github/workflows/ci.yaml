@@ -139,8 +139,11 @@ jobs:
 
   spotbugs:
     runs-on: ubuntu-latest
-    needs: [build-deps]
+    needs: [build-image]
     steps:
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
     - uses: actions/checkout@v2
       with:
         submodules: true
@@ -149,9 +152,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: restore
+
     - run: mvn spotbugs:check
     - uses: skjolber/maven-cache-github-action@v1
       with:
