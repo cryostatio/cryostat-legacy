@@ -81,6 +81,10 @@ if [ ! -d "$(dirname "$0")/templates" ]; then
     mkdir "$(dirname "$0")/templates"
 fi
 
+if [ ! -d "$(dirname "$0")/probes" ]; then
+    mkdir "$(dirname "$0")/probes"
+fi
+
 if ! podman pod exists cryostat-pod; then
     podman pod create \
         --hostname cryostat \
