@@ -158,7 +158,6 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
-                    connection.connect();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                     helper.defineEventProbes(probeTemplateService.getTemplate(probeTemplate));
                     notificationFactory

@@ -109,7 +109,6 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
-                    connection.connect();
                     List<Event> response = new ArrayList<Event>();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                     try {
