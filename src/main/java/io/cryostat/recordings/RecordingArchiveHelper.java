@@ -42,6 +42,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -1055,7 +1056,7 @@ public class RecordingArchiveHelper {
     }
 
     private void gzip(Path originalFile) {
-        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS)) {
+        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && !isGzip(originalFile)) {
             Path tmp = originalFile.resolve(originalFile + ".tmp");
             try (FileInputStream source = new FileInputStream(originalFile.toString()); ) {
                 fs.copy(source, tmp, StandardCopyOption.REPLACE_EXISTING);
@@ -1077,7 +1078,7 @@ public class RecordingArchiveHelper {
     }
 
     private void unGzip(Path gzipFile) {
-        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS)) {
+        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(gzipFile)) {
             Path tmp = gzipFile.resolve(gzipFile + ".tmp");
             try (FileInputStream source = new FileInputStream(gzipFile.toString()); ) {
                 fs.copy(source, tmp, StandardCopyOption.REPLACE_EXISTING);
@@ -1096,6 +1097,17 @@ public class RecordingArchiveHelper {
             } catch (IOException e) {
                 logger.error("Failed to decompress the file: " + e);
             }
+        }
+    }
+
+    private boolean isGzip(Path file) {
+        try (InputStream is = new FileInputStream(file.toString()); ) {
+            byte[] signature = new byte[2];
+            int n = is.read(signature);
+            return n == 2 && signature[0] == (byte) 0x1f && signature[1] == (byte) 0x8b;
+        } catch (IOException e) {
+            logger.error("Error to check the file :" + e);
+            return false;
         }
     }
 
