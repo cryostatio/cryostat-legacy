@@ -82,23 +82,37 @@ jobs:
       with:
         name: cryostat
         path: cryostat.tar
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save
 
   integration-tests:
     runs-on: ubuntu-latest
     needs: [build-image]
     steps:
+    - uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'adopt'
     - uses: actions/download-artifact@v2
       with:
         name: cryostat
         path: cryostat.tar
     - run: podman load -i cryostat.tar
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
     - run: bash repeated-integration-tests.bash
     - name: Print itest logs
       if: ${{ failure() }}
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save
 
   spotless:
     runs-on: ubuntu-latest
+    needs: [build-deps]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -108,10 +122,17 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
     - run: mvn spotless:check
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save
 
   spotbugs:
     runs-on: ubuntu-latest
+    needs: [build-deps]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -121,7 +142,13 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
     - run: mvn spotbugs:check
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save
 
   build:
     runs-on: ubuntu-latest
