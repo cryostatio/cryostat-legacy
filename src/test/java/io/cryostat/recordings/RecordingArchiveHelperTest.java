@@ -131,6 +131,25 @@ class RecordingArchiveHelperTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient()
+                .when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                            }
+                        });
+        lenient()
+                .when(jvmIdHelper.subdirectoryNameToJvmId(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                            }
+                        });
+
         this.recordingArchiveHelper =
                 new RecordingArchiveHelper(
                         fs,
@@ -226,7 +245,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -304,7 +322,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -399,7 +416,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
         Mockito.when(connection.getHost()).thenReturn("some-hostname.local");
 
         Instant now = Instant.now();
@@ -479,7 +495,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
         Mockito.when(connection.getHost()).thenReturn("some-hostname.local");
 
         Instant now = Instant.now();
@@ -566,7 +581,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -636,7 +650,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -703,7 +716,6 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -985,7 +997,6 @@ class RecordingArchiveHelperTest {
                 .when(jvmIdHelper.getJvmId(Mockito.eq(targetIdUploads)))
                 .thenReturn(targetIdUploads);
         lenient().when(jvmIdHelper.getJvmId(Mockito.eq(targetIdTarget))).thenReturn(targetIdTarget);
-        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn(targetIdTarget);
         Path specificRecordingsPath = Path.of("/some/path/");
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
@@ -1013,6 +1024,15 @@ class RecordingArchiveHelperTest {
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
+
+        Mockito.when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArgument(0);
+                            }
+                        });
 
         // Test get recordings from uploads
         List<ArchivedRecordingInfo> result =
@@ -1064,10 +1084,6 @@ class RecordingArchiveHelperTest {
                 .thenReturn(Path.of(subdirectories.get(1)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of("123recording", "connectUrl"));
-
-        Mockito.when(base32.decode(Mockito.anyString()))
-                .thenReturn("encodedJvmIdA".getBytes())
-                .thenReturn("encodedJvmId123".getBytes());
 
         BufferedReader reader = Mockito.mock(BufferedReader.class);
         Mockito.when(fs.readFile(Mockito.any(Path.class))).thenReturn(reader);

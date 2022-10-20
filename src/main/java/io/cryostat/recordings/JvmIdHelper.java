@@ -38,6 +38,7 @@
 package io.cryostat.recordings;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -58,12 +59,14 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import org.apache.commons.codec.binary.Base32;
 
 public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final long connectionTimeoutSeconds;
+    private final Base32 base32;
     private final Logger logger;
 
     private final AsyncLoadingCache<String, String> ids;
@@ -75,10 +78,12 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             long connectionTimeoutSeconds,
             Executor executor,
             Scheduler scheduler,
+            Base32 base32,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
+        this.base32 = base32;
         this.logger = logger;
         this.ids =
                 Caffeine.newBuilder()
@@ -109,6 +114,9 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                 || targetId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return CompletableFuture.completedFuture(
                     RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY);
+        } else if (targetId.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY)) {
+            return CompletableFuture.completedFuture(
+                    RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY);
         }
         CompletableFuture<String> future =
                 this.targetConnectionManager.executeConnectedTaskAsync(
@@ -136,6 +144,29 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             logger.warn("Could not get jvmId for target {}", targetId);
             throw new JvmIdGetException(e, targetId);
         }
+    }
+
+    public String subdirectoryNameToJvmId(String subdirectoryName) {
+        if (subdirectoryName.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)
+                || subdirectoryName.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY)) {
+            return subdirectoryName;
+        }
+        return new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+    }
+
+    public String jvmIdToSubdirectoryName(String jvmId) {
+        if (jvmId.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)
+                || jvmId.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY)) {
+            return jvmId;
+        }
+        return base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
+    }
+
+    // FIXME: refactor structure to remove file-uploads (v1 RecordingsPostBodyHandler)
+    public boolean isSpecialDirectory(String directoryName) {
+        return directoryName.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)
+                || directoryName.equals("file-uploads")
+                || directoryName.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY);
     }
 
     static class JvmIdGetException extends IOException {
