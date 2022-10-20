@@ -151,17 +151,23 @@ public class RecordingMetadataManager extends AbstractVerticle
         RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         try {
             this.fs.listDirectoryChildren(recordingMetadataDir).stream()
-                    .peek(
-                            n ->
-                                    logger.info(
-                                            "Peeking contents of recordingMetadata directory: {}",
-                                            n))
+                    .peek(n -> logger.info("Peeking contents of metadata directory: {}", n))
                     .map(recordingMetadataDir::resolve)
                     .forEach(
                             subdirectory -> {
                                 if (fs.isDirectory(subdirectory)) {
                                     try {
-                                        if (this.fs.listDirectoryChildren(subdirectory).isEmpty()) {
+                                        String subdirectoryName =
+                                                subdirectory.getFileName().toString();
+                                        if (jvmIdHelper.isSpecialDirectory(subdirectoryName)) {
+                                            logger.info(
+                                                    "Skipping metadata validation: appears to be a"
+                                                            + " special location: {}",
+                                                    subdirectoryName);
+                                            return;
+                                        } else if (this.fs
+                                                .listDirectoryChildren(subdirectory)
+                                                .isEmpty()) {
                                             logger.info(
                                                     "Deleting empty recording metadata directory:"
                                                             + " {}",
@@ -357,7 +363,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     }
                                 } else {
                                     logger.warn(
-                                            "Recording Metadata subdirectory {} is"
+                                            "Recording metadata subdirectory {} is"
                                                     + " neither a directory nor a file",
                                             subdirectory);
                                     // invalid
@@ -369,7 +375,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             future.complete();
         } catch (IOException e) {
             logger.error(
-                    "Could not read recordingMetadataDirectory! {}, msg: {}",
+                    "Could not read recording metadata directory! {}, msg: {}",
                     recordingMetadataDir,
                     e.getMessage());
             future.fail(e.getCause());
@@ -515,7 +521,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                         .get()
                         .getConnectUrlFromPath(archivedRecordingsPath.resolve(subdirectoryName))
                         .get();
-        String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+        String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
                 metadataPath,
@@ -837,10 +844,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     private Path getMetadataPath(String jvmId) throws IOException {
-        String subdirectory =
-                jvmId.equals(UPLOADS)
-                        ? UPLOADS
-                        : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
+        String subdirectory = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
 
         Path parentDir = recordingMetadataDir.resolve(subdirectory);
         if (parentDir == null) {

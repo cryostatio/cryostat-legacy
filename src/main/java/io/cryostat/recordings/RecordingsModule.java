@@ -216,6 +216,7 @@ public abstract class RecordingsModule {
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,
+            Base32 base32,
             Logger logger) {
         return new JvmIdHelper(
                 targetConnectionManager,
@@ -224,6 +225,7 @@ public abstract class RecordingsModule {
                 connectionTimeoutSeconds,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
+                base32,
                 logger);
     }
 }
