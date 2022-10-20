@@ -290,12 +290,6 @@ public class RecordingArchiveHelper {
         }
     }
 
-    @SuppressFBWarnings(
-            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-            justification =
-                    "SpotBugs false positive. The following checks ensures that the"
-                            + " getFileName() of the Path are not null, barring some exceptional"
-                            + " circumstance like some external filesystem access race.")
     protected Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future =
                 new CompletableFuture<String>().orTimeout(FS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
