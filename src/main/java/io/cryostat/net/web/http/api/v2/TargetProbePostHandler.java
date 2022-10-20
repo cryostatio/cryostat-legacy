@@ -94,7 +94,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
-    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
+    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateApplied";
 
     @Inject
     TargetProbePostHandler(

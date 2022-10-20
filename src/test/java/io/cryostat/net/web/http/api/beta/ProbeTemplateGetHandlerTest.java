@@ -35,13 +35,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -49,19 +50,17 @@ import javax.management.ObjectName;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -77,23 +76,22 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class TargetProbeGetHandlerTest {
+public class ProbeTemplateGetHandlerTest {
 
-    TargetProbesGetHandler handler;
+    ProbeTemplateGetHandler handler;
     @Mock AuthManager auth;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
-    @Mock NotificationFactory notificationFactory;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
+    @Mock ProbeTemplate template;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetProbesGetHandler(
-                        auth, targetConnectionManager, gson);
+                new ProbeTemplateGetHandler(
+                        auth, templateService, fs, gson);
     }
 
     @Nested
@@ -111,13 +109,13 @@ public class TargetProbeGetHandlerTest {
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/probes"));
+                    handler.path(), Matchers.equalTo("/api/v2/probes"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
-                    handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
+                    handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_PROBE_TEMPLATE)));
         }
 
         @Test
@@ -139,42 +137,9 @@ public class TargetProbeGetHandlerTest {
 
         @Test
         public void shouldRespondOK() throws Exception {
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "foo"));
-            Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-            JFRConnection connection = Mockito.mock(JFRConnection.class);
-            IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
-            MBeanServerConnection mbsc = Mockito.mock(MBeanServerConnection.class);
-            Mockito.when(connection.getHandle()).thenReturn(handle);
-            Mockito.when(
-                            targetConnectionManager.executeConnectedTask(
-                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                    .thenAnswer(
-                            arg0 ->
-                                    ((TargetConnectionManager.ConnectedTask<Object>)
-                                                    arg0.getArgument(1))
-                                            .execute(connection));
-            Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
-            Object result = Mockito.mock(Object.class);
-            Mockito.when(result.toString()).thenReturn("");
-            Mockito.when(
-                            mbsc.invoke(
-                                    any(ObjectName.class),
-                                    any(String.class),
-                                    any(Object[].class),
-                                    any(String[].class)))
-                    .thenReturn(result);
-            IntermediateResponse<List<Event>> response = handler.handle(requestParams);
+            Mockito.when(templateService.getTemplates()).thenReturn(List.of(template));
+            IntermediateResponse<List<ProbeTemplate>> response = handler.handle(requestParams);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-        }
-
-        @Test
-        public void shouldRespond400WhenTargetIdIsMissing() throws Exception {
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", ""));
-            try {
-                IntermediateResponse<List<Event>> response = handler.handle(requestParams);
-            } catch (ApiException e) {
-                MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(400));
-            }
         }
     }
 }

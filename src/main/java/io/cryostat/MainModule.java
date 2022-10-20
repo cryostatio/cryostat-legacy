@@ -51,6 +51,7 @@ import javax.script.ScriptEngineManager;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
@@ -70,6 +71,7 @@ import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
+import io.cryostat.util.ProbeTemplateTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
 import io.cryostat.util.resource.ResourceModule;
 
@@ -154,7 +156,8 @@ public abstract class MainModule {
                                 JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                         .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
-                        .registerTypeAdapter(Rule.class, new RuleDeserializer());
+                        .registerTypeAdapter(Rule.class, new RuleDeserializer())
+                        .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter());
         for (PluggableTypeAdapter<?> pta : extraAdapters) {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }
