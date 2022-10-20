@@ -112,14 +112,19 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
                     connection.connect();
                     List<Event> response = new ArrayList<Event>();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    String probes = helper.retrieveEventProbes();
-                    if (probes != null && !probes.isBlank()) {
-                        ProbeTemplate template = new ProbeTemplate();
-                        template.deserialize(
-                                new ByteArrayInputStream(probes.getBytes(StandardCharsets.UTF_8)));
-                        for (Event e : template.getEvents()) {
-                            response.add(e);
+                    try {
+                        String probes = helper.retrieveEventProbes();
+                        if (probes != null && !probes.isBlank()) {
+                            ProbeTemplate template = new ProbeTemplate();
+                            template.deserialize(
+                                    new ByteArrayInputStream(
+                                            probes.getBytes(StandardCharsets.UTF_8)));
+                            for (Event e : template.getEvents()) {
+                                response.add(e);
+                            }
                         }
+                    } catch (Exception e) {
+                        throw new ApiException(501, e.getMessage());
                     }
                     return new IntermediateResponse<List<Event>>().body(response);
                 });
