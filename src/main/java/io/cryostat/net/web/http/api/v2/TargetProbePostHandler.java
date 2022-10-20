@@ -165,10 +165,8 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            Map.of("targetId", targetId),
-                                            Map.of("probeTemplate", probeTemplate)))
+                            .message(Map.of("targetId", targetId))
+                            .message(Map.of("probeTemplate", probeTemplate))
                             .build()
                             .send();
                     return new IntermediateResponse<Void>().body(null);
