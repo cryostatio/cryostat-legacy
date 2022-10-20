@@ -77,7 +77,7 @@ jobs:
     - run: git submodule init
     - run: git submodule update --remote
     - run: mvn -B -U clean package
-    - run: podman save -o cryostat.tar --format oci-archive cryostat:latest
+    - run: podman save -o cryostat.tar --format oci-archive quay.io/cryostat/cryostat
     - uses: actions/upload-artifact@v3
       with:
         name: cryostat

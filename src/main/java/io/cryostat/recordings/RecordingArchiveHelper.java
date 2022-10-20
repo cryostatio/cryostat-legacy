@@ -980,13 +980,6 @@ public class RecordingArchiveHelper {
         }
     }
 
-    // FIXME: override equals() so that tests are easier to write
-    @SuppressFBWarnings(
-            value = "EI_EXPOSE_REP2",
-            justification =
-                    "This class is never used by the client and is not stored, it is simply"
-                        + " constructed upon request so it wouldn't matter even if somehow the List"
-                        + " was modified")
     public static class ArchiveDirectory {
         private final String connectUrl;
         private final String jvmId;
