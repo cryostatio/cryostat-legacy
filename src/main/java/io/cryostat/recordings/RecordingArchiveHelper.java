@@ -865,8 +865,7 @@ public class RecordingArchiveHelper {
     }
 
     private void validateRecordingPath(
-            Optional<Path> optional, String recordingName, boolean checkConnectUrl)
-            throws RecordingNotFoundException, ArchivePathException {
+            Optional<Path> optional, String recordingName, boolean checkConnectUrl) throws RecordingNotFoundException, ArchivePathException {
         if (optional.isEmpty()) {
             throw new RecordingNotFoundException(ARCHIVES, recordingName);
         }
