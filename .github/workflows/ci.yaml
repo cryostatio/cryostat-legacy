@@ -144,6 +144,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        submodules: true
         fetch-depth: 0
     - uses: skjolber/maven-cache-github-action@v1
       with:
