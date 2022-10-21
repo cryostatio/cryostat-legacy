@@ -241,26 +241,17 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             if (child instanceof TargetNode) {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
-                    String oldJvmId = jvmIdHelper.get().get(ref.getServiceUri().toString());
                     ref = jvmIdHelper.get().resolveId(ref);
-                    if (oldJvmId != null) {
-                        vertx.eventBus()
-                                .send(
-                                        DISCOVERY_FOUND_ADDRESS,
-                                        String.format(
-                                                "%s %s %s",
-                                                ref.getServiceUri().toString(),
-                                                oldJvmId,
-                                                ref.getJvmId()));
-                    }
                 } catch (Exception e) {
                     logger.warn("Failed to resolve jvmId for node {}", child.getName());
+                    logger.info(e.getCause().toString());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
                         logger.info("ignoring target child node {}", child.getName());
                         continue;
                     }
+                    logger.warn(e.getCause().getCause().toString());
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 modifiedChildren.add(child);

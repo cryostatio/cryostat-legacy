@@ -71,6 +71,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
@@ -378,21 +379,6 @@ public class RecordingMetadataManager extends AbstractVerticle
             future.fail(e.getCause());
         }
         EventBus eb = vertx.eventBus();
-        eb.consumer(
-                DiscoveryStorage.DISCOVERY_FOUND_ADDRESS,
-                message -> {
-                    String dataGlob = message.body().toString();
-                    var globArray = dataGlob.split(" ");
-                    String targetId = globArray[0];
-                    String oldJvmId = globArray[1];
-                    String newJvmId = globArray[2];
-                    if (oldJvmId.equals(newJvmId)) {
-                        return;
-                    }
-                    Path subdirectoryPath = archiveHelper.getRecordingSubdirectoryPath(oldJvmId);
-                    this.transferMetadataIfRestarted(targetId, oldJvmId, newJvmId);
-                    archiveHelper.transferArchivesIfRestarted(subdirectoryPath, oldJvmId, newJvmId);
-                });
         eb.consumer(
                 DiscoveryStorage.DISCOVERY_STARTUP_ADDRESS,
                 message -> {

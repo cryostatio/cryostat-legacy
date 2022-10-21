@@ -52,6 +52,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.events.AbstractEventEmitter;
 import io.cryostat.util.events.EventType;
 
@@ -105,10 +106,11 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                             break;
                     }
                 });
+            }
                 
-    public ServiceRef resolveId(ServiceRef sr) throws Exception {
+    public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
         if (sr.getJvmId() != null) return sr;
-        String id = getIdServiceRef(sr);
+        String id = getJvmId(sr.getServiceUri().toString());
         ServiceRef updated =
                 new ServiceRef(
                         id,
@@ -120,39 +122,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         return updated;
     }
 
-    // Get jvmIds for DiscoveryStorage ServiceRefs (throws Exception)
-    private String getIdServiceRef(ServiceRef ref) throws Exception {
-        String targetId = ref.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
-        try {
-            String jvmId =
-                    this.targetConnectionManager.executeConnectedTask(
-                            cd,
-                            connection -> {
-                                return connection.getJvmId();
-                            });
-            jvmIdMap.put(targetId, jvmId);
-            return jvmId;
-        } catch (Exception e) {
-            throw e;
-        }
-    }
-
-    protected String computeJvmId(ServiceRef ref) {
-        String targetId = ref.getServiceUri().toString();
-        try {
-            ConnectionDescriptor desc =
-                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(ref));
-            return compute(desc);
-        } catch (Exception e) {
-            logger.warn(e);
-            return null;
-        }
-    }
-
-    public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
-        String targetId = connectionDescriptor.getTargetId();
+    private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
@@ -168,11 +138,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                         new ConnectionDescriptor(
                                 targetId, credentialsManager.getCredentialsByTargetId(targetId)),
                         connection -> {
-                            try {
-                                return connection.getJvmId();
-                            } catch (Exception e) {
-                                throw new JvmIdGetException(e, targetId);
-                            }
+                            return connection.getJvmId();
                         });
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
         return future;
@@ -222,7 +188,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             this.targetId = targetId;
         }
 
-        JvmIdGetException(Throwable cause, String targetId) {
+        public JvmIdGetException(Throwable cause, String targetId) {
             super(cause);
             this.targetId = targetId;
         }
