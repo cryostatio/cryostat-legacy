@@ -42,16 +42,20 @@ import static org.mockito.Mockito.when;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.rmi.ConnectIOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import javax.script.ScriptException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -272,7 +276,7 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Test
-        void shouldUseNoCredentialsWithoutAuthorizationHeader() {
+        void shouldUseNoCredentialsIfNoneStoredOrProvided() throws ScriptException {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
 
@@ -281,6 +285,49 @@ class AbstractV2RequestHandlerTest {
 
             MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
             Assertions.assertFalse(desc.getCredentials().isPresent());
+
+            Mockito.verify(credentialsManager).getCredentialsByTargetId(targetId);
+        }
+
+        @Test
+        void shouldUseStoredCredentials() throws ScriptException {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+
+            Credentials creds = new Credentials("a user", "thepass");
+            Mockito.when(credentialsManager.getCredentialsByTargetId(targetId)).thenReturn(creds);
+
+            handler.handle(ctx);
+            ConnectionDescriptor desc = handler.desc;
+
+            MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
+            Assertions.assertTrue(desc.getCredentials().isPresent());
+            MatcherAssert.assertThat(desc.getCredentials().get(), Matchers.equalTo(creds));
+
+            Mockito.verify(credentialsManager).getCredentialsByTargetId(targetId);
+        }
+
+        @Test
+        void shouldOverrideStoredCredentialsByAuthorizationHeader() throws ScriptException {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set(
+                    "X-JMX-Authorization",
+                    "Basic " + Base64.getEncoder().encodeToString("jmxuser:jmxpass".getBytes()));
+            Mockito.when(ctx.request().headers()).thenReturn(headers);
+
+            Credentials creds = new Credentials("a user", "thepass");
+            Mockito.when(credentialsManager.getCredentialsByTargetId(targetId)).thenReturn(creds);
+
+            handler.handle(ctx);
+            ConnectionDescriptor desc = handler.desc;
+
+            MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
+            Assertions.assertTrue(desc.getCredentials().isPresent());
+            MatcherAssert.assertThat(
+                    desc.getCredentials().get(),
+                    Matchers.equalTo(new Credentials("jmxuser", "jmxpass")));
         }
 
         @ParameterizedTest
