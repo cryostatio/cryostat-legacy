@@ -47,6 +47,7 @@ import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 
@@ -61,10 +62,6 @@ public class EventOptionsBuilder {
     private final IMutableConstrainedMap<EventOptionID> map;
     private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
     private Map<String, IEventTypeID> eventIds;
-
-    private EventOptionsBuilder(ClientWriter cw, JFRConnection connection) throws Exception {
-        this(cw, connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
-    }
 
     // Testing only
     EventOptionsBuilder(ClientWriter cw, JFRConnection connection, Supplier<Boolean> v2)
@@ -137,7 +134,9 @@ public class EventOptionsBuilder {
         }
 
         public EventOptionsBuilder create(JFRConnection connection) throws Exception {
-            return new EventOptionsBuilder(cw, connection);
+            IConnectionHandle handle = connection.getHandle();
+            return new EventOptionsBuilder(
+                    cw, connection, () -> FlightRecorderServiceV2.isAvailable(handle));
         }
     }
 }

@@ -37,6 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +47,8 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.AgentJMXHelper;
-import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.core.agent.Event;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -55,22 +59,15 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 
-class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
+class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
 
     static final String PATH = "targets/:targetId/probes";
 
     private final TargetConnectionManager connectionManager;
-    private static final String NOTIFICATION_CATEGORY = "TargetProbesGet";
-    private final NotificationFactory notificationFactory;
 
     @Inject
-    TargetProbesGetHandler(
-            AuthManager auth,
-            TargetConnectionManager connectionManager,
-            NotificationFactory notificationFactory,
-            Gson gson) {
+    TargetProbesGetHandler(AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
         super(auth, gson);
-        this.notificationFactory = notificationFactory;
         this.connectionManager = connectionManager;
     }
 
@@ -100,7 +97,8 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<List<Event>> handle(RequestParameters requestParams)
+            throws Exception {
         Map<String, String> pathParams = requestParams.getPathParams();
         String targetId = pathParams.get("targetId");
         StringBuilder sb = new StringBuilder();
@@ -111,17 +109,23 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
-                    connection.connect();
+                    List<Event> response = new ArrayList<Event>();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    String probes = helper.retrieveEventProbes();
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(Map.of("targetId", targetId))
-                            .build()
-                            .send();
-                    return new IntermediateResponse<String>().body(probes);
+                    try {
+                        String probes = helper.retrieveEventProbes();
+                        if (probes != null && !probes.isBlank()) {
+                            ProbeTemplate template = new ProbeTemplate();
+                            template.deserialize(
+                                    new ByteArrayInputStream(
+                                            probes.getBytes(StandardCharsets.UTF_8)));
+                            for (Event e : template.getEvents()) {
+                                response.add(e);
+                            }
+                        }
+                    } catch (Exception e) {
+                        throw new ApiException(501, e.getMessage());
+                    }
+                    return new IntermediateResponse<List<Event>>().body(response);
                 });
     }
 
