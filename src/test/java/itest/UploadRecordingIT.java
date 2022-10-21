@@ -37,9 +37,7 @@
  */
 package itest;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -161,12 +159,10 @@ public class UploadRecordingIT extends StandardSelfTest {
         // Query Data Source for recording metrics
         final CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
-        final Calendar fromDate = Calendar.getInstance();
-        fromDate.add(Calendar.SECOND, -RECORDING_DURATION_SECONDS);
-
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        final String FROM = dateFormat.format(fromDate.getTime());
-        final String TO = dateFormat.format(Calendar.getInstance().getTime());
+        Instant toDate = Instant.now(); // Capture the current moment in UTC
+        Instant fromDate = toDate.plusSeconds(-REQUEST_TIMEOUT_SECONDS);
+        final String FROM = fromDate.toString();
+        final String TO = toDate.toString();
         final String TARGET_METRIC = "jdk.CPULoad.machineTotal";
 
         final JsonObject query =
