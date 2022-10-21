@@ -15,8 +15,13 @@ if [ -z "${MVN}" ]; then
     MVN="$(which mvn)"
 fi
 
-POD_NAME="$(xpath -q -e 'project/properties/cryostat.itest.podName/text()' pom.xml)"
-CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
+if [ -z "${POD_NAME}" ]; then
+    POD_NAME="$(xpath -q -e 'project/properties/cryostat.itest.podName/text()' pom.xml)"
+fi
+
+if [ -z "${CONTAINER_NAME}" ]; then
+    CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
+fi
 
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then

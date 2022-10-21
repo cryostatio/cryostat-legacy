@@ -99,10 +99,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
-    - name: install xpath
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libxml-xpath-perl
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
@@ -111,7 +107,8 @@ jobs:
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
-    - run: bash repeated-integration-tests.bash
+    - name: Run integration tests
+      run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest bash repeated-integration-tests.bash
     - name: Print itest logs
       if: ${{ failure() }}
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
@@ -173,7 +170,7 @@ jobs:
       with:
         step: save
 
-  build:
+  push-to-quay:
     runs-on: ubuntu-latest
     needs: [integration-tests, spotless, spotbugs, shellcheck]
     env:
@@ -193,9 +190,6 @@ jobs:
           echo "::set-output name=tags::$IMAGE_VERSION"
         fi
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: save
     - name: Push to quay.io
       id: push-to-quay
       uses: redhat-actions/push-to-registry@v2

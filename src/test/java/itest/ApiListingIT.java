@@ -94,6 +94,6 @@ public class ApiListingIT extends StandardSelfTest {
                         .getJsonObject("result")
                         .getJsonArray("endpoints")
                         .size(),
-                Matchers.greaterThan(0));
+                Matchers.greaterThan(1000));
     }
 }
