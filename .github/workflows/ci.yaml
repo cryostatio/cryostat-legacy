@@ -166,6 +166,10 @@ jobs:
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+        fetch-depth: 0
     - name: Tag images
       id: tag-image
       env:
