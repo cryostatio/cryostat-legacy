@@ -37,46 +37,56 @@
  */
 package itest;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
+import org.bouncycastle.util.Longs;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class UploadRecordingIT extends StandardSelfTest {
 
-    static final String TARGET_ID = "localhost";
     static final String RECORDING_NAME = "upload_recording_it_rec";
+    static final int RECORDING_DURATION_SECONDS = 10;
 
     @BeforeAll
     public static void createRecording() throws Exception {
-        CompletableFuture<JsonObject> dumpRespFuture = new CompletableFuture<>();
+        CompletableFuture<JsonObject> dumpPostResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", RECORDING_NAME);
-        form.add("duration", "5");
+        form.add("duration", String.valueOf(RECORDING_DURATION_SECONDS));
         form.add("events", "template=ALL");
         webClient
-                .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, dumpRespFuture)) {
-                                dumpRespFuture.complete(ar.result().bodyAsJsonObject());
+                            if (assertRequestStatus(ar, dumpPostResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(201));
+                                dumpPostResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        dumpPostResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Thread.sleep(
+                Long.valueOf(
+                        RECORDING_DURATION_SECONDS * 1000)); // Wait for the recording to finish
     }
 
     @AfterAll
@@ -85,10 +95,13 @@ public class UploadRecordingIT extends StandardSelfTest {
         webClient
                 .delete(
                         String.format(
-                                "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                                "/api/v1/targets/%s/recordings/%s",
+                                SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, deleteRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                                 deleteRespFuture.complete(null);
                             }
                         });
@@ -100,28 +113,130 @@ public class UploadRecordingIT extends StandardSelfTest {
         }
     }
 
-    @Disabled(
-            "TODO, this test needs to be updated to actually trigger a file to be uploaded to"
-                    + " jfr-datasource/grafana-dashboard now that the integration tests have these"
-                    + " additional containers configured")
     @Test
-    public void shouldHandleBadDatasourceUrl() throws Exception {
-        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+    public void shouldLoadRecordingToDatasource() throws Exception {
+        final CompletableFuture<String> uploadRespFuture = new CompletableFuture<>();
         webClient
                 .post(
                         String.format(
                                 "/api/v1/targets/%s/recordings/%s/upload",
-                                TARGET_ID, RECORDING_NAME))
+                                SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
-                            if (ar.failed()) {
-                                uploadRespFuture.completeExceptionally(ar.cause());
-                                return;
+                            if (assertRequestStatus(ar, uploadRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                             }
-                            HttpResponse<Buffer> result = ar.result();
-                            uploadRespFuture.complete(result.statusCode());
+                            uploadRespFuture.complete(ar.result().bodyAsString());
                         });
-        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        MatcherAssert.assertThat(statusCode, Matchers.equalTo(200));
+
+        final String expectedUploadResponse =
+                String.format("Uploaded: %s\nSet: %s", RECORDING_NAME, RECORDING_NAME);
+
+        MatcherAssert.assertThat(
+                uploadRespFuture.get().trim(), Matchers.equalTo(expectedUploadResponse));
+
+        // Confirm recording is loaded in Data Source
+        final CompletableFuture<String> getRespFuture = new CompletableFuture<>();
+        webClient
+                .get(8080, "localhost", "/list")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
+                                getRespFuture.complete(ar.result().bodyAsString());
+                            }
+                        });
+
+        MatcherAssert.assertThat(
+                getRespFuture.get().trim(),
+                Matchers.equalTo(String.format("**%s**", RECORDING_NAME)));
+
+        // Query Data Source for recording metrics
+        final CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
+
+        Instant toDate = Instant.now(); // Capture the current moment in UTC
+        Instant fromDate = toDate.plusSeconds(-REQUEST_TIMEOUT_SECONDS);
+        final String FROM = fromDate.toString();
+        final String TO = toDate.toString();
+        final String TARGET_METRIC = "jdk.CPULoad.machineTotal";
+
+        final JsonObject query =
+                new JsonObject(
+                        Map.ofEntries(
+                                Map.entry("app", "dashboard"),
+                                Map.entry("dashboardId", 1), // Main Dashboard
+                                Map.entry("panelId", 3), // Any ID
+                                Map.entry("requestId", "Q237"), // Some request ID
+                                Map.entry("timezone", "browser"),
+                                Map.entry(
+                                        "range",
+                                        Map.of(
+                                                "from",
+                                                FROM,
+                                                "to",
+                                                TO,
+                                                "raw",
+                                                Map.of("from", FROM, "to", TO))),
+                                Map.entry("interval", "1s"),
+                                Map.entry("intervalMs", "1000"),
+                                Map.entry(
+                                        "targets",
+                                        List.of(
+                                                Map.of(
+                                                        "target",
+                                                        TARGET_METRIC,
+                                                        "refId",
+                                                        "A",
+                                                        "type",
+                                                        "timeserie"))),
+                                Map.entry("maxDataPoints", 1000),
+                                Map.entry("adhocFilters", List.of())));
+
+        webClient
+                .post(8080, "localhost", "/query")
+                .sendJsonObject(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, queryRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                queryRespFuture.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+
+        final JsonArray arrResponse = queryRespFuture.get();
+        MatcherAssert.assertThat(arrResponse, Matchers.notNullValue());
+        MatcherAssert.assertThat(arrResponse.size(), Matchers.equalTo(1)); // Single target
+
+        JsonObject targetResponse = arrResponse.getJsonObject(0);
+        MatcherAssert.assertThat(
+                targetResponse.getString("target"), Matchers.equalTo(TARGET_METRIC));
+        MatcherAssert.assertThat(
+                targetResponse.getJsonObject("meta"), Matchers.equalTo(new JsonObject()));
+
+        JsonArray dataPoints = targetResponse.getJsonArray("datapoints");
+        MatcherAssert.assertThat(dataPoints, Matchers.notNullValue());
+
+        for (Object dataPoint : dataPoints) {
+            JsonArray datapointPair = (JsonArray) dataPoint;
+            MatcherAssert.assertThat(
+                    datapointPair.size(), Matchers.equalTo(2)); // [value, timestamp]
+            MatcherAssert.assertThat(
+                    datapointPair.getDouble(0), Matchers.notNullValue()); // value must not be null
+            MatcherAssert.assertThat(
+                    datapointPair.getLong(1),
+                    Matchers.allOf(
+                            Matchers.notNullValue(),
+                            Matchers.greaterThan(
+                                    Longs.valueOf(0)))); // timestamp must be non-null and positive
+        }
     }
 }
