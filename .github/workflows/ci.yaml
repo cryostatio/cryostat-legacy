@@ -152,8 +152,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
-    - run: mvn compile
-    - run: mvn spotbugs:check
+    - run: mvn compile spotbugs:check
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
