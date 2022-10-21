@@ -49,6 +49,7 @@ import javax.management.ObjectName;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -81,6 +82,7 @@ public class TargetProbePostHandlerTest {
 
     TargetProbePostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -112,6 +114,7 @@ public class TargetProbePostHandlerTest {
                         templateService,
                         fs,
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         env,
                         gson);

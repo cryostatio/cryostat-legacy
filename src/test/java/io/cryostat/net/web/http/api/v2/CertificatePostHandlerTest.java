@@ -51,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -86,6 +87,7 @@ class CertificatePostHandlerTest {
 
     CertificatePostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -106,7 +108,13 @@ class CertificatePostHandlerTest {
     void setup() {
         this.handler =
                 new CertificatePostHandler(
-                        auth, env, fs, gson, outputStreamFunction, certValidator);
+                        auth,
+                        credentialsManager,
+                        env,
+                        fs,
+                        gson,
+                        outputStreamFunction,
+                        certValidator);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();

@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -65,8 +66,11 @@ class TargetSnapshotPostHandler
 
     @Inject
     TargetSnapshotPostHandler(
-            AuthManager auth, RecordingTargetHelper recordingTargetHelper, Gson gson) {
-        super(auth, gson);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingTargetHelper recordingTargetHelper,
+            Gson gson) {
+        super(auth, credentialsManager, gson);
         this.recordingTargetHelper = recordingTargetHelper;
     }
 

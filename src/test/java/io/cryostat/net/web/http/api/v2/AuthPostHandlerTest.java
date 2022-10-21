@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationScheme;
@@ -69,6 +70,7 @@ class AuthPostHandlerTest {
 
     AuthPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -77,7 +79,7 @@ class AuthPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthPostHandler(auth, gson);
+        this.handler = new AuthPostHandler(auth, credentialsManager, gson);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();

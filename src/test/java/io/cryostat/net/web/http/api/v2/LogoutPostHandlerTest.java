@@ -41,6 +41,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.util.Optional;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -65,6 +66,7 @@ public class LogoutPostHandlerTest {
 
     LogoutPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -73,7 +75,7 @@ public class LogoutPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new LogoutPostHandler(auth, gson);
+        this.handler = new LogoutPostHandler(auth, credentialsManager, gson);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();

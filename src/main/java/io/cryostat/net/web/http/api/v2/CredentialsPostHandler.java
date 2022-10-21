@@ -65,7 +65,6 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "credentials";
 
-    private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
 
     @Inject
@@ -74,8 +73,7 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
     }
 

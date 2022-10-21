@@ -47,6 +47,9 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.script.ScriptException;
+
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -75,10 +78,13 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     public static final String JMX_AUTHORIZATION_HEADER = "X-JMX-Authorization";
 
     protected final AuthManager auth;
+    protected final CredentialsManager credentialsManager;
     protected final Gson gson;
 
-    protected AbstractV2RequestHandler(AuthManager auth, Gson gson) {
+    protected AbstractV2RequestHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         this.auth = auth;
+        this.credentialsManager = credentialsManager;
         this.gson = gson;
     }
 
@@ -119,46 +125,52 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {
         String targetId = params.getPathParams().get("targetId");
-        Credentials credentials = null;
-        if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {
-            String proxyAuth = params.getHeaders().get(JMX_AUTHORIZATION_HEADER);
-            Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
-            if (!m.find()) {
-                params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new ApiException(427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
-            } else {
-                String t = m.group("type");
-                if (!"basic".equals(t.toLowerCase())) {
+        try {
+            Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
+            if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {
+                String proxyAuth = params.getHeaders().get(JMX_AUTHORIZATION_HEADER);
+                Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
+                if (!m.find()) {
                     params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
-                    throw new ApiException(
-                            427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
+                    throw new ApiException(427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
                 } else {
-                    String c;
-                    try {
-                        c =
-                                new String(
-                                        Base64.getUrlDecoder().decode(m.group("credentials")),
-                                        StandardCharsets.UTF_8);
-                    } catch (IllegalArgumentException iae) {
+                    String t = m.group("type");
+                    if (!"basic".equals(t.toLowerCase())) {
                         params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new ApiException(
-                                427,
-                                JMX_AUTHORIZATION_HEADER
-                                        + " credentials do not appear to be Base64-encoded",
-                                iae);
+                                427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
+                    } else {
+                        String c;
+                        try {
+                            c =
+                                    new String(
+                                            Base64.getUrlDecoder().decode(m.group("credentials")),
+                                            StandardCharsets.UTF_8);
+                        } catch (IllegalArgumentException iae) {
+                            params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
+                            throw new ApiException(
+                                    427,
+                                    JMX_AUTHORIZATION_HEADER
+                                            + " credentials do not appear to be Base64-encoded",
+                                    iae);
+                        }
+                        String[] parts = c.split(":");
+                        if (parts.length != 2) {
+                            params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
+                            throw new ApiException(
+                                    427,
+                                    "Unrecognized "
+                                            + JMX_AUTHORIZATION_HEADER
+                                            + " credential format");
+                        }
+                        credentials = new Credentials(parts[0], parts[1]);
                     }
-                    String[] parts = c.split(":");
-                    if (parts.length != 2) {
-                        params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
-                        throw new ApiException(
-                                427,
-                                "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
-                    }
-                    credentials = new Credentials(parts[0], parts[1]);
                 }
             }
+            return new ConnectionDescriptor(targetId, credentials);
+        } catch (ScriptException e) {
+            throw new ApiException(500, e);
         }
-        return new ConnectionDescriptor(targetId, credentials);
     }
 
     protected void writeResponse(RoutingContext ctx, IntermediateResponse<T> intermediateResponse) {

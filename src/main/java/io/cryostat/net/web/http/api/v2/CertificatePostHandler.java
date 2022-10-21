@@ -54,6 +54,7 @@ import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -81,12 +82,13 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
     @Inject
     CertificatePostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Environment env,
             FileSystem fs,
             Gson gson,
             @Named("OutputStreamFunction") Function<File, FileOutputStream> outputStreamFunction,
             CertificateValidator certValidator) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.env = env;
         this.fs = fs;
         this.outputStreamFunction = outputStreamFunction;

@@ -57,7 +57,6 @@ import io.vertx.core.http.HttpMethod;
 
 class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
 
-    private final CredentialsManager credentialsManager;
     private final NotificationFactory notificationFactory;
 
     @Inject
@@ -66,8 +65,7 @@ class CredentialDeleteHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
     }
 

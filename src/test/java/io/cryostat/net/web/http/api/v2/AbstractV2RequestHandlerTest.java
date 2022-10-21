@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -88,6 +89,7 @@ class AbstractV2RequestHandlerTest {
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -104,7 +106,7 @@ class AbstractV2RequestHandlerTest {
         Mockito.lenient().when(ctx.request()).thenReturn(req);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
 
-        this.handler = new AuthenticatedHandler(auth, gson);
+        this.handler = new AuthenticatedHandler(auth, credentialsManager, gson);
     }
 
     @Test
@@ -132,7 +134,8 @@ class AbstractV2RequestHandlerTest {
 
     @Test
     void shouldSendRawResponseForNonJsonPlaintextMimetype() {
-        AbstractV2RequestHandler<String> handler = new RawResponseHandler(auth, gson);
+        AbstractV2RequestHandler<String> handler =
+                new RawResponseHandler(auth, credentialsManager, gson);
 
         handler.handle(ctx);
 
@@ -143,7 +146,8 @@ class AbstractV2RequestHandlerTest {
 
     @Test
     void shouldSendFileResponseIfHandlerProvidesFileLocation() {
-        AbstractV2RequestHandler<Path> handler = new FileResponseHandler(auth, gson);
+        AbstractV2RequestHandler<Path> handler =
+                new FileResponseHandler(auth, credentialsManager, gson);
 
         handler.handle(ctx);
 
@@ -164,7 +168,9 @@ class AbstractV2RequestHandlerTest {
         @Test
         void shouldPropagateIfHandlerThrowsApiException() {
             Exception expectedException = new ApiException(200);
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -174,7 +180,9 @@ class AbstractV2RequestHandlerTest {
         @Test
         void shouldThrow500IfConnectionFails() {
             Exception expectedException = new ConnectionException("");
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -186,7 +194,9 @@ class AbstractV2RequestHandlerTest {
             Exception cause = new SecurityException();
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -199,7 +209,9 @@ class AbstractV2RequestHandlerTest {
             Exception cause = new ConnectIOException("SSL trust");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -213,7 +225,9 @@ class AbstractV2RequestHandlerTest {
             Exception cause = new UnknownHostException("localhostt");
             Exception expectedException = new ConnectionException("");
             expectedException.initCause(cause);
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -224,7 +238,9 @@ class AbstractV2RequestHandlerTest {
         @Test
         void shouldThrow500IfHandlerThrowsUnexpectedly() {
             Exception expectedException = new NullPointerException();
-            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+            handler =
+                    new ThrowingAuthenticatedHandler(
+                            auth, credentialsManager, gson, expectedException);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -239,7 +255,7 @@ class AbstractV2RequestHandlerTest {
 
         @BeforeEach
         void setup3() {
-            handler = new ConnectionDescriptorHandler(auth, gson);
+            handler = new ConnectionDescriptorHandler(auth, credentialsManager, gson);
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
@@ -358,8 +374,8 @@ class AbstractV2RequestHandlerTest {
     }
 
     static class AuthenticatedHandler extends AbstractV2RequestHandler<String> {
-        AuthenticatedHandler(AuthManager auth, Gson gson) {
-            super(auth, gson);
+        AuthenticatedHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            super(auth, credentialsManager, gson);
         }
 
         @Override
@@ -401,8 +417,12 @@ class AbstractV2RequestHandlerTest {
     static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {
         private final Exception thrown;
 
-        ThrowingAuthenticatedHandler(AuthManager auth, Gson gson, Exception thrown) {
-            super(auth, gson);
+        ThrowingAuthenticatedHandler(
+                AuthManager auth,
+                CredentialsManager credentialsManager,
+                Gson gson,
+                Exception thrown) {
+            super(auth, credentialsManager, gson);
             this.thrown = thrown;
         }
 
@@ -415,8 +435,9 @@ class AbstractV2RequestHandlerTest {
     static class ConnectionDescriptorHandler extends AuthenticatedHandler {
         ConnectionDescriptor desc;
 
-        ConnectionDescriptorHandler(AuthManager auth, Gson gson) {
-            super(auth, gson);
+        ConnectionDescriptorHandler(
+                AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            super(auth, credentialsManager, gson);
         }
 
         @Override
@@ -427,8 +448,8 @@ class AbstractV2RequestHandlerTest {
     }
 
     static class FileResponseHandler extends AbstractV2RequestHandler<Path> {
-        FileResponseHandler(AuthManager auth, Gson gson) {
-            super(auth, gson);
+        FileResponseHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            super(auth, credentialsManager, gson);
         }
 
         @Override
@@ -468,8 +489,8 @@ class AbstractV2RequestHandlerTest {
     }
 
     static class RawResponseHandler extends AbstractV2RequestHandler<String> {
-        RawResponseHandler(AuthManager auth, Gson gson) {
-            super(auth, gson);
+        RawResponseHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+            super(auth, credentialsManager, gson);
         }
 
         @Override

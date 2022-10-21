@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -67,13 +68,14 @@ class RulesGetHandlerTest {
 
     RulesGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RuleRegistry registry;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new RulesGetHandler(auth, registry, gson, logger);
+        this.handler = new RulesGetHandler(auth, credentialsManager, registry, gson, logger);
     }
 
     @Nested

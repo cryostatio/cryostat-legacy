@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
@@ -71,6 +72,7 @@ class AuthTokenPostHandlerTest {
 
     AuthTokenPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock Logger logger;
@@ -78,7 +80,9 @@ class AuthTokenPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new AuthTokenPostHandler(auth, gson, jwt, () -> webServer, logger);
+        this.handler =
+                new AuthTokenPostHandler(
+                        auth, credentialsManager, gson, jwt, () -> webServer, logger);
     }
 
     @Nested

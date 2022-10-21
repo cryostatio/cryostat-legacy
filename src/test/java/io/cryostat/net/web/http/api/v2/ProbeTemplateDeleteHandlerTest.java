@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -73,6 +74,7 @@ public class ProbeTemplateDeleteHandlerTest {
 
     ProbeTemplateDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -97,7 +99,13 @@ public class ProbeTemplateDeleteHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new ProbeTemplateDeleteHandler(
-                        auth, notificationFactory, templateService, logger, fs, gson);
+                        auth,
+                        credentialsManager,
+                        notificationFactory,
+                        templateService,
+                        logger,
+                        fs,
+                        gson);
     }
 
     @Nested
