@@ -54,7 +54,7 @@ jobs:
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
-  
+
   build-image:
     runs-on: ubuntu-latest
     needs: [get-pom-properties, build-deps]
