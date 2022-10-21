@@ -94,7 +94,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
-    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
+    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateApplied";
 
     @Inject
     TargetProbePostHandler(
@@ -158,17 +158,14 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
         return connectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
-                    connection.connect();
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                     helper.defineEventProbes(probeTemplateService.getTemplate(probeTemplate));
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            Map.of("targetId", targetId),
-                                            Map.of("probeTemplate", probeTemplate)))
+                            .message(Map.of("targetId", targetId))
+                            .message(Map.of("probeTemplate", probeTemplate))
                             .build()
                             .send();
                     return new IntermediateResponse<Void>().body(null);
