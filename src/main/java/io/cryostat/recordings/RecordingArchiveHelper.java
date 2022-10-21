@@ -81,7 +81,6 @@ import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -114,7 +113,6 @@ public class RecordingArchiveHelper {
     public static final String ARCHIVES = "archives";
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
     public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
-    public static final String LOST_RECORDINGS_SUBDIRECTORY = "lost";
     private static final String CONNECT_URL = "connectUrl";
 
     RecordingArchiveHelper(
@@ -144,7 +142,7 @@ public class RecordingArchiveHelper {
         this.base32 = base32;
     }
 
-    // startup migration for archived recordings
+    // on startup migration and jvmId transfer method for archived recordings
     protected void migrate(ExecutorService executor) throws Exception {
         List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
         List<Future<Void>> futures = new ArrayList<>(subdirectories.size());
@@ -152,20 +150,18 @@ public class RecordingArchiveHelper {
             Future<Void> future =
                     executor.submit(
                             () -> {
-                                Path subdirectoryPath = null;
                                 try {
-                                    if (jvmIdHelper.isSpecialDirectory(subdirectoryName)) {
-                                        logger.info(
-                                                "Skipping archive migration: appears to be a"
-                                                        + " special location: {}",
-                                                subdirectoryName);
-                                        return null;
-                                    }
                                     logger.info(
                                             "Found archived recordings subdirectory: {}",
                                             subdirectoryName);
-
-                                    subdirectoryPath =
+                                    // FIXME: refactor structure to remove file-uploads (v1
+                                    // RecordingsPostBodyHandler)
+                                    if (subdirectoryName.equals("file-uploads")
+                                            || subdirectoryName.equals("uploads")) {
+                                        logger.info("Skipping: appears to be an upload location");
+                                        return null;
+                                    }
+                                    Path subdirectoryPath =
                                             archivedRecordingsPath.resolve(subdirectoryName);
                                     String connectUrl;
                                     try {
@@ -204,28 +200,7 @@ public class RecordingArchiveHelper {
                                         Files.move(oldLocation, newLocation);
                                     }
                                     FileUtils.deleteQuietly(subdirectoryPath.toFile());
-                                } catch (JvmIdGetException e) {
-                                    logger.warn(
-                                            "Failed to migrate archived recordings for {} - no"
-                                                    + " target connection available to {}",
-                                            subdirectoryName,
-                                            e.getTarget());
-                                    Path lostPath =
-                                            archivedRecordingsPath.resolve(
-                                                    LOST_RECORDINGS_SUBDIRECTORY);
-                                    if (!fs.exists(lostPath)) {
-                                        fs.createDirectory(lostPath);
-                                    }
-                                    for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
-                                        Path oldLocation = subdirectoryPath.resolve(file);
-                                        Path newLocation = lostPath.resolve(file);
-                                        logger.info(
-                                                "Moving lost recordings: {} -> {}",
-                                                oldLocation,
-                                                newLocation);
-                                        Files.move(oldLocation, newLocation);
-                                    }
-                                    FileUtils.deleteQuietly(subdirectoryPath.toFile());
+
                                 } catch (IOException e) {
                                     logger.warn(e);
                                 } catch (CancellationException e) {
@@ -266,7 +241,7 @@ public class RecordingArchiveHelper {
             }
 
             logger.info(
-                    "[{}]: Archives subdirectory transfer: {} -> {}",
+                    "{} Archives subdirectory transfer: {} -> {}",
                     connectUrl,
                     subdirectoryPath,
                     newJvmId);
@@ -281,7 +256,7 @@ public class RecordingArchiveHelper {
             fs.deleteIfExists(subdirectoryPath);
 
             logger.info(
-                    "[{}]: Archives subdirectory successfully transferred: {} -> {}",
+                    "{} Archives subdirectory successfully transferred: {} -> {}",
                     connectUrl,
                     subdirectoryPath,
                     newJvmId);
@@ -290,6 +265,12 @@ public class RecordingArchiveHelper {
         }
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. The following checks ensures that the"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     protected Future<String> getConnectUrlFromPath(Path subdirectory) {
         CompletableFuture<String> future =
                 new CompletableFuture<String>().orTimeout(FS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -298,8 +279,6 @@ public class RecordingArchiveHelper {
         } else if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                 || subdirectory.getFileName().toString().equals("file-uploads")) {
             future.complete(UPLOADED_RECORDINGS_SUBDIRECTORY);
-        } else if (subdirectory.getFileName().toString().equals(LOST_RECORDINGS_SUBDIRECTORY)) {
-            future.complete(LOST_RECORDINGS_SUBDIRECTORY);
         } else {
             Optional<String> connectUrl = Optional.empty();
             try {
@@ -320,7 +299,10 @@ public class RecordingArchiveHelper {
     }
 
     Path getRecordingSubdirectoryPath(String jvmId) {
-        String subdirectory = jvmIdHelper.jvmIdToSubdirectoryName(jvmId);
+        String subdirectory =
+                jvmId.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
+                        ? UPLOADED_RECORDINGS_SUBDIRECTORY
+                        : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
         return archivedRecordingsPath.resolve(subdirectory);
     }
 
@@ -402,7 +384,7 @@ public class RecordingArchiveHelper {
             String subdirectoryName, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
         try {
-            String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+            String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
             Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
             Path recordingPath = subdirectoryPath.resolve(recordingName);
             validateSavePath(recordingName, recordingPath);
@@ -660,7 +642,7 @@ public class RecordingArchiveHelper {
                 }
                 Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
                 String targetId = getConnectUrlFromPath(subdirectory).get();
-                String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+                String jvmId = new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
                 List<String> files = this.fs.listDirectoryChildren(subdirectory);
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
@@ -762,9 +744,8 @@ public class RecordingArchiveHelper {
 
     public Future<Path> getRecordingPathFromPath(String subdirectoryName, String recordingName) {
         try {
-            boolean checkConnectUrl = !jvmIdHelper.isSpecialDirectory(subdirectoryName);
             Path path = archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
-            validateRecordingPath(Optional.of(path), recordingName, checkConnectUrl);
+            validateRecordingPath(Optional.of(path), recordingName, false);
             return CompletableFuture.completedFuture(path);
         } catch (RecordingNotFoundException | ArchivePathException e) {
             return CompletableFuture.failedFuture(e);
@@ -777,7 +758,7 @@ public class RecordingArchiveHelper {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Optional<Path> optional =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
-            validateRecordingPath(optional, recordingName, false);
+            validateRecordingPath(optional, recordingName, true);
             future.complete(optional.get());
         } catch (RecordingNotFoundException | IOException | ArchivePathException e) {
             future.completeExceptionally(e);
@@ -804,7 +785,7 @@ public class RecordingArchiveHelper {
             if (archivedRecording == null) {
                 throw new RecordingNotFoundException(sourceTarget, recordingName);
             }
-            validateRecordingPath(Optional.of(archivedRecording), recordingName, true);
+            validateRecordingPath(Optional.of(archivedRecording), recordingName, false);
             future.complete(archivedRecording);
         } catch (RecordingNotFoundException | ArchivePathException | IOException e) {
             future.completeExceptionally(e);
@@ -859,7 +840,7 @@ public class RecordingArchiveHelper {
     }
 
     private void validateRecordingPath(
-            Optional<Path> optional, String recordingName, boolean checkConnectUrl)
+            Optional<Path> optional, String recordingName, boolean isUploads)
             throws RecordingNotFoundException, ArchivePathException {
         if (optional.isEmpty()) {
             throw new RecordingNotFoundException(ARCHIVES, recordingName);
@@ -874,7 +855,7 @@ public class RecordingArchiveHelper {
         if (!fs.isReadable(archivedRecording)) {
             throw new ArchivePathException(archivedRecording.toString(), "is not readable");
         }
-        if (checkConnectUrl && !fs.exists(archivedRecording.resolveSibling(CONNECT_URL))) {
+        if (!isUploads && !fs.exists(archivedRecording.resolveSibling(CONNECT_URL))) {
             throw new ArchivePathException(
                     archivedRecording.resolveSibling(CONNECT_URL).toString(), "does not exist");
         }
@@ -974,6 +955,13 @@ public class RecordingArchiveHelper {
         }
     }
 
+    // FIXME: override equals() so that tests are easier to write
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "This class is never used by the client and is not stored, it is simply"
+                        + " constructed upon request so it wouldn't matter even if somehow the List"
+                        + " was modified")
     public static class ArchiveDirectory {
         private final String connectUrl;
         private final String jvmId;
