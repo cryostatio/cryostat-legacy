@@ -166,10 +166,11 @@ jobs:
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v3
       with:
-        submodules: true
-        fetch-depth: 0
+        name: cryostat
+    - name: Load cryostat image
+      run: podman load -i cryostat.tar
     - name: Tag images
       id: tag-image
       env:
