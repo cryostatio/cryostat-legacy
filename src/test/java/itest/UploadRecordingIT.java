@@ -55,6 +55,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
+import org.bouncycastle.util.Longs;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -64,13 +65,14 @@ import org.junit.jupiter.api.Test;
 public class UploadRecordingIT extends StandardSelfTest {
 
     static final String RECORDING_NAME = "upload_recording_it_rec";
+    static final int RECORDING_DURATION_SECONDS = 10;
 
     @BeforeAll
     public static void createRecording() throws Exception {
         CompletableFuture<JsonObject> dumpPostResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", RECORDING_NAME);
-        form.add("duration", "5");
+        form.add("duration", String.valueOf(RECORDING_DURATION_SECONDS));
         form.add("events", "template=ALL");
         webClient
                 .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
@@ -84,6 +86,9 @@ public class UploadRecordingIT extends StandardSelfTest {
                             }
                         });
         dumpPostResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Thread.sleep(
+                Long.valueOf(
+                        RECORDING_DURATION_SECONDS * 1000)); // Wait for the recording to finish
     }
 
     @AfterAll
@@ -111,8 +116,8 @@ public class UploadRecordingIT extends StandardSelfTest {
     }
 
     @Test
-    public void shouldUploadRecordingToGrafana() throws Exception {
-        CompletableFuture<String> uploadRespFuture = new CompletableFuture<>();
+    public void shouldLoadRecordingToDatasource() throws Exception {
+        final CompletableFuture<String> uploadRespFuture = new CompletableFuture<>();
         webClient
                 .post(
                         String.format(
@@ -133,8 +138,8 @@ public class UploadRecordingIT extends StandardSelfTest {
         MatcherAssert.assertThat(
                 uploadRespFuture.get().trim(), Matchers.equalTo(expectedUploadResponse));
 
-        // Confirm recording appears in Grafana
-        CompletableFuture<String> getRespFuture = new CompletableFuture<>();
+        // Confirm recording is loaded in Data Source
+        final CompletableFuture<String> getRespFuture = new CompletableFuture<>();
         webClient
                 .get(8080, "localhost", "/list")
                 .send(
@@ -144,29 +149,34 @@ public class UploadRecordingIT extends StandardSelfTest {
                                         ar.result().statusCode(), Matchers.equalTo(200));
                                 MatcherAssert.assertThat(
                                         ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
-                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                        Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
                                 getRespFuture.complete(ar.result().bodyAsString());
                             }
                         });
 
         MatcherAssert.assertThat(
-                getRespFuture.get().trim(), Matchers.equalTo(String.format("%s", RECORDING_NAME)));
+                getRespFuture.get().trim(),
+                Matchers.equalTo(String.format("**%s**", RECORDING_NAME)));
 
-        // Query Grafana for recording metrics
-        CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
+        // Query Data Source for recording metrics
+        final CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
-        Calendar lastFiveSecs = Calendar.getInstance();
-        lastFiveSecs.add(Calendar.SECOND, -5);
+        final Calendar fromDate = Calendar.getInstance();
+        fromDate.add(Calendar.SECOND, -RECORDING_DURATION_SECONDS);
+
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        final String FROM = dateFormat.format(lastFiveSecs.getTime());
+        final String FROM = dateFormat.format(fromDate.getTime());
         final String TO = dateFormat.format(Calendar.getInstance().getTime());
         final String TARGET_METRIC = "jdk.CPULoad.machineTotal";
-        final int PANEL_ID = 4; // from inspecting dashboard html
 
-        JsonObject query =
+        final JsonObject query =
                 new JsonObject(
                         Map.ofEntries(
-                                Map.entry("panelId", PANEL_ID),
+                                Map.entry("app", "dashboard"),
+                                Map.entry("dashboardId", 1), // Main Dashboard
+                                Map.entry("panelId", 3), // Any ID
+                                Map.entry("requestId", "Q237"), // Some request ID
+                                Map.entry("timezone", "browser"),
                                 Map.entry(
                                         "range",
                                         Map.of(
@@ -176,8 +186,8 @@ public class UploadRecordingIT extends StandardSelfTest {
                                                 TO,
                                                 "raw",
                                                 Map.of("from", FROM, "to", TO))),
-                                Map.entry("interval", "10ms"),
-                                Map.entry("intervalMs", "10"),
+                                Map.entry("interval", "1s"),
+                                Map.entry("intervalMs", "1000"),
                                 Map.entry(
                                         "targets",
                                         List.of(
@@ -188,8 +198,8 @@ public class UploadRecordingIT extends StandardSelfTest {
                                                         "A",
                                                         "type",
                                                         "timeserie"))),
-                                Map.entry("format", "json"),
-                                Map.entry("maxDataPoints", 1000)));
+                                Map.entry("maxDataPoints", 1000),
+                                Map.entry("adhocFilters", List.of())));
 
         webClient
                 .post(8080, "localhost", "/query")
@@ -205,10 +215,32 @@ public class UploadRecordingIT extends StandardSelfTest {
                                 queryRespFuture.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        // FIXME the datapoints array shouldn't be empty
-        JsonArray expectedQueryResponse = new JsonArray();
-        expectedQueryResponse.add(Map.of("target", TARGET_METRIC, "datapoints", List.of()));
 
-        MatcherAssert.assertThat(queryRespFuture.get(), Matchers.equalTo(expectedQueryResponse));
+        final JsonArray arrResponse = queryRespFuture.get();
+        MatcherAssert.assertThat(arrResponse, Matchers.notNullValue());
+        MatcherAssert.assertThat(arrResponse.size(), Matchers.equalTo(1)); // Single target
+
+        JsonObject targetResponse = arrResponse.getJsonObject(0);
+        MatcherAssert.assertThat(
+                targetResponse.getString("target"), Matchers.equalTo(TARGET_METRIC));
+        MatcherAssert.assertThat(
+                targetResponse.getJsonObject("meta"), Matchers.equalTo(new JsonObject()));
+
+        JsonArray dataPoints = targetResponse.getJsonArray("datapoints");
+        MatcherAssert.assertThat(dataPoints, Matchers.notNullValue());
+
+        for (Object dataPoint : dataPoints) {
+            JsonArray datapointPair = (JsonArray) dataPoint;
+            MatcherAssert.assertThat(
+                    datapointPair.size(), Matchers.equalTo(2)); // [value, timestamp]
+            MatcherAssert.assertThat(
+                    datapointPair.getDouble(0), Matchers.notNullValue()); // value must not be null
+            MatcherAssert.assertThat(
+                    datapointPair.getLong(1),
+                    Matchers.allOf(
+                            Matchers.notNullValue(),
+                            Matchers.greaterThan(
+                                    Longs.valueOf(0)))); // timestamp must be non-null and positive
+        }
     }
 }
