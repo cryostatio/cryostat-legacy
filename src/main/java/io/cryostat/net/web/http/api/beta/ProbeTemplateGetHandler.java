@@ -35,50 +35,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net.web.http.api.beta;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.LocalProbeTemplateService;
-import io.cryostat.core.log.Logger;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
+public class ProbeTemplateGetHandler extends AbstractV2RequestHandler<List<ProbeTemplate>> {
 
-    static final String PATH = "probes/:probetemplateName";
+    static final String PATH = "probes";
 
-    private final Logger logger;
-    private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
-    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateDeleted";
+    private final Gson gson;
 
     @Inject
-    ProbeTemplateDeleteHandler(
+    ProbeTemplateGetHandler(
             AuthManager auth,
-            NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
-            Logger logger,
             FileSystem fs,
             Gson gson) {
         super(auth, gson);
-        this.notificationFactory = notificationFactory;
-        this.logger = logger;
         this.probeTemplateService = probeTemplateService;
         this.fs = fs;
+        this.gson = gson;
     }
 
     @Override
@@ -88,7 +84,7 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.DELETE;
+        return HttpMethod.GET;
     }
 
     @Override
@@ -112,30 +108,19 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
-        String probeTemplateName = params.getPathParams().get("probetemplateName");
-        try {
-            this.probeTemplateService.deleteTemplate(probeTemplateName);
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("probeTemplate", probeTemplateName))
-                    .build()
-                    .send();
-        } catch (Exception e) {
-            throw new ApiException(400, e.getMessage(), e);
-        }
-        return new IntermediateResponse().body(null);
+    public IntermediateResponse<List<ProbeTemplate>> handle(RequestParameters params)
+            throws Exception {
+        return new IntermediateResponse<List<ProbeTemplate>>()
+                .body(probeTemplateService.getTemplates());
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_PROBE_TEMPLATE);
+        return EnumSet.of(ResourceAction.READ_PROBE_TEMPLATE);
     }
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.PLAINTEXT);
+        return List.of(HttpMimeType.JSON);
     }
 }

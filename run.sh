@@ -81,6 +81,10 @@ if [ ! -d "$(dirname "$0")/templates" ]; then
     mkdir "$(dirname "$0")/templates"
 fi
 
+if [ ! -d "$(dirname "$0")/probes" ]; then
+    mkdir "$(dirname "$0")/probes"
+fi
+
 if ! podman pod exists cryostat-pod; then
     podman pod create \
         --hostname cryostat \
@@ -103,7 +107,7 @@ podman run \
     --mount type=bind,source="$(dirname "$0")/conf",destination=/opt/cryostat.d/conf.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/truststore",destination=/truststore,relabel=shared \
-    --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
+    --mount type=bind,source="$(dirname "$0")/probes",destination=/opt/cryostat.d/conf.d/probes.d,relabel=shared \
     -e CRYOSTAT_ENABLE_JDP_BROADCAST="true" \
     -e CRYOSTAT_REPORT_GENERATOR="$CRYOSTAT_REPORT_GENERATOR" \
     -e CRYOSTAT_PLATFORM="$CRYOSTAT_PLATFORM" \
@@ -126,7 +130,7 @@ podman run \
     -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/conf.d" \
     -e CRYOSTAT_ARCHIVE_PATH="/opt/cryostat.d/recordings.d" \
     -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \
-    -e CRYOSTAT_PROBE_TEMPLATE_PATH="/opt/cryostat.d/probes.d" \
+    -e CRYOSTAT_PROBE_TEMPLATE_PATH="/opt/cryostat.d/conf.d/probes.d" \
     -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \
     -e CRYOSTAT_REPORT_GENERATION_MAX_HEAP="$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" \
     -e GRAFANA_DATASOURCE_URL="$GRAFANA_DATASOURCE_URL" \

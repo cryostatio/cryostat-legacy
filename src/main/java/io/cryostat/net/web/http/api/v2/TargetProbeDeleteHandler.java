@@ -124,7 +124,6 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
             return connectionManager.executeConnectedTask(
                     getConnectionDescriptorFromParams(requestParams),
                     connection -> {
-                        connection.connect();
                         AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                         // The convention for removing probes in the agent controller mbean is to
                         // call
