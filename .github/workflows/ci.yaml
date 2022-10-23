@@ -7,7 +7,7 @@ on:
       - v[0-9]+
       - v[0-9]+.[0-9]+
       - cryostat-v[0-9]+.[0-9]+
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - reopened
@@ -110,13 +110,13 @@ jobs:
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat.tar
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
       run: podman tag cryostat ghcr.io/cryostatio/cryostat:pr-${{ github.event.number }}
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       uses: redhat-actions/push-to-registry@v2
       with:
@@ -125,14 +125,14 @@ jobs:
         registry: ghcr.io/cryostatio
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.CI_GHCR_TEST_SECRET }}
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Comment test image link
       id: comment-test-image-link
       uses: thollander/actions-comment-pull-request@v1
       with:
         message: >-
           Test image available, TODO
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -145,23 +145,23 @@ jobs:
       with:
         submodules: true
         fetch-depth: 0
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - uses: actions/setup-java@v2
       with:
         java-version: '17'
         distribution: 'adopt'
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat.tar
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
     - name: Run integration tests
       run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest ITEST_IMG_VERSION=latest bash repeated-integration-tests.bash
       if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
@@ -171,7 +171,7 @@ jobs:
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+      if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
 
   spotless:
     runs-on: ubuntu-latest
