@@ -10,6 +10,14 @@ pull_request_rules:
         assignees:
           - "{{ author }}"
 
+  - name: auto label PRs from reviewers
+    conditions:
+      - author=@reviewers
+    actions:
+      label:
+        add:
+          - safe-to-test
+
   - name: dismiss stale reviews
     conditions:
       - base=main
