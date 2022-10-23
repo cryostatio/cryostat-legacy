@@ -114,6 +114,9 @@ jobs:
     - name: Load cryostat image
       run: podman load -i cryostat.tar
       if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
+    - name: Tag cryostat image
+      run: podman tag cryostat ghcr.io/cryostatio/cryostat:pr-${{ github.event.number }}
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       uses: redhat-actions/push-to-registry@v2
       with:
