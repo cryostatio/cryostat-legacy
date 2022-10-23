@@ -42,6 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-pom-properties]
     steps:
+    - name: Fail if safe-to-test label not applied
+      if: ${{ ! contains(steps.pr-labels.outputs.labels, ' safe-to-test ') }}
+      run: exit 1
     - uses: actions/checkout@v2
       with:
         repository: cryostatio/cryostat-core
@@ -66,6 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-pom-properties, build-deps]
     steps:
+    - name: Fail if safe-to-test label not applied
+      if: ${{ ! contains(steps.pr-labels.outputs.labels, ' safe-to-test ') }}
+      run: exit 1
     - uses: actions/checkout@v2
       with:
         submodules: true
@@ -98,13 +104,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-image]
     steps:
+    - name: Fail if safe-to-test label not applied
+      if: ${{ ! contains(steps.pr-labels.outputs.labels, ' safe-to-test ') }}
+      run: exit 1
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
-      if: ${{ github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' }}
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat.tar
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       uses: redhat-actions/push-to-registry@v2
       with:
@@ -113,40 +122,43 @@ jobs:
         registry: ghcr.io/cryostatio
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.CI_GHCR_TEST_SECRET }}
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Comment test image link
       id: comment-test-image-link
       uses: thollander/actions-comment-pull-request@v1
       with:
         message: >-
           Test image available, TODO
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
 
   integration-tests:
     runs-on: ubuntu-latest
     needs: [build-image]
     steps:
+    - name: Fail if safe-to-test label not applied
+      if: ${{ ! contains(steps.pr-labels.outputs.labels, ' safe-to-test ') }}
+      run: exit 1
     - uses: actions/checkout@v2
       with:
         submodules: true
         fetch-depth: 0
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - uses: actions/setup-java@v2
       with:
         java-version: '17'
         distribution: 'adopt'
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat.tar
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
     - name: Run integration tests
       run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest ITEST_IMG_VERSION=latest bash repeated-integration-tests.bash
       if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
@@ -156,7 +168,7 @@ jobs:
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
-      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
+      if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio'
 
   spotless:
     runs-on: ubuntu-latest
