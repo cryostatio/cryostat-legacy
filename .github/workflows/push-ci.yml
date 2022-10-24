@@ -23,10 +23,10 @@ jobs:
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
-      if: github.event_name == 'push' && github.repository_owner == 'cryostatio'
+      if: github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat.tar
-      if: github.event_name == 'push' && github.repository_owner == 'cryostatio'
+      if: github.repository_owner == 'cryostatio'
     - name: Tag images
       id: tag-image
       env:
@@ -41,7 +41,7 @@ jobs:
         else
           echo "::set-output name=tags::$IMAGE_VERSION"
         fi
-      if: github.event_name == 'push' && github.repository_owner == 'cryostatio'
+      if: github.repository_owner == 'cryostatio'
     - name: Push to quay.io
       id: push-to-quay
       uses: redhat-actions/push-to-registry@v2
@@ -51,7 +51,7 @@ jobs:
         registry: quay.io/cryostat
         username: cryostat+bot
         password: ${{ secrets.REGISTRY_PASSWORD }}
-      if: github.event_name == 'push' && github.repository_owner == 'cryostatio'
+      if: github.repository_owner == 'cryostatio'
     - name: Print image URL
       run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
-      if: github.event_name == 'push' && github.repository_owner == 'cryostatio'
+      if: github.repository_owner == 'cryostatio'
