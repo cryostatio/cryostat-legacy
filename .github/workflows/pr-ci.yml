@@ -25,7 +25,7 @@ jobs:
     needs: [build-image]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test')
       run: exit 1
     - uses: actions/download-artifact@v3
       with:

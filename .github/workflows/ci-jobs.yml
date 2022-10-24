@@ -23,7 +23,7 @@ jobs:
     needs: [get-pom-properties]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test')
       run: exit 1
     - uses: actions/checkout@v2
       with:
@@ -50,7 +50,7 @@ jobs:
     needs: [get-pom-properties, build-deps]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test')
       run: exit 1
     - uses: actions/checkout@v2
       with:
@@ -85,7 +85,7 @@ jobs:
     needs: [build-image]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test')
       run: exit 1
     - uses: actions/checkout@v2
       with:
@@ -112,7 +112,7 @@ jobs:
       run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest ITEST_IMG_VERSION=latest bash repeated-integration-tests.bash
       if: github.event_name == 'pull_request' && github.repository_owner == 'cryostatio' && contains(steps.pr-labels.outputs.labels, ' safe-to-test ')
     - name: Print itest logs
-      if: ${{ failure() }}
+      if: failure()
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
     - uses: skjolber/maven-cache-github-action@v1
       with:
