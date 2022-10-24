@@ -130,8 +130,11 @@ jobs:
       id: comment-test-image-link
       uses: thollander/actions-comment-pull-request@v1
       with:
-        message: >-
-          Test image available, TODO
+        message: |-
+          Test image available:
+          ```
+          $ CRYOSTAT_IMAGE=ghcr.io/${{ github.event.repository.owner.login }}/cryostat:pr-${{ github.event.number }} sh smoketest.sh
+          ```
       if: github.event_name == 'pull_request_target' && github.repository_owner == 'cryostatio'
 
   integration-tests:
