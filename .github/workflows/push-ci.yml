@@ -17,7 +17,7 @@ jobs:
     if: github.repository_owner == 'cryostatio'
   push-to-quay:
     runs-on: ubuntu-latest
-    needs: [pre-push]
+    needs: [build-and-test]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
