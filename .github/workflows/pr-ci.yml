@@ -20,6 +20,8 @@ on:
       - cryostat-v[0-9]+.[0-9]+
 
 jobs:
+  pre-push:
+    uses: cryostatio/cryostat/.github/workflows/ci-jobs.yml@main
   push-to-ghcr:
     runs-on: ubuntu-latest
     needs: [build-image]
