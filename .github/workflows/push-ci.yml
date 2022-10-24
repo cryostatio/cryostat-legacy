@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/ci-jobs.yml
   push-to-quay:
     runs-on: ubuntu-latest
-    needs: [get-pom-properties, integration-tests, spotless, spotbugs, shellcheck]
+    needs: [pre-push]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
