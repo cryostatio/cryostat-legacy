@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/ci-jobs.yml
   push-to-ghcr:
     runs-on: ubuntu-latest
-    needs: [pre-push]
+    needs: [build-and-test]
     steps:
     - name: Fail if safe-to-test label not applied
       if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
