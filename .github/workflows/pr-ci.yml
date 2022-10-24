@@ -42,6 +42,7 @@ jobs:
       run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}
       if: github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
+      id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
@@ -51,12 +52,11 @@ jobs:
         password: ${{ secrets.CI_GHCR_TEST_SECRET }}
       if: github.repository_owner == 'cryostatio'
     - name: Comment test image link
-      id: comment-test-image-link
       uses: thollander/actions-comment-pull-request@v1
       with:
         message: |-
           Test image available:
           ```
-          $ CRYOSTAT_IMAGE=ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }} sh smoketest.sh
+          $ CRYOSTAT_IMAGE=${{ steps.push-to-ghcr.outputs.registry-path }} sh smoketest.sh
           ```
       if: github.repository_owner == 'cryostatio'
