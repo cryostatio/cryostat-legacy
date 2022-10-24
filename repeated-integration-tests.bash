@@ -23,6 +23,11 @@ if [ -z "${CONTAINER_NAME}" ]; then
     CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
 fi
 
+if [ -z "${ITEST_IMG_VERSION}" ]; then
+    ITEST_IMG_VERSION="$(xpath -q -e 'project/version/text()' pom.xml)"
+    ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
+fi
+
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then
         "${MVN}" exec:exec@destroy-pod
@@ -43,6 +48,7 @@ STARTFLAGS=(
     "failsafe:integration-test"
     "failsafe:verify"
     "-DfailIfNoTests=true"
+    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
 )
 
 if [ -n "$2" ]; then
