@@ -178,6 +178,7 @@ jobs:
       env:
         IMAGE_VERSION: ${{ needs.get-pom-properties.outputs.image-version }}
       run: |
+        podman tag $CRYOSTAT_IMG $CRYOSTAT_IMG:$IMAGE_VERSION
         if [ "$GITHUB_REF" == "refs/heads/main" ]; then
           podman tag \
           ${{ env.CRYOSTAT_IMG }}:$IMAGE_VERSION \
