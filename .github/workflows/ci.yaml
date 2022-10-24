@@ -43,7 +43,7 @@ jobs:
     needs: [get-pom-properties]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
     - uses: actions/checkout@v2
       with:
@@ -70,7 +70,7 @@ jobs:
     needs: [get-pom-properties, build-deps]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
     - uses: actions/checkout@v2
       with:
@@ -105,7 +105,7 @@ jobs:
     needs: [build-image]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ github.event.name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
     - uses: actions/download-artifact@v3
       with:
@@ -139,7 +139,7 @@ jobs:
     needs: [build-image]
     steps:
     - name: Fail if safe-to-test label not applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ github.event.name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
     - uses: actions/checkout@v2
       with:
