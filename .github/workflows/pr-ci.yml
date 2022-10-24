@@ -22,6 +22,7 @@ on:
 jobs:
   build-and-test:
     uses: ./.github/workflows/ci-jobs.yml
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test')
   push-to-ghcr:
     runs-on: ubuntu-latest
     needs: [build-and-test]
