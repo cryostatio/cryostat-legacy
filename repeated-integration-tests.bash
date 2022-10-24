@@ -74,8 +74,8 @@ DIR="$(dirname "$(readlink -f "$0")")"
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
-    client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
-    server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
+    client_logfile="$DIR/target/${CONTAINER_NAME}-${timestamp}.client.log"
+    server_logfile="$DIR/target/${CONTAINER_NAME}-${timestamp}.server.log"
     mkdir -p "$(dirname "$client_logfile")"
     mkdir -p "$(dirname "$server_logfile")"
     >"${client_logfile}"
