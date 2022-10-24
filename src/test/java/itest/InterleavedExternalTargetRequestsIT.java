@@ -133,13 +133,11 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         // size should not change
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
         Set<ServiceRef> expected = new HashSet<>();
-        String cryostatTargetId = String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+        String cryostatTargetId =
+                String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
         String cryostatJvmId = JvmIdWebRequest.jvmIdRequest(cryostatTargetId);
         ServiceRef cryostat =
-                new ServiceRef(
-                        cryostatJvmId,
-                        new URI(cryostatTargetId),
-                        "io.cryostat.Cryostat");
+                new ServiceRef(cryostatJvmId, new URI(cryostatTargetId), "io.cryostat.Cryostat");
         cryostat.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,

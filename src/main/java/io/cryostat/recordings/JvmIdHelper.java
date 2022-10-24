@@ -106,8 +106,8 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                             break;
                     }
                 });
-            }
-                
+    }
+
     public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
         if (sr.getJvmId() != null) return sr;
         String id = getJvmId(sr.getServiceUri().toString());

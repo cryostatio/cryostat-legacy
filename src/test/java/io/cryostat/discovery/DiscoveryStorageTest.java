@@ -80,7 +80,6 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -760,84 +759,81 @@ class DiscoveryStorageTest {
                 }
             }
         }
-}
+    }
 
-        @Test 
-        void testIgnoreNodesIfNonSSLAuthExceptions() throws Exception {
-                UUID id = UUID.randomUUID();
-        
-                ServiceRef serviceRef1 =
-                        new ServiceRef(
-                                null,
-                                URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
-                                "serviceRef1");
-                ServiceRef serviceRef2 =
-                        new ServiceRef(
-                                null,
-                                URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
-                                "serviceRef2");
-                TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
-                TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
-        
-                EnvironmentNode realm1 =
-                        new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1));
-                EnvironmentNode realm2 =
-                        new EnvironmentNode(
-                                "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
-        
-                PluginInfo prevPlugin =
-                        new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
-        
-                Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-                Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
-                        .thenAnswer(
-                                new Answer<PluginInfo>() {
-                                    @Override
-                                    public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
-                                        List<AbstractNode> subtree = invocation.getArgument(1);
-                                        EnvironmentNode next =
-                                                new EnvironmentNode(
-                                                        "next", BaseNodeType.REALM, Map.of(), subtree);
-                                        return new PluginInfo(
-                                                "test-realm",
-                                                URI.create("http://example.com"),
-                                                gson.toJson(next));
-                                    }
-                                });
-                JvmIdGetException jige = Mockito.mock(JvmIdGetException.class);
-                ExecutionException ex = Mockito.mock(ExecutionException.class);
-                Mockito.when(jige.getCause()).thenReturn(ex);
-                Mockito.when(ex.getCause()).thenReturn(new SecurityException("test"));
-                
-                Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
-                        .thenThrow(jige)
-                        .thenReturn(new ServiceRef("serviceRef2", serviceRef2.getServiceUri(),"serviceRef2"));
-        
-                var updatedSubtree = storage.update(id, List.of(realm2));
-                MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
-                MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
-                for (AbstractNode node : updatedSubtree) {
-                        MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
-                        EnvironmentNode env = (EnvironmentNode) node;
-                        MatcherAssert.assertThat(env.getChildren(), Matchers.hasSize(2));
-                        for (AbstractNode nested : env.getChildren()) {
-                            if (nested instanceof TargetNode) {
-                                TargetNode target = (TargetNode) nested;
-                                MatcherAssert.assertThat(target, Matchers.instanceOf(TargetNode.class));
-                                if (target.getTarget().getAlias().get().equals("serviceRef1")) {
-                                        MatcherAssert.assertThat(
-                                                target.getTarget().getJvmId(), Matchers.nullValue());
-                                }
-                                else if (target.getTarget().getAlias().get().equals("serviceRef2")) {
-                                        MatcherAssert.assertThat(
-                                                target.getTarget().getJvmId(), Matchers.equalTo("serviceRef2"));
-                                }
-                                else {
-                                        throw new IllegalStateException("Unexpected alias");
-                                }
+    @Test
+    void testIgnoreNodesIfNonSSLAuthExceptions() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
+                        "serviceRef1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        null,
+                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
+                        "serviceRef2");
+        TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
+        TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
+
+        EnvironmentNode realm1 =
+                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1));
+        EnvironmentNode realm2 =
+                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
+
+        PluginInfo prevPlugin =
+                new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
+
+        Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
+        Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
+                .thenAnswer(
+                        new Answer<PluginInfo>() {
+                            @Override
+                            public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
+                                List<AbstractNode> subtree = invocation.getArgument(1);
+                                EnvironmentNode next =
+                                        new EnvironmentNode(
+                                                "next", BaseNodeType.REALM, Map.of(), subtree);
+                                return new PluginInfo(
+                                        "test-realm",
+                                        URI.create("http://example.com"),
+                                        gson.toJson(next));
                             }
-                        }
+                        });
+        JvmIdGetException jige = Mockito.mock(JvmIdGetException.class);
+        ExecutionException ex = Mockito.mock(ExecutionException.class);
+        Mockito.when(jige.getCause()).thenReturn(ex);
+        Mockito.when(ex.getCause()).thenReturn(new SecurityException("test"));
+
+        Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
+                .thenThrow(jige)
+                .thenReturn(
+                        new ServiceRef("serviceRef2", serviceRef2.getServiceUri(), "serviceRef2"));
+
+        var updatedSubtree = storage.update(id, List.of(realm2));
+        MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
+        MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
+        for (AbstractNode node : updatedSubtree) {
+            MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
+            EnvironmentNode env = (EnvironmentNode) node;
+            MatcherAssert.assertThat(env.getChildren(), Matchers.hasSize(2));
+            for (AbstractNode nested : env.getChildren()) {
+                if (nested instanceof TargetNode) {
+                    TargetNode target = (TargetNode) nested;
+                    MatcherAssert.assertThat(target, Matchers.instanceOf(TargetNode.class));
+                    if (target.getTarget().getAlias().get().equals("serviceRef1")) {
+                        MatcherAssert.assertThat(
+                                target.getTarget().getJvmId(), Matchers.nullValue());
+                    } else if (target.getTarget().getAlias().get().equals("serviceRef2")) {
+                        MatcherAssert.assertThat(
+                                target.getTarget().getJvmId(), Matchers.equalTo("serviceRef2"));
+                    } else {
+                        throw new IllegalStateException("Unexpected alias");
+                    }
                 }
-        
+            }
         }
+    }
 }
