@@ -37,14 +37,14 @@ jobs:
       run: podman load -i cryostat.tar
       if: github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
-      run: podman tag cryostat ghcr.io/cryostatio/cryostat:pr-${{ github.event.number }}
+      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}
       if: github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
         tags: pr-${{ github.event.number }}
-        registry: ghcr.io/cryostatio
+        registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.CI_GHCR_TEST_SECRET }}
       if: github.repository_owner == 'cryostatio'
@@ -55,6 +55,6 @@ jobs:
         message: |-
           Test image available:
           ```
-          $ CRYOSTAT_IMAGE=ghcr.io/${{ github.event.repository.owner.login }}/cryostat:pr-${{ github.event.number }} sh smoketest.sh
+          $ CRYOSTAT_IMAGE=ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }} sh smoketest.sh
           ```
       if: github.repository_owner == 'cryostatio'
