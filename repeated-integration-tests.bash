@@ -23,6 +23,11 @@ if [ -z "${CONTAINER_NAME}" ]; then
     CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
 fi
 
+if [ -z "${ITEST_IMG_VERSION}" ]; then
+    ITEST_IMG_VERSION="$(xpath -q -e 'project/version/text()' pom.xml)"
+    ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
+fi
+
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then
         "${MVN}" exec:exec@destroy-pod
@@ -43,6 +48,7 @@ STARTFLAGS=(
     "failsafe:integration-test"
     "failsafe:verify"
     "-DfailIfNoTests=true"
+    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
 )
 
 if [ -n "$2" ]; then
@@ -68,8 +74,8 @@ DIR="$(dirname "$(readlink -f "$0")")"
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
-    client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
-    server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
+    client_logfile="$DIR/target/${CONTAINER_NAME}-${timestamp}.client.log"
+    server_logfile="$DIR/target/${CONTAINER_NAME}-${timestamp}.server.log"
     mkdir -p "$(dirname "$client_logfile")"
     mkdir -p "$(dirname "$server_logfile")"
     >"${client_logfile}"
