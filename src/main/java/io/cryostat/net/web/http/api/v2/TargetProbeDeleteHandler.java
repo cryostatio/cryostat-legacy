@@ -67,7 +67,7 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
-    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateDeleted";
+    private static final String NOTIFICATION_CATEGORY = "ProbesRemoved";
 
     @Inject
     TargetProbeDeleteHandler(
@@ -133,7 +133,7 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
                                 .createBuilder()
                                 .metaCategory(NOTIFICATION_CATEGORY)
                                 .metaType(HttpMimeType.JSON)
-                                .message(Map.of("targetId", targetId))
+                                .message(Map.of("target", targetId))
                                 .build()
                                 .send();
                         return new IntermediateResponse<Void>().body(null);
