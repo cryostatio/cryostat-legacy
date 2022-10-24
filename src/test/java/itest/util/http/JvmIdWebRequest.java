@@ -60,7 +60,7 @@ public class JvmIdWebRequest {
     public static final int REQUEST_TIMEOUT_SECONDS = 10;
     public static final WebClient webClient = Utils.getWebClient();
 
-    // targetId shouldn't be percent-encoded
+    // shouldn't be percent-encoded i.e. String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME)
     public static String jvmIdRequest(String targetId)
             throws InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
