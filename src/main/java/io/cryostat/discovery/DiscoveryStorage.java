@@ -203,14 +203,19 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 switch (event.getEventType()) {
                     case ADDED:
                         Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
-                            for (var entry : copy.entrySet()) {
-                                for (ServiceRef ref : credentialsManager.get().resolveMatchingTargets(event.getPayload())) {
-                                    if (entry.getKey().getTarget().equals(ref)) {
-                                        UUID id = entry.getValue();
-                                        PluginInfo plugin = getById(id).orElseThrow();
-                                        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-                                        update(id, original.getChildren(), false);
-                                        targetsToUpdate.remove(entry.getKey());
+                        for (var entry : copy.entrySet()) {
+                            for (ServiceRef ref :
+                                    credentialsManager
+                                            .get()
+                                            .resolveMatchingTargets(event.getPayload())) {
+                                if (entry.getKey().getTarget().equals(ref)) {
+                                    UUID id = entry.getValue();
+                                    PluginInfo plugin = getById(id).orElseThrow();
+                                    EnvironmentNode original =
+                                            gson.fromJson(
+                                                    plugin.getSubtree(), EnvironmentNode.class);
+                                    update(id, original.getChildren(), false);
+                                    targetsToUpdate.remove(entry.getKey());
                                 }
                             }
                         }
@@ -269,8 +274,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
-    private List<AbstractNode> modifyChildrenWithJvmIds(UUID id,
-            Collection<? extends AbstractNode> children) {
+    private List<AbstractNode> modifyChildrenWithJvmIds(
+            UUID id, Collection<? extends AbstractNode> children) {
         List<AbstractNode> modifiedChildren = new ArrayList<>();
         for (AbstractNode child : children) {
             if (child instanceof TargetNode) {
@@ -296,7 +301,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 child.getName(),
                                 child.getNodeType(),
                                 child.getLabels(),
-                                modifyChildrenWithJvmIds(id, ((EnvironmentNode) child).getChildren())));
+                                modifyChildrenWithJvmIds(
+                                        id, ((EnvironmentNode) child).getChildren())));
             } else {
                 throw new IllegalArgumentException(child.getClass().getCanonicalName());
             }
@@ -305,8 +311,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public List<? extends AbstractNode> update(
-        UUID id, Collection<? extends AbstractNode> children) {
-            return update(id, children, true);
+            UUID id, Collection<? extends AbstractNode> children) {
+        return update(id, children, true);
     }
 
     public List<? extends AbstractNode> update(
@@ -324,13 +330,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         if (notify) {
             Set<TargetNode> previousLeaves = findLeavesFrom(original);
             Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
-    
+
             Set<TargetNode> added = new HashSet<>(currentLeaves);
             added.removeAll(previousLeaves);
-    
+
             Set<TargetNode> removed = new HashSet<>(previousLeaves);
             removed.removeAll(currentLeaves);
-    
+
             added.stream()
                     .map(TargetNode::getTarget)
                     .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));

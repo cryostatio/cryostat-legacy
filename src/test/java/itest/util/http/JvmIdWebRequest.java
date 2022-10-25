@@ -51,7 +51,6 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
@@ -67,7 +66,8 @@ public class JvmIdWebRequest {
 
     // shouldn't be percent-encoded i.e.
     // String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME)
-    public static String jvmIdRequest(String targetId) throws InterruptedException, ExecutionException, TimeoutException {
+    public static String jvmIdRequest(String targetId)
+            throws InterruptedException, ExecutionException, TimeoutException {
         return jvmIdRequest(targetId, null);
     }
 
@@ -76,26 +76,37 @@ public class JvmIdWebRequest {
         CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
 
         JsonObject query = new JsonObject();
-        query.put("query", String.format("query { targetNodes(filter: { name: \"%s\" }) { target { jvmId } } }", targetId));
+        query.put(
+                "query",
+                String.format(
+                        "query { targetNodes(filter: { name: \"%s\" }) { target { jvmId } } }",
+                        targetId));
         HttpRequest<Buffer> buffer = webClient.post("/api/v2.2/graphql");
         if (credentials != null) {
-            buffer.putHeader("X-JMX-Authorization", "Basic " + Base64.getUrlEncoder().encodeToString((credentials.left + ":" + credentials.right).getBytes()));
+            buffer.putHeader(
+                    "X-JMX-Authorization",
+                    "Basic "
+                            + Base64.getUrlEncoder()
+                                    .encodeToString(
+                                            (credentials.left + ":" + credentials.right)
+                                                    .getBytes()));
         }
         buffer.sendJson(
-                        query,
-                        ar -> {
-                            if (StandardSelfTest.assertRequestStatus(ar, resp)) {
-                                resp.complete(
-                                        gson.fromJson(
-                                                ar.result().bodyAsString(),
-                                                TargetNodesQueryResponse.class));
-                            }
-                        });
+                query,
+                ar -> {
+                    if (StandardSelfTest.assertRequestStatus(ar, resp)) {
+                        resp.complete(
+                                gson.fromJson(
+                                        ar.result().bodyAsString(),
+                                        TargetNodesQueryResponse.class));
+                    }
+                });
         TargetNodesQueryResponse response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         return response.data.targetNodes.get(0).target.jvmId;
     }
 
-    public static String jvmIdRequest(URI serviceUri) throws InterruptedException, ExecutionException, TimeoutException {
+    public static String jvmIdRequest(URI serviceUri)
+            throws InterruptedException, ExecutionException, TimeoutException {
         return jvmIdRequest(serviceUri.toString(), null);
     }
 

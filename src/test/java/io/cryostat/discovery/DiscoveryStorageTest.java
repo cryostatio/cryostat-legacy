@@ -54,6 +54,7 @@ import javax.inject.Singleton;
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
@@ -98,6 +99,7 @@ class DiscoveryStorageTest {
     @Mock BuiltInDiscovery builtin;
     @Mock PluginInfoDao dao;
     @Mock JvmIdHelper jvmIdHelper;
+    @Mock CredentialsManager credentialsManager;
     @Mock WebClient http;
     @Mock Logger logger;
     Vertx vertx = MockVertx.vertx();
@@ -127,6 +129,7 @@ class DiscoveryStorageTest {
                         () -> builtin,
                         dao,
                         () -> jvmIdHelper,
+                        () -> credentialsManager,
                         gson,
                         http,
                         logger);

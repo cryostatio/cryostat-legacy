@@ -158,12 +158,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
 
-            String jvmId = null;
-            try {
-                jvmId = jvmIdHelper.getJvmId(uri.toString());
-            } catch (JvmIdGetException e) {
-                logger.warn("Couldn't put jvmId in serviceRef for {}", uri.toString());
-            }
+            String jvmId = jvmIdHelper.getJvmId(uri.toString());
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
@@ -181,6 +176,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
+        } catch (JvmIdGetException e) {
+            throw new ApiException(404, "Couldn't put connect to target: " + e.getTarget());
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {

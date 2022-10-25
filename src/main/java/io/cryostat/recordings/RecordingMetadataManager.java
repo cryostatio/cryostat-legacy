@@ -761,7 +761,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                 fs.deleteIfExists(oldParent);
             }
             logger.info(
-                    "[{}] Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
+                    "[{}] Metadata successfully transferred: {} -> {}",
+                    targetId,
+                    oldJvmId,
+                    newJvmId);
         } catch (IOException e) {
             logger.error("Metadata could not be transferred upon target restart", e);
         }

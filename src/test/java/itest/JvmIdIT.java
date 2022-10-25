@@ -45,6 +45,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.openjdk.jmc.common.util.Pair;
+
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
@@ -54,7 +56,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.openjdk.jmc.common.util.Pair;
 
 public class JvmIdIT extends ExternalTargetsTest {
 
