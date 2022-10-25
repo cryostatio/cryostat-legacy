@@ -45,6 +45,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -70,11 +71,12 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     @Inject
     AuthTokenPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
             Logger logger) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.jwt = jwt;
         this.webServer = webServer;
     }

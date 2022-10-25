@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -217,6 +218,11 @@ class RuleDeleteHandlerTest {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("clean", "true");
             Mockito.when(params.getQueryParams()).thenReturn(queryParams);
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set(
+                    "X-JMX-Authorization",
+                    "Basic " + Base64.getEncoder().encodeToString("user:pass".getBytes()));
+            Mockito.when(params.getHeaders()).thenReturn(headers);
 
             Rule rule =
                     new Rule.Builder()
@@ -284,6 +290,11 @@ class RuleDeleteHandlerTest {
             MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
             queryParams.set("clean", "true");
             Mockito.when(params.getQueryParams()).thenReturn(queryParams);
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set(
+                    "X-JMX-Authorization",
+                    "Basic " + Base64.getEncoder().encodeToString("user:pass".getBytes()));
+            Mockito.when(params.getHeaders()).thenReturn(headers);
 
             Rule rule =
                     new Rule.Builder()

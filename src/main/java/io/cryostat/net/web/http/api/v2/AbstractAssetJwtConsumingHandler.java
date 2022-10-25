@@ -167,13 +167,14 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
             throws ParseException {
         String targetId = ctx.pathParam("targetId");
         Credentials credentials = null;
-        try {
-            credentials = credentialsManager.getCredentialsByTargetId(targetId);
-        } catch (ScriptException e) {
-            logger.error(e);
-        }
         String jmxauth = jwt.getJWTClaimsSet().getStringClaim(AssetJwtHelper.JMXAUTH_CLAIM);
-        if (jmxauth != null) {
+        if (jmxauth == null) {
+            try {
+                credentials = credentialsManager.getCredentialsByTargetId(targetId);
+            } catch (ScriptException e) {
+                logger.error(e);
+            }
+        } else {
             String c;
             try {
                 Matcher m =

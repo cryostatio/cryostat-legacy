@@ -46,6 +46,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -63,8 +64,11 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     TargetDeleteHandler(
-            AuthManager auth, Gson gson, CustomTargetPlatformClient customTargetPlatformClient) {
-        super(auth, gson);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            Gson gson,
+            CustomTargetPlatformClient customTargetPlatformClient) {
+        super(auth, credentialsManager, gson);
         this.customTargetPlatformClient = customTargetPlatformClient;
     }
 

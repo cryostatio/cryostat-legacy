@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -74,13 +75,15 @@ class TargetDeleteHandlerTest {
 
     TargetDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetDeleteHandler(auth, gson, customTargetPlatformClient);
+        this.handler =
+                new TargetDeleteHandler(auth, credentialsManager, gson, customTargetPlatformClient);
     }
 
     @Test

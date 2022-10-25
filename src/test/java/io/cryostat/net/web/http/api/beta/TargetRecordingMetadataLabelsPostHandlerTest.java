@@ -49,6 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -83,6 +84,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class TargetRecordingMetadataLabelsPostHandlerTest {
     TargetRecordingMetadataLabelsPostHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
@@ -97,6 +99,7 @@ public class TargetRecordingMetadataLabelsPostHandlerTest {
         this.handler =
                 new TargetRecordingMetadataLabelsPostHandler(
                         authManager,
+                        credentialsManager,
                         gson,
                         targetConnectionManager,
                         recordingTargetHelper,

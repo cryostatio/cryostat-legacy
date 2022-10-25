@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
@@ -77,6 +78,7 @@ public class ProbeTemplateUploadHandlerTest {
 
     ProbeTemplateUploadHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -101,7 +103,13 @@ public class ProbeTemplateUploadHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new ProbeTemplateUploadHandler(
-                        auth, notificationFactory, templateService, logger, fs, gson);
+                        auth,
+                        credentialsManager,
+                        notificationFactory,
+                        templateService,
+                        logger,
+                        fs,
+                        gson);
     }
 
     @Nested

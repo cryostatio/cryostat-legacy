@@ -54,6 +54,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
@@ -88,13 +89,14 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     @Inject
     DiscoveryRegistrationHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             DiscoveryStorage storage,
             Lazy<WebServer> webServer,
             DiscoveryJwtHelper jwt,
             @Named(MainModule.UUID_FROM_STRING) Function<String, UUID> uuidFromString,
             Gson gson,
             Logger logger) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.storage = storage;
         this.webServer = webServer;
         this.jwtFactory = jwt;

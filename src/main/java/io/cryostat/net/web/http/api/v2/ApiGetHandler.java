@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -69,8 +70,9 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
             Lazy<WebServer> webServer,
             Lazy<Set<RequestHandler>> handlers,
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.webServer = webServer;
         this.handlers = handlers;
     }

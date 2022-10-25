@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.UnknownUserException;
 import io.cryostat.net.UserInfo;
@@ -59,8 +60,8 @@ import io.vertx.core.http.HttpMethod;
 class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Inject
-    protected AuthPostHandler(AuthManager auth, Gson gson) {
-        super(auth, gson);
+    protected AuthPostHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+        super(auth, credentialsManager, gson);
     }
 
     @Override

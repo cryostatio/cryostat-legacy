@@ -87,7 +87,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.vertx = vertx;
         this.ruleRegistry = ruleRegistry;
         this.recordings = recordings;
@@ -150,7 +150,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             vertx.executeBlocking(
                     promise -> {
                         try {
-                            cleanup(rule);
+                            cleanup(params, rule);
                             promise.complete();
                         } catch (Exception e) {
                             promise.fail(e);
@@ -160,15 +160,13 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
         return new IntermediateResponse<Void>().body(null);
     }
 
-    private void cleanup(Rule rule) {
+    private void cleanup(RequestParameters params, Rule rule) {
         for (ServiceRef ref : storage.listDiscoverableServices()) {
             vertx.executeBlocking(
                     promise -> {
                         try {
                             if (ruleRegistry.applies(rule, ref)) {
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(
-                                                ref, credentialsManager.getCredentials(ref));
+                                ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
                                 recordings.stopRecording(cd, rule.getRecordingName());
                             }
                             promise.complete();

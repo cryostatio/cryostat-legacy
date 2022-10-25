@@ -60,13 +60,10 @@ import io.vertx.core.http.HttpMethod;
 
 class CredentialsGetHandler extends AbstractV2RequestHandler<List<Cred>> {
 
-    private final CredentialsManager credentialsManager;
-
     @Inject
     CredentialsGetHandler(
             AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager, gson);
     }
 
     @Override

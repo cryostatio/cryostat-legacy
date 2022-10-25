@@ -66,7 +66,7 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     @Inject
     TargetCredentialsGetHandler(
             AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.credentialsManager = credentialsManager;
     }
 

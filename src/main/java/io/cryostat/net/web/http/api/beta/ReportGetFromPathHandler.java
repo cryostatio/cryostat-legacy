@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
@@ -76,11 +77,12 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
     @Inject
     ReportGetFromPathHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson,
             ReportService reportService,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }

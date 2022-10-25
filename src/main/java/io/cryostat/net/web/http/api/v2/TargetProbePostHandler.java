@@ -43,6 +43,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
@@ -103,10 +104,11 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
             LocalProbeTemplateService service,
             FileSystem fs,
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
             Environment env,
             Gson gson) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.logger = logger;
         this.notificationFactory = notificationFactory;
         this.probeTemplateService = service;
