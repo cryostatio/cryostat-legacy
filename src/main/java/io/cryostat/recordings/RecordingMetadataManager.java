@@ -737,7 +737,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 return;
             }
 
-            logger.info("{} Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
+            logger.info("[{}] Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             Path oldParent = getMetadataPath(oldJvmId);
             for (String encodedFilename : fs.listDirectoryChildren(oldParent)) {
                 try {
@@ -761,7 +761,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                 fs.deleteIfExists(oldParent);
             }
             logger.info(
-                    "{} Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
+                    "[{}] Metadata successfully transferred: {} -> {}", targetId, oldJvmId, newJvmId);
         } catch (IOException e) {
             logger.error("Metadata could not be transferred upon target restart", e);
         }

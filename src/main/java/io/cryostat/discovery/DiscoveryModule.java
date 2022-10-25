@@ -45,6 +45,7 @@ import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -92,11 +93,12 @@ public abstract class DiscoveryModule {
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
             Lazy<JvmIdHelper> jvmIdHelper,
+            Lazy<CredentialsManager> credentialsManager,
             Gson gson,
             WebClient http,
             Logger logger) {
         return new DiscoveryStorage(
-                deployer, pingPeriod, builtin, dao, jvmIdHelper, gson, http, logger);
+                deployer, pingPeriod, builtin, dao, jvmIdHelper, credentialsManager, gson, http, logger);
     }
 
     @Provides

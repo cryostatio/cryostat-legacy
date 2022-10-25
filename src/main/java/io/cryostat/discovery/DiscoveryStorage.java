@@ -53,6 +53,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -64,6 +66,8 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+import io.cryostat.util.events.Event;
+import io.cryostat.util.events.EventListener;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -83,13 +87,15 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
     private final Lazy<JvmIdHelper> jvmIdHelper;
+    private final Lazy<CredentialsManager> credentialsManager;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
     private long timerId = -1L;
 
+    private final Map<TargetNode, UUID> targetsToUpdate = new HashMap<>();
+
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
-    public static final String DISCOVERY_FOUND_ADDRESS = "discovery-found";
 
     DiscoveryStorage(
             VerticleDeployer deployer,
@@ -97,6 +103,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
             Lazy<JvmIdHelper> jvmIdHelper,
+            Lazy<CredentialsManager> credentialsManager,
             Gson gson,
             WebClient http,
             Logger logger) {
@@ -105,6 +112,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.builtin = builtin;
         this.dao = dao;
         this.jvmIdHelper = jvmIdHelper;
+        this.credentialsManager = credentialsManager;
         this.gson = gson;
         this.http = http;
         this.logger = logger;
@@ -128,6 +136,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                                 + " deployed")))
                 .onFailure(future::fail);
 
+        this.credentialsManager.get().addListener(credentialsListener());
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
     }
 
@@ -187,6 +196,32 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .otherwise(false);
     }
 
+    public EventListener<CredentialsEvent, String> credentialsListener() {
+        return new EventListener<CredentialsEvent, String>() {
+            @Override
+            public void onEvent(Event<CredentialsEvent, String> event) {
+                switch (event.getEventType()) {
+                    case ADDED:
+                        Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
+                            for (var entry : copy.entrySet()) {
+                                for (ServiceRef ref : credentialsManager.get().resolveMatchingTargets(event.getPayload())) {
+                                    if (entry.getKey().getTarget().equals(ref)) {
+                                        UUID id = entry.getValue();
+                                        PluginInfo plugin = getById(id).orElseThrow();
+                                        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+                                        update(id, original.getChildren(), false);
+                                        targetsToUpdate.remove(entry.getKey());
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(event.getEventType().toString());
+                }
+            }
+        };
+    }
+
     private void removePlugin(UUID uuid, Object label) {
         deregister(uuid);
         logger.info("Stale discovery service {} removed", label);
@@ -234,7 +269,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
-    private List<AbstractNode> modifyChildrenWithJvmIds(
+    private List<AbstractNode> modifyChildrenWithJvmIds(UUID id,
             Collection<? extends AbstractNode> children) {
         List<AbstractNode> modifiedChildren = new ArrayList<>();
         for (AbstractNode child : children) {
@@ -244,14 +279,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                     ref = jvmIdHelper.get().resolveId(ref);
                 } catch (Exception e) {
                     logger.warn("Failed to resolve jvmId for node {}", child.getName());
-                    logger.info(e.getCause().toString());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
-                        logger.info("ignoring target child node {}", child.getName());
+                        logger.info("Ignoring target node {}", child.getName());
                         continue;
                     }
-                    logger.warn(e.getCause().getCause().toString());
+                    logger.info("Update node {} with null jvmId", child.getName());
+                    targetsToUpdate.putIfAbsent((TargetNode) child, id);
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 modifiedChildren.add(child);
@@ -261,7 +296,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 child.getName(),
                                 child.getNodeType(),
                                 child.getLabels(),
-                                modifyChildrenWithJvmIds(((EnvironmentNode) child).getChildren())));
+                                modifyChildrenWithJvmIds(id, ((EnvironmentNode) child).getChildren())));
             } else {
                 throw new IllegalArgumentException(child.getClass().getCanonicalName());
             }
@@ -270,9 +305,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public List<? extends AbstractNode> update(
-            UUID id, Collection<? extends AbstractNode> children) {
+        UUID id, Collection<? extends AbstractNode> children) {
+            return update(id, children, true);
+    }
+
+    public List<? extends AbstractNode> update(
+            UUID id, Collection<? extends AbstractNode> children, boolean notify) {
         var updatedChildren =
-                modifyChildrenWithJvmIds(Objects.requireNonNull(children, "children"));
+                modifyChildrenWithJvmIds(id, Objects.requireNonNull(children, "children"));
 
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
@@ -281,22 +321,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        Set<TargetNode> previousLeaves = findLeavesFrom(original);
-        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
-
-        Set<TargetNode> added = new HashSet<>(currentLeaves);
-        added.removeAll(previousLeaves);
-
-        Set<TargetNode> removed = new HashSet<>(previousLeaves);
-        removed.removeAll(currentLeaves);
-
-        added.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-        removed.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-
+        if (notify) {
+            Set<TargetNode> previousLeaves = findLeavesFrom(original);
+            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+    
+            Set<TargetNode> added = new HashSet<>(currentLeaves);
+            added.removeAll(previousLeaves);
+    
+            Set<TargetNode> removed = new HashSet<>(previousLeaves);
+            removed.removeAll(currentLeaves);
+    
+            added.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+            removed.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        }
         return currentTree.getChildren();
     }
 
