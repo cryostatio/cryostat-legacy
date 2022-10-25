@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -75,12 +76,14 @@ class RecordingDeleteHandlerTest {
 
     RecordingDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingDeleteHandler(auth, gson, recordingArchiveHelper);
+        this.handler =
+                new RecordingDeleteHandler(auth, credentialsManager, gson, recordingArchiveHelper);
     }
 
     @Nested

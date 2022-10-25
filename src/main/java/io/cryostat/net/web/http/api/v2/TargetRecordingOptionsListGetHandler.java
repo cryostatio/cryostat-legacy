@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.jmc.serialization.SerializableOptionDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
@@ -64,8 +65,11 @@ class TargetRecordingOptionsListGetHandler
 
     @Inject
     TargetRecordingOptionsListGetHandler(
-            AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth, gson);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            TargetConnectionManager connectionManager,
+            Gson gson) {
+        super(auth, credentialsManager, gson);
         this.connectionManager = connectionManager;
     }
 

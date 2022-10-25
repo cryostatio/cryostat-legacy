@@ -46,6 +46,7 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -75,11 +76,12 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     @Inject
     TargetRecordingMetadataLabelsPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager recordingMetadataManager) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;

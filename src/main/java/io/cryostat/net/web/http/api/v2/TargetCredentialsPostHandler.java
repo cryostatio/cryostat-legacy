@@ -80,7 +80,7 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
             NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
         this.logger = logger;

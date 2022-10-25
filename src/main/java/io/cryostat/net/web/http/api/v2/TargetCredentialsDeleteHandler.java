@@ -72,7 +72,7 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
             CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             Gson gson) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.credentialsManager = credentialsManager;
         this.notificationFactory = notificationFactory;
     }

@@ -121,7 +121,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
         try {
-            Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
+            Credentials credentials;
             if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
                 String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
                 Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
@@ -156,6 +156,8 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                             427, "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
                 }
                 credentials = new Credentials(parts[0], parts[1]);
+            } else {
+                credentials = credentialsManager.getCredentialsByTargetId(targetId);
             }
             return new ConnectionDescriptor(targetId, credentials);
         } catch (ScriptException e) {

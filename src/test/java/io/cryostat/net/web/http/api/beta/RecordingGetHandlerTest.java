@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -75,12 +76,15 @@ class RecordingGetHandlerTest {
 
     RecordingGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, gson, recordingArchiveHelper);
+        this.handler =
+                new RecordingGetHandler(
+                        authManager, credentialsManager, gson, recordingArchiveHelper);
     }
 
     @Nested

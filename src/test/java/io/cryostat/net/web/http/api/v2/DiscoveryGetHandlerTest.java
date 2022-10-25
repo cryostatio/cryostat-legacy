@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
@@ -72,13 +73,14 @@ class DiscoveryGetHandlerTest {
 
     AbstractV2RequestHandler<EnvironmentNode> handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new DiscoveryGetHandler(auth, storage, gson);
+        this.handler = new DiscoveryGetHandler(auth, credentialsManager, storage, gson);
     }
 
     @Nested

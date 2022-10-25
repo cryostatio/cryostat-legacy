@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -71,13 +72,16 @@ class ApiGetHandlerTest {
     @Mock WebServer webServer;
     Set<RequestHandler> requestHandlers;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         this.requestHandlers = new HashSet<>();
-        this.handler = new ApiGetHandler(() -> webServer, () -> requestHandlers, auth, gson);
+        this.handler =
+                new ApiGetHandler(
+                        () -> webServer, () -> requestHandlers, auth, credentialsManager, gson);
     }
 
     @Nested

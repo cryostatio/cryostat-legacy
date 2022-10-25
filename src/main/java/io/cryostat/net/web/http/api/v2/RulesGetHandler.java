@@ -43,6 +43,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -62,8 +63,13 @@ class RulesGetHandler extends AbstractV2RequestHandler<Set<Rule>> {
     private final Logger logger;
 
     @Inject
-    RulesGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
-        super(auth, gson);
+    RulesGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RuleRegistry ruleRegistry,
+            Gson gson,
+            Logger logger) {
+        super(auth, credentialsManager, gson);
         this.ruleRegistry = ruleRegistry;
         this.logger = logger;
     }

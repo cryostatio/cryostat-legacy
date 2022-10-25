@@ -43,6 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -71,6 +72,7 @@ class RulePatchTest {
 
     RulePatchHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RuleRegistry registry;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -94,7 +96,9 @@ class RulePatchTest {
                 .when(notificationBuilder.message(Mockito.any()))
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.handler = new RulePatchHandler(auth, registry, notificationFactory, gson, logger);
+        this.handler =
+                new RulePatchHandler(
+                        auth, credentialsManager, registry, notificationFactory, gson, logger);
     }
 
     @Nested

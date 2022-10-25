@@ -62,7 +62,6 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
     static final String PATH = "targets/:targetId";
 
     private final TargetConnectionManager targetConnectionManager;
-    private final CredentialsManager credentialsManager;
 
     @Inject
     JvmIdGetHandler(
@@ -70,8 +69,7 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
             Gson gson,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager) {
-        super(auth, gson);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager, gson);
         this.targetConnectionManager = targetConnectionManager;
     }
 
@@ -109,12 +107,6 @@ class JvmIdGetHandler extends AbstractV2RequestHandler<String> {
     public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
         ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
         try {
-            if (cd.getCredentials().isEmpty()) {
-                cd =
-                        new ConnectionDescriptor(
-                                cd.getTargetId(),
-                                credentialsManager.getCredentialsByTargetId(cd.getTargetId()));
-            }
             String jvmId =
                     this.targetConnectionManager.executeConnectedTask(
                             cd,
