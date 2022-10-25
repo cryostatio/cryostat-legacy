@@ -32,6 +32,7 @@
   <skipTests>false</skipTests>
   <skipITs>${skipTests}</skipITs>
   <skipUTs>${skipTests}</skipUTs>
+  <skipBaseImage>false</skipBaseImage>
   <headless>false</headless>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.bash</cryostat.entrypoint>
@@ -403,6 +404,7 @@
               <argument>${baseImage}:${baseImageTag}</argument>
               <argument>${project.basedir}/src/container</argument>
             </arguments>
+            <skip>${skipBaseImage}</skip>
           </configuration>
         </execution>
         <execution>
@@ -421,6 +423,7 @@
               <argument>--output</argument>
               <argument>${project.build.directory}/${baseImageTarball}</argument>
             </arguments>
+            <skip>${skipBaseImage}</skip>
           </configuration>
         </execution>
         <execution>
