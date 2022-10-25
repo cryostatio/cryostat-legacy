@@ -14,7 +14,7 @@ A container-native JVM application which acts as a bridge to other containerized
 ## SEE ALSO
 
 * [cryostat.io](https://cryostat.io) : upstream documentation website with user
-  guides, tutorials, blog posts, and other user-facing content. **Start here** if
+  guides, tutorials, blog posts, and other user-facing content. Start here if
   what you've read so far sounds interesting and you want to know more as a
   **user**, rather than as a _developer_.
 
