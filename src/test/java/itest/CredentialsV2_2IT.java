@@ -445,8 +445,8 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
                 new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9094/jmxrmi").build();
         URI expectedTarget2URI =
                 new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9095/jmxrmi").build();
-        String expectedTarget1JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget1URI);
-        String expectedTarget2JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget2URI);
+        String expectedTarget1JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget1URI, VERTX_FIB_CREDENTIALS);
+        String expectedTarget2JvmId = JvmIdWebRequest.jvmIdRequest(expectedTarget2URI, VERTX_FIB_CREDENTIALS);
         ServiceRef expectedTarget1 =
                 new ServiceRef(expectedTarget1JvmId, expectedTarget1URI, "es.andrewazor.demo.Main");
         expectedTarget1.setCryostatAnnotations(

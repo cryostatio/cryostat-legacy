@@ -155,7 +155,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             String.format(
                                     "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                     Podman.POD_NAME, 9093 + i));
-            String jvmId = JvmIdWebRequest.jvmIdRequest(uri);
+            String jvmId = JvmIdWebRequest.jvmIdRequest(uri, VERTX_FIB_CREDENTIALS);
             ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
                     Map.of(

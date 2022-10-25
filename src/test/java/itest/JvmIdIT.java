@@ -54,6 +54,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.openjdk.jmc.common.util.Pair;
 
 public class JvmIdIT extends ExternalTargetsTest {
 
@@ -96,10 +97,11 @@ public class JvmIdIT extends ExternalTargetsTest {
     void testUniqueJvmIds() throws Exception {
         String targetId =
                 String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
+        Pair<String, String> credentials = new Pair<String, String>("admin", "adminpass123");
         // send jvmIds requests for all external containers
         String one = JvmIdWebRequest.jvmIdRequest(targetId);
-        String two = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9094"));
-        String three = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9095"));
+        String two = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9094"), credentials);
+        String three = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9095"), credentials);
         Set<String> targets = Set.of(one, two, three);
 
         // check that all jvmIds are unique

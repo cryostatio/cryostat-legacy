@@ -45,11 +45,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.openjdk.jmc.common.util.Pair;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 
 import com.google.gson.Gson;
+
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import itest.bases.StandardSelfTest;
 import itest.util.Utils;
@@ -62,23 +67,21 @@ public class JvmIdWebRequest {
 
     // shouldn't be percent-encoded i.e.
     // String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME)
-    public static String jvmIdRequest(String targetId)
+    public static String jvmIdRequest(String targetId) throws InterruptedException, ExecutionException, TimeoutException {
+        return jvmIdRequest(targetId, null);
+    }
+
+    public static String jvmIdRequest(String targetId, Pair<String, String> credentials)
             throws InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
 
         JsonObject query = new JsonObject();
-        query.put(
-                "query",
-                String.format("query { targetNodes(filter: { name: \"%s\" }) { ", targetId)
-                        + " target { jvmId } } }");
-        webClient
-                .post("/api/v2.2/graphql")
-                .putHeader(
-                        "X-JMX-Authorization",
-                        "Basic "
-                                + Base64.getUrlEncoder()
-                                        .encodeToString("admin:adminpass123".getBytes()))
-                .sendJson(
+        query.put("query", String.format("query { targetNodes(filter: { name: \"%s\" }) { target { jvmId } } }", targetId));
+        HttpRequest<Buffer> buffer = webClient.post("/api/v2.2/graphql");
+        if (credentials != null) {
+            buffer.putHeader("X-JMX-Authorization", "Basic " + Base64.getUrlEncoder().encodeToString((credentials.left + ":" + credentials.right).getBytes()));
+        }
+        buffer.sendJson(
                         query,
                         ar -> {
                             if (StandardSelfTest.assertRequestStatus(ar, resp)) {
@@ -92,9 +95,13 @@ public class JvmIdWebRequest {
         return response.data.targetNodes.get(0).target.jvmId;
     }
 
-    public static String jvmIdRequest(URI serviceUri)
+    public static String jvmIdRequest(URI serviceUri) throws InterruptedException, ExecutionException, TimeoutException {
+        return jvmIdRequest(serviceUri.toString(), null);
+    }
+
+    public static String jvmIdRequest(URI serviceUri, Pair<String, String> credentials)
             throws InterruptedException, ExecutionException, TimeoutException {
-        return jvmIdRequest(serviceUri.toString());
+        return jvmIdRequest(serviceUri.toString(), credentials);
     }
 
     static class TargetNodesQueryResponse {
