@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -70,10 +71,11 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
     @Inject
     RecordingMetadataLabelsPostFromPathHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
     }

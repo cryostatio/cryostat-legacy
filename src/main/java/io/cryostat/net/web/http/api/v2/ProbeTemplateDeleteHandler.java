@@ -44,6 +44,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -69,12 +70,13 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Inject
     ProbeTemplateDeleteHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
             Logger logger,
             FileSystem fs,
             Gson gson) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
@@ -126,7 +128,7 @@ class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
         } catch (Exception e) {
             throw new ApiException(400, e.getMessage(), e);
         }
-        return new IntermediateResponse().body(null);
+        return new IntermediateResponse<Void>().body(null);
     }
 
     @Override

@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -79,6 +80,7 @@ class RulesPostHandlerTest {
 
     RulesPostHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock RuleRegistry ruleRegistry;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -112,7 +114,13 @@ class RulesPostHandlerTest {
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new RulesPostHandler(authManager, ruleRegistry, notificationFactory, gson, logger);
+                new RulesPostHandler(
+                        authManager,
+                        credentialsManager,
+                        ruleRegistry,
+                        notificationFactory,
+                        gson,
+                        logger);
     }
 
     @Nested

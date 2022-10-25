@@ -43,6 +43,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -55,8 +56,9 @@ import io.vertx.core.http.HttpMethod;
 class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
-    protected LogoutPostHandler(AuthManager auth, Gson gson) {
-        super(auth, gson);
+    protected LogoutPostHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+        super(auth, credentialsManager, gson);
     }
 
     @Override

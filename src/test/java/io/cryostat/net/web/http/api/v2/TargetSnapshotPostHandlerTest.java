@@ -48,6 +48,7 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
@@ -80,13 +81,16 @@ class TargetSnapshotPostHandlerTest {
 
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetSnapshotPostHandler(auth, recordingTargetHelper, gson);
+        this.handler =
+                new TargetSnapshotPostHandler(
+                        auth, credentialsManager, recordingTargetHelper, gson);
     }
 
     @Test

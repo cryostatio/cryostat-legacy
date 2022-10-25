@@ -46,6 +46,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.ProbeTemplate;
@@ -66,8 +67,12 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
     private final TargetConnectionManager connectionManager;
 
     @Inject
-    TargetProbesGetHandler(AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth, gson);
+    TargetProbesGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            TargetConnectionManager connectionManager,
+            Gson gson) {
+        super(auth, credentialsManager, gson);
         this.connectionManager = connectionManager;
     }
 

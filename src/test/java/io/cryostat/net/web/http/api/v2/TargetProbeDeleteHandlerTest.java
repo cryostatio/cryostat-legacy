@@ -49,6 +49,7 @@ import javax.management.ObjectName;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
@@ -80,6 +81,7 @@ public class TargetProbeDeleteHandlerTest {
 
     TargetProbeDeleteHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
@@ -105,7 +107,14 @@ public class TargetProbeDeleteHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new TargetProbeDeleteHandler(
-                        logger, notificationFactory, fs, auth, targetConnectionManager, env, gson);
+                        logger,
+                        notificationFactory,
+                        fs,
+                        auth,
+                        credentialsManager,
+                        targetConnectionManager,
+                        env,
+                        gson);
     }
 
     @Nested

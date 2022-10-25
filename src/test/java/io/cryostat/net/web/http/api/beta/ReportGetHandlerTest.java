@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
@@ -77,13 +78,16 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager authManager;
+    @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock ReportService reportService;
     @Mock RecordingArchiveHelper archiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new ReportGetHandler(authManager, gson, reportService, archiveHelper, 30);
+        this.handler =
+                new ReportGetHandler(
+                        authManager, credentialsManager, gson, reportService, archiveHelper, 30);
     }
 
     @Nested

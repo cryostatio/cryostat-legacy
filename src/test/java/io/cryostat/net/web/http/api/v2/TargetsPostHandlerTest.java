@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
@@ -77,6 +78,7 @@ class TargetsPostHandlerTest {
 
     TargetsPostHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
     @Mock CustomTargetPlatformClient customTargetPlatformClient;
     @Mock Logger logger;
@@ -84,7 +86,9 @@ class TargetsPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetsPostHandler(auth, gson, storage, customTargetPlatformClient);
+        this.handler =
+                new TargetsPostHandler(
+                        auth, credentialsManager, gson, storage, customTargetPlatformClient);
     }
 
     @Test

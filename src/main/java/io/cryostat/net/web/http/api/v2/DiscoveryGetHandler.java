@@ -43,6 +43,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -58,8 +59,12 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     private final DiscoveryStorage storage;
 
     @Inject
-    DiscoveryGetHandler(AuthManager auth, DiscoveryStorage storage, Gson gson) {
-        super(auth, gson);
+    DiscoveryGetHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            DiscoveryStorage storage,
+            Gson gson) {
+        super(auth, credentialsManager, gson);
         this.storage = storage;
     }
 

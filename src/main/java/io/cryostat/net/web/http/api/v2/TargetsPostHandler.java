@@ -49,6 +49,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -74,10 +75,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     @Inject
     TargetsPostHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             Gson gson,
             DiscoveryStorage storage,
             CustomTargetPlatformClient customTargetPlatformClient) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.storage = storage;
         this.customTargetPlatformClient = customTargetPlatformClient;
     }

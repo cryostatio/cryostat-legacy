@@ -52,6 +52,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
@@ -77,6 +78,7 @@ class TargetEventsGetHandlerTest {
 
     TargetEventsGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
     @Mock IFlightRecorderService service;
@@ -85,7 +87,8 @@ class TargetEventsGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetEventsGetHandler(auth, targetConnectionManager, gson);
+        this.handler =
+                new TargetEventsGetHandler(auth, credentialsManager, targetConnectionManager, gson);
     }
 
     @Test

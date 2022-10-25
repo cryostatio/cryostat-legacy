@@ -46,6 +46,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
@@ -73,12 +74,13 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     @Inject
     ProbeTemplateUploadHandler(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
             Logger logger,
             FileSystem fs,
             Gson gson) {
-        super(auth, gson);
+        super(auth, credentialsManager, gson);
         this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
@@ -121,7 +123,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     }
 
     @Override
-    public IntermediateResponse handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
         try {
             for (FileUpload u : requestParams.getFileUploads()) {
                 String templateName = requestParams.getPathParams().get("probetemplateName");
@@ -150,7 +152,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             logger.error(e.getMessage());
             throw new ApiException(500, e.getMessage(), e);
         }
-        return new IntermediateResponse().body(null);
+        return new IntermediateResponse<Void>().body(null);
     }
 
     @Override

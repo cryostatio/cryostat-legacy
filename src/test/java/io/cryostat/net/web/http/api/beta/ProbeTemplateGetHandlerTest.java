@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
@@ -70,6 +71,7 @@ public class ProbeTemplateGetHandlerTest {
 
     ProbeTemplateGetHandler handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -79,7 +81,8 @@ public class ProbeTemplateGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new ProbeTemplateGetHandler(auth, templateService, fs, gson);
+        this.handler =
+                new ProbeTemplateGetHandler(auth, credentialsManager, templateService, fs, gson);
     }
 
     @Nested

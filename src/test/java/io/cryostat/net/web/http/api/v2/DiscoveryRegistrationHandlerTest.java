@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
@@ -78,6 +79,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DiscoveryRegistrationHandlerTest {
     AbstractV2RequestHandler<Map<String, String>> handler;
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
     @Mock WebServer webServer;
     @Mock DiscoveryJwtHelper jwt;
@@ -88,7 +90,14 @@ class DiscoveryRegistrationHandlerTest {
     void setup() {
         this.handler =
                 new DiscoveryRegistrationHandler(
-                        auth, storage, () -> webServer, jwt, UUID::fromString, gson, logger);
+                        auth,
+                        credentialsManager,
+                        storage,
+                        () -> webServer,
+                        jwt,
+                        UUID::fromString,
+                        gson,
+                        logger);
     }
 
     @Nested
