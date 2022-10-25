@@ -49,11 +49,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-<<<<<<< HEAD
 import io.cryostat.configuration.CredentialsManager;
-=======
 import io.cryostat.core.log.Logger;
->>>>>>> 35374b7f (fixed more tests, added null checking for jvmId field in serviceRef so that they don't fail completely)
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -87,14 +84,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             Gson gson,
             DiscoveryStorage storage,
             JvmIdHelper jvmIdHelper,
-<<<<<<< HEAD
-            CustomTargetPlatformClient customTargetPlatformClient) {
-        super(auth, credentialsManager, gson);
-=======
             CustomTargetPlatformClient customTargetPlatformClient,
             Logger logger) {
-        super(auth, gson);
->>>>>>> 35374b7f (fixed more tests, added null checking for jvmId field in serviceRef so that they don't fail completely)
+        super(auth, credentialsManager, gson);
         this.storage = storage;
         this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;

@@ -90,7 +90,7 @@ class TargetsPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetsPostHandler(
-                        auth, credentialsManager, gson, storage, jvmIdHelper, customTargetPlatformClient);
+                        auth, credentialsManager, gson, storage, jvmIdHelper, customTargetPlatformClient, logger);
     }
 
     @Test
