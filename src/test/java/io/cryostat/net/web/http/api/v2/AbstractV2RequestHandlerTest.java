@@ -317,9 +317,6 @@ class AbstractV2RequestHandlerTest {
                     "Basic " + Base64.getEncoder().encodeToString("jmxuser:jmxpass".getBytes()));
             Mockito.when(ctx.request().headers()).thenReturn(headers);
 
-            Credentials creds = new Credentials("a user", "thepass");
-            Mockito.when(credentialsManager.getCredentialsByTargetId(targetId)).thenReturn(creds);
-
             handler.handle(ctx);
             ConnectionDescriptor desc = handler.desc;
 
@@ -328,6 +325,8 @@ class AbstractV2RequestHandlerTest {
             MatcherAssert.assertThat(
                     desc.getCredentials().get(),
                     Matchers.equalTo(new Credentials("jmxuser", "jmxpass")));
+
+            Mockito.verifyNoInteractions(credentialsManager);
         }
 
         @ParameterizedTest
