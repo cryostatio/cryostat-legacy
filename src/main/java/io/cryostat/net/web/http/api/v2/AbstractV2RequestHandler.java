@@ -126,7 +126,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {
         String targetId = params.getPathParams().get("targetId");
         try {
-            Credentials credentials = credentialsManager.getCredentialsByTargetId(targetId);
+            Credentials credentials;
             if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {
                 String proxyAuth = params.getHeaders().get(JMX_AUTHORIZATION_HEADER);
                 Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
@@ -166,6 +166,8 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                         credentials = new Credentials(parts[0], parts[1]);
                     }
                 }
+            } else {
+                credentials = credentialsManager.getCredentialsByTargetId(targetId);
             }
             return new ConnectionDescriptor(targetId, credentials);
         } catch (ScriptException e) {
