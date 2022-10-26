@@ -421,7 +421,7 @@ class HealthGetHandlerTest {
                 responseMap,
                 Matchers.equalTo(
                         Map.of(
-                                "cryostatVersion", "v1.2.3",
+                                "broken_cryostatVersion", "v1.2.3",
                                 "dashboardConfigured", true,
                                 "dashboardAvailable", true,
                                 "datasourceConfigured", false,
