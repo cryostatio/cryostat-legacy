@@ -12,7 +12,6 @@ on:
       - synchronize
       - labeled
       - unlabeled
-      - edited
     branches:
       - main
       - v[0-9]+
