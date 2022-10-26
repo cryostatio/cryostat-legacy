@@ -351,7 +351,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                         staleMetadata.put(srm, subdirectory);
                                         return;
                                     }
-                                    // delete old metadata file after migration
                                     try {
                                         fs.deleteIfExists(subdirectory);
                                         logger.info("Removed old metadata file: {}", subdirectory);
@@ -366,7 +365,6 @@ public class RecordingMetadataManager extends AbstractVerticle
                                             "Recording metadata subdirectory {} is"
                                                     + " neither a directory nor a file",
                                             subdirectory);
-                                    // invalid
                                     throw new IllegalStateException(
                                             subdirectory + " is neither a directory nor a file");
                                 }
@@ -466,7 +464,6 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     // Pre-condition: staleMetadata is Mapping of metadata to its filesystem path, pertaining to any
     // previously active recording
-    // Asynchronous since testing connections to targets takes long, especially for many targets
     private void pruneStaleMetadata(Map<StoredRecordingMetadata, Path> staleMetadata) {
         logger.info("Beginning to prune potentially stale metadata...");
         staleMetadata.forEach(
