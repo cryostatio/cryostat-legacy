@@ -1,5 +1,9 @@
 on:
   workflow_call:
+    outputs:
+      image-version:
+        description: the Cryostat application version that will be built
+        value: ${{ jobs.get-pom-properties.outputs.image-version }}
 
 jobs:
   get-pom-properties:
