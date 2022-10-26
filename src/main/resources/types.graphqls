@@ -97,6 +97,7 @@ type ActiveRecording implements Recording {
     toDisk: Boolean!
     maxSize: Long!
     maxAge: Long!
+    archiveOnStop: Boolean!
 
     name: String!
     reportUrl: Url!
