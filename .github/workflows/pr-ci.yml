@@ -21,6 +21,9 @@ on:
 jobs:
   build-and-test:
     uses: ./.github/workflows/ci-jobs.yml
+    with:
+      checkout-repo: ${{ github.repository }}
+      checkout-ref: ${{ github.event.pull_request.head.ref }}
     if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
 
   push-to-ghcr:
