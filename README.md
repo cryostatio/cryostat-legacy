@@ -1,4 +1,9 @@
-# [Cryostat](https://cryostat.io)
+<a target="_blank" href="https://cryostat.io">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/cryostat_logo_hori_rgb_reverse.svg">
+    <img src="./docs/images/cryostat_logo_hori_rgb_default.svg">
+  </picture>
+</a>
 
 [![CI build](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml/badge.svg)](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml)
 [![Quay Repository](https://quay.io/repository/cryostat/cryostat/status "Quay Repository")](https://quay.io/repository/cryostat/cryostat)
@@ -7,6 +12,11 @@
 A container-native JVM application which acts as a bridge to other containerized JVMs and exposes a secure API for producing, analyzing, and retrieving JDK Flight Recorder data from your cloud workloads.
 
 ## SEE ALSO
+
+* [cryostat.io](https://cryostat.io) : upstream documentation website with user
+  guides, tutorials, blog posts, and other user-facing content. Start here if
+  what you've read so far sounds interesting and you want to know more as a
+  **user**, rather than as a _developer_.
 
 * [cryostat-core](https://github.com/cryostatio/cryostat-core) :
 the core library providing a convenience wrapper and headless stubs for use of
