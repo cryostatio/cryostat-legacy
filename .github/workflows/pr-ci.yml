@@ -48,7 +48,7 @@ jobs:
         tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
-        password: ${{ secrets.CI_GHCR_TEST_SECRET }}
+        password: ${{ secrets.GHCR_PR_TOKEN }}
       if: github.repository_owner == 'cryostatio'
     - name: Comment test image link
       uses: thollander/actions-comment-pull-request@v1
