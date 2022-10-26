@@ -165,7 +165,8 @@ class StartRecordingOnTargetMutator
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
-                            metadata);
+                            metadata,
+                            archiveOnStop);
                 });
     }
 }
