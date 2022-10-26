@@ -155,5 +155,6 @@ input RecordingSettings {
     toDisk: Boolean
     maxSize: Long
     maxAge: Long
+    archiveOnStop: Boolean
     metadata: Object
 }

@@ -272,8 +272,9 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                     + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                    + " template: \"Profiling\", templateType: \"TARGET\", metadata: { labels: {"
-                    + " newLabel: someValue } }  }) { name state duration }} }");
+                    + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: false,"
+                    + " metadata: { labels: { newLabel: someValue } }  }) { name state duration }}"
+                    + " }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
