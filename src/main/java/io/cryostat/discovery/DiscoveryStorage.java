@@ -220,6 +220,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                             }
                         }
                         break;
+                    case REMOVED:
+                        break;
                     default:
                         throw new UnsupportedOperationException(event.getEventType().toString());
                 }
