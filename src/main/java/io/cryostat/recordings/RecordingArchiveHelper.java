@@ -207,7 +207,7 @@ public class RecordingArchiveHelper {
                                 } catch (JvmIdGetException e) {
                                     logger.warn(
                                             "Failed to migrate archived recordings for {} - no"
-                                                    + " target connection available to {}",
+                                                    + " connection to {}",
                                             subdirectoryName,
                                             e.getTarget());
                                     Path lostPath =
@@ -217,6 +217,9 @@ public class RecordingArchiveHelper {
                                         fs.createDirectory(lostPath);
                                     }
                                     for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                                        if (file.equals("connectUrl")) {
+                                            continue;
+                                        }
                                         Path oldLocation = subdirectoryPath.resolve(file);
                                         Path newLocation = lostPath.resolve(file);
                                         logger.info(
@@ -224,6 +227,22 @@ public class RecordingArchiveHelper {
                                                 oldLocation,
                                                 newLocation);
                                         Files.move(oldLocation, newLocation);
+
+                                        String jvmId =
+                                                jvmIdHelper.subdirectoryNameToJvmId(
+                                                        subdirectoryName);
+                                        Metadata m =
+                                                recordingMetadataManager
+                                                        .deleteRecordingMetadataIfExists(
+                                                                jvmId, file);
+                                        if (m != null) {
+                                            recordingMetadataManager.setRecordingMetadataFromPath(
+                                                    LOST_RECORDINGS_SUBDIRECTORY, file, m);
+                                        } else {
+                                            logger.warn(
+                                                    "No metadata found for lost recording {}",
+                                                    oldLocation);
+                                        }
                                     }
                                     FileUtils.deleteQuietly(subdirectoryPath.toFile());
                                 } catch (IOException e) {
@@ -269,7 +288,7 @@ public class RecordingArchiveHelper {
                     "[{}]: Archives subdirectory transfer: {} -> {}",
                     connectUrl,
                     subdirectoryPath,
-                    newJvmId);
+                    jvmIdPath);
 
             fs.createDirectory(jvmIdPath);
             for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
@@ -284,7 +303,7 @@ public class RecordingArchiveHelper {
                     "[{}]: Archives subdirectory successfully transferred: {} -> {}",
                     connectUrl,
                     subdirectoryPath,
-                    newJvmId);
+                    jvmIdPath);
         } catch (Exception e) {
             logger.error("Archives subdirectory could not be renamed upon target restart", e);
         }
