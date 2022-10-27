@@ -137,6 +137,11 @@ class StartRecordingOnTargetMutator
                     if (settings.containsKey("maxSize")) {
                         builder = builder.maxSize((Long) settings.get("maxSize"));
                     }
+                    boolean archiveOnStop = false;
+                    if (settings.containsKey("archiveOnStop")) {
+                        Boolean v = (Boolean) settings.get("archiveOnStop");
+                        archiveOnStop = v != null && v;
+                    }
                     Metadata m = new Metadata();
                     if (settings.containsKey("metadata")) {
                         m =
@@ -152,14 +157,16 @@ class StartRecordingOnTargetMutator
                                     (String) settings.get("template"),
                                     TemplateType.valueOf(
                                             ((String) settings.get("templateType")).toUpperCase()),
-                                    m);
+                                    m,
+                                    archiveOnStop);
                     WebServer ws = webServer.get();
                     Metadata metadata = metadataManager.getMetadata(cd, desc.getName());
                     return new HyperlinkedSerializableRecordingDescriptor(
                             desc,
                             ws.getDownloadURL(conn, desc.getName()),
                             ws.getReportURL(conn, desc.getName()),
-                            metadata);
+                            metadata,
+                            archiveOnStop);
                 });
     }
 }
