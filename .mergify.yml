@@ -10,12 +10,9 @@ pull_request_rules:
         assignees:
           - "{{ author }}"
 
-  - name: auto label PRs from reviewers or Dependabot
+  - name: auto label PRs from reviewers
     conditions:
-      - or:
-        - author=@reviewers
-        - author=dependabot
-        - author=app/dependabot
+      - author=@reviewers
     actions:
       label:
         add:
