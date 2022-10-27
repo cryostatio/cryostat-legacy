@@ -65,7 +65,8 @@
     The `NoopAuthManager` accepts all authentication requests,
     regardless of the existence or contents of any
     `Authorization` header.
-    For more details, see [`README.md`](../README.md)).
+    For more details, see
+    [`README.md`](../README.md#user-authentication--authorization).
 
     ###### response
     `200` - No body. Getting this response means that the header is valid
