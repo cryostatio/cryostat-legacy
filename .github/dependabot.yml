@@ -9,3 +9,4 @@ updates:
     labels:
       - "dependencies"
       - "chore"
+      - "safe-to-test"
