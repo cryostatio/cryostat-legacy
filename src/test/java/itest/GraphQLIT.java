@@ -271,9 +271,10 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                    + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                    + " template: \"Profiling\", templateType: \"TARGET\", metadata: { labels: {"
-                    + " newLabel: someValue } }  }) { name state duration }} }");
+                        + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
+                        + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
+                        + " metadata: { labels: { newLabel: someValue } }  }) { name state duration"
+                        + " archiveOnStop }} }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -294,6 +295,7 @@ class GraphQLIT extends ExternalTargetsTest {
         recording.name = "graphql-itest";
         recording.duration = 30_000L;
         recording.state = "RUNNING";
+        recording.archiveOnStop = true;
         recording.metadata =
                 RecordingMetadata.of(
                         Map.of(
@@ -840,6 +842,7 @@ class GraphQLIT extends ExternalTargetsTest {
         boolean toDisk;
         long maxSize;
         long maxAge;
+        boolean archiveOnStop;
 
         ArchivedRecording doArchive;
         ActiveRecording doDelete;
@@ -854,6 +857,7 @@ class GraphQLIT extends ExternalTargetsTest {
                     duration,
                     maxAge,
                     maxSize,
+                    archiveOnStop,
                     metadata,
                     name,
                     reportUrl,
@@ -881,6 +885,7 @@ class GraphQLIT extends ExternalTargetsTest {
                     && duration == other.duration
                     && maxAge == other.maxAge
                     && maxSize == other.maxSize
+                    && archiveOnStop == other.archiveOnStop
                     && Objects.equals(metadata, other.metadata)
                     && Objects.equals(name, other.name)
                     && Objects.equals(reportUrl, other.reportUrl)
@@ -905,6 +910,8 @@ class GraphQLIT extends ExternalTargetsTest {
                     + maxAge
                     + ", maxSize="
                     + maxSize
+                    + ", archiveOnStop="
+                    + archiveOnStop
                     + ", metadata="
                     + metadata
                     + ", name="
