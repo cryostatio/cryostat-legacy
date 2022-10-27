@@ -360,3 +360,11 @@ JMX connections into `cryostat` are secured using the default username
 `"cryostat"` and a randomly generated password.  The environment variables
 `CRYOSTAT_RJMX_USER` and `CRYOSTAT_RJMX_PASS` can be used to override
 the default username and specify a password.
+
+## API
+
+Cryostat exposes an HTTP API that provides the backing for its web interface,
+but is also intended as an automation or extension point for external clients.
+For details about this API see [HTTP_API.md](./docs/HTTP_API.md),
+[GRAPHQL.md](./docs/GRAPHQL.md), and
+[DISCOVERY_PLUGINS.md](./docs/DISCOVERY_PLUGINS.md).

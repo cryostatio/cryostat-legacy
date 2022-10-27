@@ -66,7 +66,7 @@
     regardless of the existence or contents of any
     `Authorization` header.
     For more details, see
-    [`README.md`](https://github.com/cryostatio/cryostat#user-authentication--authorization)).
+    [`README.md`](../README.md#user-authentication--authorization).
 
     ###### response
     `200` - No body. Getting this response means that the header is valid
@@ -355,7 +355,7 @@
     `200` - The body is a JSON array of recording objects.
 
     The format for a recording is
-    `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL","metadata":"{"labels":{"$KEY":"$VALUE"}},"size":"$SIZE"`. 
+    `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL","metadata":"{"labels":{"$KEY":"$VALUE"}},"size":"$SIZE"`.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -2471,7 +2471,7 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `RecordingDeleteHandler`
 
     ##### synopsis
-    Delete a recording from archive. This does not affect any recordings in any target JVM's JFR buffer. 
+    Delete a recording from archive. This does not affect any recordings in any target JVM's JFR buffer.
 
     ##### request
     `DELETE /api/beta/recordings/:sourceTarget/:recordingName`
@@ -2500,10 +2500,10 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### synopsis
     Returns a recording that was saved to archive, as an octet stream
-    
+
     ##### request
     `GET /api/beta/recordings/:sourceTarget/:recordingName`
-    
+
     `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
     `recordingName` - The name of the recording to download. Should use percent-encoding.
 
@@ -2534,7 +2534,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
     `recordingName` - The name of the recording to download. Should use percent-encoding.
-    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)  
+    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)
 
     ##### response
     `200` - The result is the recording file.
@@ -2591,7 +2591,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     `sourceTarget` - The target JVM from which Cryostat saved the recording. Must be in the form of a service:rmi:jmx:// JMX Service URL and should use percent-encoding. If a recording was re-uploaded to archives, this field should be set to `uploads`.
     `recordingName` - The name of the recording to get the report for. Should use percent-encoding.
-    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)  
+    `jwt` - The JSON Web Token providing authorization for this request. See [`AuthTokenPostHandler`](#AuthTokenPostHandler)
     ##### response
     `200` - The body is the requested report as an HTML document.
 
