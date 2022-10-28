@@ -18,8 +18,6 @@
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
 
-  <ubiImage>registry.access.redhat.com/ubi8/openjdk-17-runtime</ubiImage>
-  <ubiImageTag>:latest</ubiImageTag>
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <baseImageTarball>base.tar.gz</baseImageTarball>
@@ -311,7 +309,7 @@
       <directory>${project.basedir}/src/container</directory>
       <filtering>true</filtering>
       <includes>
-        <include>**/Containerfile</include>
+        <include>**/Dockerfile</include>
       </includes>
     </resource>
   </resources>
@@ -417,7 +415,7 @@
             <arguments>
               <argument>build</argument>
               <argument>--file</argument>
-              <argument>${project.build.outputDirectory}/Containerfile</argument>
+              <argument>${project.build.outputDirectory}/Dockerfile</argument>
               <argument>--tag</argument>
               <argument>${baseImage}:${baseImageTag}</argument>
               <argument>${project.basedir}/src/container</argument>
