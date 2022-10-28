@@ -188,7 +188,7 @@ public class RecordingTargetHelper {
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    metadata,
+                                    updatedMetadata,
                                     archiveOnStop);
                     this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
 
