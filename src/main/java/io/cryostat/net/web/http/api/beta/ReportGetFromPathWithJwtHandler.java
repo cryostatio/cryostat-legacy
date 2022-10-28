@@ -135,7 +135,7 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName, rawFilter)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter, true)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());

@@ -60,7 +60,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.util.ReportGetAcceptHeaderParser;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -132,19 +131,13 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean returnHtml =
-                ReportGetAcceptHeaderParser.returnHtml(ctx.parsedHeaders(), apiVersion());
         try {
-            /* TODO: Default HTML until vert.x .produces() on routes is supported */
+
             Path report =
                     reportService
-                            .get(recordingName, rawFilter, returnHtml)
+                            .get(recordingName, rawFilter, true)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_TYPE,
-                            returnHtml ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime());
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());

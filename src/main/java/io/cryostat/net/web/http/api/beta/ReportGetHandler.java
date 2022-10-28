@@ -139,7 +139,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
-                            .get(sourceTarget, recordingName, rawFilter)
+                            .get(sourceTarget, recordingName, rawFilter, true)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             return new IntermediateResponse<Path>().body(report);
         } catch (RecordingSourceTargetNotFoundException e) {

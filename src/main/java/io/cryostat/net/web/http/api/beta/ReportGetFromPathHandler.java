@@ -134,7 +134,7 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName, rawFilter)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter, true)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             return new IntermediateResponse<Path>().body(report);
         } catch (ExecutionException | CompletionException e) {

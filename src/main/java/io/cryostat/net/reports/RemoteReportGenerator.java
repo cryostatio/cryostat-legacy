@@ -95,7 +95,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                                 HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
-
+        String acceptHeader = formatted ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
                 .putHeader(HttpHeaders.ACCEPT.toString(), acceptHeader)

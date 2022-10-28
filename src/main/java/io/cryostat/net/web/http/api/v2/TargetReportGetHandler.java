@@ -113,6 +113,16 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+    }
+
+    @Override
+    public List<HttpMimeType> consumes() {
+        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }

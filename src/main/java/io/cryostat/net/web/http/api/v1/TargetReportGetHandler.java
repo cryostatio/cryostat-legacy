@@ -122,7 +122,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML);
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
     }
 
     @Override
@@ -130,21 +130,23 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean returnHtml =
-                ReportGetAcceptHeaderParser.returnHtml(ctx.parsedHeaders(), apiVersion());
+
+        ctx.parsedHeaders().accept().stream()
+                .forEach(s -> logger.info("Accept header: {}", s.rawValue()));
+
+        boolean isFormatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
+        System.out.println("isFormatted: " + isFormatted);
+
         try {
-            /* TODO: Default HTML until vert.x .produces() on routes is supported */
             ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_TYPE,
-                            returnHtml ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime())
+                    .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
                     .end(
                             reportService
                                     .get(
                                             getConnectionDescriptorFromContext(ctx),
                                             recordingName,
                                             rawFilter,
-                                            returnHtml)
+                                            isFormatted)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
