@@ -117,7 +117,7 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML);
+        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
     }
 
     @Override
@@ -132,9 +132,10 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
         try {
             List<String> queriedFilter = params.getQueryParams().getAll("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+            boolean formatted = params.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName, rawFilter, true)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter, formatted)
                             .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             return new IntermediateResponse<Path>().body(report);
         } catch (ExecutionException | CompletionException e) {

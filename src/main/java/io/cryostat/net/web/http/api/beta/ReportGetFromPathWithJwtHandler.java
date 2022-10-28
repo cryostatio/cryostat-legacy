@@ -117,6 +117,11 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+    }
+
+    @Override
     public boolean isAsync() {
         return true;
     }
@@ -133,9 +138,10 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
         try {
             List<String> queriedFilter = ctx.queryParam("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
+            boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
-                            .getFromPath(subdirectoryName, recordingName, rawFilter, true)
+                            .getFromPath(subdirectoryName, recordingName, rawFilter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());

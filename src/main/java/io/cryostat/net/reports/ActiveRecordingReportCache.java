@@ -106,7 +106,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         getReport(
                                 new RecordingDescriptor(connectionDescriptor, recordingName),
                                 filter,
-                                false));
+                                formatted));
             }
 
         } catch (Exception e) {
@@ -137,7 +137,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         Path saveFile = null;
         try {
             /* NOTE: Not always a cache miss since if a filter is specified or we want a JSON response, we do not even check the cache */
-            logger.info("Active report cache miss for {}", recordingDescriptor.recordingName);
+            logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         reportGeneratorServiceProvider
@@ -181,6 +181,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             }
         } finally {
             if (saveFile != null) {
+                System.out.println(saveFile);
                 fs.deleteIfExists(saveFile);
             }
         }

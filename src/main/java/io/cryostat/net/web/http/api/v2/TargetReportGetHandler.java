@@ -59,7 +59,6 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.util.ReportGetAcceptHeaderParser;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -118,11 +117,6 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
     }
 
     @Override
-    public List<HttpMimeType> consumes() {
-        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
-    }
-
-    @Override
     public boolean isAsync() {
         return false;
     }
@@ -137,24 +131,19 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean returnHtml =
-                ReportGetAcceptHeaderParser.returnHtml(ctx.parsedHeaders(), apiVersion());
+        boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
         try {
-            /* TODO: Default HTML until vert.x .produces() on routes is supported */
-            String report =
+            ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
+                .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .end(
                     reportService
                             .get(
                                     getConnectionDescriptorFromJwt(ctx, jwt),
                                     recordingName,
                                     rawFilter,
-                                    returnHtml)
-                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_TYPE,
-                            returnHtml ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime());
-            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().end(report);
+                                    formatted)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

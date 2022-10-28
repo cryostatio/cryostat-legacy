@@ -84,7 +84,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     public CompletableFuture<Path> exec(
             Path recording, Path destination, String filter, boolean formatted) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
-        logger.info("POSTing {} to {}", recording, reportGenerator);
+        logger.trace("POSTing {} to {}", recording, reportGenerator);
         var form =
                 MultipartForm.create()
                         .attribute("filter", filter)

@@ -58,7 +58,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.util.ReportGetAcceptHeaderParser;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -111,6 +110,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
@@ -121,22 +125,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
-    }
-
-    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-
-        ctx.parsedHeaders().accept().stream()
-                .forEach(s -> logger.info("Accept header: {}", s.rawValue()));
-
         boolean isFormatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
-        System.out.println("isFormatted: " + isFormatted);
-
         try {
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
