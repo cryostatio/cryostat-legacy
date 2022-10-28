@@ -129,7 +129,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean isFormatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
+        boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
         try {
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
@@ -139,7 +139,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                                             getConnectionDescriptorFromContext(ctx),
                                             recordingName,
                                             rawFilter,
-                                            isFormatted)
+                                            formatted)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

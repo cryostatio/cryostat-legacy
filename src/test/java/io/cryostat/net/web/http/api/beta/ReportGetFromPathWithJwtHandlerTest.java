@@ -53,6 +53,7 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -133,6 +134,13 @@ class ReportGetFromPathWithJwtHandlerTest {
         }
 
         @Test
+        void shouldProduceHtmlAndJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(),
+                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
+        }
+
+        @Test
         void shouldBeAsync() {
             Assertions.assertTrue(handler.isAsync());
         }
@@ -148,16 +156,22 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
+        @Mock HttpServerResponse resp;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("mytarget", "myrecording"));
-            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reports.getFromPath(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
@@ -167,7 +181,7 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldSendFileIfFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
             when(ctx.response()).thenReturn(resp);
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -175,12 +189,16 @@ class ReportGetFromPathWithJwtHandlerTest {
             when(path.toAbsolutePath()).thenReturn(path);
             when(path.toString()).thenReturn("foo.jfr");
             Future<Path> future = CompletableFuture.completedFuture(path);
-            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reports.getFromPath(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(reports).getFromPath("mydirectory", "myrecording", "");
+            verify(reports).getFromPath("mydirectory", "myrecording", "", true);
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
             inOrder.verify(resp).sendFile("foo.jfr");
@@ -188,7 +206,7 @@ class ReportGetFromPathWithJwtHandlerTest {
 
         @Test
         void shouldSendFileIfFoundFiltered() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
             when(ctx.response()).thenReturn(resp);
             when(ctx.pathParam("subdirectoryName")).thenReturn("mydirectory");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -197,12 +215,16 @@ class ReportGetFromPathWithJwtHandlerTest {
             when(path.toString()).thenReturn("foo.jfr");
             when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
             Future<Path> future = CompletableFuture.completedFuture(path);
-            when(reports.getFromPath(Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+            when(reports.getFromPath(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter");
+            verify(reports).getFromPath("mydirectory", "myrecording", "someFilter", true);
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
             inOrder.verify(resp).sendFile("foo.jfr");

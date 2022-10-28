@@ -71,7 +71,8 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter, boolean formatted) {
+    Future<Path> getFromPath(
+            String subdirectoryName, String recordingName, String filter, boolean formatted) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {

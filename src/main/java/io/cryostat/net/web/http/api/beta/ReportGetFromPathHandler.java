@@ -117,7 +117,7 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
     }
 
     @Override

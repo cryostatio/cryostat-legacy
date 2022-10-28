@@ -134,16 +134,16 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
         try {
             ctx.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
-                .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline")
-                .end(
-                    reportService
-                            .get(
-                                    getConnectionDescriptorFromJwt(ctx, jwt),
-                                    recordingName,
-                                    rawFilter,
-                                    formatted)
-                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
+                    .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
+                    .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                    .end(
+                            reportService
+                                    .get(
+                                            getConnectionDescriptorFromJwt(ctx, jwt),
+                                            recordingName,
+                                            rawFilter,
+                                            formatted)
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

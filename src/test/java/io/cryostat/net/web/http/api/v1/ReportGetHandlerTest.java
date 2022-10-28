@@ -64,6 +64,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -158,10 +159,11 @@ class ReportGetHandlerTest {
 
             handler.handle(ctx);
 
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(ctx.queryParam("filter")).thenReturn(List.of());
-        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(fakePath));
+            when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+            when(ctx.queryParam("filter")).thenReturn(List.of());
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                    .thenReturn(CompletableFuture.completedFuture(fakePath));
+        }
 
         @Test
         void shouldRespondBySendingFileFiltered() throws Exception {
@@ -191,10 +193,11 @@ class ReportGetHandlerTest {
 
             handler.handle(ctx);
 
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(fakePath));
+            when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+            when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                    .thenReturn(CompletableFuture.completedFuture(fakePath));
+        }
 
         @Test
         void shouldRespondBySendingFileUnformatted() throws Exception {
@@ -222,11 +225,11 @@ class ReportGetHandlerTest {
             when(reportService.get(Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(
-                        CompletableFuture.failedFuture(
-                                new RecordingNotFoundException(null, "someRecording")));
+            when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+            when(reportService.get(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                    .thenReturn(
+                            CompletableFuture.failedFuture(
+                                    new RecordingNotFoundException(null, "someRecording")));
 
             Mockito.verify(reportService).get("someRecording", "someFilter", false);
             Mockito.verify(resp).sendFile(fakePath.toString());

@@ -118,7 +118,7 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.JSON, HttpMimeType.HTML);
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
     }
 
     @Override

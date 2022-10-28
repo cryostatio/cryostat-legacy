@@ -211,7 +211,7 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class), anyString()))
+                                Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean()))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
@@ -228,14 +228,14 @@ class ActiveRecordingReportCacheTest {
                 .thenReturn(Map.of("target", targetId, "recording", hsrd));
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report1 = cache.get(connectionDescriptor, recordingName, "").get();
+        String report1 = cache.get(connectionDescriptor, recordingName, "", true).get();
         MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
         cache.onNotification(notification);
-        String report2 = cache.get(connectionDescriptor, recordingName, "").get();
+        String report2 = cache.get(connectionDescriptor, recordingName, "", true).get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         Mockito.verify(subprocessReportGenerator, Mockito.times(2))
-                .exec(Mockito.any(RecordingDescriptor.class), anyString());
+                .exec(Mockito.any(RecordingDescriptor.class), anyString(), anyBoolean());
     }
 
     @Test

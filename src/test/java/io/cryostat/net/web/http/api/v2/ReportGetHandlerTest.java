@@ -58,8 +58,6 @@ import com.nimbusds.jwt.JWT;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.MIMEHeader;
-import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -139,21 +137,17 @@ class ReportGetHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
-        @Mock ParsedHeaderValues phv;
-        @Mock MIMEHeader header;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("archive", "myrecording"));
-            Mockito.when(reports.get(Mockito.anyString(), Mockito.anyString())).thenReturn(future);
+            Mockito.when(
+                            reports.get(
+                                    Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                    .thenReturn(future);
             ApiException ex =
                     Assertions.assertThrows(
                             ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
@@ -161,42 +155,25 @@ class ReportGetHandlerTest {
         }
 
         @Test
-        void shouldRespond406IfAcceptInvalid() throws Exception {
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of());
-
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
-        }
-
-        @Test
         void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);
             Mockito.when(path.toString()).thenReturn("foo.jfr");
-
             File file = Mockito.mock(File.class);
             Mockito.when(path.toFile()).thenReturn(file);
             Mockito.when(file.length()).thenReturn(1234L);
-
             Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(reports.get(Mockito.anyString(), Mockito.anyString())).thenReturn(future);
+            Mockito.when(
+                            reports.get(
+                                    Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
+                    .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            Mockito.verify(reports).get("myrecording", "");
+            Mockito.verify(reports).get("myrecording", "", true);
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
@@ -204,25 +181,17 @@ class ReportGetHandlerTest {
         }
 
         @Test
-        void shouldSendFilteredFileIfFound() throws Exception {
+        void shouldSendFileIfFoundFiltered() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
             Path path = Mockito.mock(Path.class);
             Mockito.when(path.toAbsolutePath()).thenReturn(path);
             Mockito.when(path.toString()).thenReturn("foo.jfr");
-
             File file = Mockito.mock(File.class);
             Mockito.when(path.toFile()).thenReturn(file);
             Mockito.when(file.length()).thenReturn(1234L);
             Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-
             Future<Path> future = CompletableFuture.completedFuture(path);
             Mockito.when(
                             reports.get(
@@ -234,40 +203,6 @@ class ReportGetHandlerTest {
             Mockito.verify(reports).get("myrecording", "someFilter", true);
             InOrder inOrder = Mockito.inOrder(resp);
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
-            inOrder.verify(resp).sendFile("foo.jfr");
-        }
-
-        @Test
-        void shouldSendUnformattedFileIfFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-            Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("application");
-
-            Path path = Mockito.mock(Path.class);
-            Mockito.when(path.toAbsolutePath()).thenReturn(path);
-            Mockito.when(path.toString()).thenReturn("foo.jfr");
-
-            File file = Mockito.mock(File.class);
-            Mockito.when(path.toFile()).thenReturn(file);
-            Mockito.when(file.length()).thenReturn(1234L);
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-
-            Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(
-                            reports.get(
-                                    Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean()))
-                    .thenReturn(future);
-
-            handler.handleWithValidJwt(ctx, token);
-
-            Mockito.verify(reports).get("myrecording", "someFilter", false);
-            InOrder inOrder = Mockito.inOrder(resp);
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
             inOrder.verify(resp).sendFile("foo.jfr");
         }

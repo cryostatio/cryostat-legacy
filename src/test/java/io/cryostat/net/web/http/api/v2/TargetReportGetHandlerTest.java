@@ -37,6 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.text.ParseException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -50,17 +54,15 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.MIMEHeader;
-import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -124,6 +126,13 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
+        void shouldProduceHtmlAndJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(),
+                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
+        }
+
+        @Test
         void shouldNotBeAsync() {
             Assertions.assertFalse(handler.isAsync());
         }
@@ -136,37 +145,34 @@ class TargetReportGetHandlerTest {
 
     @Nested
     class Behaviour {
-
         @Mock RoutingContext ctx;
+        @Mock HttpServerResponse resp;
         @Mock JWT token;
-        @Mock ParsedHeaderValues phv;
-        @Mock MIMEHeader header;
-        @Mock MultiMap headers;
+        @Mock JWTClaimsSet claims;
+
+        @BeforeEach
+        void setup() throws ParseException {
+            when(ctx.response()).thenReturn(resp);
+            when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                    .thenReturn(resp);
+            when(token.getJWTClaimsSet()).thenReturn(claims);
+            when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
+        }
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
             Future<String> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("target", "myrecording"));
-            Mockito.when(
-                            reports.get(
-                                    Mockito.any(ConnectionDescriptor.class),
-                                    Mockito.anyString(),
-                                    Mockito.anyString()))
+            when(reports.get(
+                            Mockito.any(ConnectionDescriptor.class),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
-
             ApiException ex =
                     Assertions.assertThrows(
                             ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
@@ -174,47 +180,24 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
-        void shouldRespond406IfAcceptInvalid() throws Exception {
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of());
-
-            ApiException ex =
-                    Assertions.assertThrows(
-                            ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
-        }
-
-        @Test
         void shouldSendFileIfFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-            Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of());
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(ctx.queryParam("filter")).thenReturn(List.of());
 
             Future<String> future = CompletableFuture.completedFuture("report text");
-            Mockito.when(
-                            reports.get(
-                                    Mockito.any(ConnectionDescriptor.class),
-                                    Mockito.anyString(),
-                                    Mockito.anyString()))
+            when(reports.get(
+                            Mockito.any(ConnectionDescriptor.class),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            Mockito.verify(resp).end("report text");
-            Mockito.verify(reports)
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).end("report text");
+            verify(reports)
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
@@ -223,76 +206,29 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
-        void shouldSendFilteredFileIfFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-            Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("text");
-            Mockito.when(header.subComponent()).thenReturn("html");
-
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
+        void shouldSendFileIfFoundFiltered() throws Exception {
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
+            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
 
             Future<String> future = CompletableFuture.completedFuture("report text");
-            Mockito.when(
-                            reports.get(
-                                    Mockito.any(ConnectionDescriptor.class),
-                                    Mockito.anyString(),
-                                    Mockito.anyString()))
+            when(reports.get(
+                            Mockito.any(ConnectionDescriptor.class),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
-            Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-            Mockito.verify(resp).end("report text");
-            Mockito.verify(reports)
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).end("report text");
+            verify(reports)
                     .get(
                             Mockito.any(ConnectionDescriptor.class),
                             Mockito.eq("myrecording"),
                             Mockito.eq("someFilter"),
                             Mockito.eq(true));
-        }
-
-        @Test
-        void shouldSendUnformattedFileIfFound() throws Exception {
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-            Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Mockito.when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
-
-            Mockito.when(ctx.parsedHeaders()).thenReturn(phv);
-            Mockito.when(phv.accept()).thenReturn(List.of(header));
-            Mockito.when(header.component()).thenReturn("application");
-
-            JWTClaimsSet claims = Mockito.mock(JWTClaimsSet.class);
-            Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
-            Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
-
-            Future<String> future =
-                    CompletableFuture.completedFuture("{\"coolJson\": \"unformatted\"}");
-            Mockito.when(
-                            reports.get(
-                                    Mockito.any(),
-                                    Mockito.anyString(),
-                                    Mockito.anyString(),
-                                    Mockito.anyBoolean()))
-                    .thenReturn(future);
-
-            handler.handleWithValidJwt(ctx, token);
-
-            Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-            Mockito.verify(resp).end("{\"coolJson\": \"unformatted\"}");
-            Mockito.verify(reports)
-                    .get(
-                            Mockito.any(ConnectionDescriptor.class),
-                            Mockito.eq("myrecording"),
-                            Mockito.eq("someFilter"),
-                            Mockito.eq(false));
         }
     }
 }
