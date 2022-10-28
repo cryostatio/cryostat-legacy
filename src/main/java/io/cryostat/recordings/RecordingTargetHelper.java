@@ -163,6 +163,7 @@ public class RecordingTargetHelper {
                             connection.getService().close(previous.get());
                         }
                     }
+                    System.out.println("METADATA: " + metadata.getLabels());
                     IRecordingDescriptor desc =
                             connection
                                     .getService()
@@ -183,12 +184,14 @@ public class RecordingTargetHelper {
                                     .setRecordingMetadata(
                                             connectionDescriptor, recordingName, updatedMetadata)
                                     .get();
+
+                    System.out.println("UPDATED METADATA: " + updatedMetadata.getLabels());
                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                             new HyperlinkedSerializableRecordingDescriptor(
                                     desc,
                                     webServer.get().getDownloadURL(connection, desc.getName()),
                                     webServer.get().getReportURL(connection, desc.getName()),
-                                    updatedMetadata,
+                                    metadata,
                                     archiveOnStop);
                     this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
 
