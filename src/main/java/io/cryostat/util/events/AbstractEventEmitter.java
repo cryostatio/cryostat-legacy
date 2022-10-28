@@ -37,11 +37,11 @@
  */
 package io.cryostat.util.events;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractEventEmitter<T extends EventType, V> {
-    protected final Set<EventListener<T, V>> listeners = new HashSet<>();
+    protected final Set<EventListener<T, V>> listeners = ConcurrentHashMap.newKeySet();
 
     public void addListener(EventListener<T, V> listener) {
         this.listeners.add(listener);
