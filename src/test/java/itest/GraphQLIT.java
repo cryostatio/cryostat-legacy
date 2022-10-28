@@ -44,6 +44,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -68,6 +72,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 class GraphQLIT extends ExternalTargetsTest {
 
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+
+    private final ExecutorService worker = ForkJoinPool.commonPool();
 
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
@@ -266,6 +272,7 @@ class GraphQLIT extends ExternalTargetsTest {
     @Test
     @Order(3)
     void testStartRecordingMutationOnSpecificTarget() throws Exception {
+        CountDownLatch latch = new CountDownLatch(2);
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         JsonObject query = new JsonObject();
         query.put(
@@ -275,6 +282,30 @@ class GraphQLIT extends ExternalTargetsTest {
                         + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
                         + " metadata: { labels: { newLabel: someValue } }  }) { name state duration"
                         + " archiveOnStop }} }");
+        Map<String, String> expectedLabels =
+                Map.of(
+                        "template.name",
+                        "Profiling",
+                        "template.type",
+                        "TARGET",
+                        "newLabel",
+                        "someValue");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000); // Sleep to setup notification listening before query resolves
+
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -285,8 +316,34 @@ class GraphQLIT extends ExternalTargetsTest {
                                         gson.fromJson(
                                                 ar.result().bodyAsString(),
                                                 StartRecordingMutationResponse.class));
+                                latch.countDown();
                             }
                         });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecordingCreated notification emitted matches expected values
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+        MatcherAssert.assertThat(
+                notificationRecording.getString("name"), Matchers.equalTo("graphql-itest"));
+        MatcherAssert.assertThat(
+                notificationRecording.getString("archiveOnStop"), Matchers.equalTo("true"));
+        MatcherAssert.assertThat(
+                notification.getJsonObject("message").getString("target"),
+                Matchers.equalTo(
+                        String.format(
+                                "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
+                                Podman.POD_NAME, 9093)));
+        Map<String, Object> notificationLabels =
+                notificationRecording.getJsonObject("metadata").getJsonObject("labels").getMap();
+        for (var entry : expectedLabels.entrySet()) {
+            MatcherAssert.assertThat(
+                    notificationLabels, Matchers.hasEntry(entry.getKey(), entry.getValue()));
+        }
+
         StartRecordingMutationResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         RecordingNodes nodes = new RecordingNodes();
@@ -296,15 +353,7 @@ class GraphQLIT extends ExternalTargetsTest {
         recording.duration = 30_000L;
         recording.state = "RUNNING";
         recording.archiveOnStop = true;
-        recording.metadata =
-                RecordingMetadata.of(
-                        Map.of(
-                                "template.name",
-                                "Profiling",
-                                "template.type",
-                                "TARGET",
-                                "newLabel",
-                                "someValue"));
+        recording.metadata = RecordingMetadata.of(expectedLabels);
 
         StartRecording startRecording = new StartRecording();
         startRecording.doStartRecording = recording;
