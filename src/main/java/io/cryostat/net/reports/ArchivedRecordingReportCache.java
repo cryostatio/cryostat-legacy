@@ -127,7 +127,7 @@ class ArchivedRecordingReportCache {
                 logger.trace("Archived report cache miss for {}", recordingName);
                 return f;
             }
-            logger.info("Archived report cache miss for {}", recordingName);
+            logger.trace("Archived report cache miss for {}", recordingName);
             Path archivedRecording =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             Path saveFile =

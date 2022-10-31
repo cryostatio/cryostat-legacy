@@ -557,9 +557,8 @@ public class RecordingArchiveHelper {
                     if (!fs.deleteIfExists(reportPath)) {
                         logger.warn("Failed to delete report {}", reportPath);
                         deleted = false;
-                    }
-                    else {
-                        logger.info("Deleted report {}", reportName);
+                    } else {
+                        logger.trace("Deleted report {}", reportName);
                     }
                 }
             }
