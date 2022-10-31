@@ -54,6 +54,7 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.Gson;
@@ -94,6 +95,7 @@ public abstract class DiscoveryModule {
             PluginInfoDao dao,
             Lazy<JvmIdHelper> jvmIdHelper,
             Lazy<CredentialsManager> credentialsManager,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
             Logger logger) {
@@ -104,6 +106,7 @@ public abstract class DiscoveryModule {
                 dao,
                 jvmIdHelper,
                 credentialsManager,
+                matchExpressionEvaluator,
                 gson,
                 http,
                 logger);

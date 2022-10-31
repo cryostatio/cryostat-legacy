@@ -66,6 +66,7 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
+import io.cryostat.rules.MatchExpressionEvaluator;
 
 import com.google.gson.Gson;
 import dagger.Component;
@@ -100,6 +101,7 @@ class DiscoveryStorageTest {
     @Mock PluginInfoDao dao;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock MatchExpressionEvaluator matchExpressionEvaluator;
     @Mock WebClient http;
     @Mock Logger logger;
     Vertx vertx = MockVertx.vertx();
@@ -130,6 +132,7 @@ class DiscoveryStorageTest {
                         dao,
                         () -> jvmIdHelper,
                         () -> credentialsManager,
+                        () -> matchExpressionEvaluator,
                         gson,
                         http,
                         logger);

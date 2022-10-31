@@ -52,9 +52,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.script.ScriptException;
+
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -65,11 +66,11 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.HttpStatusCodeIdentifier;
-import io.cryostat.util.events.Event;
-import io.cryostat.util.events.EventListener;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -88,6 +89,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final PluginInfoDao dao;
     private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Lazy<CredentialsManager> credentialsManager;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
@@ -104,6 +106,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             PluginInfoDao dao,
             Lazy<JvmIdHelper> jvmIdHelper,
             Lazy<CredentialsManager> credentialsManager,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
             Logger logger) {
@@ -113,6 +116,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.dao = dao;
         this.jvmIdHelper = jvmIdHelper;
         this.credentialsManager = credentialsManager;
+        this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.gson = gson;
         this.http = http;
         this.logger = logger;
@@ -136,8 +140,42 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                                 + " deployed")))
                 .onFailure(future::fail);
 
-        this.credentialsManager.get().addListener(credentialsListener());
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
+        this.credentialsManager
+                .get()
+                .addListener(
+                        event -> {
+                            switch (event.getEventType()) {
+                                case ADDED:
+                                    Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
+                                    for (var entry : copy.entrySet()) {
+                                        try {
+                                            if (matchExpressionEvaluator
+                                                    .get()
+                                                    .applies(
+                                                            event.getPayload(),
+                                                            entry.getKey().getTarget())) {
+                                                targetsToUpdate.remove(entry.getKey());
+                                                UUID id = entry.getValue();
+                                                PluginInfo plugin = getById(id).orElseThrow();
+                                                EnvironmentNode original =
+                                                        gson.fromJson(
+                                                                plugin.getSubtree(),
+                                                                EnvironmentNode.class);
+                                                update(id, original.getChildren(), false);
+                                            }
+                                        } catch (JsonSyntaxException | ScriptException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
+                                    break;
+                                case REMOVED:
+                                    break;
+                                default:
+                                    throw new UnsupportedOperationException(
+                                            event.getEventType().toString());
+                            }
+                        });
     }
 
     @Override
@@ -196,39 +234,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .otherwise(false);
     }
 
-    public EventListener<CredentialsEvent, String> credentialsListener() {
-        return new EventListener<CredentialsEvent, String>() {
-            @Override
-            public void onEvent(Event<CredentialsEvent, String> event) {
-                switch (event.getEventType()) {
-                    case ADDED:
-                        Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
-                        for (var entry : copy.entrySet()) {
-                            for (ServiceRef ref :
-                                    credentialsManager
-                                            .get()
-                                            .resolveMatchingTargets(event.getPayload())) {
-                                if (entry.getKey().getTarget().equals(ref)) {
-                                    UUID id = entry.getValue();
-                                    PluginInfo plugin = getById(id).orElseThrow();
-                                    EnvironmentNode original =
-                                            gson.fromJson(
-                                                    plugin.getSubtree(), EnvironmentNode.class);
-                                    update(id, original.getChildren(), false);
-                                    targetsToUpdate.remove(entry.getKey());
-                                }
-                            }
-                        }
-                        break;
-                    case REMOVED:
-                        break;
-                    default:
-                        throw new UnsupportedOperationException(event.getEventType().toString());
-                }
-            }
-        };
-    }
-
     private void removePlugin(UUID uuid, Object label) {
         deregister(uuid);
         logger.info("Stale discovery service {} removed", label);
@@ -285,14 +290,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
                 } catch (Exception e) {
-                    logger.warn("Failed to resolve jvmId for node {}", child.getName());
+                    logger.warn("Failed to resolve jvmId for node [{}]", child.getName());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
-                        logger.info("Ignoring target node {}", child.getName());
+                        logger.info("Ignoring target node [{}]", child.getName());
                         continue;
                     }
-                    logger.info("Update node {} with null jvmId", child.getName());
+                    logger.info("Update node [{}] with null jvmId", child.getName());
                     targetsToUpdate.putIfAbsent((TargetNode) child, id);
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());

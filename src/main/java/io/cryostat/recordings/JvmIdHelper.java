@@ -108,18 +108,38 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                 });
     }
 
+    // Use dao directly since refs resolve before listDiscoverableServices is populated
     public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
         if (sr.getJvmId() != null) return sr;
-        String id = getJvmId(sr.getServiceUri().toString());
-        ServiceRef updated =
-                new ServiceRef(
-                        id,
-                        sr.getServiceUri(),
-                        sr.getAlias().orElse(sr.getServiceUri().toString()));
-        updated.setLabels(sr.getLabels());
-        updated.setPlatformAnnotations(sr.getPlatformAnnotations());
-        updated.setCryostatAnnotations(sr.getCryostatAnnotations());
-        return updated;
+        try {
+            CompletableFuture<String> future =
+                    this.targetConnectionManager.executeConnectedTaskAsync(
+                            new ConnectionDescriptor(
+                                    sr.getServiceUri().toString(),
+                                    credentialsManager.getCredentials(sr)),
+                            connection -> {
+                                return connection.getJvmId();
+                            });
+            future.thenAccept(
+                    id -> {
+                        this.ids.synchronous().put(sr.getServiceUri().toString(), id);
+                        logger.info("JVM ID: {} -> {}", sr.getServiceUri().toString(), id);
+                    });
+            String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+
+            ServiceRef updated =
+                    new ServiceRef(
+                            id,
+                            sr.getServiceUri(),
+                            sr.getAlias().orElse(sr.getServiceUri().toString()));
+            updated.setLabels(sr.getLabels());
+            updated.setPlatformAnnotations(sr.getPlatformAnnotations());
+            updated.setCryostatAnnotations(sr.getCryostatAnnotations());
+            return updated;
+        } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
+            logger.warn("Could not get jvmId for target {}", sr.getServiceUri().toString());
+            throw new JvmIdGetException(e, sr.getServiceUri().toString());
+        }
     }
 
     private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
