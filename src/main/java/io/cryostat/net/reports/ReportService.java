@@ -67,14 +67,6 @@ public class ReportService {
         return archivedCache.get(sourceTarget, recordingName, filter, formatted);
     }
 
-    public boolean delete(String recordingName) {
-        return archivedCache.delete(recordingName);
-    }
-
-    public boolean delete(String sourceTarget, String recordingName) {
-        return archivedCache.delete(sourceTarget, recordingName);
-    }
-
     public Future<String> get(
             ConnectionDescriptor connectionDescriptor,
             String recordingName,

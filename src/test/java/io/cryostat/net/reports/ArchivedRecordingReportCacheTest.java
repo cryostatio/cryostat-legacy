@@ -89,7 +89,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -124,7 +124,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -160,7 +160,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "someFilter", true))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -197,7 +197,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "someFilter", false))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -234,7 +234,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(future.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(true);
@@ -253,7 +253,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future1);
 
         Mockito.when(fs.isReadable(Mockito.any(Path.class))).thenReturn(false);
@@ -295,7 +295,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenThrow(new CompletionException(new IOException()));
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future1);
 
         Mockito.when(fs.deleteIfExists(Mockito.nullable(Path.class))).thenReturn(false);
@@ -315,7 +315,7 @@ class ArchivedRecordingReportCacheTest {
         CompletableFuture<Path> future1 = Mockito.mock(CompletableFuture.class);
         Mockito.when(future1.get()).thenReturn(destinationFile);
 
-        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName))
+        Mockito.when(recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName, "", true))
                 .thenReturn(future1);
 
         CompletableFuture<Path> future2 = Mockito.mock(CompletableFuture.class);

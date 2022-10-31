@@ -78,12 +78,15 @@ class ArchivedRecordingReportCache {
         try {
             dest =
                     recordingArchiveHelper
-                            .getCachedReportPathFromPath(subdirectoryName, recordingName)
+                            .getCachedReportPathFromPath(
+                                    subdirectoryName, recordingName, filter, formatted)
                             .get();
-            if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
+            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
+                logger.trace("Archived report cache hit for {}", recordingName);
                 return f;
             }
+            logger.trace("Archived report cache miss for {}", recordingName);
             Path archivedRecording =
                     recordingArchiveHelper
                             .getRecordingPathFromPath(subdirectoryName, recordingName)
@@ -115,16 +118,16 @@ class ArchivedRecordingReportCache {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
-            dest = recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName).get();
-            /* NOTE: This is just a temporary solution: If a request includes a filter,
-             * the report is never cached and just constructed on demand.
-             */
-            if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank() && formatted) {
+            dest =
+                    recordingArchiveHelper
+                            .getCachedReportPath(sourceTarget, recordingName, filter, formatted)
+                            .get();
+            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
+                logger.trace("Archived report cache miss for {}", recordingName);
                 return f;
             }
-
-            logger.trace("Archived report cache miss for {}", recordingName);
+            logger.info("Archived report cache miss for {}", recordingName);
             Path archivedRecording =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             Path saveFile =
@@ -143,13 +146,5 @@ class ArchivedRecordingReportCache {
             }
         }
         return f;
-    }
-
-    boolean delete(String recordingName) {
-        return this.delete(null, recordingName);
-    }
-
-    boolean delete(String sourceTarget, String recordingName) {
-        return recordingArchiveHelper.deleteReport(sourceTarget, recordingName);
     }
 }

@@ -412,7 +412,6 @@ public class RecordingArchiveHelper {
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 
@@ -455,7 +454,7 @@ public class RecordingArchiveHelper {
         } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         } finally {
-            deleteReportFromPath(subdirectoryName, recordingName);
+            deleteReports(subdirectoryName, recordingName);
         }
         return future;
     }
@@ -470,7 +469,6 @@ public class RecordingArchiveHelper {
         } catch (InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 
@@ -487,7 +485,7 @@ public class RecordingArchiveHelper {
     private CompletableFuture<ArchivedRecordingInfo> handleDeleteRecordingRequest(
             String sourceTarget, String recordingName, Path archivedRecording) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
-
+        String subdirectoryName = null;
         try {
             fs.deleteIfExists(archivedRecording);
             validateSavePath(recordingName, archivedRecording);
@@ -496,6 +494,7 @@ public class RecordingArchiveHelper {
             String filename = filenamePath.toString();
             String targetId =
                     sourceTarget == null ? UPLOADED_RECORDINGS_SUBDIRECTORY : sourceTarget;
+            subdirectoryName = parentPath.getFileName().toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
                             targetId,
@@ -517,9 +516,8 @@ public class RecordingArchiveHelper {
         } catch (IOException | URISyntaxException e) {
             future.completeExceptionally(e);
         } finally {
-            deleteReport(sourceTarget, recordingName);
+            deleteReports(subdirectoryName, recordingName);
         }
-
         return future;
     }
 
@@ -543,44 +541,56 @@ public class RecordingArchiveHelper {
         }
     }
 
-    public boolean deleteReportFromPath(String subdirectoryName, String recordingName) {
+    public boolean deleteReports(String subdirectoryName, String recordingName) {
         try {
-            logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(
-                    getCachedReportPathFromPath(subdirectoryName, recordingName).get());
-        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.info("Invalidating archived report cache for {}", recordingName);
+            boolean deleted = true;
+            for (String reportName :
+                    fs.listDirectoryChildren(
+                            archivedRecordingsReportPath.resolve(subdirectoryName))) {
+                if (reportName.startsWith(recordingName)) {
+                    Path reportPath =
+                            archivedRecordingsReportPath
+                                    .resolve(subdirectoryName)
+                                    .resolve(reportName)
+                                    .toAbsolutePath();
+                    if (!fs.deleteIfExists(reportPath)) {
+                        logger.warn("Failed to delete report {}", reportPath);
+                        deleted = false;
+                    }
+                    else {
+                        logger.info("Deleted report {}", reportName);
+                    }
+                }
+            }
+            return deleted;
+        } catch (IOException e) {
             logger.warn(e);
             return false;
         }
     }
 
-    public boolean deleteReport(String sourceTarget, String recordingName) {
-        try {
-            logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(getCachedReportPath(sourceTarget, recordingName).get());
-        } catch (IOException | InterruptedException | ExecutionException e) {
-            logger.warn(e);
-            return false;
-        }
-    }
-
-    public CompletableFuture<Path> getCachedReportPathFromPath(
-            String subdirectoryName, String recordingName) {
+    public Future<Path> getCachedReportPathFromPath(
+            String subdirectoryName, String recordingName, String filter, boolean formatted) {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
             if (!fs.exists(tempSubdirectory)) {
                 tempSubdirectory = fs.createDirectory(tempSubdirectory);
             }
-            future.complete(tempSubdirectory.resolve(recordingName).toAbsolutePath());
+            String fileName =
+                    String.format(
+                            "%s-%s.report%s",
+                            recordingName, filter.hashCode(), formatted ? ".html" : ".json");
+            future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
             future.completeExceptionally(e);
         }
         return future;
     }
 
-    public Future<Path> getCachedReportPath(String sourceTarget, String recordingName) {
-        CompletableFuture<Path> future = new CompletableFuture<>();
+    public Future<Path> getCachedReportPath(
+            String sourceTarget, String recordingName, String filter, boolean formatted) {
         try {
             String jvmId = jvmIdHelper.getJvmId(sourceTarget);
             String subdirectory =
@@ -589,16 +599,10 @@ public class RecordingArchiveHelper {
                             : sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
                                     ? UPLOADED_RECORDINGS_SUBDIRECTORY
                                     : base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
-            String fileName = recordingName + ".report.html";
-            Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectory);
-            if (!fs.exists(tempSubdirectory)) {
-                tempSubdirectory = fs.createDirectory(tempSubdirectory);
-            }
-            future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
-        } catch (IOException e) {
-            future.completeExceptionally(e);
+            return getCachedReportPathFromPath(subdirectory, recordingName, filter, formatted);
+        } catch (JvmIdGetException e) {
+            return CompletableFuture.failedFuture(e);
         }
-        return future;
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings(String targetId) {
@@ -657,7 +661,6 @@ public class RecordingArchiveHelper {
         } catch (ArchivePathException | IOException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 
@@ -780,7 +783,6 @@ public class RecordingArchiveHelper {
         } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         }
-
         return future;
     }
 
