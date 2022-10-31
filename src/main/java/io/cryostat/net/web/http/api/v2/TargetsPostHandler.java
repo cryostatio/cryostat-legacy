@@ -177,7 +177,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
         } catch (JvmIdGetException e) {
-            throw new ApiException(404, "Couldn't put connect to target: " + e.getTarget());
+            throw new ApiException(404, "Couldn't connect to target: " + e.getTarget());
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {
