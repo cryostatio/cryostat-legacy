@@ -200,7 +200,8 @@ class ReportGetWithJwtHandlerTest {
 
             verify(reports).get("mytarget", "myrecording", "", true);
             InOrder inOrder = Mockito.inOrder(resp);
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             inOrder.verify(resp).sendFile("foo.jfr");
         }
 
@@ -226,7 +227,35 @@ class ReportGetWithJwtHandlerTest {
 
             verify(reports).get("mytarget", "myrecording", "someFilter", true);
             InOrder inOrder = Mockito.inOrder(resp);
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            inOrder.verify(resp).sendFile("foo.jfr");
+        }
+
+        @Test
+        void shouldSendFileIfFoundUnformatted() throws Exception {
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
+            when(ctx.response()).thenReturn(resp);
+            when(ctx.pathParam("sourceTarget")).thenReturn("mytarget");
+            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            Path path = Mockito.mock(Path.class);
+            when(path.toAbsolutePath()).thenReturn(path);
+            when(path.toString()).thenReturn("foo.jfr");
+            when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
+            Future<Path> future = CompletableFuture.completedFuture(path);
+            when(reports.get(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(future);
+
+            handler.handleWithValidJwt(ctx, token);
+
+            verify(reports).get("mytarget", "myrecording", "someFilter", false);
+            InOrder inOrder = Mockito.inOrder(resp);
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             inOrder.verify(resp).sendFile("foo.jfr");
         }
     }

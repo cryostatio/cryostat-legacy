@@ -147,7 +147,7 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                             .get(sourceTarget, recordingName, rawFilter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType());
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);

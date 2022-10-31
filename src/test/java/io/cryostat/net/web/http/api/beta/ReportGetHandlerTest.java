@@ -133,6 +133,11 @@ class ReportGetHandlerTest {
         }
 
         @Test
+        void shouldBeRawJson() {
+            Assertions.assertTrue(handler.rawJson());
+        }
+
+        @Test
         void shouldNotBeAsync() {
             Assertions.assertFalse(handler.isAsync());
         }
@@ -226,6 +231,35 @@ class ReportGetHandlerTest {
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
             verify(reportService).get(sourceTarget, recordingName, "someFilter", true);
+        }
+
+        @Test
+        void shouldRespondBySendingFileUnformatted() throws Exception {
+            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+            queryParams.add("filter", "someFilter");
+            String recordingName = "someRecording";
+            String sourceTarget = "someTarget";
+            when(params.getPathParams())
+                    .thenReturn(
+                            Map.of("sourceTarget", sourceTarget, "recordingName", recordingName));
+            when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
+
+            Path fakePath = Mockito.mock(Path.class);
+
+            when(reportService.get(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+            IntermediateResponse<Path> response = handler.handle(params);
+
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
+
+            verify(reportService).get(sourceTarget, recordingName, "someFilter", false);
         }
     }
 }

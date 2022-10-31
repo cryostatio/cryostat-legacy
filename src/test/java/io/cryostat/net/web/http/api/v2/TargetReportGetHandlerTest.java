@@ -195,7 +195,7 @@ class TargetReportGetHandlerTest {
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             verify(resp).end("report text");
             verify(reports)
                     .get(
@@ -221,7 +221,7 @@ class TargetReportGetHandlerTest {
 
             handler.handleWithValidJwt(ctx, token);
 
-            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             verify(resp).end("report text");
             verify(reports)
                     .get(
@@ -229,6 +229,32 @@ class TargetReportGetHandlerTest {
                             Mockito.eq("myrecording"),
                             Mockito.eq("someFilter"),
                             Mockito.eq(true));
+        }
+
+        @Test
+        void shouldSendFileIfFoundUnformatted() throws Exception {
+            when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
+            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
+            when(ctx.queryParam("filter")).thenReturn(List.of("someFilter"));
+
+            Future<String> future = CompletableFuture.completedFuture("report text");
+            when(reports.get(
+                            Mockito.any(ConnectionDescriptor.class),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(future);
+
+            handler.handleWithValidJwt(ctx, token);
+
+            verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            verify(resp).end("report text");
+            verify(reports)
+                    .get(
+                            Mockito.any(ConnectionDescriptor.class),
+                            Mockito.eq("myrecording"),
+                            Mockito.eq("someFilter"),
+                            Mockito.eq(false));
         }
     }
 }

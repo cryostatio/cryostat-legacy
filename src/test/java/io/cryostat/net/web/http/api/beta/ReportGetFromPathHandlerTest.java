@@ -131,6 +131,11 @@ class ReportGetFromPathHandlerTest {
         }
 
         @Test
+        void shouldBeRawJson() {
+            Assertions.assertTrue(handler.rawJson());
+        }
+
+        @Test
         void shouldNotBeAsync() {
             Assertions.assertFalse(handler.isAsync());
         }
@@ -236,6 +241,39 @@ class ReportGetFromPathHandlerTest {
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
             verify(reportService).getFromPath(subdirectoryName, recordingName, "someFilter", true);
+        }
+
+        @Test
+        void shouldRespondBySendingFileUnformatted() throws Exception {
+            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+            queryParams.add("filter", "someFilter");
+            String recordingName = "someRecording";
+            String subdirectoryName = "subdirectoryName";
+            when(params.getPathParams())
+                    .thenReturn(
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
+            when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
+
+            Path fakePath = Mockito.mock(Path.class);
+
+            when(reportService.getFromPath(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+            IntermediateResponse<Path> response = handler.handle(params);
+
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
+
+            verify(reportService).getFromPath(subdirectoryName, recordingName, "someFilter", false);
         }
     }
 }
