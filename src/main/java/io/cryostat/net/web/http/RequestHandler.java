@@ -88,6 +88,10 @@ public interface RequestHandler extends Handler<RoutingContext>, PermissionedAct
         return List.of();
     }
 
+    default boolean rawJson() {
+        return false;
+    }
+
     default boolean isAvailable() {
         return true;
     }

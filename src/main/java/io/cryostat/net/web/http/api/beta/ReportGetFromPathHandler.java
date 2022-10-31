@@ -121,6 +121,11 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
+    public boolean rawJson() {
+        return true;
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
