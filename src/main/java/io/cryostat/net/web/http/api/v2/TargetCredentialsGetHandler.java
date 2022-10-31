@@ -52,6 +52,7 @@ import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -104,6 +105,11 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     public boolean isAsync() {
         return false;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)

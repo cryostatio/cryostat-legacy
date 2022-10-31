@@ -55,6 +55,7 @@ import java.util.regex.Pattern;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -80,6 +81,15 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public AuthenticationScheme getScheme() {
         return AuthenticationScheme.BASIC;
+    }
+
+    @Override
+    public Future<Boolean> validateSecurityContext(
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        logger.info("Validating {} can [{}] with {} ...", headerProvider.get(), resourceActions, securityContext);
+        return CompletableFuture.completedFuture(true);
     }
 
     @Override

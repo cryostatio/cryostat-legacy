@@ -49,6 +49,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
@@ -103,6 +104,11 @@ class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<Rule> handle(RequestParameters params) throws ApiException {

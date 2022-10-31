@@ -485,6 +485,58 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public List<ArchivedRecordingInfo> getRecordingsFromPath(String subdirectoryName) {
+        try {
+            String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            List<ArchivedRecordingInfo> list = new ArrayList<>();
+            for (String recordingName : fs.listDirectoryChildren(subdirectoryPath)) {
+                Path recordingPath = subdirectoryPath.resolve(recordingName);
+                Path filenamePath = recordingPath.getFileName();
+                String filename = filenamePath.toString();
+                String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+                ArchivedRecordingInfo archivedRecordingInfo =
+                        new ArchivedRecordingInfo(
+                                targetId,
+                                recordingName,
+                                webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                                webServerProvider.get().getArchivedReportURL(targetId, filename),
+                                recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                        jvmId, recordingName),
+                                getFileSize(filename));
+                list.add(archivedRecordingInfo);
+            }
+            return list;
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            return List.of();
+        }
+    }
+
+    public Optional<ArchivedRecordingInfo> getRecordingFromPath(
+            String subdirectoryName, String recordingName) {
+        try {
+            String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            Path recordingPath = subdirectoryPath.resolve(recordingName);
+            validateSavePath(recordingName, recordingPath);
+            Path filenamePath = recordingPath.getFileName();
+            String filename = filenamePath.toString();
+            String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            targetId,
+                            recordingName,
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
+                            recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                    jvmId, recordingName),
+                            getFileSize(filename));
+            return Optional.of(archivedRecordingInfo);
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            return Optional.empty();
+        }
+    }
+
     public Future<ArchivedRecordingInfo> deleteRecording(
             String sourceTarget, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();

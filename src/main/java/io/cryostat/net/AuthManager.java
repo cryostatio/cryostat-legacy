@@ -46,6 +46,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 public interface AuthManager {
     AuthenticationScheme getScheme();
@@ -58,6 +59,11 @@ public interface AuthManager {
 
     Optional<String> logout(Supplier<String> httpHeaderProvider)
             throws ExecutionException, InterruptedException, IOException, TokenNotFoundException;
+
+    Future<Boolean> validateSecurityContext(
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);

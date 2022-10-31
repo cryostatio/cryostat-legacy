@@ -53,6 +53,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
@@ -63,12 +64,12 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> {
 
     private final Lazy<WebServer> webServer;
-    private final Lazy<Set<RequestHandler>> handlers;
+    private final Lazy<Set<RequestHandler<?>>> handlers;
 
     @Inject
     ApiGetHandler(
             Lazy<WebServer> webServer,
-            Lazy<Set<RequestHandler>> handlers,
+            Lazy<Set<RequestHandler<?>>> handlers,
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson) {
@@ -106,6 +107,11 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
     public boolean requiresAuthentication() {
         return false;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<ApiResponse> handle(RequestParameters requestParams)

@@ -75,6 +75,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -193,6 +194,56 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public Future<Boolean> validateSecurityContext(
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        String token = getTokenFromHttpHeader(headerProvider.get());
+        if (StringUtils.isBlank(token)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (securityContext == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (resourceActions.isEmpty()) {
+            return reviewToken(token);
+        }
+
+        logger.info("Validating {} can [{}] with {} ...", token, resourceActions, securityContext);
+        if (!securityContext.hasNamespace()) {
+            // FIXME
+            return CompletableFuture.completedFuture(
+                    SecurityContext.DEFAULT.equals(securityContext));
+        }
+        OpenShiftClient client = userClients.get(token);
+        try {
+            List<CompletableFuture<Void>> results =
+                    resourceActions.stream()
+                            .flatMap(
+                                    resourceAction ->
+                                            validateAction(
+                                                    client,
+                                                    securityContext.getNamespace(),
+                                                    resourceAction))
+                            .collect(Collectors.toList());
+
+            CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
+                    .get(15, TimeUnit.SECONDS);
+            // if we get here then all requests were successful and granted, otherwise an exception
+            // was thrown on allOf().get() above
+            return CompletableFuture.completedFuture(true);
+        } catch (KubernetesClientException | ExecutionException e) {
+            userClients.invalidate(token);
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            userClients.invalidate(token);
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
@@ -254,13 +305,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
+        String ns = namespace.get(); // FIXME this needs to be retrieved from the API request
+        // context if it's for a resource like a recording,
+        // report, or target. Otherwise we use this (our
+        // deployment namespace) for Cryostat configuration
+        // requests.
+
         OpenShiftClient client = userClients.get(token);
         try {
             List<CompletableFuture<Void>> results =
                     resourceActions.stream()
-                            .flatMap(
-                                    resourceAction ->
-                                            validateAction(client, namespace.get(), resourceAction))
+                            .flatMap(resourceAction -> validateAction(client, ns, resourceAction))
                             .collect(Collectors.toList());
 
             CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))

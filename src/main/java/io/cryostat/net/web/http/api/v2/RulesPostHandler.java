@@ -51,6 +51,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleException;
@@ -134,6 +135,11 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     public boolean isOrdered() {
         return true;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {

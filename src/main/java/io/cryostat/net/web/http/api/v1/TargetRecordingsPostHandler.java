@@ -48,6 +48,12 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -56,6 +62,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -67,24 +74,20 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
+    private final DiscoveryStorage discoveryStorage;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
@@ -96,6 +99,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
+            DiscoveryStorage discoveryStorage,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
@@ -104,6 +108,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
+        this.discoveryStorage = discoveryStorage;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
@@ -149,6 +154,13 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return
+            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
     }
 
     @Override

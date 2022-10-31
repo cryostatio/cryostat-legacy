@@ -68,6 +68,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
@@ -160,6 +161,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM);
     }
+
+	@Override
+	public SecurityContext securityContext(RoutingContext ctx) {
+		return SecurityContext.DEFAULT;
+	}
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {

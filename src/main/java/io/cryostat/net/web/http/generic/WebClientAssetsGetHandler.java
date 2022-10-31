@@ -47,6 +47,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -54,7 +55,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-class WebClientAssetsGetHandler implements RequestHandler {
+class WebClientAssetsGetHandler implements RequestHandler<Void> {
 
     static final String WEB_CLIENT_ASSETS_BASE =
             WebServer.class.getPackageName().replaceAll("\\.", "/");
@@ -96,6 +97,11 @@ class WebClientAssetsGetHandler implements RequestHandler {
     @Override
     public String pathRegex() {
         return HttpGenericModule.NON_API_PATH;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

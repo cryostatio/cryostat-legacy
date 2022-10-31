@@ -66,6 +66,7 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionValidationException;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -144,6 +145,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

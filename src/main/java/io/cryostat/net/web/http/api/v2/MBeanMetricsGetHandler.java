@@ -46,11 +46,14 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.MBeanMetrics;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -58,6 +61,7 @@ import io.vertx.core.http.HttpMethod;
 public class MBeanMetricsGetHandler extends AbstractV2RequestHandler<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
+    private final DiscoveryStorage discoveryStorage;
     private final Logger logger;
 
     @Inject
@@ -66,9 +70,11 @@ public class MBeanMetricsGetHandler extends AbstractV2RequestHandler<MBeanMetric
             CredentialsManager credentialsManager,
             Gson gson,
             TargetConnectionManager tcm,
+            DiscoveryStorage discoveryStorage,
             Logger logger) {
         super(auth, credentialsManager, gson);
         this.tcm = tcm;
+        this.discoveryStorage = discoveryStorage;
         this.logger = logger;
     }
 
@@ -101,6 +107,13 @@ public class MBeanMetricsGetHandler extends AbstractV2RequestHandler<MBeanMetric
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return
+            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+	}
 
     @Override
     public IntermediateResponse<MBeanMetrics> handle(RequestParameters params) throws Exception {

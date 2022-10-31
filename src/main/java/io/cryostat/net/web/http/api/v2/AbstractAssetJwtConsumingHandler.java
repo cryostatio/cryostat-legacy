@@ -61,6 +61,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWT;
@@ -69,7 +70,7 @@ import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
+public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler<RoutingContext> {
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
@@ -91,6 +92,11 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
     }
 
     public abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
+
+    @Override
+    public final SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
 
     @Override
     public final void handle(RoutingContext ctx) {

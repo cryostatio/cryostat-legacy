@@ -49,7 +49,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -98,6 +98,11 @@ class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandle
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

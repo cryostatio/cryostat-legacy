@@ -54,8 +54,11 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
-
+import io.cryostat.rules.ArchivedRecordingInfo;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -67,15 +70,18 @@ import io.vertx.ext.web.handler.HttpException;
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final RecordingMetadataManager metadata;
 
     @Inject
     RecordingGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             RecordingArchiveHelper recordingArchiveHelper,
+            RecordingMetadataManager metadata,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.metadata = metadata;
     }
 
     @Override
@@ -106,6 +112,22 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.OCTET_STREAM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        String recordingName = ctx.pathParam("recordingName");
+        try {
+            return recordingArchiveHelper.getRecordings(recordingName).get().stream().filter(r ->
+                    r.getName().equals(recordingName))
+                .findFirst()
+                .map(ArchivedRecordingInfo::getMetadata)
+                .map(Metadata::getSecurityContext)
+                .orElse(SecurityContext.DEFAULT);
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+            return null;
+        }
     }
 
     @Override

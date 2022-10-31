@@ -95,7 +95,7 @@ public class WebServer extends AbstractVerticle {
 
     private final HttpServer server;
     private final NetworkConfiguration netConf;
-    private final List<RequestHandler> requestHandlers;
+    private final List<RequestHandler<?>> requestHandlers;
     private final Path recordingsPath;
     private final Gson gson;
     private final AuthManager auth;
@@ -104,7 +104,7 @@ public class WebServer extends AbstractVerticle {
     WebServer(
             HttpServer server,
             NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
+            Set<RequestHandler<?>> requestHandlers,
             Gson gson,
             AuthManager auth,
             Logger logger,

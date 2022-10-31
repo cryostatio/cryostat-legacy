@@ -68,7 +68,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
+public abstract class AbstractV2RequestHandler<T> implements RequestHandler<RequestParameters> {
 
     public abstract boolean requiresAuthentication();
 
@@ -108,6 +108,15 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                     // expected to go into catch clause below
                     throw new ApiException(401, "HTTP Authorization Failure");
                 }
+            }
+            boolean securityContextPassed =
+                    auth.validateSecurityContext(
+                                    () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                    securityContext(requestParams),
+                                    resourceActions())
+                            .get();
+            if (!securityContextPassed) {
+                throw new ApiException(403);
             }
             writeResponse(ctx, handle(requestParams));
         } catch (ApiException | HttpException e) {

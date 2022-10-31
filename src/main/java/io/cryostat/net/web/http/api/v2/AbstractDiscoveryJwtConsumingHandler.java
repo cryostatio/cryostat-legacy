@@ -63,6 +63,7 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.util.StringUtil;
 
 import com.nimbusds.jose.JOSEException;
@@ -74,7 +75,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
-abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler {
+abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler<Void> {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
 
@@ -101,6 +102,11 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
     }
 
     abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
+
+    @Override
+    public final SecurityContext securityContext(Void v) {
+        return SecurityContext.DEFAULT;
+    }
 
     protected boolean checkTokenTimeClaims() {
         return true;

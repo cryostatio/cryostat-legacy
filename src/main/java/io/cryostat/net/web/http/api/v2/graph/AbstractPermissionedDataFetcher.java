@@ -85,6 +85,7 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
                                 () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
                                 resourceActions())
                         .get();
+        // FIXME add auth.validateSecurityContext check
         if (!authenticated) {
             throw new AuthorizationErrorException("Unauthorized");
         }

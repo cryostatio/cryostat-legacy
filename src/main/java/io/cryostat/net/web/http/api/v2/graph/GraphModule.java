@@ -87,19 +87,19 @@ public abstract class GraphModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
+    abstract RequestHandler<?> bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphPostHandler(GraphQLPostHandler handler);
+    abstract RequestHandler<?> bindGraphPostHandler(GraphQLPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphGetHandler(GraphQLGetHandler handler);
+    abstract RequestHandler<?> bindGraphGetHandler(GraphQLGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphiGetHandler(GraphiQLGetHandler handler);
+    abstract RequestHandler<?> bindGraphiGetHandler(GraphiQLGetHandler handler);
 
     @Provides
     @Singleton

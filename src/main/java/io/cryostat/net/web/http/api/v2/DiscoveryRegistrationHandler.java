@@ -65,6 +65,7 @@ import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;
@@ -138,6 +139,11 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     public boolean isAsync() {
         return false;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters params)

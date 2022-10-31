@@ -52,13 +52,17 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.validator.routines.UrlValidator;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -66,9 +70,9 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
-
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -76,11 +80,11 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
-import org.apache.commons.validator.routines.UrlValidator;
 
 class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager targetConnectionManager;
     private final long httpTimeoutSeconds;
     private final WebClient webClient;
@@ -91,6 +95,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             AuthManager auth,
             CredentialsManager credentialsManager,
             Environment env,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager targetConnectionManager,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
@@ -98,6 +103,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.env = env;
+        this.discoveryStorage = discoveryStorage;
         this.targetConnectionManager = targetConnectionManager;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
@@ -132,6 +138,13 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.PLAINTEXT);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return
+            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
     }
 
     @Override

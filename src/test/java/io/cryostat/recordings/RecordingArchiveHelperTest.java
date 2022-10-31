@@ -65,6 +65,7 @@ import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
@@ -107,6 +108,7 @@ class RecordingArchiveHelperTest {
     @Mock Path archivedRecordingsReportPath;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
+    @Mock AuthManager auth;
     @Mock NotificationFactory notificationFactory;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock Base32 base32;
@@ -166,6 +168,7 @@ class RecordingArchiveHelperTest {
                         recordingMetadataManager,
                         clock,
                         platformClient,
+                        auth,
                         notificationFactory,
                         jvmIdHelper,
                         null,

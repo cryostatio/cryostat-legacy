@@ -47,7 +47,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -90,4 +90,10 @@ class GraphQLPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         BODY_HANDLER.handle(ctx);
     }
+
+	@Override
+	public SecurityContext securityContext(RoutingContext ctx) {
+		// TODO Auto-generated method stub
+		return SecurityContext.DEFAULT;
+	}
 }

@@ -43,6 +43,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -70,8 +71,8 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
@@ -102,7 +103,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage discoveryStorage;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
@@ -120,7 +121,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
-            PlatformClient platformClient,
+            DiscoveryStorage discoveryStorage,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Gson gson,
@@ -134,7 +135,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
-        this.platformClient = platformClient;
+        this.discoveryStorage = discoveryStorage;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
@@ -144,7 +145,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     @Override
     public void start(Promise<Void> future) {
-        this.platformClient.addTargetDiscoveryListener(this);
+        this.discoveryStorage.addTargetDiscoveryListener(this);
         this.jvmIdHelper.addListener(this);
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
@@ -408,7 +409,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     @Override
     public void stop() {
-        this.platformClient.removeTargetDiscoveryListener(this);
+        this.discoveryStorage.removeTargetDiscoveryListener(this);
     }
 
     @Override
@@ -520,10 +521,18 @@ public class RecordingMetadataManager extends AbstractVerticle
                         .get();
         String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
 
+        SecurityContext securityContext =
+                discoveryStorage
+                        .lookupServiceByTargetId(connectUrl)
+                        .map(SecurityContext::new)
+                        .orElse(SecurityContext.DEFAULT);
+
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
                 metadataPath,
-                gson.toJson(StoredRecordingMetadata.of(connectUrl, jvmId, recordingName, metadata)),
+                gson.toJson(
+                        StoredRecordingMetadata.of(
+                                connectUrl, jvmId, recordingName, metadata, securityContext)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -557,6 +566,12 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(metadata);
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
+        SecurityContext securityContext =
+                discoveryStorage
+                        .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                        .map(SecurityContext::new)
+                        .orElse(SecurityContext.DEFAULT);
+
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
                 metadataPath,
@@ -565,7 +580,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 connectionDescriptor.getTargetId(),
                                 jvmId,
                                 recordingName,
-                                metadata)),
+                                metadata,
+                                securityContext)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -624,6 +640,14 @@ public class RecordingMetadataManager extends AbstractVerticle
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
             metadata = new Metadata();
+
+            SecurityContext securityContext =
+                    discoveryStorage
+                            .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                            .map(SecurityContext::new)
+                            .orElse(SecurityContext.DEFAULT);
+
+            metadata.setSecurityContext(securityContext);
             fs.writeString(metadataPath, gson.toJson(metadata));
         } else {
             metadata = gson.fromJson(fs.readFile(metadataPath), Metadata.class);
@@ -747,7 +771,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     fs.readFile(oldMetadataPath), StoredRecordingMetadata.class);
                     String recordingName = srm.recordingName;
                     StoredRecordingMetadata updatedSrm =
-                            StoredRecordingMetadata.of(targetId, newJvmId, recordingName, srm);
+                            StoredRecordingMetadata.of(
+                                    targetId, newJvmId, recordingName, srm, srm.securityContext);
                     Path newLocation = getMetadataPath(newJvmId, recordingName);
                     fs.writeString(newLocation, gson.toJson(updatedSrm));
 
@@ -918,17 +943,26 @@ public class RecordingMetadataManager extends AbstractVerticle
         private final String targetId;
 
         StoredRecordingMetadata(
-                String targetId, String jvmId, String recordingName, Map<String, String> labels) {
+                String targetId,
+                String jvmId,
+                String recordingName,
+                Map<String, String> labels,
+                SecurityContext securityContext) {
             super(labels);
+            this.securityContext = securityContext;
             this.targetId = targetId;
             this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
         static StoredRecordingMetadata of(
-                String targetId, String jvmId, String recordingName, Metadata metadata) {
+                String targetId,
+                String jvmId,
+                String recordingName,
+                Metadata metadata,
+                SecurityContext securityContext) {
             return new StoredRecordingMetadata(
-                    targetId, jvmId, recordingName, metadata.getLabels());
+                    targetId, jvmId, recordingName, metadata.getLabels(), securityContext);
         }
 
         String getTargetId() {
@@ -976,18 +1010,32 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
+        // FIXME SecurityContext should be immutable
+        protected SecurityContext securityContext;
         protected final Map<String, String> labels;
 
         public Metadata() {
+            this.securityContext = SecurityContext.DEFAULT;
             this.labels = new ConcurrentHashMap<>();
         }
 
         public Metadata(Metadata o) {
+            this.securityContext = o.securityContext;
             this.labels = new ConcurrentHashMap<>(o.labels);
         }
 
+        // FIXME add securityContext
         public Metadata(Map<String, String> labels) {
+            this.securityContext = SecurityContext.DEFAULT;
             this.labels = new ConcurrentHashMap<>(labels);
+        }
+
+        void setSecurityContext(SecurityContext securityContext) {
+            this.securityContext = Objects.requireNonNull(securityContext);
+        }
+
+        public SecurityContext getSecurityContext() {
+            return securityContext;
         }
 
         public Map<String, String> getLabels() {
@@ -1013,6 +1061,35 @@ public class RecordingMetadataManager extends AbstractVerticle
         @Override
         public int hashCode() {
             return new HashCodeBuilder().append(labels).toHashCode();
+        }
+    }
+
+    public static class SecurityContext {
+        public static final SecurityContext DEFAULT =
+                new SecurityContext(Map.of("__SC__", "default"));
+
+        private final Map<String, String> ctx;
+
+        private SecurityContext(Map<String, String> ctx) {
+            this.ctx = Collections.unmodifiableMap(new HashMap<>(ctx));
+        }
+
+        public SecurityContext(ServiceRef serviceRef) {
+            this.ctx = new HashMap<>();
+            // FIXME this should be platform-specific
+            if (serviceRef.getCryostatAnnotations().containsKey(AnnotationKey.NAMESPACE)) {
+                ctx.put(
+                        "SECURITY_NS",
+                        serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
+            }
+        }
+
+        public boolean hasNamespace() {
+            return ctx.containsKey("SECURITY_NS");
+        }
+
+        public String getNamespace() {
+            return ctx.get("SECURITY_NS");
         }
     }
 }

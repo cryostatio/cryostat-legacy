@@ -49,6 +49,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -56,7 +57,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-class GrafanaDashboardUrlGetHandler implements RequestHandler {
+class GrafanaDashboardUrlGetHandler implements RequestHandler<Void> {
 
     private final Environment env;
     private final Gson gson;
@@ -97,6 +98,11 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

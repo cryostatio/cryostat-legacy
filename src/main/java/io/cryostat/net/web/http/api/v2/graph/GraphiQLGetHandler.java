@@ -46,13 +46,14 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphiQLHandler;
 import io.vertx.ext.web.handler.graphql.GraphiQLHandlerOptions;
 
-class GraphiQLGetHandler implements RequestHandler {
+class GraphiQLGetHandler implements RequestHandler<Void> {
 
     private final Environment env;
     private final GraphiQLHandler handler;
@@ -90,6 +91,11 @@ class GraphiQLGetHandler implements RequestHandler {
     @Override
     public String path() {
         return basePath() + "graphiql/*";
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

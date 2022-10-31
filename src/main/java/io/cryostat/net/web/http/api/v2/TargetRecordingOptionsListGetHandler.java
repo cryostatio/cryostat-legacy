@@ -45,32 +45,38 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.SerializableOptionDescriptor;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
 
 class TargetRecordingOptionsListGetHandler
         extends AbstractV2RequestHandler<List<SerializableOptionDescriptor>> {
 
     private final TargetConnectionManager connectionManager;
+    private final DiscoveryStorage discoveryStorage;
 
     @Inject
     TargetRecordingOptionsListGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
+            DiscoveryStorage discoveryStorage,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.connectionManager = connectionManager;
+        this.discoveryStorage = discoveryStorage;
     }
 
     @Override
@@ -107,6 +113,13 @@ class TargetRecordingOptionsListGetHandler
     public boolean isAsync() {
         return false;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+                        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+                        return
+                            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+	}
 
     @Override
     public IntermediateResponse<List<SerializableOptionDescriptor>> handle(

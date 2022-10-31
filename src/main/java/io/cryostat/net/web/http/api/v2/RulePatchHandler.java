@@ -56,6 +56,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
@@ -131,6 +132,11 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.JSON);
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {

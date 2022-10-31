@@ -45,39 +45,46 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
+import org.apache.http.client.utils.URIBuilder;
+
+import dagger.Lazy;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
-import dagger.Lazy;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import org.apache.http.client.utils.URIBuilder;
 
 class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
     static final String PATH = "auth/token";
 
     private final AssetJwtHelper jwt;
+    private final DiscoveryStorage discoveryStorage;
     private final Lazy<WebServer> webServer;
 
     @Inject
     AuthTokenPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             Gson gson,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
             Logger logger) {
         super(auth, credentialsManager, gson);
         this.jwt = jwt;
+        this.discoveryStorage = discoveryStorage;
         this.webServer = webServer;
     }
 
@@ -115,6 +122,19 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT; // FIXME need to determine the actual context here, somehow.
+                                        // target info, if any, would be embedded in the URL, so in
+                                        // theory we just need to parse the URL and determine the
+                                        // path parameter of the targetId - but how do we know which
+                                        // URL path the incoming request was originally for? It
+                                        // would be embedded in the resource claim with the
+                                        // parameter substituted for its real value.
+        // ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        // return discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+	}
 
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)

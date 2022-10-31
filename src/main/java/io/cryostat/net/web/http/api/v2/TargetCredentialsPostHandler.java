@@ -54,6 +54,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
@@ -125,6 +126,11 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     public boolean isOrdered() {
         return true;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+	}
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {

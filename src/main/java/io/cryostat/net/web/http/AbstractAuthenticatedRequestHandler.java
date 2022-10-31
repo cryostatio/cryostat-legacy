@@ -69,7 +69,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+public abstract class AbstractAuthenticatedRequestHandler
+        implements RequestHandler<RoutingContext> {
 
     public static final Pattern AUTH_HEADER_PATTERN =
             Pattern.compile("(?<type>[\\w]+)[\\s]+(?<credentials>[\\S]+)");
@@ -96,6 +97,15 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             if (!permissionGranted) {
                 // expected to go into catch clause below
                 throw new HttpException(401, "HTTP Authorization Failure");
+            }
+            boolean securityContextPassed =
+                    auth.validateSecurityContext(
+                                    () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                    securityContext(ctx),
+                                    resourceActions())
+                            .get();
+            if (!securityContextPassed) {
+                throw new HttpException(403);
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());

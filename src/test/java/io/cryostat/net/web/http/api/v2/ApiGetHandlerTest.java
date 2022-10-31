@@ -70,7 +70,7 @@ class ApiGetHandlerTest {
 
     AbstractV2RequestHandler<ApiGetHandler.ApiResponse> handler;
     @Mock WebServer webServer;
-    Set<RequestHandler> requestHandlers;
+    Set<RequestHandler<?>> requestHandlers;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
@@ -458,7 +458,7 @@ class ApiGetHandlerTest {
         }
     }
 
-    abstract static class TestRequestHandler implements RequestHandler {
+    abstract static class TestRequestHandler implements RequestHandler<Void> {
         @Override
         public void handle(RoutingContext ctx) {
             ctx.next();

@@ -45,11 +45,12 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -97,6 +98,11 @@ class TargetRecordingPatchBodyHandler extends AbstractAuthenticatedRequestHandle
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.PLAINTEXT);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

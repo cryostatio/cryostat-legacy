@@ -47,89 +47,89 @@ import dagger.multibindings.IntoSet;
 public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostHandler(
+    abstract RequestHandler<?> bindRecordingMetadataLabelsPostHandler(
             RecordingMetadataLabelsPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostHandler(
+    abstract RequestHandler<?> bindTargetRecordingMetadataLabelsPostHandler(
             TargetRecordingMetadataLabelsPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindProbeTemplateGetHandler(ProbeTemplateGetHandler handler);
+    abstract RequestHandler<?> bindProbeTemplateGetHandler(ProbeTemplateGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostBodyHandler(
+    abstract RequestHandler<?> bindRecordingMetadataLabelsPostBodyHandler(
             RecordingMetadataLabelsPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingMetadataLabelsPostBodyHandler(
+    abstract RequestHandler<?> bindTargetRecordingMetadataLabelsPostBodyHandler(
             TargetRecordingMetadataLabelsPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingGethandler(RecordingGetHandler handler);
+    abstract RequestHandler<?> bindRecordingGethandler(RecordingGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingGetWithJwtHandler(RecordingGetWithJwtHandler handler);
+    abstract RequestHandler<?> bindRecordingGetWithJwtHandler(RecordingGetWithJwtHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingDeleteHandler(RecordingDeleteHandler handler);
+    abstract RequestHandler<?> bindRecordingDeleteHandler(RecordingDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    abstract RequestHandler<?> bindReportGetHandler(ReportGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetWithJwtHandler(ReportGetWithJwtHandler handler);
+    abstract RequestHandler<?> bindReportGetWithJwtHandler(ReportGetWithJwtHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
+    abstract RequestHandler<?> bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindArchivedDirectoriesGetHandler(
+    abstract RequestHandler<?> bindArchivedDirectoriesGetHandler(
             ArchivedDirectoriesGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingDeleteFromPathHandler(
+    abstract RequestHandler<?> bindRecordingDeleteFromPathHandler(
             RecordingDeleteFromPathHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingGetFromPathWithJwtHandler(
+    abstract RequestHandler<?> bindRecordingGetFromPathWithJwtHandler(
             RecordingGetFromPathWithJwtHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetFromPathHandler(ReportGetFromPathHandler handler);
+    abstract RequestHandler<?> bindReportGetFromPathHandler(ReportGetFromPathHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetFromPathWithJwtHandler(
+    abstract RequestHandler<?> bindReportGetFromPathWithJwtHandler(
             ReportGetFromPathWithJwtHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingUploadPostFromPathHandler(
+    abstract RequestHandler<?> bindRecordingUploadPostFromPathHandler(
             RecordingUploadPostFromPathHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathHandler(
+    abstract RequestHandler<?> bindRecordingMetadataLabelsPostFromPathHandler(
             RecordingMetadataLabelsPostFromPathHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingMetadataLabelsPostFromPathBodyHandler(
+    abstract RequestHandler<?> bindRecordingMetadataLabelsPostFromPathBodyHandler(
             RecordingMetadataLabelsPostFromPathBodyHandler handler);
 
     @Binds

@@ -68,7 +68,7 @@ public abstract class WebModule {
     static WebServer provideWebServer(
             HttpServer httpServer,
             NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
+            Set<RequestHandler<?>> requestHandlers,
             Gson gson,
             AuthManager authManager,
             Logger logger,

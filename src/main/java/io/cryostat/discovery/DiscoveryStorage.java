@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.script.ScriptException;
 
@@ -99,6 +100,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private long timerId = -1L;
 
     private final Map<TargetNode, UUID> targetsToUpdate = new HashMap<>();
+    private final Map<String, ServiceRef> serviceRefReverseLookup;
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
@@ -123,6 +125,21 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.gson = gson;
         this.http = http;
         this.logger = logger;
+        this.serviceRefReverseLookup = new ConcurrentHashMap<>();
+        this.addTargetDiscoveryListener(
+                tde -> {
+                    ServiceRef sr = tde.getServiceRef();
+                    switch (tde.getEventKind()) {
+                        case FOUND:
+                            serviceRefReverseLookup.put(sr.getServiceUri().toString(), sr);
+                            break;
+                        case LOST:
+                            serviceRefReverseLookup.remove(sr.getServiceUri().toString());
+                            break;
+                        default:
+                            throw new IllegalStateException(tde.getEventKind().name());
+                    }
+                });
     }
 
     @Override
@@ -257,6 +274,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(HttpResponse::statusCode)
                 .map(HttpStatusCodeIdentifier::isSuccessCode)
                 .otherwise(false);
+    }
+
+    public Optional<ServiceRef> lookupServiceByTargetId(String targetId) {
+        return Optional.ofNullable(serviceRefReverseLookup.get(targetId));
+    }
+
+    public Optional<ServiceRef> lookupServiceByConnectUrl(URI connectUrl) {
+        return lookupServiceByTargetId(connectUrl.toString());
     }
 
     private void removePlugin(UUID uuid, Object label) {

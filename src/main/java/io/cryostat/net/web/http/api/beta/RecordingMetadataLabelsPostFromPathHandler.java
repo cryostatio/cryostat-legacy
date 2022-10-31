@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -44,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -55,6 +57,7 @@ import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
 
@@ -67,6 +70,7 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final Logger logger;
 
     @Inject
     RecordingMetadataLabelsPostFromPathHandler(
@@ -74,10 +78,12 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
             CredentialsManager credentialsManager,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager) {
+            RecordingMetadataManager recordingMetadataManager,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.logger = logger;
     }
 
     @Override
@@ -113,6 +119,21 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
     @Override
     public boolean requiresAuthentication() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        try {
+            Metadata m =
+                    recordingMetadataManager.getMetadataFromPathIfExists(
+                            subdirectoryName, recordingName);
+            return m.getSecurityContext();
+        } catch (IOException ioe) {
+            logger.error(ioe);
+        }
+        return SecurityContext.DEFAULT;
     }
 
     @Override

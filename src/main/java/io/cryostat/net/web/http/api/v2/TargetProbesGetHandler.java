@@ -46,33 +46,40 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
+import org.apache.commons.lang3.StringUtils;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.ProbeTemplate;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 
 class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
 
     static final String PATH = "targets/:targetId/probes";
 
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager connectionManager;
 
     @Inject
     TargetProbesGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager connectionManager,
             Gson gson) {
         super(auth, credentialsManager, gson);
+        this.discoveryStorage = discoveryStorage;
         this.connectionManager = connectionManager;
     }
 
@@ -100,6 +107,13 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
     public boolean requiresAuthentication() {
         return true;
     }
+
+	@Override
+	public SecurityContext securityContext(RequestParameters params) {
+                        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+                        return
+                            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+	}
 
     @Override
     public IntermediateResponse<List<Event>> handle(RequestParameters requestParams)

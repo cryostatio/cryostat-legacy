@@ -48,6 +48,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.GraphQL;
 import io.vertx.core.http.HttpHeaders;
@@ -56,7 +57,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
-class GraphQLPostHandler implements RequestHandler {
+class GraphQLPostHandler implements RequestHandler<RoutingContext> {
 
     static final String PATH = "graphql";
 
@@ -96,6 +97,12 @@ class GraphQLPostHandler implements RequestHandler {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        // FIXME we need to find the right context for the nested queries
+        return SecurityContext.DEFAULT;
     }
 
     @Override

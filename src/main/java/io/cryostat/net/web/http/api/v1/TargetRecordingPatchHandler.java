@@ -45,12 +45,14 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
@@ -59,6 +61,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
 
     static final String PATH = "targets/:targetId/recordings/:recordingName";
 
+    private final DiscoveryStorage discoveryStorage;
     private final TargetRecordingPatchSave patchSave;
     private final TargetRecordingPatchStop patchStop;
 
@@ -66,10 +69,12 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     TargetRecordingPatchHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             TargetRecordingPatchSave patchSave,
             TargetRecordingPatchStop patchStop,
             Logger logger) {
         super(auth, credentialsManager, logger);
+        this.discoveryStorage = discoveryStorage;
         this.patchSave = patchSave;
         this.patchStop = patchStop;
     }
@@ -93,6 +98,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
                 ResourceAction.READ_RECORDING,
                 ResourceAction.UPDATE_RECORDING);
     }
@@ -110,6 +116,13 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.PLAINTEXT);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return
+            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
     }
 
     @Override

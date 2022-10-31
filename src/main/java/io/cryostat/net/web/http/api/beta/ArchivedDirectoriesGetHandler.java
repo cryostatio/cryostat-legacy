@@ -53,6 +53,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingArchiveHelper.ArchiveDirectory;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivePathException;
 
 import com.google.gson.Gson;
@@ -105,6 +106,11 @@ class ArchivedDirectoriesGetHandler extends AbstractAuthenticatedRequestHandler 
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

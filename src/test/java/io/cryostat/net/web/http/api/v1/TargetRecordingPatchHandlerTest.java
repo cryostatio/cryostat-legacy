@@ -105,6 +105,7 @@ class TargetRecordingPatchHandlerTest {
                 Matchers.equalTo(
                         Set.of(
                                 ResourceAction.READ_TARGET,
+                                ResourceAction.CREATE_RECORDING,
                                 ResourceAction.READ_RECORDING,
                                 ResourceAction.UPDATE_RECORDING)));
     }
