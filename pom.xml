@@ -341,6 +341,18 @@
           </path>
         </annotationProcessorPaths>
       </configuration>
+      <executions>
+        <execution>
+          <id>default-testCompile</id>
+          <phase>test-compile</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+            <configuration>
+              <skip>${skipUTs}</skip>
+            </configuration>
+        </execution>
+      </executions>
     </plugin>
     <plugin>
       <artifactId>maven-resources-plugin</artifactId>
