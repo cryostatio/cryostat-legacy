@@ -1032,11 +1032,11 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
 
         void setSecurityContext(SecurityContext securityContext) {
-            this.securityContext = Objects.requireNonNull(securityContext);
+            this.securityContext = new SecurityContext(Objects.requireNonNull(securityContext));
         }
 
         public SecurityContext getSecurityContext() {
-            return securityContext;
+            return new SecurityContext(securityContext);
         }
 
         public Map<String, String> getLabels() {
@@ -1056,12 +1056,15 @@ public class RecordingMetadataManager extends AbstractVerticle
             }
 
             Metadata metadata = (Metadata) o;
-            return new EqualsBuilder().append(labels, metadata.labels).build();
+            return new EqualsBuilder()
+                    .append(labels, metadata.labels)
+                    .append(securityContext, metadata.securityContext)
+                    .build();
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder().append(labels).toHashCode();
+            return new HashCodeBuilder().append(securityContext).append(labels).toHashCode();
         }
     }
 
@@ -1078,6 +1081,10 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         private SecurityContext(Map<String, String> ctx) {
             this.ctx = Collections.unmodifiableMap(new HashMap<>(ctx));
+        }
+
+        SecurityContext(SecurityContext o) {
+            this.ctx = new HashMap<>(o.ctx);
         }
 
         public SecurityContext(ServiceRef serviceRef) {
