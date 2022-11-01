@@ -37,16 +37,21 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
+import javax.management.remote.JMXServiceURL;
 
 import com.google.gson.Gson;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import dagger.Lazy;
@@ -61,7 +66,15 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+<<<<<<< HEAD
+=======
+import io.cryostat.rules.ArchivedRecordingInfo;
+
+import com.google.gson.Gson;
+import dagger.Lazy;
+>>>>>>> eaeaa8d3 (fixup! use security context information passed back by web-client)
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
@@ -71,13 +84,16 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     private final AssetJwtHelper jwt;
     private final DiscoveryStorage discoveryStorage;
+    private final RecordingArchiveHelper archiveHelper;
     private final Lazy<WebServer> webServer;
+    private final Logger logger;
 
     @Inject
     AuthTokenPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             DiscoveryStorage discoveryStorage,
+            RecordingArchiveHelper archiveHelper,
             Gson gson,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
@@ -85,7 +101,9 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         super(auth, credentialsManager, gson);
         this.jwt = jwt;
         this.discoveryStorage = discoveryStorage;
+        this.archiveHelper = archiveHelper;
         this.webServer = webServer;
+        this.logger = logger;
     }
 
     @Override
@@ -125,16 +143,51 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
 	@Override
 	public SecurityContext securityContext(RequestParameters params) {
-        return SecurityContext.DEFAULT; // FIXME need to determine the actual context here, somehow.
-                                        // target info, if any, would be embedded in the URL, so in
-                                        // theory we just need to parse the URL and determine the
-                                        // path parameter of the targetId - but how do we know which
-                                        // URL path the incoming request was originally for? It
-                                        // would be embedded in the resource claim with the
-                                        // parameter substituted for its real value.
-        // ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
-        // return discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
-	}
+        String targetId = params.getFormAttributes().get("targetId");
+        if (StringUtils.isBlank(targetId)) {
+            return null;
+        }
+        try {
+            new URI(targetId);
+            new JMXServiceURL(targetId);
+            String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
+            URI resource = new URI(params.getFormAttributes().get(resourceClaim));
+            if (resourceClaim.contains("recording")) {
+                String recordingName = params.getFormAttributes().get("recordingName");
+                if (StringUtils.isBlank(recordingName)) {
+                    return null;
+                }
+                Optional<ArchivedRecordingInfo> recordingInfo =
+                        archiveHelper.getRecordings(targetId).get().stream()
+                                .filter(r -> r.getName().equals(recordingName))
+                                .findFirst();
+                // this is a request for an archived recording, so use the stored security context
+                // FIXME need to add a migration upgrade to the metadata manager to add the security
+                // context to stored metadata
+                if (recordingInfo.isPresent()) {
+                    return recordingInfo.get().getMetadata().getSecurityContext();
+                }
+                // this is a request for an active recording so the URL must contain the targetId.
+                // if it does then we fall through to the bottom and use the security context of the
+                // service ref
+                if (!resource.getPath().contains(targetId)) {
+                    return null;
+                }
+            }
+        } catch (URISyntaxException
+                | MalformedURLException
+                | InterruptedException
+                | ExecutionException e) {
+            logger.error(e);
+            return null;
+        }
+        // this was not a recording request so use the security context of the specified target to
+        // ex. retrieve event templates
+        return discoveryStorage
+                .lookupServiceByTargetId(targetId)
+                .map(SecurityContext::new)
+                .orElse(null);
+    }
 
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)

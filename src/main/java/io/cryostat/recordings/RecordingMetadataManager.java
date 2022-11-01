@@ -40,6 +40,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -1066,7 +1067,12 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     public static class SecurityContext {
         public static final SecurityContext DEFAULT =
-                new SecurityContext(Map.of("__SC__", "default"));
+            new SecurityContext(Map.of("__SC__", "default")) {
+                @Override
+                public String toString() {
+                    return "__DEFAULT__";
+                }
+            };
 
         private final Map<String, String> ctx;
 
@@ -1082,6 +1088,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                         "SECURITY_NS",
                         serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
             }
+            ctx.put("SECURITY_SRC", serviceRef.getServiceUri().toString());
+            ctx.put("SECURITY_JVMID", serviceRef.getJvmId());
         }
 
         public boolean hasNamespace() {
@@ -1090,6 +1098,39 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         public String getNamespace() {
             return ctx.get("SECURITY_NS");
+        }
+
+        public URI getSource() {
+            return URI.create(ctx.get("SECURITY_SRC"));
+        }
+
+        public String getJvmId() {
+            return ctx.get("SECURITY_JVMID");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(ctx);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            SecurityContext other = (SecurityContext) obj;
+            return Objects.equals(ctx, other.ctx);
+        }
+
+        @Override
+        public String toString() {
+            return ctx.toString();
         }
     }
 }

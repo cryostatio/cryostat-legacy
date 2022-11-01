@@ -89,7 +89,7 @@ class BasicAuthManager extends AbstractAuthManager {
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions) {
         logger.info("Validating {} can [{}] with {} ...", headerProvider.get(), resourceActions, securityContext);
-        return CompletableFuture.completedFuture(true);
+        return CompletableFuture.completedFuture(securityContext != null);
     }
 
     @Override
