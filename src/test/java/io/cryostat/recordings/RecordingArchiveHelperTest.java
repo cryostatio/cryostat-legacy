@@ -223,18 +223,21 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
+                        "id2",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
@@ -313,6 +316,7 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
@@ -394,18 +398,21 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
+                        "id2",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         null);
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
@@ -479,12 +486,14 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
@@ -559,18 +568,21 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
+                        "id2",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
@@ -628,18 +640,21 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
+                        "id2",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
@@ -694,18 +709,21 @@ class RecordingArchiveHelperTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
+                        "id1",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
+                        "id2",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
+                        "id3",
                         URIUtil.convert(
                                 new JMXServiceURL(
                                         "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),

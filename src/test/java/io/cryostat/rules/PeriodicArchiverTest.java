@@ -75,7 +75,7 @@ class PeriodicArchiverTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+        this.serviceRef = new ServiceRef("id1", new URI(jmxUrl), "com.example.App");
         this.failureCounter = new AtomicInteger();
         this.rule =
                 new Rule.Builder()

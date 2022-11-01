@@ -45,6 +45,7 @@ import javax.inject.Singleton;
 import javax.persistence.EntityManager;
 
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -52,6 +53,8 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.Gson;
@@ -90,10 +93,23 @@ public abstract class DiscoveryModule {
             @Named(DISCOVERY_PING_DURATION) Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
+            Lazy<JvmIdHelper> jvmIdHelper,
+            Lazy<CredentialsManager> credentialsManager,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
             Logger logger) {
-        return new DiscoveryStorage(deployer, pingPeriod, builtin, dao, gson, http, logger);
+        return new DiscoveryStorage(
+                deployer,
+                pingPeriod,
+                builtin,
+                dao,
+                jvmIdHelper,
+                credentialsManager,
+                matchExpressionEvaluator,
+                gson,
+                http,
+                logger);
     }
 
     @Provides
@@ -112,7 +128,9 @@ public abstract class DiscoveryModule {
     @Provides
     @IntoSet
     static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters,
+            Lazy<JvmIdHelper> jvmIdHelper,
+            Logger logger) {
+        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, jvmIdHelper, logger);
     }
 }

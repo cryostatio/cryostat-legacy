@@ -50,6 +50,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -61,6 +62,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 public class CustomTargetsIT extends StandardSelfTest {
 
     private final ExecutorService worker = ForkJoinPool.commonPool();
+    private static String itestJvmId = null;
 
     @Test
     @Order(1)
@@ -120,7 +122,8 @@ public class CustomTargetsIT extends StandardSelfTest {
 
     @Test
     @Order(2)
-    void targetShouldAppearInListing() throws ExecutionException, InterruptedException {
+    void targetShouldAppearInListing()
+            throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
                 .get("/api/v1/targets")
@@ -133,9 +136,14 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(body, Matchers.notNullValue());
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(2));
 
+        itestJvmId =
+                JvmIdWebRequest.jvmIdRequest(
+                        "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi");
         JsonObject selfJdp =
                 new JsonObject(
                         Map.of(
+                                "jvmId",
+                                itestJvmId,
                                 "alias",
                                 "io.cryostat.Cryostat",
                                 "connectUrl",
@@ -159,6 +167,8 @@ public class CustomTargetsIT extends StandardSelfTest {
         JsonObject selfCustom =
                 new JsonObject(
                         Map.of(
+                                "jvmId",
+                                itestJvmId,
                                 "alias",
                                 "self",
                                 "connectUrl",
@@ -240,6 +250,8 @@ public class CustomTargetsIT extends StandardSelfTest {
         JsonObject selfJdp =
                 new JsonObject(
                         Map.of(
+                                "jvmId",
+                                itestJvmId,
                                 "alias",
                                 "io.cryostat.Cryostat",
                                 "connectUrl",

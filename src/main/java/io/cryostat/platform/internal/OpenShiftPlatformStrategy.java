@@ -56,9 +56,9 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
 
     private final Logger logger;
     private final AuthManager authMgr;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private OpenShiftClient osClient;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
 
     OpenShiftPlatformStrategy(
             Logger logger,

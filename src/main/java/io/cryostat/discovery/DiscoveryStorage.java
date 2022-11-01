@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,18 +52,25 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.script.ScriptException;
+
 import io.cryostat.VerticleDeployer;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -79,10 +87,15 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
+    private final Lazy<JvmIdHelper> jvmIdHelper;
+    private final Lazy<CredentialsManager> credentialsManager;
+    private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
     private long timerId = -1L;
+
+    private final Map<TargetNode, UUID> targetsToUpdate = new HashMap<>();
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
@@ -91,6 +104,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
+            Lazy<JvmIdHelper> jvmIdHelper,
+            Lazy<CredentialsManager> credentialsManager,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
             Logger logger) {
@@ -98,6 +114,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
         this.dao = dao;
+        this.jvmIdHelper = jvmIdHelper;
+        this.credentialsManager = credentialsManager;
+        this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.gson = gson;
         this.http = http;
         this.logger = logger;
@@ -122,6 +141,41 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .onFailure(future::fail);
 
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
+        this.credentialsManager
+                .get()
+                .addListener(
+                        event -> {
+                            switch (event.getEventType()) {
+                                case ADDED:
+                                    Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
+                                    for (var entry : copy.entrySet()) {
+                                        try {
+                                            if (matchExpressionEvaluator
+                                                    .get()
+                                                    .applies(
+                                                            event.getPayload(),
+                                                            entry.getKey().getTarget())) {
+                                                targetsToUpdate.remove(entry.getKey());
+                                                UUID id = entry.getValue();
+                                                PluginInfo plugin = getById(id).orElseThrow();
+                                                EnvironmentNode original =
+                                                        gson.fromJson(
+                                                                plugin.getSubtree(),
+                                                                EnvironmentNode.class);
+                                                update(id, original.getChildren(), false);
+                                            }
+                                        } catch (JsonSyntaxException | ScriptException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
+                                    break;
+                                case REMOVED:
+                                    break;
+                                default:
+                                    throw new UnsupportedOperationException(
+                                            event.getEventType().toString());
+                            }
+                        });
     }
 
     @Override
@@ -191,6 +245,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public UUID register(String realm, URI callback) throws RegistrationException {
         // FIXME this method should return a Future and be performed async
+        Objects.requireNonNull(realm, "realm");
         try {
             CompletableFuture<Boolean> cf = new CompletableFuture<>();
             ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
@@ -226,31 +281,77 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
+    private List<AbstractNode> modifyChildrenWithJvmIds(
+            UUID id, Collection<? extends AbstractNode> children) {
+        List<AbstractNode> modifiedChildren = new ArrayList<>();
+        for (AbstractNode child : children) {
+            if (child instanceof TargetNode) {
+                ServiceRef ref = ((TargetNode) child).getTarget();
+                try {
+                    ref = jvmIdHelper.get().resolveId(ref);
+                } catch (Exception e) {
+                    logger.warn("Failed to resolve jvmId for node [{}]", child.getName());
+                    // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
+                    if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
+                            || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
+                        logger.info("Ignoring target node [{}]", child.getName());
+                        continue;
+                    }
+                    logger.info("Update node [{}] with null jvmId", child.getName());
+                    targetsToUpdate.putIfAbsent((TargetNode) child, id);
+                }
+                child = new TargetNode(child.getNodeType(), ref, child.getLabels());
+                modifiedChildren.add(child);
+            } else if (child instanceof EnvironmentNode) {
+                modifiedChildren.add(
+                        new EnvironmentNode(
+                                child.getName(),
+                                child.getNodeType(),
+                                child.getLabels(),
+                                modifyChildrenWithJvmIds(
+                                        id, ((EnvironmentNode) child).getChildren())));
+            } else {
+                throw new IllegalArgumentException(child.getClass().getCanonicalName());
+            }
+        }
+        return modifiedChildren;
+    }
+
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
+        return update(id, children, true);
+    }
+
+    public List<? extends AbstractNode> update(
+            UUID id, Collection<? extends AbstractNode> children, boolean notify) {
+        var updatedChildren =
+                modifyChildrenWithJvmIds(id, Objects.requireNonNull(children, "children"));
+
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
-        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), children);
+
         EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-        plugin = dao.update(id, Objects.requireNonNull(children));
+        plugin = dao.update(id, updatedChildren);
+        logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        Set<TargetNode> previousLeaves = findLeavesFrom(original);
-        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        if (notify) {
+            Set<TargetNode> previousLeaves = findLeavesFrom(original);
+            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
-        Set<TargetNode> added = new HashSet<>(currentLeaves);
-        added.removeAll(previousLeaves);
+            Set<TargetNode> added = new HashSet<>(currentLeaves);
+            added.removeAll(previousLeaves);
 
-        Set<TargetNode> removed = new HashSet<>(previousLeaves);
-        removed.removeAll(currentLeaves);
+            Set<TargetNode> removed = new HashSet<>(previousLeaves);
+            removed.removeAll(currentLeaves);
 
-        added.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-        removed.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-
-        return original.getChildren();
+            added.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+            removed.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        }
+        return currentTree.getChildren();
     }
 
     public PluginInfo deregister(UUID id) {

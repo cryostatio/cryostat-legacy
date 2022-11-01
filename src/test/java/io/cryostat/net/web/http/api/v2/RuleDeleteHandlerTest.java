@@ -236,6 +236,7 @@ class RuleDeleteHandlerTest {
 
             ServiceRef serviceRef =
                     new ServiceRef(
+                            "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
             Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
@@ -308,6 +309,7 @@ class RuleDeleteHandlerTest {
 
             ServiceRef serviceRef =
                     new ServiceRef(
+                            "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
             Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));

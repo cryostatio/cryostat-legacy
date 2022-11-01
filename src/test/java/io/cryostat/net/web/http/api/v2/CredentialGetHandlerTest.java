@@ -125,6 +125,7 @@ class CredentialGetHandlerTest {
             String matchExpression = "target.alias == \"foo\"";
             ServiceRef serviceRef =
                     new ServiceRef(
+                            "id",
                             URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "foo");
             MatchedCredentials credential =

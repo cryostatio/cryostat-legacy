@@ -118,7 +118,8 @@ public class DefaultPlatformClient extends AbstractPlatformClient
     private static ServiceRef convert(DiscoveredJvmDescriptor desc)
             throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
-        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
+        ServiceRef serviceRef =
+                new ServiceRef(null, URIUtil.convert(serviceUrl), desc.getMainClass());
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.setCryostatAnnotations(
                 Map.of(

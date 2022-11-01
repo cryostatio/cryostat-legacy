@@ -37,6 +37,7 @@
  */
 package io.cryostat.platform.internal;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -369,14 +370,12 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         discoveryNodeCache.computeIfAbsent(
                                 cacheKey(objRef), KubeApiPlatformClient.this::queryForNode);
                 String targetName = objRef.getName();
-                ServiceRef serviceRef =
-                        new ServiceRef(
-                                URIUtil.convert(
-                                        connectionToolkit
-                                                .get()
-                                                .createServiceURL(addr.getIp(), port.getPort())),
-                                targetName);
-
+                URI uri =
+                        URIUtil.convert(
+                                connectionToolkit
+                                        .get()
+                                        .createServiceURL(addr.getIp(), port.getPort()));
+                ServiceRef serviceRef = new ServiceRef(null, uri, targetName);
                 if (node.getRight().getNodeType() == KubernetesNodeType.POD) {
                     HasMetadata podRef = node.getLeft();
                     if (podRef != null) {

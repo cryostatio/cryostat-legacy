@@ -111,6 +111,7 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
         try {
             ServiceRef sr =
                     new ServiceRef(
+                            null,
                             URIUtil.convert(
                                     connectionToolkit
                                             .get()

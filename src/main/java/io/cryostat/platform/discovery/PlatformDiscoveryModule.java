@@ -52,7 +52,7 @@ public abstract class PlatformDiscoveryModule {
 
     @Provides
     @IntoSet
-    static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter() {
+    public static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter() {
         return new BaseNodeTypeAdapter();
     }
 
@@ -70,7 +70,7 @@ public abstract class PlatformDiscoveryModule {
 
     @Provides
     @IntoSet
-    static PluggableJsonDeserializer<?> provideNodeTypeDeserializer(
+    public static PluggableJsonDeserializer<?> provideNodeTypeDeserializer(
             Lazy<Set<PluggableTypeAdapter<?>>> adapters) {
         return new NodeTypeDeserializer(adapters);
     }

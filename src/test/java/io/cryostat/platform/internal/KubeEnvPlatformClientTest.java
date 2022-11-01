@@ -56,6 +56,7 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import org.hamcrest.Matcher;
@@ -103,7 +104,8 @@ class KubeEnvPlatformClientTest {
         }
 
         @Test
-        void shouldDiscoverServicesByEnv() throws MalformedURLException, URISyntaxException {
+        void shouldDiscoverServicesByEnv()
+                throws MalformedURLException, URISyntaxException, JvmIdGetException {
             when(env.getEnv())
                     .thenReturn(
                             Map.of(
@@ -129,6 +131,7 @@ class KubeEnvPlatformClientTest {
 
             ServiceRef serv1 =
                     new ServiceRef(
+                            "id1",
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
             serv1.setCryostatAnnotations(
@@ -139,6 +142,7 @@ class KubeEnvPlatformClientTest {
                             AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
+                            "id2",
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
             serv2.setCryostatAnnotations(
@@ -156,14 +160,14 @@ class KubeEnvPlatformClientTest {
         }
 
         @Test
-        void shouldDiscoverServicesAsTree() throws MalformedURLException, URISyntaxException {
+        void shouldDiscoverServicesAsTree()
+                throws MalformedURLException, URISyntaxException, JvmIdGetException {
             when(env.getEnv())
                     .thenReturn(
                             Map.of(
                                     "FOO_PORT_1234_TCP_ADDR", "127.0.0.1",
                                     "BAR_PORT_9999_TCP_ADDR", "1.2.3.4",
                                     "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
-
             Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                     .thenAnswer(
                             new Answer<>() {
@@ -182,6 +186,7 @@ class KubeEnvPlatformClientTest {
 
             ServiceRef serv1 =
                     new ServiceRef(
+                            "id1",
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
             serv1.setCryostatAnnotations(
@@ -192,6 +197,7 @@ class KubeEnvPlatformClientTest {
                             AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
+                            "id2",
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
             serv2.setCryostatAnnotations(

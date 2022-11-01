@@ -73,6 +73,7 @@ class CustomTargetPlatformClientTest {
         try {
             SERVICE_REF =
                     new ServiceRef(
+                            "id",
                             URIUtil.convert(
                                     new JMXServiceURL(
                                             "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi")),

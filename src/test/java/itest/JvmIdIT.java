@@ -43,15 +43,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import org.openjdk.jmc.common.util.Pair;
 
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
-import org.apache.http.client.utils.URLEncodedUtils;
+import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -97,24 +96,13 @@ public class JvmIdIT extends ExternalTargetsTest {
 
     @Test
     void testUniqueJvmIds() throws Exception {
-        String targetIdOne =
-                URLEncodedUtils.formatSegments(
-                        String.format(
-                                "service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME));
-        String targetIdTwo =
-                URLEncodedUtils.formatSegments(
-                        String.format(
-                                "service:jmx:rmi:///jndi/rmi://%s:9094/jmxrmi", Podman.POD_NAME));
-
-        String targetIdThree =
-                URLEncodedUtils.formatSegments(
-                        String.format(
-                                "service:jmx:rmi:///jndi/rmi://%s:9095/jmxrmi", Podman.POD_NAME));
-
+        String targetId =
+                String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
+        Pair<String, String> credentials = new Pair<String, String>("admin", "adminpass123");
         // send jvmIds requests for all external containers
-        String one = getJvmIdFuture(targetIdOne).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String two = getJvmIdFuture(targetIdTwo).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String three = getJvmIdFuture(targetIdThree).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        String one = JvmIdWebRequest.jvmIdRequest(targetId);
+        String two = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9094"), credentials);
+        String three = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9095"), credentials);
         Set<String> targets = Set.of(one, two, three);
 
         // check that all jvmIds are unique
@@ -123,79 +111,5 @@ public class JvmIdIT extends ExternalTargetsTest {
         for (String id : targets) {
             MatcherAssert.assertThat(id, Matchers.not(Matchers.blankOrNullString()));
         }
-
-        // check that aliased targets point to the same jvmId
-
-        // targetOne
-        String targetOneAliasJvmId1 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        String.format("%s:9093", Podman.POD_NAME)))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetOneAliasJvmId2 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        "service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetOneAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9093"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        MatcherAssert.assertThat(targetOneAliasJvmId1, Matchers.equalTo(one));
-        MatcherAssert.assertThat(targetOneAliasJvmId2, Matchers.equalTo(one));
-        MatcherAssert.assertThat(targetOneAliasJvmId3, Matchers.equalTo(one));
-
-        // targetTwo
-        String targetTwoAliasJvmId1 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        String.format("%s:9094", Podman.POD_NAME)))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetTwoAliasJvmId2 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        "service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetTwoAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9094"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        MatcherAssert.assertThat(targetTwoAliasJvmId1, Matchers.equalTo(two));
-        MatcherAssert.assertThat(targetTwoAliasJvmId2, Matchers.equalTo(two));
-        MatcherAssert.assertThat(targetTwoAliasJvmId3, Matchers.equalTo(two));
-
-        // targetThree
-        String targetThreeAliasJvmId1 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        String.format("%s:9095", Podman.POD_NAME)))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetThreeAliasJvmId2 =
-                getJvmIdFuture(
-                                URLEncodedUtils.formatSegments(
-                                        "service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        String targetThreeAliasJvmId3 =
-                getJvmIdFuture(URLEncodedUtils.formatSegments("localhost:9095"))
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        MatcherAssert.assertThat(targetThreeAliasJvmId1, Matchers.equalTo(three));
-        MatcherAssert.assertThat(targetThreeAliasJvmId2, Matchers.equalTo(three));
-        MatcherAssert.assertThat(targetThreeAliasJvmId3, Matchers.equalTo(three));
-    }
-
-    private CompletableFuture<String> getJvmIdFuture(String encodedTargetId)
-            throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<String> jvmIdFuture = new CompletableFuture<>();
-
-        webClient
-                .get(String.format("/api/beta/targets/%s", encodedTargetId))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, jvmIdFuture)) {
-                                jvmIdFuture.complete(ar.result().bodyAsString());
-                            }
-                        });
-        return jvmIdFuture;
     }
 }

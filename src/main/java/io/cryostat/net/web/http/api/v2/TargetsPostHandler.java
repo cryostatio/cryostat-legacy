@@ -50,6 +50,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -58,6 +59,8 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -70,7 +73,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     static final String PATH = "targets";
 
     private final DiscoveryStorage storage;
+    private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
+    private final Logger logger;
 
     @Inject
     TargetsPostHandler(
@@ -78,10 +83,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             CredentialsManager credentialsManager,
             Gson gson,
             DiscoveryStorage storage,
-            CustomTargetPlatformClient customTargetPlatformClient) {
+            JvmIdHelper jvmIdHelper,
+            CustomTargetPlatformClient customTargetPlatformClient,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.storage = storage;
+        this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
+        this.logger = logger;
     }
 
     @Override
@@ -148,7 +157,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-            ServiceRef serviceRef = new ServiceRef(uri, alias);
+
+            String jvmId = jvmIdHelper.getJvmId(uri.toString());
+            ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?
@@ -165,6 +176,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
+        } catch (JvmIdGetException e) {
+            throw new ApiException(404, "Couldn't connect to target: " + e.getTarget());
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {

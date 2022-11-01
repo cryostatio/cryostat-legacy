@@ -238,6 +238,7 @@ class RuleRegistryTest {
         MatcherAssert.assertThat(
                 registry.getRules(
                         new ServiceRef(
+                                "id",
                                 URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
                                 "com.example.App")),
                 Matchers.equalTo(Set.of(testRule)));
@@ -258,6 +259,7 @@ class RuleRegistryTest {
         MatcherAssert.assertThat(
                 registry.getRules(
                         new ServiceRef(
+                                "id",
                                 URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
                                 "com.example.App")),
                 Matchers.equalTo(Set.of()));

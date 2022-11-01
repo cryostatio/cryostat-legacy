@@ -121,7 +121,9 @@ class TargetsGetHandlerTest {
                         });
         ServiceRef target =
                 new ServiceRef(
-                        URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)), "foo");
+                        "id1",
+                        URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)),
+                        "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(target));

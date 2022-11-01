@@ -54,22 +54,29 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import dagger.Lazy;
 
 public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> {
 
     private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
+    private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Logger logger;
 
     public AbstractNodeTypeAdapter(
-            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
+            Class<AbstractNode> klazz,
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters,
+            Lazy<JvmIdHelper> jvmIdHelper,
+            Logger logger) {
         super(klazz);
         this.adapters = adapters;
+        this.jvmIdHelper = jvmIdHelper;
         this.logger = logger;
     }
 
@@ -128,6 +135,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     break;
                 case "target":
                     reader.beginObject();
+                    String jvmId = null;
                     URI connectUrl = null;
                     String alias = null;
                     Map<String, String> targetLabels = new HashMap<>();
@@ -136,6 +144,13 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                     while (reader.hasNext()) {
                         String targetTokenName = reader.nextName();
                         switch (targetTokenName) {
+                            case "jvmId":
+                                if (reader.peek() == JsonToken.NULL) {
+                                    reader.nextNull();
+                                } else {
+                                    jvmId = reader.nextString();
+                                }
+                                break;
                             case "connectUrl":
                                 try {
                                     connectUrl = new URI(reader.nextString());
@@ -190,7 +205,8 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
                         }
                     }
                     reader.endObject();
-                    target = new ServiceRef(connectUrl, alias);
+
+                    target = new ServiceRef(jvmId, connectUrl, alias);
                     target.setLabels(targetLabels);
                     target.setPlatformAnnotations(platformAnnotations);
                     target.setCryostatAnnotations(cryostatAnnotations);
@@ -242,6 +258,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
 
             writer.name("target").beginObject();
 
+            writer.name("jvmId").value(sr.getJvmId());
             writer.name("connectUrl").value(sr.getServiceUri().toString());
             writer.name("alias").value(sr.getAlias().orElse(sr.getServiceUri().toString()));
             writeMap(writer, "labels", sr.getLabels());

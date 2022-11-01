@@ -140,6 +140,7 @@ class DiscoveryGetHandlerTest {
 
             ServiceRef serviceRef =
                     new ServiceRef(
+                            "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "appReplica-1-1");
             TargetNode endpoint = new TargetNode(KubernetesNodeType.ENDPOINT, serviceRef);

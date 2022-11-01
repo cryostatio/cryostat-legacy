@@ -103,7 +103,7 @@ class CredentialsManagerTest {
                 credentialsManager.getServiceRefsWithCredentials(), Matchers.empty());
         MatcherAssert.assertThat(credentialsManager.removeCredentials("foo"), Matchers.lessThan(0));
         MatcherAssert.assertThat(
-                credentialsManager.getCredentials(new ServiceRef(new URI("foo"), "foo")),
+                credentialsManager.getCredentials(new ServiceRef("id", new URI("foo"), "foo")),
                 Matchers.nullValue());
         MatcherAssert.assertThat(
                 credentialsManager.getCredentialsByTargetId("foo"), Matchers.nullValue());
@@ -120,7 +120,7 @@ class CredentialsManagerTest {
 
         StoredCredentials stored = new StoredCredentials(1, matchExpression, credentials);
 
-        ServiceRef serviceRef = new ServiceRef(new URI(targetId), "foo");
+        ServiceRef serviceRef = new ServiceRef("id", new URI(targetId), "foo");
         Mockito.when(matchExpressionEvaluator.applies(matchExpression, serviceRef))
                 .thenReturn(true);
 
@@ -211,10 +211,10 @@ class CredentialsManagerTest {
 
     @Test
     void addedCredentialsCanMatchMultipleTargets() throws Exception {
-        ServiceRef target1 = new ServiceRef(new URI("target1"), "target1Alias");
-        ServiceRef target2 = new ServiceRef(new URI("target2"), "target2Alias");
-        ServiceRef target3 = new ServiceRef(new URI("target3"), "target3Alias");
-        ServiceRef target4 = new ServiceRef(new URI("target4"), "target4Alias");
+        ServiceRef target1 = new ServiceRef("id1", new URI("target1"), "target1Alias");
+        ServiceRef target2 = new ServiceRef("id2", new URI("target2"), "target2Alias");
+        ServiceRef target3 = new ServiceRef("id3", new URI("target3"), "target3Alias");
+        ServiceRef target4 = new ServiceRef("id4", new URI("target4"), "target4Alias");
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(target1, target2, target3, target4));
@@ -252,10 +252,10 @@ class CredentialsManagerTest {
 
     @Test
     void canQueryDiscoveredTargetsWithConfiguredCredentials() throws Exception {
-        ServiceRef target1 = new ServiceRef(new URI("target1"), "target1Alias");
-        ServiceRef target2 = new ServiceRef(new URI("target2"), "target2Alias");
-        ServiceRef target3 = new ServiceRef(new URI("target3"), "target3Alias");
-        ServiceRef target4 = new ServiceRef(new URI("target4"), "target4Alias");
+        ServiceRef target1 = new ServiceRef("id1", new URI("target1"), "target1Alias");
+        ServiceRef target2 = new ServiceRef("id2", new URI("target2"), "target2Alias");
+        ServiceRef target3 = new ServiceRef("id3", new URI("target3"), "target3Alias");
+        ServiceRef target4 = new ServiceRef("id4", new URI("target4"), "target4Alias");
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(target1, target2, target3, target4));
@@ -308,6 +308,7 @@ class CredentialsManagerTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
+                        "id",
                         URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                         "mytarget");
 

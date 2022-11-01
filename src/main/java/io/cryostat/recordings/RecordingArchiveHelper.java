@@ -227,7 +227,6 @@ public class RecordingArchiveHelper {
                                                 oldLocation,
                                                 newLocation);
                                         Files.move(oldLocation, newLocation);
-
                                         String jvmId =
                                                 jvmIdHelper.subdirectoryNameToJvmId(
                                                         subdirectoryName);
