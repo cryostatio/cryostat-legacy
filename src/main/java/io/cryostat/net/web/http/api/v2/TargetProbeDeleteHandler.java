@@ -43,10 +43,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.log.Logger;
@@ -61,7 +57,10 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
@@ -120,12 +119,14 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
-                        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
-                        return
-                            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
-	}
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
+    }
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {

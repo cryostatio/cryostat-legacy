@@ -43,8 +43,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
@@ -53,13 +51,15 @@ import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivedRecordingInfo;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @DeprecatedApi(
         deprecated = @Deprecated(forRemoval = true),
@@ -108,8 +108,12 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
         String recordingName = ctx.pathParam("recordingName");
         try {
 
-            return recordingArchiveHelper.getRecordings().get().stream().filter(r ->
-                    r.getName().equals(recordingName)).findFirst().map(ArchivedRecordingInfo::getMetadata).map(Metadata::getSecurityContext).orElse(null);
+            return recordingArchiveHelper.getRecordings().get().stream()
+                    .filter(r -> r.getName().equals(recordingName))
+                    .findFirst()
+                    .map(ArchivedRecordingInfo::getMetadata)
+                    .map(Metadata::getSecurityContext)
+                    .orElse(null);
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             return null;

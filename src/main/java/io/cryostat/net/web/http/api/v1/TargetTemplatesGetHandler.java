@@ -44,8 +44,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.Template;
@@ -58,8 +56,9 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -126,8 +125,10 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
-        return
-            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
     }
 
     @Override

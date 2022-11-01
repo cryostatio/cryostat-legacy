@@ -104,10 +104,10 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<EnvironmentNode> handle(RequestParameters params) throws Exception {

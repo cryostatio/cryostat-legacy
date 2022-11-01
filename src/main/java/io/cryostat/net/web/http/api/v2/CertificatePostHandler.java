@@ -136,10 +136,10 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<Path> handle(RequestParameters params) throws ApiException {

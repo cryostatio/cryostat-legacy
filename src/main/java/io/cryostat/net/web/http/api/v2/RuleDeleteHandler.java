@@ -55,8 +55,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
@@ -129,10 +129,10 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
         return List.of(HttpMimeType.JSON);
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {

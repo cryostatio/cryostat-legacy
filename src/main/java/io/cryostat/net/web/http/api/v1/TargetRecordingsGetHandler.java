@@ -45,8 +45,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import com.google.gson.Gson;
-
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -63,6 +61,8 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -126,8 +126,10 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
-        return
-            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
     }
 
     @Override

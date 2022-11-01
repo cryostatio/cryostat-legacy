@@ -52,8 +52,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.apache.commons.validator.routines.UrlValidator;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -73,6 +71,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -80,6 +79,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.validator.routines.UrlValidator;
 
 class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -143,8 +143,10 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
-        return
-            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
     }
 
     @Override

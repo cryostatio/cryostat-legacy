@@ -37,15 +37,12 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
-
-import com.google.gson.Gson;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
@@ -61,6 +58,8 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivedRecordingInfo;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
@@ -119,10 +118,7 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
         try {
-            return recordingArchiveHelper
-                    .getRecordings(sourceTarget)
-                    .get()
-                    .stream()
+            return recordingArchiveHelper.getRecordings(sourceTarget).get().stream()
                     .filter(r -> r.getName().equals(recordingName))
                     .findFirst()
                     .map(ArchivedRecordingInfo::getMetadata)

@@ -49,17 +49,10 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 import javax.management.remote.JMXServiceURL;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
-
-import dagger.Lazy;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -69,14 +62,22 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
 >>>>>>> eaeaa8d3 (fixup! use security context information passed back by web-client)
+=======
+
+import com.google.gson.Gson;
+import dagger.Lazy;
+>>>>>>> fc5dcd04 (apply spotless)
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
@@ -141,8 +142,8 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         String targetId = params.getFormAttributes().get("targetId");
         if (StringUtils.isBlank(targetId)) {
             return null;
@@ -181,8 +182,6 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             logger.error(e);
             return null;
         }
-        // this was not a recording request so use the security context of the specified target to
-        // ex. retrieve event templates
         return discoveryStorage
                 .lookupServiceByTargetId(targetId)
                 .map(SecurityContext::new)

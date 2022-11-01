@@ -49,6 +49,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
@@ -86,10 +87,10 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RoutingContext ctx) {
-		return SecurityContext.DEFAULT;
-	}
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {

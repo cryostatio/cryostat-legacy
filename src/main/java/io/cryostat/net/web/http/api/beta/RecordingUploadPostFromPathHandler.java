@@ -50,10 +50,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.validator.routines.UrlValidator;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
@@ -74,11 +70,14 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.validator.routines.UrlValidator;
 
 class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String> {
 
@@ -144,14 +143,12 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
     public SecurityContext securityContext(RequestParameters params) {
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
-            return recordingArchiveHelper
-                    .getRecordingsFromPath(subdirectoryName)
-                    .stream()
-                    .filter(r -> r.getName().equals(recordingName))
-                    .findFirst()
-                    .map(ArchivedRecordingInfo::getMetadata)
-                    .map(Metadata::getSecurityContext)
-                    .orElse(SecurityContext.DEFAULT);
+        return recordingArchiveHelper.getRecordingsFromPath(subdirectoryName).stream()
+                .filter(r -> r.getName().equals(recordingName))
+                .findFirst()
+                .map(ArchivedRecordingInfo::getMetadata)
+                .map(Metadata::getSecurityContext)
+                .orElse(SecurityContext.DEFAULT);
     }
 
     @Override

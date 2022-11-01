@@ -1067,12 +1067,12 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     public static class SecurityContext {
         public static final SecurityContext DEFAULT =
-            new SecurityContext(Map.of("__SC__", "default")) {
-                @Override
-                public String toString() {
-                    return "__DEFAULT__";
-                }
-            };
+                new SecurityContext(Map.of("__SC__", "default")) {
+                    @Override
+                    public String toString() {
+                        return "__DEFAULT__";
+                    }
+                };
 
         private final Map<String, String> ctx;
 

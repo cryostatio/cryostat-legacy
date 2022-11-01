@@ -65,10 +65,10 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
@@ -148,10 +148,7 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
         try {
-            return recordingArchiveHelper
-                    .getRecordings(sourceTarget)
-                    .get()
-                    .stream()
+            return recordingArchiveHelper.getRecordings(sourceTarget).get().stream()
                     .filter(r -> r.getName().equals(recordingName))
                     .findFirst()
                     .map(ArchivedRecordingInfo::getMetadata)

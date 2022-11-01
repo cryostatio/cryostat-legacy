@@ -59,6 +59,7 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivedRecordingInfo;
+
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -118,12 +119,12 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     public SecurityContext securityContext(RoutingContext ctx) {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            return recordingArchiveHelper.getRecordings(recordingName).get().stream().filter(r ->
-                    r.getName().equals(recordingName))
-                .findFirst()
-                .map(ArchivedRecordingInfo::getMetadata)
-                .map(Metadata::getSecurityContext)
-                .orElse(SecurityContext.DEFAULT);
+            return recordingArchiveHelper.getRecordings(recordingName).get().stream()
+                    .filter(r -> r.getName().equals(recordingName))
+                    .findFirst()
+                    .map(ArchivedRecordingInfo::getMetadata)
+                    .map(Metadata::getSecurityContext)
+                    .orElse(SecurityContext.DEFAULT);
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             return null;

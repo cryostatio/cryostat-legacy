@@ -162,10 +162,10 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         return List.of(HttpMimeType.MULTIPART_FORM);
     }
 
-	@Override
-	public SecurityContext securityContext(RoutingContext ctx) {
-		return SecurityContext.DEFAULT;
-	}
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {

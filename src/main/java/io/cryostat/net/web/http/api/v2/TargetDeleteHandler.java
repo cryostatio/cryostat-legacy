@@ -113,10 +113,10 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {

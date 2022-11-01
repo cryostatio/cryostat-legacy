@@ -48,10 +48,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
@@ -66,12 +62,15 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
@@ -141,14 +140,12 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
     public SecurityContext securityContext(RequestParameters params) {
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
         String recordingName = params.getPathParams().get("recordingName");
-            return archiveHelper
-                    .getRecordingsFromPath(subdirectoryName)
-                    .stream()
-                    .filter(r -> r.getName().equals(recordingName))
-                    .findFirst()
-                    .map(ArchivedRecordingInfo::getMetadata)
-                    .map(Metadata::getSecurityContext)
-                    .orElse(SecurityContext.DEFAULT);
+        return archiveHelper.getRecordingsFromPath(subdirectoryName).stream()
+                .filter(r -> r.getName().equals(recordingName))
+                .findFirst()
+                .map(ArchivedRecordingInfo::getMetadata)
+                .map(Metadata::getSecurityContext)
+                .orElse(SecurityContext.DEFAULT);
     }
 
     @Override

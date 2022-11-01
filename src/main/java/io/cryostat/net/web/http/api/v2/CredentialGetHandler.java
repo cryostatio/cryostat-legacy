@@ -103,10 +103,10 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<MatchedCredentials> handle(RequestParameters params)

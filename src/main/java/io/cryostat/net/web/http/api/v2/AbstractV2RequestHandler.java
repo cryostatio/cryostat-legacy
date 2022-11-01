@@ -116,7 +116,8 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler<Requ
                                     resourceActions())
                             .get();
             if (!securityContextPassed) {
-                throw new ApiException(403, "User does not have permission for the required security context");
+                throw new ApiException(
+                        403, "User does not have permission for the required security context");
             }
             writeResponse(ctx, handle(requestParams));
         } catch (ApiException | HttpException e) {

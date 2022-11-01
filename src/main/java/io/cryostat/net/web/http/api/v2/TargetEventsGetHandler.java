@@ -46,9 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -61,7 +58,10 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableEventTypeInfo>> {
 
@@ -115,12 +115,14 @@ class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableE
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
-                        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
-                        return
-                            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
-	}
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
+    }
 
     @Override
     public IntermediateResponse<List<SerializableEventTypeInfo>> handle(RequestParameters params)

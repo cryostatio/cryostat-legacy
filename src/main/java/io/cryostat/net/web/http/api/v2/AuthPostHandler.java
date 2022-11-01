@@ -100,10 +100,10 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {

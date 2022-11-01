@@ -114,11 +114,14 @@ class TargetSnapshotPostHandler
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
-        return discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
-	}
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
+    }
 
     @Override
     public IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(

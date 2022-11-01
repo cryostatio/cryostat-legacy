@@ -45,8 +45,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -59,6 +57,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 class TargetRecordingOptionsListGetHandler
@@ -114,12 +114,14 @@ class TargetRecordingOptionsListGetHandler
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
-                        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
-                        return
-                            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
-	}
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
+    }
 
     @Override
     public IntermediateResponse<List<SerializableOptionDescriptor>> handle(

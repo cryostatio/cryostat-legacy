@@ -77,7 +77,8 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler<?> bindTargetRecordingDeleteHandler(TargetRecordingDeleteHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingDeleteHandler(
+            TargetRecordingDeleteHandler handler);
 
     @Binds
     @IntoSet

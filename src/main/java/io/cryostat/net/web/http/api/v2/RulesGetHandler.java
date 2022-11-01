@@ -105,10 +105,10 @@ class RulesGetHandler extends AbstractV2RequestHandler<Set<Rule>> {
         return List.of(HttpMimeType.JSON);
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<Set<Rule>> handle(RequestParameters params) throws ApiException {

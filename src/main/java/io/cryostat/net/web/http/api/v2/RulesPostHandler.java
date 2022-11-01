@@ -136,10 +136,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         return true;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {

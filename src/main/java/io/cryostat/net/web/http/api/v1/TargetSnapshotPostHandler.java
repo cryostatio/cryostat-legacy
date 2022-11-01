@@ -54,8 +54,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import io.vertx.core.http.HttpMethod;
@@ -66,7 +66,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingTargetHelper recordingTargetHelper;
-	private final DiscoveryStorage discoveryStorage;
+    private final DiscoveryStorage discoveryStorage;
 
     @Inject
     TargetSnapshotPostHandler(
@@ -113,8 +113,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
-        return
-            discoveryStorage.lookupServiceByTargetId(cd.getTargetId()).map(SecurityContext::new).orElse(null);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(SecurityContext::new)
+                .orElse(null);
     }
 
     @Override

@@ -48,6 +48,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -87,10 +88,10 @@ class TargetCredentialsPostBodyHandler extends AbstractAuthenticatedRequestHandl
         return basePath() + TargetCredentialsPostHandler.PATH;
     }
 
-	@Override
-	public SecurityContext securityContext(RoutingContext ctx) {
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {

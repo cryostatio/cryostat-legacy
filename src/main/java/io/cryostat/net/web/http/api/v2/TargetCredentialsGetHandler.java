@@ -106,10 +106,10 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
         return false;
     }
 
-	@Override
-	public SecurityContext securityContext(RequestParameters params) {
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
-	}
+    }
 
     @Override
     public IntermediateResponse<List<ServiceRef>> handle(RequestParameters requestParams)
