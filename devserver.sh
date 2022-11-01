@@ -39,9 +39,9 @@ if  [ "$CRYOSTAT_AUTH_MANAGER" = "io.cryostat.net.BasicAuthManager" ]; then
 fi
 
 if [ -z "$CRYOSTAT_CORS_ORIGIN" ]; then
-    "${MVN}" -DskipTests=true clean prepare-package
+    "${MVN}" -DskipTests=true -DskipBaseImage=true -Djib.skip=true clean prepare-package
 else
-    "${MVN}" -DskipTests=true -Dheadless=true clean prepare-package
+    "${MVN}" -DskipTests=true -DskipBaseImage=true -Djib.skip=true -Dheadless=true clean prepare-package
 fi
 
 # HACK. The vertx-maven-plugin doesn't include target/assets on the classpath, so copy its contents into target/classes which is included
@@ -112,5 +112,6 @@ MAVEN_OPTS="${flags}" \
     CRYOSTAT_CONFIG_PATH="${work_dir}/conf" \
     CRYOSTAT_TEMPLATE_PATH="${work_dir}/templates" \
     CRYOSTAT_PROBE_TEMPLATE_PATH="${work_dir}/probes" \
+    CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=devserver \
     CRYOSTAT_DEV_MODE=true \
-    "${MVN}" -Dheadless=true -DskipTests=true vertx:run
+    "${MVN}" -Dheadless=true -DskipBaseImage=true -Djib.skip=true -DskipTests=true vertx:run
