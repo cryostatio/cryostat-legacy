@@ -1069,6 +1069,10 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class SecurityContext {
+        private static final String KEY_NS = "NS";
+        private static final String KEY_SRC = "SRC";
+        private static final String KEY_JVMID = "JVMID";
+
         public static final SecurityContext DEFAULT =
                 new SecurityContext(Map.of("__SC__", "default")) {
                     @Override
@@ -1091,28 +1095,22 @@ public class RecordingMetadataManager extends AbstractVerticle
             this.ctx = new HashMap<>();
             // FIXME this should be platform-specific
             if (serviceRef.getCryostatAnnotations().containsKey(AnnotationKey.NAMESPACE)) {
-                ctx.put(
-                        "SECURITY_NS",
-                        serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
+                ctx.put(KEY_NS, serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
             }
-            ctx.put("SECURITY_SRC", serviceRef.getServiceUri().toString());
-            ctx.put("SECURITY_JVMID", serviceRef.getJvmId());
-        }
-
-        public boolean hasNamespace() {
-            return ctx.containsKey("SECURITY_NS");
+            ctx.put(KEY_SRC, serviceRef.getServiceUri().toString());
+            ctx.put(KEY_JVMID, serviceRef.getJvmId());
         }
 
         public String getNamespace() {
-            return ctx.get("SECURITY_NS");
+            return ctx.get(KEY_NS);
         }
 
         public URI getSource() {
-            return URI.create(ctx.get("SECURITY_SRC"));
+            return URI.create(ctx.get(KEY_SRC));
         }
 
         public String getJvmId() {
-            return ctx.get("SECURITY_JVMID");
+            return ctx.get(KEY_JVMID);
         }
 
         @Override

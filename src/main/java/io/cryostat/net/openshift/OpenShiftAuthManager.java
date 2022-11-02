@@ -209,12 +209,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
-        logger.info("Validating {} can [{}] with {} ...", token, resourceActions, securityContext);
-        if (!securityContext.hasNamespace()) {
-            // FIXME
-            return CompletableFuture.completedFuture(
-                    SecurityContext.DEFAULT.equals(securityContext));
+        String ns;
+        if (SecurityContext.DEFAULT.equals(securityContext)) {
+            ns = namespace.get();
+        } else {
+            ns = securityContext.getNamespace();
         }
+        logger.info("Validating {} can {} with {} in {} ...", token, resourceActions, securityContext, ns);
         OpenShiftClient client = userClients.get(token);
         try {
             List<CompletableFuture<Void>> results =
@@ -223,7 +224,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     resourceAction ->
                                             validateAction(
                                                     client,
-                                                    securityContext.getNamespace(),
+                                                    ns,
                                                     resourceAction))
                             .collect(Collectors.toList());
 
@@ -305,11 +306,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
-        String ns = namespace.get(); // FIXME this needs to be retrieved from the API request
-        // context if it's for a resource like a recording,
-        // report, or target. Otherwise we use this (our
-        // deployment namespace) for Cryostat configuration
-        // requests.
+        String ns = namespace.get();
 
         OpenShiftClient client = userClients.get(token);
         try {
