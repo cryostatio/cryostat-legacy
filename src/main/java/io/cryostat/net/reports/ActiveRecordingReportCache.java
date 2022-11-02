@@ -181,7 +181,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             }
         } finally {
             if (saveFile != null) {
-                System.out.println(saveFile);
                 fs.deleteIfExists(saveFile);
             }
         }
