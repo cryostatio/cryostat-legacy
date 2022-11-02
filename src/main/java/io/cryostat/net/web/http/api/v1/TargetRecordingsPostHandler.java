@@ -40,7 +40,9 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -213,12 +215,13 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
-                                Metadata metadata = new Metadata();
+                                Map<String, String> metadataLabels = new HashMap<>();
                                 if (attrs.contains("metadata")) {
-                                    metadata =
+                                    Metadata metadata =
                                             gson.fromJson(
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
+                                    metadataLabels.putAll(metadata.getLabels());
                                 }
                                 boolean archiveOnStop = false;
                                 if (attrs.contains("archiveOnStop")) {
@@ -240,7 +243,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 builder.build(),
                                                 template.getLeft(),
                                                 template.getRight(),
-                                                metadata,
+                                                metadataLabels,
                                                 archiveOnStop);
 
                                 try {

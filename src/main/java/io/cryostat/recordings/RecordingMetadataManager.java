@@ -327,7 +327,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                 setRecordingMetadata(
                                                         new ConnectionDescriptor(newTargetId),
                                                         recordingName,
-                                                        new Metadata(srm.getLabels()));
+                                                        srm.getLabels());
                                             } else {
                                                 logger.warn(
                                                         "Found metadata for lost"
@@ -501,7 +501,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 "Found active recording corresponding to recording metadata: {}",
                                 recordingName);
                         try {
-                            setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
+                            setRecordingMetadata(cd, recordingName, srm.getLabels());
                         } catch (IOException e) {
                             logger.error(
                                     "Could not set metadata for recording: {}, msg: {}",
@@ -531,12 +531,14 @@ public class RecordingMetadataManager extends AbstractVerticle
                         .map(SecurityContext::new)
                         .orElse(SecurityContext.DEFAULT);
 
+        Metadata contextualMetadata = new Metadata(securityContext, metadata.getLabels());
+
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
                 metadataPath,
                 gson.toJson(
                         StoredRecordingMetadata.of(
-                                connectUrl, jvmId, recordingName, metadata, securityContext)),
+                                connectUrl, jvmId, recordingName, contextualMetadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -562,12 +564,12 @@ public class RecordingMetadataManager extends AbstractVerticle
     public Future<Metadata> setRecordingMetadata(
             ConnectionDescriptor connectionDescriptor,
             String recordingName,
-            Metadata metadata,
+            Map<String, String> labels,
             boolean issueNotification)
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(labels);
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
 
         SecurityContext securityContext =
@@ -575,6 +577,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                         .lookupServiceByTargetId(connectionDescriptor.getTargetId())
                         .map(SecurityContext::new)
                         .orElse(SecurityContext.DEFAULT);
+
+        Metadata contextualMetadata = new Metadata(securityContext, labels);
 
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
@@ -584,8 +588,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 connectionDescriptor.getTargetId(),
                                 jvmId,
                                 recordingName,
-                                metadata,
-                                securityContext)),
+                                contextualMetadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -602,29 +605,30 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     "target",
                                     connectionDescriptor.getTargetId(),
                                     "metadata",
-                                    metadata))
+                                    contextualMetadata))
                     .build()
                     .send();
         }
 
-        return CompletableFuture.completedFuture(metadata);
+        return CompletableFuture.completedFuture(contextualMetadata);
     }
 
     public Future<Metadata> setRecordingMetadata(
-            ConnectionDescriptor connectionDescriptor, String recordingName, Metadata metadata)
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            Map<String, String> labels)
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
-        return setRecordingMetadata(connectionDescriptor, recordingName, metadata, false);
+        Objects.requireNonNull(labels);
+        return setRecordingMetadata(connectionDescriptor, recordingName, labels, false);
     }
 
-    public Future<Metadata> setRecordingMetadata(String recordingName, Metadata metadata)
+    public Future<Metadata> setRecordingMetadata(String recordingName, Map<String, String> labels)
             throws IOException {
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
-        return this.setRecordingMetadata(
-                new ConnectionDescriptor(UPLOADS), recordingName, metadata);
+        Objects.requireNonNull(labels);
+        return this.setRecordingMetadata(new ConnectionDescriptor(UPLOADS), recordingName, labels);
     }
 
     public Metadata getMetadata(ConnectionDescriptor connectionDescriptor, String recordingName)
@@ -643,7 +647,6 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            metadata = new Metadata();
 
             SecurityContext securityContext =
                     discoveryStorage
@@ -651,7 +654,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             .map(SecurityContext::new)
                             .orElse(SecurityContext.DEFAULT);
 
-            metadata.setSecurityContext(securityContext);
+            metadata = new Metadata(securityContext, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
         } else {
             metadata = gson.fromJson(fs.readFile(metadataPath), Metadata.class);
@@ -666,7 +669,9 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            Metadata metadata = new Metadata();
+            Metadata metadata = new Metadata(); // FIXME this needs to have a security context -
+            // should do a reverse lookup of the jvmId to get
+            // its ServiceRef and build the context from that
             fs.writeString(metadataPath, gson.toJson(metadata));
             return metadata;
         }
@@ -705,7 +710,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(filename);
         Metadata metadata = this.getMetadata(connectionDescriptor, recordingName);
-        return this.setRecordingMetadata(connectionDescriptor, filename, metadata);
+        return this.setRecordingMetadata(connectionDescriptor, filename, metadata.getLabels());
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
@@ -775,8 +780,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     fs.readFile(oldMetadataPath), StoredRecordingMetadata.class);
                     String recordingName = srm.recordingName;
                     StoredRecordingMetadata updatedSrm =
-                            StoredRecordingMetadata.of(
-                                    targetId, newJvmId, recordingName, srm, srm.securityContext);
+                            StoredRecordingMetadata.of(targetId, newJvmId, recordingName, srm);
                     Path newLocation = getMetadataPath(newJvmId, recordingName);
                     fs.writeString(newLocation, gson.toJson(updatedSrm));
 
@@ -946,27 +950,16 @@ public class RecordingMetadataManager extends AbstractVerticle
         private final String recordingName;
         private final String targetId;
 
-        StoredRecordingMetadata(
-                String targetId,
-                String jvmId,
-                String recordingName,
-                Map<String, String> labels,
-                SecurityContext securityContext) {
-            super(labels);
-            this.securityContext = securityContext;
+        StoredRecordingMetadata(String targetId, String jvmId, String recordingName, Metadata o) {
+            super(o);
             this.targetId = targetId;
             this.jvmId = jvmId;
             this.recordingName = recordingName;
         }
 
         static StoredRecordingMetadata of(
-                String targetId,
-                String jvmId,
-                String recordingName,
-                Metadata metadata,
-                SecurityContext securityContext) {
-            return new StoredRecordingMetadata(
-                    targetId, jvmId, recordingName, metadata.getLabels(), securityContext);
+                String targetId, String jvmId, String recordingName, Metadata metadata) {
+            return new StoredRecordingMetadata(targetId, jvmId, recordingName, metadata);
         }
 
         String getTargetId() {
@@ -1014,10 +1007,10 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
-        // FIXME SecurityContext should be immutable
-        protected SecurityContext securityContext;
+        protected final SecurityContext securityContext;
         protected final Map<String, String> labels;
 
+        @Deprecated
         public Metadata() {
             this.securityContext = SecurityContext.DEFAULT;
             this.labels = new ConcurrentHashMap<>();
@@ -1028,14 +1021,9 @@ public class RecordingMetadataManager extends AbstractVerticle
             this.labels = new ConcurrentHashMap<>(o.labels);
         }
 
-        // FIXME add securityContext
-        public Metadata(Map<String, String> labels) {
-            this.securityContext = SecurityContext.DEFAULT;
+        public Metadata(SecurityContext securityContext, Map<String, String> labels) {
+            this.securityContext = securityContext;
             this.labels = new ConcurrentHashMap<>(labels);
-        }
-
-        void setSecurityContext(SecurityContext securityContext) {
-            this.securityContext = new SecurityContext(Objects.requireNonNull(securityContext));
         }
 
         public SecurityContext getSecurityContext() {

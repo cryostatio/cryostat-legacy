@@ -128,11 +128,8 @@ class PutArchivedRecordingMetadataMutator
         Metadata metadata =
                 metadataManager
                         .setRecordingMetadata(
-                                new ConnectionDescriptor(
-                                        uri, credentialsManager.getCredentialsByTargetId(uri)),
-                                recordingName,
-                                new Metadata(labels),
-                                true)
+                                new ConnectionDescriptor(uri,
+                                credentialsManager.getCredentialsByTargetId(uri)), recordingName, labels, true)
                         .get();
 
         WebServer ws = webServer.get();

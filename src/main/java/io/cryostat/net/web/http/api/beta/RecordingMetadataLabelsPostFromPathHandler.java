@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -142,14 +143,21 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
 
         try {
-            Metadata metadata =
-                    new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
+            Map<String, String> labels =
+                    recordingMetadataManager.parseRecordingLabels(params.getBody());
+
+            Metadata oldMetadata =
+                    recordingMetadataManager.getMetadataFromPathIfExists(
+                            subdirectoryName, recordingName);
+
+            Metadata updatedMetadata = new Metadata(oldMetadata.getSecurityContext(), labels);
 
             recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName).get();
 
-            Metadata updatedMetadata =
+            updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadataFromPath(subdirectoryName, recordingName, metadata)
+                            .setRecordingMetadataFromPath(
+                                    subdirectoryName, recordingName, updatedMetadata)
                             .get();
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);

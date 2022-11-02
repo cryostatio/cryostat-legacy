@@ -127,10 +127,11 @@ class BasicAuthManager extends AbstractAuthManager {
         resourceActions.forEach(
                 action ->
                         logger.trace(
-                                "user {} granted {} {}",
+                                "user '{}' granted [{} {}] in context '{}'",
                                 user,
                                 action.getVerb(),
-                                action.getResource()));
+                                action.getResource(),
+                                securityContext));
         return CompletableFuture.completedFuture(granted);
     }
 

@@ -154,7 +154,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
         try {
             Map<String, String> labels =
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
-            Metadata metadata = new Metadata(labels);
 
             ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(params);
 
@@ -164,8 +163,7 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(
-                                    connectionDescriptor, recordingName, metadata, true)
+                            .setRecordingMetadata(connectionDescriptor, recordingName, labels, true)
                             .get();
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);

@@ -207,13 +207,13 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         try {
             if (hasLabels) {
-                labels = recordingMetadataManager.parseRecordingLabels(attrs.get("labels"));
+                labels.putAll(recordingMetadataManager.parseRecordingLabels(attrs.get("labels")));
             }
         } catch (IllegalArgumentException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
             throw new HttpException(400, "Invalid labels");
         }
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
 
         String targetName = m.group(1);
         String recordingName = m.group(2);
@@ -249,7 +249,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     try {
                                         if (hasLabels) {
                                             recordingMetadataManager
-                                                    .setRecordingMetadata(fsName, metadata)
+                                                    .setRecordingMetadata(fsName, labels)
                                                     .get();
                                         }
 

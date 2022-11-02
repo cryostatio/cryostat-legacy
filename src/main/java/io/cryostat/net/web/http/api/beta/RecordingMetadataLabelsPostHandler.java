@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -142,8 +143,8 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
         String sourceTarget = params.getPathParams().get("sourceTarget");
 
         try {
-            Metadata metadata =
-                    new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
+            Map<String, String> labels =
+                    recordingMetadataManager.parseRecordingLabels(params.getBody());
 
             recordingArchiveHelper.getRecordingPath(recordingName).get();
 
@@ -152,7 +153,7 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
                             .setRecordingMetadata(
                                     new ConnectionDescriptor(sourceTarget),
                                     recordingName,
-                                    metadata,
+                                    labels,
                                     true)
                             .get();
 
