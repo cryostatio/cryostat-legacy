@@ -107,6 +107,11 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
+        // FIXME what to do here? all users should be allowed to make this request, but should only
+        // see recordings in the result where they have permissions to that specific target.
+        // Maybe we need to use the default context here, but within handleAuthenticated call the
+        // authManager directly to validate the token against each specific recording and its stored
+        // context, and filter out the ones that fail
         return SecurityContext.DEFAULT;
     }
 

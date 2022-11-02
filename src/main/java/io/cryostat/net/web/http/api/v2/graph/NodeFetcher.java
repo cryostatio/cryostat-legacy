@@ -49,6 +49,8 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -73,6 +75,23 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     @Override
     String name() {
         return "find";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        try {
+            AbstractNode source = getAuthenticated(environment);
+            if (source instanceof TargetNode) {
+                return new SecurityContext((TargetNode) source);
+            } else if (source instanceof EnvironmentNode) {
+                return new SecurityContext((EnvironmentNode) source);
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            // FIXME log
+            return null;
+        }
     }
 
     @Override

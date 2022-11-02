@@ -53,6 +53,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
@@ -91,6 +92,12 @@ class PutArchivedRecordingMetadataMutator
     @Override
     String name() {
         return "doPutMetadata";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        ArchivedRecordingInfo source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
     }
 
     @Override

@@ -47,6 +47,7 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -69,6 +70,11 @@ class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
     @Override
     String name() {
         return "rootNode";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

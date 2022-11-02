@@ -64,6 +64,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -108,6 +109,12 @@ class StartRecordingOnTargetMutator
     @Override
     String name() {
         return "doStartRecording";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        TargetNode node = environment.getSource();
+        return new SecurityContext(node);
     }
 
     @Override

@@ -84,7 +84,7 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
         boolean authenticated =
                 auth.validateHttpHeader(
                                 () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
-                                securityContext(ctx),
+                                securityContext(environment),
                                 resourceActions())
                         .get();
         if (!authenticated) {
@@ -94,6 +94,8 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     }
 
     abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
+
+    abstract SecurityContext securityContext(DataFetchingEnvironment environment);
 
     // FIXME targetId should not be supplied, this method should either figure it out from context,
     // or the X-JMX-Authorization header should actually have a value that encodes a map from
@@ -162,10 +164,5 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
         credentialsManager.setSessionCredentials(targetId, credentials);
         ctx.addEndHandler(unused -> credentialsManager.setSessionCredentials(targetId, null));
         return Optional.of(credentials);
-    }
-
-    // FIXME this should be abstract and implemented by each concrete subclass
-    SecurityContext securityContext(RoutingContext ctx) {
-        return SecurityContext.DEFAULT;
     }
 }

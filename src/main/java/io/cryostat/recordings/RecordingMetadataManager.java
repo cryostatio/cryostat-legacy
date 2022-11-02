@@ -75,6 +75,9 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
@@ -1093,12 +1096,25 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         public SecurityContext(ServiceRef serviceRef) {
             this.ctx = new HashMap<>();
-            // FIXME this should be platform-specific
             if (serviceRef.getCryostatAnnotations().containsKey(AnnotationKey.NAMESPACE)) {
                 ctx.put(KEY_NS, serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
             }
             ctx.put(KEY_SRC, serviceRef.getServiceUri().toString());
             ctx.put(KEY_JVMID, serviceRef.getJvmId());
+        }
+
+        public SecurityContext(TargetNode node) {
+            this(node.getTarget());
+        }
+
+        public SecurityContext(EnvironmentNode node) {
+            // FIXME this should be more platform-agnostic
+            if (KubernetesNodeType.NAMESPACE.getKind().equals(node.getNodeType().getKind())) {
+                this.ctx = new HashMap<>();
+                ctx.put(KEY_NS, node.getName());
+            } else {
+                this.ctx = new HashMap<>(DEFAULT.ctx);
+            }
         }
 
         public String getNamespace() {

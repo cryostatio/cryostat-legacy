@@ -55,6 +55,7 @@ import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Aggregate
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -83,6 +84,16 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
     @Override
     String name() {
         return "archivedRecordings";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        // FIXME what to do here? all users should be allowed to make this request, but should only
+        // see recordings in the result where they have permissions to that specific recording and
+        // its source target. Maybe we need to use the default context here, but within
+        // getAuthenticated call the authManager directly to validate the token against each
+        // specific recording and its stored context, and filter out the ones that fail
+        return SecurityContext.DEFAULT;
     }
 
     @Override

@@ -49,6 +49,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -67,6 +68,12 @@ class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<Lis
     @Override
     String name() {
         return "children";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        EnvironmentNode source = environment.getSource();
+        return new SecurityContext(source);
     }
 
     @Override

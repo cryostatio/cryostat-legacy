@@ -53,6 +53,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
@@ -81,6 +82,22 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
     @Override
     String name() {
         return "targetNodes";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        try {
+            // all nodes here came from the same parent and must be in the same namespace, so all
+            // have
+            // the same security context
+            List<TargetNode> nodes = getAuthenticated(environment);
+            if (nodes.isEmpty()) {
+                return SecurityContext.DEFAULT;
+            }
+            return new SecurityContext(nodes.get(0).getTarget());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override

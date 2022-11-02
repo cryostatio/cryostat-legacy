@@ -65,6 +65,7 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -103,6 +104,12 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Override
     String name() {
         return "recordings";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        TargetNode source = (TargetNode) environment.getSource();
+        return new SecurityContext(source);
     }
 
     @Override

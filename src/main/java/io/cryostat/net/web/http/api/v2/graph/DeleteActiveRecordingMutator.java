@@ -48,6 +48,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -74,6 +75,12 @@ class DeleteActiveRecordingMutator
     @Override
     String name() {
         return "doDelete";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        GraphRecordingDescriptor source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
     }
 
     @Override

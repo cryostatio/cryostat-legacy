@@ -58,6 +58,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
@@ -98,6 +99,12 @@ class PutActiveRecordingMetadataMutator
     @Override
     String name() {
         return "doPutMetadata";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        GraphRecordingDescriptor source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
     }
 
     @Override

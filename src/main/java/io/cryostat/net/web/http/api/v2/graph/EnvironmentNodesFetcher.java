@@ -54,6 +54,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -78,6 +79,11 @@ class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<Envir
     @Override
     String name() {
         return "environmentNodes";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

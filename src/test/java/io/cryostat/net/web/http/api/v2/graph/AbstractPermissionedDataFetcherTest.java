@@ -46,6 +46,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
@@ -86,7 +87,7 @@ class AbstractPermissionedDataFetcherTest {
     void shouldThrowAuthorizationError() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
 
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         AuthorizationErrorException ex =
@@ -117,6 +118,11 @@ class AbstractPermissionedDataFetcherTest {
         @Override
         String name() {
             return null;
+        }
+
+        @Override
+        SecurityContext securityContext(DataFetchingEnvironment environment) {
+            return SecurityContext.DEFAULT;
         }
     }
 }

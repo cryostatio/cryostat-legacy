@@ -52,6 +52,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -77,6 +78,13 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
     @Override
     String name() {
         return "archived";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        // default context because if we've gotten here we already passed a check for the source
+        // target's context, and we don't have a handle to the target itself from here
+        return SecurityContext.DEFAULT;
     }
 
     @Override
