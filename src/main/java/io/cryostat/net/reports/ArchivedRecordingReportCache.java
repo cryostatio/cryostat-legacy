@@ -124,7 +124,7 @@ class ArchivedRecordingReportCache {
                             .get();
             if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
-                logger.trace("Archived report cache miss for {}", recordingName);
+                logger.trace("Archived report cache hit for {}", recordingName);
                 return f;
             }
             logger.trace("Archived report cache miss for {}", recordingName);
