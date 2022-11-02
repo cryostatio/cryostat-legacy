@@ -61,19 +61,10 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
->>>>>>> eaeaa8d3 (fixup! use security context information passed back by web-client)
-=======
-
-import com.google.gson.Gson;
-import dagger.Lazy;
->>>>>>> fc5dcd04 (apply spotless)
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
