@@ -458,12 +458,6 @@ class AbstractV2RequestHandlerTest {
         public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<String>().body("OK");
         }
-
-        @Override
-        public boolean rawJson() {
-            // TODO Auto-generated method stub
-            return false;
-        }
     }
 
     static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {
@@ -538,12 +532,6 @@ class AbstractV2RequestHandlerTest {
         public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<Path>().body(Path.of("/my/file.html"));
         }
-
-        @Override
-        public boolean rawJson() {
-            // TODO Auto-generated method stub
-            return false;
-        }
     }
 
     static class RawResponseHandler extends AbstractV2RequestHandler<String> {
@@ -584,12 +572,6 @@ class AbstractV2RequestHandlerTest {
         @Override
         public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<String>().body("<xml></xml>");
-        }
-
-        @Override
-        public boolean rawJson() {
-            // TODO Auto-generated method stub
-            return false;
         }
     }
 }

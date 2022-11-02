@@ -121,12 +121,7 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
 
     @Override
     public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
-    }
-
-    @Override
-    public boolean rawJson() {
-        return true;
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON_RAW);
     }
 
     @Override

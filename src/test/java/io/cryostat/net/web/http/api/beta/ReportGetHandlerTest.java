@@ -126,15 +126,10 @@ class ReportGetHandlerTest {
         }
 
         @Test
-        void shouldProduceHtmlAndJson() {
+        void shouldProduceHtmlAndRawJson() {
             MatcherAssert.assertThat(
                     handler.produces(),
-                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON));
-        }
-
-        @Test
-        void shouldBeRawJson() {
-            Assertions.assertTrue(handler.rawJson());
+                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON_RAW));
         }
 
         @Test
