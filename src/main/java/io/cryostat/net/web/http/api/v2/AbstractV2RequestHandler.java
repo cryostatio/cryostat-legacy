@@ -59,6 +59,7 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
@@ -102,22 +103,13 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler<Requ
             if (requiresAuthentication()) {
                 boolean permissionGranted =
                         validateRequestAuthorization(
-                                        requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                                        requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
+                                        securityContext(requestParams))
                                 .get();
                 if (!permissionGranted) {
                     // expected to go into catch clause below
                     throw new ApiException(401, "HTTP Authorization Failure");
                 }
-            }
-            boolean securityContextPassed =
-                    auth.validateSecurityContext(
-                                    () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
-                                    securityContext(requestParams),
-                                    resourceActions())
-                            .get();
-            if (!securityContextPassed) {
-                throw new ApiException(
-                        403, "User does not have permission for the required security context");
             }
             writeResponse(ctx, handle(requestParams));
         } catch (ApiException | HttpException e) {
@@ -133,8 +125,9 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler<Requ
         }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(String authHeader) throws Exception {
-        return auth.validateHttpHeader(() -> authHeader, resourceActions());
+    protected Future<Boolean> validateRequestAuthorization(String authHeader, SecurityContext sc)
+            throws Exception {
+        return auth.validateHttpHeader(() -> authHeader, sc, resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {

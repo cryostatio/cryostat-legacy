@@ -159,7 +159,8 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
 
         try {
             String subject = parsed.getJWTClaimsSet().getSubject();
-            if (!auth.validateHttpHeader(() -> subject, resourceActions()).get()) {
+            if (!auth.validateHttpHeader(() -> subject, securityContext(ctx), resourceActions())
+                    .get()) {
                 throw new ApiException(401, "Token subject has insufficient permissions");
             }
         } catch (ExecutionException | InterruptedException e) {

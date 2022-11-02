@@ -84,19 +84,6 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateSecurityContext(
-            Supplier<String> headerProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        logger.info(
-                "Validating {} can [{}] with {} ...",
-                headerProvider.get(),
-                resourceActions,
-                securityContext);
-        return CompletableFuture.completedFuture(securityContext != null);
-    }
-
-    @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         if (!configLoaded) {
             this.loadConfig();
@@ -121,7 +108,9 @@ class BasicAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         if (!configLoaded) {
             this.loadConfig();
         }
@@ -147,17 +136,21 @@ class BasicAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String decoded = getCredentialsFromHeader(headerProvider.get());
         if (decoded == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return validateToken(() -> decoded, resourceActions);
+        return validateToken(() -> decoded, securityContext, resourceActions);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -173,7 +166,7 @@ class BasicAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
+            return validateToken(() -> decoded, securityContext, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }

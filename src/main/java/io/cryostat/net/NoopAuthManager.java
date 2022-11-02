@@ -59,14 +59,6 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateSecurityContext(
-            Supplier<String> headerProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         return CompletableFuture.completedFuture(new UserInfo(""));
     }
@@ -79,19 +71,25 @@ public class NoopAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 

@@ -194,57 +194,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateSecurityContext(
-            Supplier<String> headerProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        String token = getTokenFromHttpHeader(headerProvider.get());
-        if (StringUtils.isBlank(token)) {
-            return CompletableFuture.completedFuture(false);
-        }
-        if (securityContext == null) {
-            return CompletableFuture.completedFuture(false);
-        }
-        if (resourceActions.isEmpty()) {
-            return reviewToken(token);
-        }
-
-        String ns;
-        if (SecurityContext.DEFAULT.equals(securityContext)) {
-            ns = namespace.get();
-        } else {
-            ns = securityContext.getNamespace();
-        }
-        logger.info("Validating {} can {} with {} in {} ...", token, resourceActions, securityContext, ns);
-        OpenShiftClient client = userClients.get(token);
-        try {
-            List<CompletableFuture<Void>> results =
-                    resourceActions.stream()
-                            .flatMap(
-                                    resourceAction ->
-                                            validateAction(
-                                                    client,
-                                                    ns,
-                                                    resourceAction))
-                            .collect(Collectors.toList());
-
-            CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
-                    .get(15, TimeUnit.SECONDS);
-            // if we get here then all requests were successful and granted, otherwise an exception
-            // was thrown on allOf().get() above
-            return CompletableFuture.completedFuture(true);
-        } catch (KubernetesClientException | ExecutionException e) {
-            userClients.invalidate(token);
-            logger.info(e);
-            return CompletableFuture.failedFuture(e);
-        } catch (Exception e) {
-            userClients.invalidate(token);
-            logger.error(e);
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
@@ -268,7 +217,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             throws ExecutionException, InterruptedException {
         Boolean hasValidHeader = false;
         try {
-            hasValidHeader = this.validateHttpHeader(headerProvider, resourceActions).get();
+            hasValidHeader =
+                    this.validateHttpHeader(
+                                    headerProvider, SecurityContext.DEFAULT, resourceActions)
+                            .get();
 
             if (Boolean.TRUE.equals(hasValidHeader)) {
                 return Optional.empty();
@@ -297,16 +249,35 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (securityContext == null) {
             return CompletableFuture.completedFuture(false);
         }
         if (resourceActions.isEmpty()) {
             return reviewToken(token);
         }
 
-        String ns = namespace.get();
+        String ns;
+        if (SecurityContext.DEFAULT.equals(securityContext)) {
+            // FIXME should this be the deployment namespace or just no namespace? Should those be
+            // two separate contexts?
+            ns = namespace.get();
+        } else {
+            ns = securityContext.getNamespace();
+        }
+        // FIXME remove
+        logger.info(
+                "Validating {} can {} with {} in {} ...",
+                token,
+                resourceActions,
+                securityContext,
+                ns);
 
         OpenShiftClient client = userClients.get(token);
         try {
@@ -336,6 +307,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             TokenReviewStatus status = fStatus.get();
             Boolean authenticated = status.getAuthenticated();
+            // FIXME return information about the reason for the failure so that we can tell the
+            // client that they did not present valid credentials, or their credentials don't grant
+            // permissions for the requested action (401 vs 403 status)
             return CompletableFuture.completedFuture(authenticated != null && authenticated);
         } catch (ExecutionException ee) {
             return CompletableFuture.failedFuture(ee.getCause());
@@ -406,18 +380,22 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
         String token = getTokenFromHttpHeader(authorization);
         if (token == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return validateToken(() -> token, resourceActions);
+        return validateToken(() -> token, securityContext, resourceActions);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -434,7 +412,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
+            return validateToken(() -> decoded, securityContext, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }

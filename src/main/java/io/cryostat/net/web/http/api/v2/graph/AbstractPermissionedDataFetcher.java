@@ -50,6 +50,7 @@ import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
@@ -83,9 +84,9 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
         boolean authenticated =
                 auth.validateHttpHeader(
                                 () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                securityContext(ctx),
                                 resourceActions())
                         .get();
-        // FIXME add auth.validateSecurityContext check
         if (!authenticated) {
             throw new AuthorizationErrorException("Unauthorized");
         }
@@ -161,5 +162,10 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
         credentialsManager.setSessionCredentials(targetId, credentials);
         ctx.addEndHandler(unused -> credentialsManager.setSessionCredentials(targetId, null));
         return Optional.of(credentials);
+    }
+
+    // FIXME this should be abstract and implemented by each concrete subclass
+    SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 }

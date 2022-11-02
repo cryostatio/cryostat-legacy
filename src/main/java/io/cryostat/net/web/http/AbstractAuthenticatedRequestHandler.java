@@ -61,6 +61,7 @@ import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
@@ -93,19 +94,11 @@ public abstract class AbstractAuthenticatedRequestHandler
     @Override
     public void handle(RoutingContext ctx) {
         try {
-            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
+            boolean permissionGranted =
+                    validateRequestAuthorization(ctx.request(), securityContext(ctx)).get();
             if (!permissionGranted) {
                 // expected to go into catch clause below
                 throw new HttpException(401, "HTTP Authorization Failure");
-            }
-            boolean securityContextPassed =
-                    auth.validateSecurityContext(
-                                    () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
-                                    securityContext(ctx),
-                                    resourceActions())
-                            .get();
-            if (!securityContextPassed) {
-                throw new HttpException(403);
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
@@ -123,9 +116,10 @@ public abstract class AbstractAuthenticatedRequestHandler
         }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
+    protected Future<Boolean> validateRequestAuthorization(
+            HttpServerRequest req, SecurityContext sc) throws Exception {
         return auth.validateHttpHeader(
-                () -> req.getHeader(HttpHeaders.AUTHORIZATION), resourceActions());
+                () -> req.getHeader(HttpHeaders.AUTHORIZATION), sc, resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {

@@ -101,7 +101,6 @@ class GraphQLPostHandler implements RequestHandler<RoutingContext> {
 
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
-        // FIXME we need to find the right context for the nested queries
         return SecurityContext.DEFAULT;
     }
 
@@ -110,6 +109,9 @@ class GraphQLPostHandler implements RequestHandler<RoutingContext> {
         try {
             if (!auth.validateHttpHeader(
                             () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                            // default context here, but each nested query/mutation will perform its
+                            // own context check as we descend the tree
+                            SecurityContext.DEFAULT,
                             resourceActions())
                     .get()) {
                 throw new ApiException(401);

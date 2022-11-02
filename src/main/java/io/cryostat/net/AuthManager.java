@@ -60,19 +60,20 @@ public interface AuthManager {
     Optional<String> logout(Supplier<String> httpHeaderProvider)
             throws ExecutionException, InterruptedException, IOException, TokenNotFoundException;
 
-    Future<Boolean> validateSecurityContext(
+    Future<Boolean> validateToken(
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
+
+    Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider,
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions);
 
-    Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
-
-    Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
-
     Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
