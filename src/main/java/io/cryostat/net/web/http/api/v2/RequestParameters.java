@@ -94,7 +94,6 @@ public class RequestParameters {
     public static RequestParameters from(RoutingContext ctx) {
         Objects.requireNonNull(ctx, "ctx");
 
-        // TODO: What if null and endpoint requires specific content-type during handle?
         String acceptableContentType = ctx.getAcceptableContentType();
 
         InetAddress addr = null;
