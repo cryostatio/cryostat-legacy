@@ -131,10 +131,14 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
+        String contentType =
+                (ctx.getAcceptableContentType() == null)
+                        ? HttpMimeType.HTML.mime()
+                        : ctx.getAcceptableContentType();
+        boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
         try {
             ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType())
+                    .putHeader(HttpHeaders.CONTENT_TYPE, contentType)
                     .putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline")
                     .end(
                             reportService

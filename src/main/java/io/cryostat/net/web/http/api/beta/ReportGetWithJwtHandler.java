@@ -141,13 +141,17 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
             List<String> queriedFilter = ctx.queryParam("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-            boolean formatted = ctx.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
+            String contentType =
+                    (ctx.getAcceptableContentType() == null)
+                            ? HttpMimeType.HTML.mime()
+                            : ctx.getAcceptableContentType();
+            boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
                             .get(sourceTarget, recordingName, rawFilter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ctx.getAcceptableContentType());
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, contentType);
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);

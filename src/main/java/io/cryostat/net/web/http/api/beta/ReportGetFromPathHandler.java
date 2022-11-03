@@ -132,7 +132,11 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
         try {
             List<String> queriedFilter = params.getQueryParams().getAll("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-            boolean formatted = params.getAcceptableContentType().equals(HttpMimeType.HTML.mime());
+            String contentType =
+                    (params.getAcceptableContentType() == null)
+                            ? HttpMimeType.HTML.mime()
+                            : params.getAcceptableContentType();
+            boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
             Path report =
                     reportService
                             .getFromPath(subdirectoryName, recordingName, rawFilter, formatted)
