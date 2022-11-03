@@ -344,12 +344,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Set<TargetNode> removed = new HashSet<>(previousLeaves);
             removed.removeAll(currentLeaves);
 
-            added.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
             removed.stream()
                     .map(TargetNode::getTarget)
                     .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+            added.stream()
+                    .map(TargetNode::getTarget)
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
         }
         return currentTree.getChildren();
     }
