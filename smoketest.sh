@@ -120,8 +120,6 @@ runDemoApps() {
         --pod cryostat-pod \
         --env QUARKUS_HTTP_PORT=10012 \
         --env JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9898 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
-        --env ORG_ACME_JMXHOST="localhost" \
-        --env ORG_ACME_JMXPORT="9898" \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
