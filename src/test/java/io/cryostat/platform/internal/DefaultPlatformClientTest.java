@@ -123,7 +123,7 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(
-                        "id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                        null, URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -136,7 +136,7 @@ class DefaultPlatformClientTest {
                         "9091"));
         ServiceRef exp2 =
                 new ServiceRef(
-                        "id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                        null, URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -176,7 +176,7 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(
-                        "id1", URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+                        null, URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
         exp1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -189,7 +189,7 @@ class DefaultPlatformClientTest {
                         "9091"));
         ServiceRef exp2 =
                 new ServiceRef(
-                        "id2", URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+                        null, URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
         exp2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
@@ -244,7 +244,7 @@ class DefaultPlatformClientTest {
 
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        ServiceRef serviceRef = new ServiceRef("id", URIUtil.convert(url), javaMain);
+        ServiceRef serviceRef = new ServiceRef(null, URIUtil.convert(url), javaMain);
         serviceRef.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
