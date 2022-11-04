@@ -45,9 +45,15 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.LoggerHandler;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 class RequestLoggingHandler implements RequestHandler {
 
@@ -85,6 +91,51 @@ class RequestLoggingHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext event) {
+        HttpServerRequest req = event.request();
+
+        WebServerRequest evt =
+                new WebServerRequest(
+                        req.remoteAddress().host(),
+                        req.remoteAddress().port(),
+                        req.method().toString(),
+                        req.path());
+        evt.begin();
+
+        req.response()
+                .endHandler(
+                        (res) -> {
+                            evt.setStatusCode(req.response().getStatusCode());
+                            evt.end();
+                            if (evt.shouldCommit()) {
+                                evt.commit();
+                            }
+                        });
+
         this.delegate.handle(event);
+    }
+
+    @Name("io.cryostat.net.web.WebServer.WebServerRequest")
+    @Label("Web Server Request")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
+    public static class WebServerRequest extends Event {
+        String host;
+        int port;
+        String method;
+        String path;
+        int statusCode;
+
+        public WebServerRequest(String host, int port, String method, String path) {
+            this.host = host;
+            this.port = port;
+            this.method = method;
+            this.path = path;
+        }
+
+        public void setStatusCode(int code) {
+            this.statusCode = code;
+        }
     }
 }

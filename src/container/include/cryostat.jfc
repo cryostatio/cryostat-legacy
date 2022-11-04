@@ -30,7 +30,7 @@
    0 ms
   </setting>
  </event>
- <event name="io.cyostat.net.web.WebServer.WebServerRequestEvent">
+ <event name="io.cyostat.net.web.WebServer.WebServerRequest">
   <setting name="enabled">
    true
   </setting>
