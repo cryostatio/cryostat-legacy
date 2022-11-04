@@ -44,8 +44,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -243,8 +241,6 @@ public class WebServer extends AbstractVerticle {
 
         this.server.requestHandler(
                 req -> {
-                    Instant start = Instant.now();
-
                     WebServerRequest evt =
                             new WebServerRequest(
                                     req.remoteAddress().host(),
@@ -256,13 +252,6 @@ public class WebServer extends AbstractVerticle {
                     req.response()
                             .endHandler(
                                     (res) -> {
-                                        logger.info(
-                                                "({}): {} {} {} {}ms",
-                                                req.remoteAddress().toString(),
-                                                req.method().toString(),
-                                                req.path(),
-                                                req.response().getStatusCode(),
-                                                Duration.between(start, Instant.now()).toMillis());
                                         evt.setStatusCode(req.response().getStatusCode());
                                         evt.end();
                                         if (evt.shouldCommit()) {

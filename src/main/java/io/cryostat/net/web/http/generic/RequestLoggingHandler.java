@@ -37,42 +37,54 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.LoggerHandler;
 
-@Module
-public abstract class HttpGenericModule {
+class RequestLoggingHandler implements RequestHandler {
 
-    static final String NON_API_PATH = "^(?!/api/).*";
+    private final LoggerHandler delegate;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRequestLoggingHandler(RequestLoggingHandler handler);
+    @Inject
+    RequestLoggingHandler() {
+        this.delegate = LoggerHandler.create();
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+    @Override
+    public int getPriority() {
+        return 0;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return null;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthLivenessGetHandler(HealthLivenessGetHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Override
+    public String path() {
+        return ALL_PATHS;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+    @Override
+    public void handle(RoutingContext event) {
+        this.delegate.handle(event);
+    }
 }

@@ -38,7 +38,9 @@
 package io.cryostat;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.Security;
+import java.util.logging.LogManager;
 
 import javax.inject.Singleton;
 
@@ -141,6 +143,10 @@ class Cryostat extends AbstractVerticle {
 
     public static void main(String[] args) throws IOException {
         final Client client = DaggerCryostat_Client.builder().build();
+        try (InputStream config = CryostatCore.class.getResourceAsStream("/logging.properties")) {
+            LogManager.getLogManager()
+                    .updateConfiguration(config, k -> ((o, n) -> o != null ? o : n));
+        }
         CryostatCore.initialize();
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
