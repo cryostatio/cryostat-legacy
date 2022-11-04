@@ -143,13 +143,13 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
         final ApiVersion apiVersion;
 
         @SerializedName("verb")
-        final HttpMethod httpMethod;
+        final String httpMethod;
 
         final String path;
 
         SerializedHandler(RequestHandler handler) {
             this.apiVersion = handler.apiVersion();
-            this.httpMethod = handler.httpMethod();
+            this.httpMethod = handler.httpMethod().name();
             this.path = URI.create(handler.path()).normalize().toString();
         }
 
