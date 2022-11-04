@@ -165,6 +165,8 @@ class RequestLoggingHandlerTest {
 
         HttpServerResponse rep = Mockito.mock(HttpServerResponse.class);
         Mockito.when(req.response()).thenReturn(rep);
+        int sc = 200 + ((int) Math.random() * 300);
+        Mockito.when(rep.getStatusCode()).thenReturn(sc);
 
         Mockito.verifyNoInteractions(delegate);
         MatcherAssert.assertThat(eventConstruction.constructed(), Matchers.empty());
@@ -188,6 +190,7 @@ class RequestLoggingHandlerTest {
                         "/some/path"
                         )));
 
+        Mockito.verify(event, Mockito.times(0)).setStatusCode(Mockito.anyInt());
         Mockito.verify(event, Mockito.times(0)).shouldCommit();
         Mockito.verify(event, Mockito.times(0)).commit();
 
@@ -200,6 +203,7 @@ class RequestLoggingHandlerTest {
 
         endHandler.handle(null);
 
+        Mockito.verify(event, Mockito.times(1)).setStatusCode(sc);
         Mockito.verify(event, Mockito.times(1)).shouldCommit();
         Mockito.verify(event, Mockito.times(enabled ? 1 : 0)).commit();
     }
