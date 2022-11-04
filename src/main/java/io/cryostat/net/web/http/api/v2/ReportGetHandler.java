@@ -57,7 +57,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -74,7 +73,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
     private final ReportService reportService;
-    private final long generationTimeoutSeconds;
+    private final long reportGenerationTimeoutSeconds;
 
     @Inject
     ReportGetHandler(
@@ -83,11 +82,12 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
-            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.reportService = reportService;
-        this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
     @Override
@@ -131,10 +131,9 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
         try {
             Path report =
                     reportService
-                            .get(recordingName, rawFilter)
-                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
+                            .get(recordingName, rawFilter, true)
+                            .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());

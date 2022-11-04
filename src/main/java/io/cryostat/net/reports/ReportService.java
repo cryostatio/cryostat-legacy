@@ -53,29 +53,26 @@ public class ReportService {
         this.archivedCache = archivedCache;
     }
 
-    public Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
-        return archivedCache.getFromPath(subdirectoryName, recordingName, filter);
+    public Future<Path> getFromPath(
+            String subdirectoryName, String recordingName, String filter, boolean formatted) {
+        return archivedCache.getFromPath(subdirectoryName, recordingName, filter, formatted);
     }
 
-    public Future<Path> get(String recordingName, String filter) {
-        return archivedCache.get(recordingName, filter);
+    public Future<Path> get(String recordingName, String filter, boolean formatted) {
+        return archivedCache.get(recordingName, filter, formatted);
     }
 
-    public Future<Path> get(String sourceTarget, String recordingName, String filter) {
-        return archivedCache.get(sourceTarget, recordingName, filter);
-    }
-
-    public boolean delete(String recordingName) {
-        return archivedCache.delete(recordingName);
-    }
-
-    public boolean delete(String sourceTarget, String recordingName) {
-        return archivedCache.delete(sourceTarget, recordingName);
+    public Future<Path> get(
+            String sourceTarget, String recordingName, String filter, boolean formatted) {
+        return archivedCache.get(sourceTarget, recordingName, filter, formatted);
     }
 
     public Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
-        return activeCache.get(connectionDescriptor, recordingName, filter);
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            String filter,
+            boolean formatted) {
+        return activeCache.get(connectionDescriptor, recordingName, filter, formatted);
     }
 
     public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {

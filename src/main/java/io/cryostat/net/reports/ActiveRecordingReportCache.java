@@ -93,16 +93,20 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     }
 
     Future<String> get(
-            ConnectionDescriptor connectionDescriptor, String recordingName, String filter) {
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            String filter,
+            boolean formatted) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            if (filter.isBlank()) {
+            if (filter.isBlank() && formatted) {
                 f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
             } else {
                 f.complete(
                         getReport(
                                 new RecordingDescriptor(connectionDescriptor, recordingName),
-                                filter));
+                                filter,
+                                formatted));
             }
 
         } catch (Exception e) {
@@ -124,20 +128,21 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
     }
 
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
-        return getReport(recordingDescriptor, "");
+        return getReport(recordingDescriptor, "", true);
     }
 
-    protected String getReport(RecordingDescriptor recordingDescriptor, String filter)
+    protected String getReport(
+            RecordingDescriptor recordingDescriptor, String filter, boolean formatted)
             throws Exception {
         Path saveFile = null;
         try {
-            /* NOTE: Not always a cache miss since if a filter is specified, we do not even check the cache */
+            /* NOTE: Not always a cache miss since if a filter is specified or we want a JSON response, we do not even check the cache */
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         reportGeneratorServiceProvider
                                 .get()
-                                .exec(recordingDescriptor, filter)
+                                .exec(recordingDescriptor, filter, formatted)
                                 .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {

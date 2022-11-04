@@ -45,8 +45,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.openjdk.jmc.common.util.Pair;
-
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 
@@ -57,6 +55,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import itest.bases.StandardSelfTest;
 import itest.util.Utils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class JvmIdWebRequest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
@@ -88,7 +87,7 @@ public class JvmIdWebRequest {
                     "Basic "
                             + Base64.getUrlEncoder()
                                     .encodeToString(
-                                            (credentials.left + ":" + credentials.right)
+                                            (credentials.getLeft() + ":" + credentials.getRight())
                                                     .getBytes()));
         }
         buffer.sendJson(

@@ -41,7 +41,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -125,9 +124,10 @@ class ReportGetFromPathHandlerTest {
         }
 
         @Test
-        void shouldProduceHtml() {
+        void shouldProduceHtmlAndRawJson() {
             MatcherAssert.assertThat(
-                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.HTML)));
+                    handler.produces(),
+                    Matchers.containsInAnyOrder(HttpMimeType.HTML, HttpMimeType.JSON_RAW));
         }
 
         @Test
@@ -154,19 +154,23 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException(subdirectoryName, recordingName));
             when(reportService.getFromPath(
-                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(future);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
 
-            verify(reportService).getFromPath(subdirectoryName, recordingName, "");
+            verify(reportService).getFromPath(subdirectoryName, recordingName, "", true);
         }
 
         @Test
@@ -182,11 +186,15 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
             when(reportService.getFromPath(
-                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -194,7 +202,7 @@ class ReportGetFromPathHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
-            verify(reportService).getFromPath(subdirectoryName, recordingName, "");
+            verify(reportService).getFromPath(subdirectoryName, recordingName, "", true);
         }
 
         @Test
@@ -211,11 +219,15 @@ class ReportGetFromPathHandlerTest {
                                     "recordingName",
                                     recordingName));
             when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             Path fakePath = Mockito.mock(Path.class);
 
             when(reportService.getFromPath(
-                            Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
                     .thenReturn(CompletableFuture.completedFuture(fakePath));
 
             IntermediateResponse<Path> response = handler.handle(params);
@@ -223,7 +235,40 @@ class ReportGetFromPathHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
 
-            verify(reportService).getFromPath(subdirectoryName, recordingName, "someFilter");
+            verify(reportService).getFromPath(subdirectoryName, recordingName, "someFilter", true);
+        }
+
+        @Test
+        void shouldRespondBySendingFileUnformatted() throws Exception {
+            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+            queryParams.add("filter", "someFilter");
+            String recordingName = "someRecording";
+            String subdirectoryName = "subdirectoryName";
+            when(params.getPathParams())
+                    .thenReturn(
+                            Map.of(
+                                    "subdirectoryName",
+                                    subdirectoryName,
+                                    "recordingName",
+                                    recordingName));
+            when(params.getQueryParams()).thenReturn(queryParams);
+            when(params.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
+
+            Path fakePath = Mockito.mock(Path.class);
+
+            when(reportService.getFromPath(
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyString(),
+                            Mockito.anyBoolean()))
+                    .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+            IntermediateResponse<Path> response = handler.handle(params);
+
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(fakePath));
+
+            verify(reportService).getFromPath(subdirectoryName, recordingName, "someFilter", false);
         }
     }
 }

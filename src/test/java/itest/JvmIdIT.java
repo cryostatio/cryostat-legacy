@@ -45,12 +45,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.openjdk.jmc.common.util.Pair;
-
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.http.JvmIdWebRequest;
+import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -98,7 +97,7 @@ public class JvmIdIT extends ExternalTargetsTest {
     void testUniqueJvmIds() throws Exception {
         String targetId =
                 String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
-        Pair<String, String> credentials = new Pair<String, String>("admin", "adminpass123");
+        Pair<String, String> credentials = Pair.of("admin", "adminpass123");
         // send jvmIds requests for all external containers
         String one = JvmIdWebRequest.jvmIdRequest(targetId);
         String two = JvmIdWebRequest.jvmIdRequest(targetId.replace("9093", "9094"), credentials);

@@ -53,6 +53,7 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
 
@@ -80,9 +81,10 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
 
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    public CompletableFuture<Path> exec(Path recording, Path destination, String filter) {
+    public CompletableFuture<Path> exec(
+            Path recording, Path destination, String filter, boolean formatted) {
         String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
-        logger.info("POSTing {} to {}", recording, reportGenerator);
+        logger.trace("POSTing {} to {}", recording, reportGenerator);
         var form =
                 MultipartForm.create()
                         .attribute("filter", filter)
@@ -93,9 +95,10 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                                 HttpMimeType.OCTET_STREAM.mime());
 
         var f = new CompletableFuture<Path>();
-
+        String acceptHeader = formatted ? HttpMimeType.HTML.mime() : HttpMimeType.JSON.mime();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
+                .putHeader(HttpHeaders.ACCEPT.toString(), acceptHeader)
                 .timeout(TimeUnit.SECONDS.toMillis(generationTimeoutSeconds))
                 .sendMultipartForm(
                         form,

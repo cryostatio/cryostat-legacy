@@ -191,12 +191,14 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         switch (contentType) {
             case PLAINTEXT:
             case JSON:
-                ApiMeta meta = new ApiMeta(contentType, response.getStatusMessage());
-                ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
-                ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
+                if (!produces().contains(HttpMimeType.JSON_RAW)) {
+                    ApiMeta meta = new ApiMeta(contentType, response.getStatusMessage());
+                    ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
+                    ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
-                response.end(gson.toJson(body));
-                return;
+                    response.end(gson.toJson(body));
+                    return;
+                }
             default:
                 if (intermediateResponse.getBody() instanceof File) {
                     response.sendFile(((File) intermediateResponse.getBody()).getPath());

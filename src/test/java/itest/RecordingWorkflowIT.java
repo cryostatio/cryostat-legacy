@@ -230,8 +230,10 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     inMemoryEvents.size(), Matchers.greaterThan(savedEvents.size()));
 
             String reportUrl = recordingInfo.getString("reportUrl");
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());
             Path reportPath =
-                    downloadFileAbs(reportUrl, TEST_RECORDING_NAME + "_report", ".html")
+                    downloadFileAbs(reportUrl, TEST_RECORDING_NAME + "_report", ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             File reportFile = reportPath.toFile();
             MatcherAssert.assertThat(reportFile.length(), Matchers.greaterThan(0L));

@@ -43,7 +43,10 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import org.hamcrest.MatcherAssert;
@@ -67,8 +70,10 @@ public class ReportJwtDownloadIT extends JwtAssetsSelfTest {
                                     resource.getString("reportUrl")
                                             .replace("/api/v1/", "/api/v2.1/")));
             Thread.sleep(10_000L);
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());
             assetDownload =
-                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html")
+                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(Files.isReadable(assetDownload));
             Assertions.assertTrue(Files.isRegularFile(assetDownload));

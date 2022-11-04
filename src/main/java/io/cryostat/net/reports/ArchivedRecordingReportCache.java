@@ -71,18 +71,22 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Future<Path> getFromPath(String subdirectoryName, String recordingName, String filter) {
+    Future<Path> getFromPath(
+            String subdirectoryName, String recordingName, String filter, boolean formatted) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
             dest =
                     recordingArchiveHelper
-                            .getCachedReportPathFromPath(subdirectoryName, recordingName)
+                            .getCachedReportPathFromPath(
+                                    subdirectoryName, recordingName, filter, formatted)
                             .get();
-            if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
+            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
+                logger.trace("Archived report cache hit for {}", recordingName);
                 return f;
             }
+            logger.trace("Archived report cache miss for {}", recordingName);
             Path archivedRecording =
                     recordingArchiveHelper
                             .getRecordingPathFromPath(subdirectoryName, recordingName)
@@ -91,7 +95,7 @@ class ArchivedRecordingReportCache {
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, filter)
+                            .exec(archivedRecording, dest, filter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
@@ -106,30 +110,30 @@ class ArchivedRecordingReportCache {
         return f;
     }
 
-    Future<Path> get(String recordingName, String filter) {
-        return this.get(null, recordingName, filter);
+    Future<Path> get(String recordingName, String filter, boolean formatted) {
+        return this.get(null, recordingName, filter, formatted);
     }
 
-    Future<Path> get(String sourceTarget, String recordingName, String filter) {
+    Future<Path> get(String sourceTarget, String recordingName, String filter, boolean formatted) {
         CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = null;
         try {
-            dest = recordingArchiveHelper.getCachedReportPath(sourceTarget, recordingName).get();
-            /* NOTE: This is just a temporary solution: If a request includes a filter,
-             * the report is never cached and just constructed on demand.
-             */
-            if (fs.isReadable(dest) && fs.isRegularFile(dest) && filter.isBlank()) {
+            dest =
+                    recordingArchiveHelper
+                            .getCachedReportPath(sourceTarget, recordingName, filter, formatted)
+                            .get();
+            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
                 f.complete(dest);
+                logger.trace("Archived report cache hit for {}", recordingName);
                 return f;
             }
-
             logger.trace("Archived report cache miss for {}", recordingName);
             Path archivedRecording =
                     recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
             Path saveFile =
                     reportGeneratorServiceProvider
                             .get()
-                            .exec(archivedRecording, dest, filter)
+                            .exec(archivedRecording, dest, filter, formatted)
                             .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
@@ -142,13 +146,5 @@ class ArchivedRecordingReportCache {
             }
         }
         return f;
-    }
-
-    boolean delete(String recordingName) {
-        return this.delete(null, recordingName);
-    }
-
-    boolean delete(String sourceTarget, String recordingName) {
-        return recordingArchiveHelper.deleteReport(sourceTarget, recordingName);
     }
 }

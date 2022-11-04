@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
@@ -69,6 +70,7 @@ import io.cryostat.core.reports.InterruptibleReportGenerator;
 import io.cryostat.core.reports.InterruptibleReportGenerator.ReportGenerationEvent;
 import io.cryostat.core.reports.InterruptibleReportGenerator.ReportResult;
 import io.cryostat.core.reports.InterruptibleReportGenerator.ReportStats;
+import io.cryostat.core.reports.InterruptibleReportGenerator.RuleEvaluation;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -78,6 +80,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
 import com.google.gson.Gson;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
@@ -105,7 +108,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     @Override
-    public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile, String filter)
+    public synchronized CompletableFuture<Path> exec(
+            Path recording, Path saveFile, String filter, boolean formatted)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -134,7 +138,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                         Integer.parseInt(
                                                 env.getEnv(
                                                         Variables.SUBPROCESS_MAX_HEAP_ENV, "0"))))
-                        .processArgs(createProcessArgs(recording, saveFile, filter));
+                        .processArgs(createProcessArgs(recording, saveFile, filter, formatted));
         return CompletableFuture.supplyAsync(
                 () -> {
                     Process proc = null;
@@ -213,11 +217,13 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         return args;
     }
 
-    private List<String> createProcessArgs(Path recording, Path saveFile, String filter) {
+    private List<String> createProcessArgs(
+            Path recording, Path saveFile, String filter, boolean formatted) {
         return List.of(
                 recording.toAbsolutePath().toString(),
                 saveFile.toAbsolutePath().toString(),
-                filter);
+                filter,
+                String.valueOf(formatted));
     }
 
     private String serializeTransformersSet() {
@@ -283,13 +289,14 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        if (args.length != 3) {
+        if (args.length != 4) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
         var recording = Paths.get(args[0]);
         Set<ReportTransformer> transformers = Collections.emptySet();
         var saveFile = Paths.get(args[1]);
         String filter = args[2];
+        String formatted = args[3];
         try {
             transformers = deserializeTransformers(fs.readString(saveFile));
         } catch (Exception e) {
@@ -299,26 +306,38 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
-            ReportResult reportResult = generateReportFromFile(recording, transformers, filter);
-            Logger.INSTANCE.info(
-                    SubprocessReportGenerator.class.getName() + " writing report to file");
+            if (Boolean.parseBoolean(formatted)) {
+                ReportResult reportResult = generateReportFromFile(recording, transformers, filter);
+                Logger.INSTANCE.info(
+                        SubprocessReportGenerator.class.getName() + " writing report to file");
+                fs.writeString(
+                        saveFile,
+                        reportResult.getHtml(),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.DSYNC,
+                        StandardOpenOption.WRITE);
 
-            fs.writeString(
-                    saveFile,
-                    reportResult.getHtml(),
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.DSYNC,
-                    StandardOpenOption.WRITE);
+                Path reportStats = Paths.get(Variables.REPORT_STATS_PATH);
+                fs.writeString(
+                        reportStats,
+                        gson.toJson(reportResult.getReportStats()),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.DSYNC,
+                        StandardOpenOption.WRITE);
 
-            Path reportStats = Paths.get(Variables.REPORT_STATS_PATH);
-            fs.writeString(
-                    reportStats,
-                    gson.toJson(reportResult.getReportStats()),
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.DSYNC,
-                    StandardOpenOption.WRITE);
+            } else {
+                Map<String, RuleEvaluation> evalMapResult =
+                        generateEvalMapFromFile(recording, transformers, filter);
+                fs.writeString(
+                        saveFile,
+                        gson.toJson(evalMapResult),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.DSYNC,
+                        StandardOpenOption.WRITE);
+            }
 
             System.exit(ExitStatus.OK.code);
         } catch (ConnectionException e) {
@@ -335,21 +354,40 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     static ReportResult generateReportFromFile(
             Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
-        var fs = new FileSystem();
-        if (!fs.isRegularFile(recording)) {
-            throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
-        }
-        RuleFilterParser rfp = new RuleFilterParser();
-        Predicate<IRule> rulePr = rfp.parse(filter);
-        try (InputStream stream = fs.newInputStream(recording)) {
+        Pair<Predicate<IRule>, FileSystem> hPair = generateHelper(recording, filter);
+        try (InputStream stream = hPair.getRight().newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
-                    .generateReportInterruptibly(stream, rulePr)
+                    .generateReportInterruptibly(stream, hPair.getLeft())
                     .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
         }
+    }
+
+    static Map<String, RuleEvaluation> generateEvalMapFromFile(
+            Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
+        Pair<Predicate<IRule>, FileSystem> hPair = generateHelper(recording, filter);
+        try (InputStream stream = hPair.getRight().newInputStream(recording)) {
+            return new InterruptibleReportGenerator(
+                            Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
+                    .generateEvalMapInterruptibly(stream, hPair.getLeft())
+                    .get();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
+        }
+    }
+
+    static Pair<Predicate<IRule>, FileSystem> generateHelper(Path recording, String filter)
+            throws Exception {
+        var fs = new FileSystem();
+        if (!fs.isRegularFile(recording)) {
+            throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
+        }
+        RuleFilterParser rfp = new RuleFilterParser();
+        return Pair.of(rfp.parse(filter), fs);
     }
 
     public enum ExitStatus {

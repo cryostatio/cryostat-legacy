@@ -110,6 +110,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.HTML, HttpMimeType.JSON);
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
@@ -120,24 +125,25 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML);
-    }
-
-    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         List<String> queriedFilter = ctx.queryParam("filter");
         String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+        String contentType =
+                (ctx.getAcceptableContentType() == null)
+                        ? HttpMimeType.HTML.mime()
+                        : ctx.getAcceptableContentType();
+        boolean formatted = contentType.equals(HttpMimeType.HTML.mime());
         try {
             ctx.response()
+                    .putHeader(HttpHeaders.CONTENT_TYPE, contentType)
                     .end(
                             reportService
                                     .get(
                                             getConnectionDescriptorFromContext(ctx),
                                             recordingName,
-                                            rawFilter)
+                                            rawFilter,
+                                            formatted)
                                     .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 

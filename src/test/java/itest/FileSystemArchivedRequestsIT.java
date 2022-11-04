@@ -179,11 +179,12 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                                     .get());
 
             // get recording report fromPath
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.add(HttpHeaders.ACCEPT, HttpMimeType.HTML.mime());
             URL reportUrl = new URL(updatedArchivedRecording.getString("reportUrl"));
             String downloadUrl = getTokenDownloadUrl(new URL(reportUrl.toString()));
-            ;
             assetDownload =
-                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html")
+                    downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(Files.isReadable(assetDownload));
             Assertions.assertTrue(Files.isRegularFile(assetDownload));

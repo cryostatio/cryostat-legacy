@@ -46,11 +46,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.openjdk.jmc.common.util.Pair;
-
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
@@ -61,6 +60,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import itest.util.Podman;
 import itest.util.Utils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 public abstract class StandardSelfTest {
@@ -69,7 +69,7 @@ public abstract class StandardSelfTest {
             URLEncodedUtils.formatSegments(
                     String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME));
     public static final Pair<String, String> VERTX_FIB_CREDENTIALS =
-            new Pair<String, String>("admin", "adminpass123");
+            Pair.of("admin", "adminpass123");
 
     public static final int REQUEST_TIMEOUT_SECONDS = 30;
     public static final WebClient webClient = Utils.getWebClient();
@@ -145,33 +145,41 @@ public abstract class StandardSelfTest {
     }
 
     public static CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
-        return fireDownloadRequest(webClient.get(url), name, suffix);
+        return fireDownloadRequest(
+                webClient.get(url), name, suffix, MultiMap.caseInsensitiveMultiMap());
     }
 
     public static CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
-        return fireDownloadRequest(webClient.getAbs(url), name, suffix);
+        return fireDownloadRequest(
+                webClient.getAbs(url), name, suffix, MultiMap.caseInsensitiveMultiMap());
+    }
+
+    public static CompletableFuture<Path> downloadFileAbs(
+            String url, String name, String suffix, MultiMap headers) {
+        return fireDownloadRequest(webClient.getAbs(url), name, suffix, headers);
     }
 
     private static CompletableFuture<Path> fireDownloadRequest(
-            HttpRequest<Buffer> request, String filename, String fileSuffix) {
+            HttpRequest<Buffer> request, String filename, String fileSuffix, MultiMap headers) {
         CompletableFuture<Path> future = new CompletableFuture<>();
-        request.send(
-                ar -> {
-                    if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
-                        return;
-                    }
-                    HttpResponse<Buffer> resp = ar.result();
-                    if (resp.statusCode() != 200) {
-                        future.completeExceptionally(
-                                new Exception(String.format("HTTP %d", resp.statusCode())));
-                        return;
-                    }
-                    FileSystem fs = Utils.getFileSystem();
-                    String file = fs.createTempFileBlocking(filename, fileSuffix);
-                    fs.writeFileBlocking(file, ar.result().body());
-                    future.complete(Paths.get(file));
-                });
+        request.putHeaders(headers)
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                future.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> resp = ar.result();
+                            if (resp.statusCode() != 200) {
+                                future.completeExceptionally(
+                                        new Exception(String.format("HTTP %d", resp.statusCode())));
+                                return;
+                            }
+                            FileSystem fs = Utils.getFileSystem();
+                            String file = fs.createTempFileBlocking(filename, fileSuffix);
+                            fs.writeFileBlocking(file, ar.result().body());
+                            future.complete(Paths.get(file));
+                        });
         return future;
     }
 }
