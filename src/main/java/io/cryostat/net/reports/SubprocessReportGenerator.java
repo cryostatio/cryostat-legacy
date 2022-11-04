@@ -60,7 +60,6 @@ import java.util.function.Predicate;
 import javax.inject.Named;
 import javax.inject.Provider;
 
-import org.openjdk.jmc.common.util.Pair;
 import org.openjdk.jmc.flightrecorder.rules.IRule;
 import org.openjdk.jmc.rjmx.ConnectionException;
 
@@ -81,6 +80,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
 import com.google.gson.Gson;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
@@ -355,10 +355,10 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     static ReportResult generateReportFromFile(
             Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
         Pair<Predicate<IRule>, FileSystem> hPair = generateHelper(recording, filter);
-        try (InputStream stream = hPair.right.newInputStream(recording)) {
+        try (InputStream stream = hPair.getRight().newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
-                    .generateReportInterruptibly(stream, hPair.left)
+                    .generateReportInterruptibly(stream, hPair.getLeft())
                     .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -369,10 +369,10 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     static Map<String, RuleEvaluation> generateEvalMapFromFile(
             Path recording, Set<ReportTransformer> transformers, String filter) throws Exception {
         Pair<Predicate<IRule>, FileSystem> hPair = generateHelper(recording, filter);
-        try (InputStream stream = hPair.right.newInputStream(recording)) {
+        try (InputStream stream = hPair.getRight().newInputStream(recording)) {
             return new InterruptibleReportGenerator(
                             Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
-                    .generateEvalMapInterruptibly(stream, hPair.left)
+                    .generateEvalMapInterruptibly(stream, hPair.getLeft())
                     .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -387,7 +387,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         RuleFilterParser rfp = new RuleFilterParser();
-        return new Pair<>(rfp.parse(filter), fs);
+        return Pair.of(rfp.parse(filter), fs);
     }
 
     public enum ExitStatus {

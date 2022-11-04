@@ -46,8 +46,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.openjdk.jmc.common.util.Pair;
-
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.AsyncResult;
@@ -62,6 +60,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.HttpException;
 import itest.util.Podman;
 import itest.util.Utils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 public abstract class StandardSelfTest {
@@ -70,7 +69,7 @@ public abstract class StandardSelfTest {
             URLEncodedUtils.formatSegments(
                     String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME));
     public static final Pair<String, String> VERTX_FIB_CREDENTIALS =
-            new Pair<String, String>("admin", "adminpass123");
+            Pair.of("admin", "adminpass123");
 
     public static final int REQUEST_TIMEOUT_SECONDS = 30;
     public static final WebClient webClient = Utils.getWebClient();
