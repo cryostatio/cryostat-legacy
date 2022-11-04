@@ -90,8 +90,8 @@ class RequestLoggingHandler implements RequestHandler {
     }
 
     @Override
-    public void handle(RoutingContext event) {
-        HttpServerRequest req = event.request();
+    public void handle(RoutingContext ctx) {
+        HttpServerRequest req = ctx.request();
 
         WebServerRequest evt =
                 new WebServerRequest(
@@ -111,7 +111,7 @@ class RequestLoggingHandler implements RequestHandler {
                             }
                         });
 
-        this.delegate.handle(event);
+        this.delegate.handle(ctx);
     }
 
     @Name("io.cryostat.net.web.WebServer.WebServerRequest")
