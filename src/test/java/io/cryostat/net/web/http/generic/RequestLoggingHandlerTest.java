@@ -40,17 +40,9 @@ package io.cryostat.net.web.http.generic;
 import static org.mockito.Mockito.mock;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.generic.RequestLoggingHandler.WebServerRequest;
-
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.net.SocketAddress;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.LoggerHandler;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
@@ -67,6 +59,16 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.generic.RequestLoggingHandler.WebServerRequest;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.LoggerHandler;
+
 @ExtendWith(MockitoExtension.class)
 class RequestLoggingHandlerTest {
 
@@ -74,13 +76,17 @@ class RequestLoggingHandlerTest {
     MockedStatic<LoggerHandler> delegateStatic;
     MockedConstruction<WebServerRequest> eventConstruction;
     @Mock LoggerHandler delegate;
+    final List eventConstructionArgs = new ArrayList<>();
 
     @BeforeEach
     void setupEach() {
         delegateStatic = Mockito.mockStatic(LoggerHandler.class);
         delegateStatic.when(LoggerHandler::create).thenReturn(delegate);
 
-        eventConstruction = Mockito.mockConstruction(WebServerRequest.class);
+        eventConstruction = Mockito.mockConstruction(WebServerRequest.class, (mock, ctx) -> {
+            eventConstructionArgs.clear();
+            eventConstructionArgs.addAll((List) ctx.arguments());
+        });
 
         this.handler = new RequestLoggingHandler();
     }
@@ -168,12 +174,19 @@ class RequestLoggingHandlerTest {
         MatcherAssert.assertThat(eventConstruction.constructed(), Matchers.hasSize(1));
         WebServerRequest event = eventConstruction.constructed().get(0);
 
-        // We can't make these assertions because the event is a mock, so the constructor parameters
-        // are not assigned to fields
+        // We can't make these assertions directly because the event is a mock, so the constructor
+        // parameters are not assigned to fields. Instead, store the constructor parameters as a
+        // list and compare that to the expected values,
         // MatcherAssert.assertThat(event.host, Matchers.equalTo(addr.host()));
         // MatcherAssert.assertThat(event.port, Matchers.equalTo(addr.port()));
         // MatcherAssert.assertThat(event.method, Matchers.equalTo("GET"));
         // MatcherAssert.assertThat(event.path, Matchers.equalTo("/some/path"));
+        MatcherAssert.assertThat(eventConstructionArgs, Matchers.equalTo(List.of(
+                        "localhost",
+                        1234,
+                        "GET",
+                        "/some/path"
+                        )));
 
         Mockito.verify(event, Mockito.times(0)).shouldCommit();
         Mockito.verify(event, Mockito.times(0)).commit();
