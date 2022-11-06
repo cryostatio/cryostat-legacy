@@ -44,12 +44,16 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.TypeResolutionEnvironment;
 import graphql.schema.GraphQLObjectType;
-import graphql.schema.TypeResolver;
 
-class RecordingTypeResolver implements TypeResolver {
+class RecordingTypeResolver extends AbstractTypeResolver {
 
     @Inject
     RecordingTypeResolver() {}
+
+    @Override
+    String typeName() {
+        return "Recording";
+    }
 
     @Override
     public GraphQLObjectType getType(TypeResolutionEnvironment env) {

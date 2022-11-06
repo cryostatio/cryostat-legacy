@@ -68,6 +68,16 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("ActiveRecording");
+    }
+
+    @Override
+    String name() {
+        return "doArchive";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_TARGET,

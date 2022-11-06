@@ -61,6 +61,16 @@ class EnvironmentNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("EnvironmentNode");
+    }
+
+    @Override
+    String name() {
+        return "children";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET);
     }

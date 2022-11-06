@@ -60,6 +60,16 @@ class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("Query");
+    }
+
+    @Override
+    String name() {
+        return "rootNode";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET);
     }

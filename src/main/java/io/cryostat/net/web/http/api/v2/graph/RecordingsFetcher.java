@@ -97,6 +97,16 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("TargetNode");
+    }
+
+    @Override
+    String name() {
+        return "recordings";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_TARGET,

@@ -83,6 +83,16 @@ class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordin
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("ActiveRecording");
+    }
+
+    @Override
+    String name() {
+        return "doStop";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_RECORDING,

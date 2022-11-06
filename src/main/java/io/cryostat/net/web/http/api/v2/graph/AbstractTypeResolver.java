@@ -37,30 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
-import javax.inject.Inject;
+import graphql.schema.TypeResolver;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
-
-import graphql.TypeResolutionEnvironment;
-import graphql.schema.GraphQLObjectType;
-
-class NodeTypeResolver extends AbstractTypeResolver {
-
-    @Inject
-    NodeTypeResolver() {}
-
-    @Override
-    String typeName() {
-        return "Node";
-    }
-
-    @Override
-    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
-        Object o = env.getObject();
-        if (o instanceof EnvironmentNode) {
-            return env.getSchema().getObjectType("EnvironmentNode");
-        } else {
-            return env.getSchema().getObjectType("TargetNode");
-        }
-    }
+abstract class AbstractTypeResolver implements TypeResolver {
+    abstract String typeName();
 }

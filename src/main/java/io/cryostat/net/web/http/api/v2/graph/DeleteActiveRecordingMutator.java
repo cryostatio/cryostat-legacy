@@ -68,6 +68,16 @@ class DeleteActiveRecordingMutator
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("ActiveRecording");
+    }
+
+    @Override
+    String name() {
+        return "doDelete";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.DELETE_RECORDING,

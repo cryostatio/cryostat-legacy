@@ -98,6 +98,16 @@ class StartRecordingOnTargetMutator
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("TargetNode");
+    }
+
+    @Override
+    String name() {
+        return "doStartRecording";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_RECORDING,

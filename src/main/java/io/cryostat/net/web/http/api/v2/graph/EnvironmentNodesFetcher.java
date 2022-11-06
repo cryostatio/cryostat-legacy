@@ -67,6 +67,16 @@ class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<Envir
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("Query");
+    }
+
+    @Override
+    String name() {
+        return "environmentNodes";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET);
     }
