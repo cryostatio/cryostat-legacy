@@ -82,6 +82,11 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
     }
 
     @Override
+    boolean blocking() {
+        return false;
+    }
+
+    @Override
     public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
         FilterInput filter = FilterInput.from(environment);

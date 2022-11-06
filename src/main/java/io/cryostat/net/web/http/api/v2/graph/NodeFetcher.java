@@ -77,6 +77,11 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     }
 
     @Override
+    boolean blocking() {
+        return false;
+    }
+
+    @Override
     public AbstractNode getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         EnvironmentNode root = rootNodeFetcher.get(environment);
         String name = environment.getArgument("name");

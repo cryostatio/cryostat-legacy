@@ -74,6 +74,11 @@ class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<Lis
     }
 
     @Override
+    boolean blocking() {
+        return false;
+    }
+
+    @Override
     public List<AbstractNode> getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         EnvironmentNode node = environment.getSource();

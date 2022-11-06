@@ -83,6 +83,11 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
         return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
+    @Override
+    boolean blocking() {
+        return false;
+    }
+
     public Archived getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         FilterInput filter = FilterInput.from(environment);

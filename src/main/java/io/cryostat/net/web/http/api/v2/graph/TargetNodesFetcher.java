@@ -87,6 +87,11 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
     }
 
     @Override
+    boolean blocking() {
+        return false;
+    }
+
+    @Override
     public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         FilterInput filter = FilterInput.from(environment);
         List<TargetNode> result =

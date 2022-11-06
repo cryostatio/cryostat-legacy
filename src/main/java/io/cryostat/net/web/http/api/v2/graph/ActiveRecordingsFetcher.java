@@ -83,6 +83,11 @@ class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
     }
 
     @Override
+    boolean blocking() {
+        return false;
+    }
+
+    @Override
     public Active getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         Recordings source = environment.getSource();
         List<GraphRecordingDescriptor> recordings = new ArrayList<>(source.active);
