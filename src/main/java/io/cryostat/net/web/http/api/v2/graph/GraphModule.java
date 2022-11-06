@@ -65,6 +65,8 @@ import dagger.multibindings.IntoSet;
 import graphql.GraphQL;
 import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
+import graphql.schema.AsyncDataFetcher;
+import graphql.schema.DataFetcher;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -109,11 +111,16 @@ public abstract class GraphModule {
                                 ExtendedScalars.newAliasedScalar("NodeType")
                                         .aliasedScalar(Scalars.GraphQLString)
                                         .build());
-        for (AbstractPermissionedDataFetcher<?> df : fetchers) {
-            for (String ctx : df.applicableContexts()) {
+        for (AbstractPermissionedDataFetcher<?> fetcher : fetchers) {
+            for (String ctx : fetcher.applicableContexts()) {
+                DataFetcher<?> df = fetcher;
+                if (fetcher.blocking()) {
+                    df = AsyncDataFetcher.async(df);
+                }
                 wiringBuilder =
                         wiringBuilder.type(
-                                TypeRuntimeWiring.newTypeWiring(ctx).dataFetcher(df.name(), df));
+                                TypeRuntimeWiring.newTypeWiring(ctx)
+                                        .dataFetcher(fetcher.name(), df));
             }
         }
         for (AbstractTypeResolver typeResolver : resolvers) {

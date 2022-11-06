@@ -61,6 +61,10 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
 
     abstract String name();
 
+    boolean blocking() {
+        return true;
+    }
+
     @Override
     public final T get(DataFetchingEnvironment environment) throws Exception {
         GraphQLContext graphCtx = environment.getGraphQlContext();
