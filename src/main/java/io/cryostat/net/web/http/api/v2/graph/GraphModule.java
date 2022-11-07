@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -57,13 +58,18 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.Scalars;
+import graphql.execution.preparsed.PreparsedDocumentEntry;
+import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.AsyncDataFetcher;
 import graphql.schema.DataFetcher;
@@ -141,7 +147,23 @@ public abstract class GraphModule {
                 throw new RuntimeException(ioe);
             }
         }
-        return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring)).build();
+
+        Cache<String, PreparsedDocumentEntry> cache =
+                Caffeine.newBuilder().maximumSize(1_000).build();
+        PreparsedDocumentProvider preparsedCache =
+                new PreparsedDocumentProvider() {
+                    @Override
+                    public PreparsedDocumentEntry getDocument(
+                            ExecutionInput executionInput,
+                            Function<ExecutionInput, PreparsedDocumentEntry> computeFunction) {
+                        Function<String, PreparsedDocumentEntry> mapCompute =
+                                key -> computeFunction.apply(executionInput);
+                        return cache.get(executionInput.getQuery(), mapCompute);
+                    }
+                };
+        return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring))
+                .preparsedDocumentProvider(preparsedCache)
+                .build();
     }
 
     @Binds
