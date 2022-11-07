@@ -66,10 +66,11 @@ class GraphQLGetHandlerTest {
 
     @Mock GraphQL graph;
     @Mock AuthManager auth;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new GraphQLGetHandler(graph, auth);
+        this.handler = new GraphQLGetHandler(graph, auth, logger);
     }
 
     @Nested
