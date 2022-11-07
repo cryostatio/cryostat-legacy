@@ -143,11 +143,11 @@ class Cryostat extends AbstractVerticle {
 
     public static void main(String[] args) throws IOException {
         final Client client = DaggerCryostat_Client.builder().build();
+        CryostatCore.initialize();
         try (InputStream config = Cryostat.class.getResourceAsStream("logging.properties")) {
             LogManager.getLogManager()
-                    .updateConfiguration(config, k -> ((o, n) -> o != null ? o : n));
+                    .updateConfiguration(config, k -> ((o, n) -> n != null ? n : o));
         }
-        CryostatCore.initialize();
 
         Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
