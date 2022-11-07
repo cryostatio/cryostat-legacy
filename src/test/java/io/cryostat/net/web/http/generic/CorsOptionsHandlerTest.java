@@ -37,7 +37,10 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.web.http.RequestHandler;
 
 import io.vertx.core.http.HttpMethod;
@@ -55,12 +58,15 @@ class CorsOptionsHandlerTest {
 
     CorsOptionsHandler handler;
     @Mock Environment env;
+    @Mock NetworkConfiguration netConf;
+    @Mock SslConfiguration sslConf;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
                 .thenReturn("http://localhost:9000");
-        this.handler = new CorsOptionsHandler(env);
+        this.handler = new CorsOptionsHandler(env, netConf, sslConf, logger);
     }
 
     @Test
