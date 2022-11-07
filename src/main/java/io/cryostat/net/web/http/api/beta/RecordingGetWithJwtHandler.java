@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -60,6 +59,7 @@ import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -109,24 +109,24 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
+
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
+
         try {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
-            Path archivedRecording =
-                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+            byte[] stream =
+                    recordingArchiveHelper.getRecordingForDownload(sourceTarget, recordingName);
             ctx.response()
                     .putHeader(
                             HttpHeaders.CONTENT_DISPOSITION,
                             String.format("attachment; filename=\"%s\"", recordingName));
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
-        } catch (RecordingSourceTargetNotFoundException e) {
+            ctx.response().end(Buffer.buffer(stream));
+
+        } catch (RecordingSourceTargetNotFoundException | RecordingNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e.getMessage(), e);
-            }
             throw e;
         }
     }

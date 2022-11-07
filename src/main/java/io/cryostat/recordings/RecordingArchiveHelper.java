@@ -38,6 +38,7 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -859,6 +860,26 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public byte[] getRecordingForDownload(String sourceTarget, String recordingName)
+            throws ExecutionException, RecordingNotFoundException {
+        byte[] recordingFile = null;
+        try {
+            Path recordingPath = getRecordingPath(sourceTarget, recordingName).get();
+            if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(recordingPath)) {
+                return unGzip(recordingPath);
+            }
+            recordingFile = Files.readAllBytes(recordingPath);
+        } catch (InterruptedException | IOException ioe) {
+            logger.error(ioe);
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof RecordingNotFoundException) {
+                throw new RecordingNotFoundException(sourceTarget, recordingName);
+            }
+            throw ex;
+        }
+        return recordingFile;
+    }
+
     private Path searchSubdirectory(Path subdirectory, String recordingName) {
         Path recordingPath = null;
         try {
@@ -1077,27 +1098,24 @@ public class RecordingArchiveHelper {
         }
     }
 
-    private void unGzip(Path gzipFile) {
-        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(gzipFile)) {
-            Path tmp = gzipFile.resolve(gzipFile + ".tmp");
-            try (FileInputStream source = new FileInputStream(gzipFile.toString()); ) {
-                fs.copy(source, tmp, StandardCopyOption.REPLACE_EXISTING);
+    private byte[] unGzip(Path gzipFile) throws IOException {
+        byte[] fileContent = null;
 
-                try (GZIPInputStream input =
-                                new GZIPInputStream(new FileInputStream(tmp.toFile()));
-                        FileOutputStream uncompressedFile =
-                                new FileOutputStream(gzipFile.toString()); ) {
-                    byte[] buffer = new byte[1024];
-                    int len;
-                    while ((len = input.read(buffer)) != -1) {
-                        uncompressedFile.write(buffer, 0, len);
-                    }
-                    fs.deleteIfExists(tmp);
-                }
-            } catch (IOException e) {
-                logger.error("Failed to decompress the file: " + e);
+        try (FileInputStream source = new FileInputStream(gzipFile.toString());
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                GZIPInputStream input = new GZIPInputStream(source); ) {
+
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = input.read(buffer)) != -1) {
+                bout.write(buffer, 0, len);
             }
+            fileContent = bout.toByteArray();
+        } catch (IOException ioe) {
+            logger.error("Failed to decompress the file: " + ioe);
+            throw ioe;
         }
+        return fileContent;
     }
 
     private boolean isGzip(Path file) {
@@ -1115,7 +1133,6 @@ public class RecordingArchiveHelper {
         vertx.executeBlocking(
                 event -> {
                     try {
-                        unGzip(archivedRecordingsPath.resolve(recordingFile));
                         // try loading chunk info to see if it's a valid file
                         try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
                             var supplier = FlightRecordingLoader.createChunkSupplier(is);
