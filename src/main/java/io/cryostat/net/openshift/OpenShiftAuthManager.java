@@ -85,6 +85,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
@@ -385,21 +386,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private boolean deleteToken(String token) throws TokenNotFoundException {
-        Boolean deleted =
-                Optional.ofNullable(
+    private void deleteToken(String token) throws TokenNotFoundException {
+        List<StatusDetails> results =
                                 serviceAccountClient
                                         .get()
                                         .oAuthAccessTokens()
                                         .withName(this.getOauthAccessTokenName(token))
-                                        .delete())
-                        .orElseThrow(TokenNotFoundException::new);
+                                        .delete();
 
-        if (Boolean.FALSE.equals(deleted)) {
+        if (results.isEmpty()) {
             throw new TokenNotFoundException();
         }
-
-        return deleted;
     }
 
     private String getTokenFromHttpHeader(String rawHttpHeader) {
