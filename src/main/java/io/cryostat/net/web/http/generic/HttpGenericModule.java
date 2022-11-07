@@ -50,6 +50,10 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRequestLoggingHandler(RequestLoggingHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
 
     @Binds
