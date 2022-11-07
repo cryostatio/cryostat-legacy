@@ -46,6 +46,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -146,14 +147,14 @@ class CertificatePostHandlerTest {
 
     @Test
     void shouldThrow400IfNoCertInRequest() {
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of());
+        Mockito.when(ctx.fileUploads()).thenReturn(List.of());
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 
     @Test
     void shouldThrow500IfNoTruststoreDirSet() {
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(fu));
+        Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(env.hasEnv(Mockito.any())).thenReturn(false);
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -162,7 +163,7 @@ class CertificatePostHandlerTest {
 
     @Test
     void shouldThrow409IfCertAlreadyExists() {
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(fu));
+        Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");
@@ -179,7 +180,7 @@ class CertificatePostHandlerTest {
 
     @Test
     void shouldThrowExceptionIfCertIsMalformed() throws Exception {
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(fu));
+        Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");
@@ -203,7 +204,7 @@ class CertificatePostHandlerTest {
 
     @Test
     void shouldAddCertToTruststore() throws Exception {
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(fu));
+        Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");

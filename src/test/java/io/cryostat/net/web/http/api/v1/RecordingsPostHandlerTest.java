@@ -45,6 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -169,7 +170,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -354,7 +355,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -530,7 +531,7 @@ class RecordingsPostHandlerTest {
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
-        when(ctx.fileUploads()).thenReturn(Set.of());
+        when(ctx.fileUploads()).thenReturn(List.of());
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
@@ -554,7 +555,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("incorrect_field_name");
         when(upload.uploadedFileName()).thenReturn("foo");
 
@@ -587,7 +588,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn("");
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -624,7 +625,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -663,7 +664,7 @@ class RecordingsPostHandlerTest {
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
         FileUpload upload = mock(FileUpload.class);
-        when(ctx.fileUploads()).thenReturn(Set.of(upload));
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
