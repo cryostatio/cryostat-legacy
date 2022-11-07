@@ -37,12 +37,18 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -58,12 +64,24 @@ class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
     protected final CorsHandler corsHandler;
     protected final Environment env;
+    protected final NetworkConfiguration netConf;
+    protected final SslConfiguration sslConf;
+    protected final Logger logger;
 
     @Inject
-    CorsEnablingHandler(Environment env) {
+    CorsEnablingHandler(
+            Environment env,
+            NetworkConfiguration netConf,
+            SslConfiguration sslConf,
+            Logger logger) {
         this.env = env;
+        this.netConf = netConf;
+        this.sslConf = sslConf;
+        this.logger = logger;
         this.corsHandler =
-                CorsHandler.create(getOrigin())
+                CorsHandler.create()
+                        .addOrigin(getWebClientOrigin())
+                        .addOrigins(getSelfOrigin())
                         .allowedHeader(HttpHeaders.AUTHORIZATION)
                         .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
                         .allowedHeader(HttpHeaders.CONTENT_TYPE)
@@ -113,7 +131,21 @@ class CorsEnablingHandler implements RequestHandler {
         this.corsHandler.handle(ctx);
     }
 
-    String getOrigin() {
+    String getWebClientOrigin() {
         return this.env.getEnv(Variables.ENABLE_CORS_ENV, DEV_ORIGIN);
+    }
+
+    List<String> getSelfOrigin() {
+        try {
+            return List.of(
+                    String.format(
+                            "%s://%s:%d",
+                            sslConf.enabled() || netConf.isSslProxied() ? "https" : "http",
+                            netConf.getWebServerHost(),
+                            netConf.getExternalWebServerPort()));
+        } catch (SocketException | UnknownHostException e) {
+            logger.warn(e);
+            return List.of();
+        }
     }
 }

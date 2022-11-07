@@ -41,7 +41,10 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -50,8 +53,12 @@ import io.vertx.core.http.HttpMethod;
 class CorsOptionsHandler extends CorsEnablingHandler {
 
     @Inject
-    CorsOptionsHandler(Environment env) {
-        super(env);
+    CorsOptionsHandler(
+            Environment env,
+            NetworkConfiguration netConf,
+            SslConfiguration sslConf,
+            Logger logger) {
+        super(env, netConf, sslConf, logger);
     }
 
     @Override
