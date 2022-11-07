@@ -52,6 +52,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import graphql.GraphQL;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
@@ -109,8 +110,8 @@ class GraphQLPostHandler implements RequestHandler {
         } catch (InterruptedException | ExecutionException e) {
             throw new ApiException(500, e);
         }
-        String query = ctx.getBodyAsString();
-        logger.info("GraphQL query: {}", query);
+        JsonObject body = ctx.getBodyAsJson();
+        logger.info("GraphQL query: {}", body.getString("query"));
         this.handler.handle(ctx);
     }
 }
