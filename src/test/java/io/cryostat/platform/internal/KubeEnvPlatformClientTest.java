@@ -131,7 +131,7 @@ class KubeEnvPlatformClientTest {
 
             ServiceRef serv1 =
                     new ServiceRef(
-                            "id1",
+                            null,
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
             serv1.setCryostatAnnotations(
@@ -142,7 +142,7 @@ class KubeEnvPlatformClientTest {
                             AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
-                            "id2",
+                            null,
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
             serv2.setCryostatAnnotations(
@@ -186,7 +186,7 @@ class KubeEnvPlatformClientTest {
 
             ServiceRef serv1 =
                     new ServiceRef(
-                            "id1",
+                            null,
                             URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
                             "foo");
             serv1.setCryostatAnnotations(
@@ -197,7 +197,7 @@ class KubeEnvPlatformClientTest {
                             AnnotationKey.PORT, "1234"));
             ServiceRef serv2 =
                     new ServiceRef(
-                            "id2",
+                            null,
                             URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
                             "bar");
             serv2.setCryostatAnnotations(

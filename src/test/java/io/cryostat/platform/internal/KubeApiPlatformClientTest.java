@@ -230,7 +230,7 @@ class KubeApiPlatformClientTest {
         // targetA is intentionally not a matching service
         ServiceRef serv1 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
                         "targetB");
         serv1.setCryostatAnnotations(
@@ -247,7 +247,7 @@ class KubeApiPlatformClientTest {
                         "targetB"));
         ServiceRef serv2 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.4", 9091)),
                         "targetC");
         serv2.setCryostatAnnotations(
@@ -264,7 +264,7 @@ class KubeApiPlatformClientTest {
                         "targetC"));
         ServiceRef serv3 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.5", 9091)),
                         "targetD");
         serv3.setCryostatAnnotations(
@@ -281,7 +281,7 @@ class KubeApiPlatformClientTest {
                         "targetD"));
         ServiceRef serv4 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.6", 5678)),
                         "targetE");
         serv4.setCryostatAnnotations(
@@ -366,7 +366,7 @@ class KubeApiPlatformClientTest {
         EnvironmentNode realmNode = platformClient.getDiscoveryTree();
         ServiceRef serv1 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.2", 9091)),
                         "targetA");
         serv1.setCryostatAnnotations(
@@ -383,7 +383,7 @@ class KubeApiPlatformClientTest {
                         "targetA"));
         ServiceRef serv2 =
                 new ServiceRef(
-                        "mockId",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
                         "targetB");
         serv2.setCryostatAnnotations(
@@ -510,7 +510,7 @@ class KubeApiPlatformClientTest {
         MatcherAssert.assertThat(evt.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         ServiceRef serv =
                 new ServiceRef(
-                        "id",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         serv.setCryostatAnnotations(
@@ -591,7 +591,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serv =
                 new ServiceRef(
-                        "id",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         serv.setCryostatAnnotations(
@@ -705,7 +705,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef original =
                 new ServiceRef(
-                        "id",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "watchedTarget");
         original.setCryostatAnnotations(
@@ -723,7 +723,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef modified =
                 new ServiceRef(
-                        "id",
+                        null,
                         URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
                         "modifiedTarget");
         modified.setCryostatAnnotations(

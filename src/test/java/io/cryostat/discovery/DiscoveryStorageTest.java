@@ -482,12 +482,12 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(nextTarget)));
             MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
 
-            TargetDiscoveryEvent foundEvent =
-                    new TargetDiscoveryEvent(EventKind.FOUND, nextServiceRef);
             TargetDiscoveryEvent lostEvent =
                     new TargetDiscoveryEvent(EventKind.LOST, prevServiceRef);
+            TargetDiscoveryEvent foundEvent =
+                    new TargetDiscoveryEvent(EventKind.FOUND, nextServiceRef);
             MatcherAssert.assertThat(
-                    discoveryEvents, Matchers.containsInRelativeOrder(foundEvent, lostEvent));
+                    discoveryEvents, Matchers.containsInRelativeOrder(lostEvent, foundEvent));
         }
     }
 
