@@ -43,6 +43,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -67,6 +68,8 @@ import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
+import io.fabric8.kubernetes.api.model.StatusCause;
+import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
@@ -96,7 +99,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -439,9 +441,6 @@ class OpenShiftAuthManagerTest {
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
 
         HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
-        Mockito.when(requestBuilder.post(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(requestBuilder);
-        Mockito.when(requestBuilder.url(Mockito.any(URL.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.header(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(requestBuilder);
@@ -449,7 +448,6 @@ class OpenShiftAuthManagerTest {
         HttpRequest request = Mockito.mock(HttpRequest.class);
         Mockito.when(requestBuilder.build()).thenReturn(request);
         Mockito.when(httpClient.newHttpRequestBuilder()).thenReturn(requestBuilder);
-        Mockito.when(request.uri()).thenReturn(URI.create("https://example.com"));
 
         HttpResponse<String> resp = Mockito.mock(HttpResponse.class);
         Mockito.when(resp.body()).thenReturn(OAUTH_METADATA);
@@ -527,7 +525,7 @@ class OpenShiftAuthManagerTest {
 
         Mockito.when(client.oAuthAccessTokens()).thenReturn(tokens);
         Mockito.when(tokens.withName(Mockito.anyString())).thenReturn(token);
-        Mockito.when(token.delete()).thenReturn(true);
+        Mockito.when(token.delete()).thenReturn(List.of());
 
         Mockito.when(client.getHttpClient()).thenReturn(httpClient);
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
@@ -552,17 +550,22 @@ class OpenShiftAuthManagerTest {
         MatcherAssert.assertThat(logoutRedirectUrl, Matchers.equalTo(EXPECTED_LOGOUT_REDIRECT_URL));
     }
 
-    @ParameterizedTest
-    @NullSource
-    @ValueSource(booleans = {false})
-    void shouldThrowWhenTokenDeletionFailsOnLogout(Boolean deletionFailure) throws Exception {
+    @Test
+    void shouldThrowWhenTokenDeletionFailsOnLogout() throws Exception {
         Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
         NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
                 tokens = Mockito.mock(NonNamespaceOperation.class);
 
         Mockito.when(client.oAuthAccessTokens()).thenReturn(tokens);
         Mockito.when(tokens.withName(Mockito.anyString())).thenReturn(token);
-        Mockito.when(token.delete()).thenReturn(deletionFailure);
+
+        StatusDetails status = Mockito.mock(StatusDetails.class);
+        StatusCause cause = Mockito.mock(StatusCause.class);
+        Mockito.when(cause.getField()).thenReturn("token");
+        Mockito.when(cause.getReason()).thenReturn("some reason");
+        Mockito.when(cause.getMessage()).thenReturn("some message");
+        Mockito.when(status.getCauses()).thenReturn(List.of(cause));
+        Mockito.when(token.delete()).thenReturn(List.of(status));
 
         Assertions.assertThrows(
                 TokenNotFoundException.class, () -> mgr.logout(() -> "Bearer myToken").get());

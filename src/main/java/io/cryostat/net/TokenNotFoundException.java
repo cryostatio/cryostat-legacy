@@ -37,8 +37,14 @@
  */
 package io.cryostat.net;
 
+import java.util.List;
+
 public class TokenNotFoundException extends Exception {
     public TokenNotFoundException() {
         super(String.format("Token not found"));
+    }
+
+    public TokenNotFoundException(List<String> reasons) {
+        super(String.format("Token not found: %s", reasons));
     }
 }

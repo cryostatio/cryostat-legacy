@@ -394,8 +394,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         .withName(this.getOauthAccessTokenName(token))
                         .delete();
 
-        if (results.isEmpty()) {
-            throw new TokenNotFoundException();
+        List<String> causes =
+                results.stream()
+                        .flatMap(sd -> sd.getCauses().stream())
+                        .map(
+                                sc ->
+                                        String.format(
+                                                "[%s] %s: %s",
+                                                sc.getField(), sc.getReason(), sc.getMessage()))
+                        .toList();
+        if (!causes.isEmpty()) {
+            throw new TokenNotFoundException(causes);
         }
     }
 
