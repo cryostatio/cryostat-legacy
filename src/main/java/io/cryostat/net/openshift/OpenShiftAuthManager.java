@@ -388,11 +388,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private void deleteToken(String token) throws TokenNotFoundException {
         List<StatusDetails> results =
-                                serviceAccountClient
-                                        .get()
-                                        .oAuthAccessTokens()
-                                        .withName(this.getOauthAccessTokenName(token))
-                                        .delete();
+                serviceAccountClient
+                        .get()
+                        .oAuthAccessTokens()
+                        .withName(this.getOauthAccessTokenName(token))
+                        .delete();
 
         if (results.isEmpty()) {
             throw new TokenNotFoundException();
