@@ -101,7 +101,7 @@ class AbstractV2RequestHandlerTest {
     void setup() {
         Mockito.lenient().when(ctx.pathParams()).thenReturn(pathParams);
         Mockito.lenient().when(ctx.queryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.lenient().when(ctx.fileUploads()).thenReturn(Set.of());
+        Mockito.lenient().when(ctx.fileUploads()).thenReturn(List.of());
 
         this.headers = MultiMap.caseInsensitiveMultiMap();
 
