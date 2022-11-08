@@ -106,5 +106,15 @@ class AbstractPermissionedDataFetcherTest {
         String getAuthenticated(DataFetchingEnvironment environment) throws Exception {
             return null;
         }
+
+        @Override
+        Set<String> applicableContexts() {
+            return null;
+        }
+
+        @Override
+        String name() {
+            return null;
+        }
     }
 }

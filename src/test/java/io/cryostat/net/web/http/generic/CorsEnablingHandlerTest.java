@@ -37,7 +37,10 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
@@ -67,12 +70,15 @@ class CorsEnablingHandlerTest {
     final String CUSTOM_ORIGIN = "http://localhost:9001";
     CorsEnablingHandler handler;
     @Mock Environment env;
+    @Mock NetworkConfiguration netConf;
+    @Mock SslConfiguration sslConf;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
                 .thenReturn(CUSTOM_ORIGIN);
-        this.handler = new CorsEnablingHandler(env);
+        this.handler = new CorsEnablingHandler(env, netConf, sslConf, logger);
     }
 
     @Test

@@ -41,6 +41,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -66,10 +67,11 @@ class GraphQLPostHandlerTest {
 
     @Mock GraphQL graph;
     @Mock AuthManager auth;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new GraphQLPostHandler(graph, auth);
+        this.handler = new GraphQLPostHandler(graph, auth, logger);
     }
 
     @Nested

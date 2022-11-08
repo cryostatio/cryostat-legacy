@@ -67,8 +67,23 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("EnvironmentNode");
+    }
+
+    @Override
+    String name() {
+        return "descendantTargets";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    boolean blocking() {
+        return false;
     }
 
     @Override

@@ -68,8 +68,23 @@ class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("Recordings");
+    }
+
+    @Override
+    String name() {
+        return "active";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_RECORDING, ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    boolean blocking() {
+        return false;
     }
 
     @Override

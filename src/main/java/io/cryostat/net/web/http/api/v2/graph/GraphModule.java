@@ -40,6 +40,8 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
 
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -56,14 +58,21 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.Scalars;
+import graphql.execution.preparsed.PreparsedDocumentEntry;
+import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.scalars.ExtendedScalars;
+import graphql.schema.AsyncDataFetcher;
+import graphql.schema.DataFetcher;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -93,26 +102,8 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     static GraphQL provideGraphQL(
-            NodeTypeResolver nodeTypeResolver,
-            RecordingTypeResolver recordingTypeResolver,
-            RootNodeFetcher rootNodeFetcher,
-            EnvironmentNodesFetcher environmentNodesFetcher,
-            TargetNodesFetcher targetNodesFetcher,
-            EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
-            TargetNodeRecurseFetcher targetNodeRecurseFetcher,
-            RecordingsFetcher recordingsFetcher,
-            ActiveRecordingsFetcher activeRecordingsFetcher,
-            ArchivedRecordingsFetcher archivedRecordingsFetcher,
-            AllArchivedRecordingsFetcher allArchivedRecordingsFetcher,
-            StartRecordingOnTargetMutator startRecordingOnTargetMutator,
-            SnapshotOnTargetMutator snapshotOnTargetMutator,
-            StopRecordingMutator stopRecordingMutator,
-            ArchiveRecordingMutator archiveRecordingMutator,
-            PutActiveRecordingMetadataMutator putActiveRecordingMetadataMutator,
-            PutArchivedRecordingMetadataMutator putArchivedRecordingMetadataMutator,
-            DeleteActiveRecordingMutator deleteActiveRecordingMutator,
-            DeleteArchivedRecordingMutator deleteArchivedRecordingMutator) {
-        RuntimeWiring wiring =
+            Set<AbstractPermissionedDataFetcher<?>> fetchers, Set<AbstractTypeResolver> resolvers) {
+        RuntimeWiring.Builder wiringBuilder =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
                         .scalar(ExtendedScalars.GraphQLLong)
@@ -125,70 +116,26 @@ public abstract class GraphModule {
                         .scalar(
                                 ExtendedScalars.newAliasedScalar("NodeType")
                                         .aliasedScalar(Scalars.GraphQLString)
-                                        .build())
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("rootNode", rootNodeFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("environmentNodes", environmentNodesFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("targetNodes", targetNodesFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher(
-                                                "archivedRecordings", allArchivedRecordingsFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
-                                        .dataFetcher("children", nodeChildrenFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
-                                        .dataFetcher("descendantTargets", targetNodeRecurseFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher("recordings", recordingsFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Recordings")
-                                        .dataFetcher("active", activeRecordingsFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Recordings")
-                                        .dataFetcher("archived", archivedRecordingsFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher(
-                                                "doStartRecording", startRecordingOnTargetMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher("doSnapshot", snapshotOnTargetMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("doArchive", archiveRecordingMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("doStop", stopRecordingMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher(
-                                                "doPutMetadata", putActiveRecordingMetadataMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
-                                        .dataFetcher(
-                                                "doPutMetadata",
-                                                putArchivedRecordingMetadataMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("doDelete", deleteActiveRecordingMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
-                                        .dataFetcher("doDelete", deleteArchivedRecordingMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Node")
-                                        .typeResolver(nodeTypeResolver))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Recording")
-                                        .typeResolver(recordingTypeResolver))
-                        .build();
+                                        .build());
+        for (AbstractPermissionedDataFetcher<?> fetcher : fetchers) {
+            for (String ctx : fetcher.applicableContexts()) {
+                DataFetcher<?> df = fetcher;
+                if (fetcher.blocking()) {
+                    df = AsyncDataFetcher.async(df);
+                }
+                wiringBuilder =
+                        wiringBuilder.type(
+                                TypeRuntimeWiring.newTypeWiring(ctx)
+                                        .dataFetcher(fetcher.name(), df));
+            }
+        }
+        for (AbstractTypeResolver typeResolver : resolvers) {
+            wiringBuilder =
+                    wiringBuilder.type(
+                            TypeRuntimeWiring.newTypeWiring(typeResolver.typeName())
+                                    .typeResolver(typeResolver));
+        }
+        RuntimeWiring wiring = wiringBuilder.build();
         SchemaParser parser = new SchemaParser();
         TypeDefinitionRegistry tdr = new TypeDefinitionRegistry();
         List<String> schemaFilenames = List.of("types", "queries");
@@ -200,13 +147,41 @@ public abstract class GraphModule {
                 throw new RuntimeException(ioe);
             }
         }
-        return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring)).build();
+
+        Cache<String, PreparsedDocumentEntry> cache =
+                Caffeine.newBuilder().maximumSize(1_000).build();
+        PreparsedDocumentProvider preparsedCache =
+                new PreparsedDocumentProvider() {
+                    @Override
+                    public PreparsedDocumentEntry getDocument(
+                            ExecutionInput executionInput,
+                            Function<ExecutionInput, PreparsedDocumentEntry> computeFunction) {
+                        Function<String, PreparsedDocumentEntry> mapCompute =
+                                key -> computeFunction.apply(executionInput);
+                        return cache.get(executionInput.getQuery(), mapCompute);
+                    }
+                };
+        return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring))
+                .preparsedDocumentProvider(preparsedCache)
+                .build();
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractTypeResolver bindNodeTypeResolver(NodeTypeResolver typeResolver);
+
+    @Binds
+    @IntoSet
+    abstract AbstractTypeResolver bindRecordingResolver(RecordingTypeResolver typeResolver);
 
     @Provides
     static RootNodeFetcher provideRootNodeFetcher(AuthManager auth, DiscoveryStorage storage) {
         return new RootNodeFetcher(auth, storage);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindRootNodeFetcher(RootNodeFetcher apdf);
 
     @Provides
     static RecordingsFetcher provideRecordingsFetcher(
@@ -221,10 +196,19 @@ public abstract class GraphModule {
                 auth, tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindRecordingsFetcher(RecordingsFetcher apdf);
+
     @Provides
     static ActiveRecordingsFetcher provideActiveRecordingsFetcher(AuthManager auth) {
         return new ActiveRecordingsFetcher(auth);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindActiveRecordingsFetcher(
+            ActiveRecordingsFetcher apdf);
 
     @Provides
     static AllArchivedRecordingsFetcher provideAllArchivedRecordingsFetcher(
@@ -232,36 +216,60 @@ public abstract class GraphModule {
         return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper, logger);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindAllArchivedRecordingsFetcher(
+            AllArchivedRecordingsFetcher apdf);
+
     @Provides
     static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher(AuthManager auth) {
         return new ArchivedRecordingsFetcher(auth);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindArchivedRecordingsFetcher(
+            ArchivedRecordingsFetcher apdf);
 
     @Provides
     static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher(AuthManager auth) {
         return new EnvironmentNodeChildrenFetcher(auth);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindEnvironmentNodeChildrenFetcher(
+            EnvironmentNodeChildrenFetcher apdf);
+
     @Provides
     static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher(AuthManager auth) {
         return new TargetNodeRecurseFetcher(auth);
     }
 
-    @Provides
-    static EnvironmentNodeRecurseFetcher provideEnvironmentNodeRecurseFetcher(AuthManager auth) {
-        return new EnvironmentNodeRecurseFetcher(auth);
-    }
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindTargetNodeRecurseFetcher(
+            TargetNodeRecurseFetcher apdf);
 
     @Provides
     static NodeFetcher provideNodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
         return new NodeFetcher(auth, rootNodeFetcher);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindNodeFetcher(NodeFetcher apdf);
+
     @Provides
     static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(
             AuthManager auth, RootNodeFetcher rootNodeFetcher) {
         return new EnvironmentNodesFetcher(auth, rootNodeFetcher);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindEnvironmentNodesFetcher(
+            EnvironmentNodesFetcher apdf);
 
     @Provides
     static TargetNodesFetcher provideTargetNodesFetcher(
@@ -270,6 +278,10 @@ public abstract class GraphModule {
             TargetNodeRecurseFetcher recurseFetcher) {
         return new TargetNodesFetcher(auth, rootNodeFetcher, recurseFetcher);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindTargetNodesFetcher(TargetNodesFetcher apdf);
 
     @Provides
     static StartRecordingOnTargetMutator provideStartRecordingOnTargetMutator(
@@ -292,6 +304,11 @@ public abstract class GraphModule {
                 gson);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindStartRecordingOnTargetMutator(
+            StartRecordingOnTargetMutator apdf);
+
     @Provides
     static SnapshotOnTargetMutator provideSnapshotOnTargetMutator(
             AuthManager auth,
@@ -300,6 +317,11 @@ public abstract class GraphModule {
         return new SnapshotOnTargetMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindSnapshotOnTargetMutator(
+            SnapshotOnTargetMutator apdf);
+
     @Provides
     static ArchiveRecordingMutator provideArchiveRecordingMutator(
             AuthManager auth,
@@ -307,6 +329,11 @@ public abstract class GraphModule {
             CredentialsManager credentialsManager) {
         return new ArchiveRecordingMutator(auth, recordingArchiveHelper, credentialsManager);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindArchiveRecordingMutator(
+            ArchiveRecordingMutator apdf);
 
     @Provides
     static StopRecordingMutator provideStopRecordingsOnTargetMutator(
@@ -325,8 +352,13 @@ public abstract class GraphModule {
                 webServer);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindStopRecordingMutator(StopRecordingMutator apdf);
+
     @Provides
     static PutActiveRecordingMetadataMutator providePutActiveRecordingMetadataMutator(
+            AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
@@ -334,6 +366,7 @@ public abstract class GraphModule {
             Provider<WebServer> webServer,
             Gson gson) {
         return new PutActiveRecordingMetadataMutator(
+                auth,
                 credentialsManager,
                 targetConnectionManager,
                 recordingTargetHelper,
@@ -342,14 +375,26 @@ public abstract class GraphModule {
                 gson);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindPutActiveRecordingMetadataMutator(
+            PutActiveRecordingMetadataMutator apdf);
+
     @Provides
     static PutArchivedRecordingMetadataMutator providePutArchivedRecordingMetadataMutator(
+            AuthManager auth,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
-        return new PutArchivedRecordingMetadataMutator(metadataManager, webServer, gson, base32);
+        return new PutArchivedRecordingMetadataMutator(
+                auth, metadataManager, webServer, gson, base32);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindPutArchivedRecordingMetadataMutator(
+            PutArchivedRecordingMetadataMutator apdf);
 
     @Provides
     static DeleteActiveRecordingMutator provideDeleteActiveRecordingMutator(
@@ -359,9 +404,19 @@ public abstract class GraphModule {
         return new DeleteActiveRecordingMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindDeleteActiveRecordingMutator(
+            DeleteActiveRecordingMutator apdf);
+
     @Provides
     static DeleteArchivedRecordingMutator provideDeleteArchivedRecordingMutator(
             AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
         return new DeleteArchivedRecordingMutator(auth, recordingArchiveHelper);
     }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindDeleteArchivedRecordingMutator(
+            DeleteArchivedRecordingMutator apdf);
 }

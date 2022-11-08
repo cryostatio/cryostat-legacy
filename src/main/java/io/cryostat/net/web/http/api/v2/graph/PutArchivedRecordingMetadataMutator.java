@@ -40,11 +40,14 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -53,11 +56,11 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import org.apache.commons.codec.binary.Base32;
 
-class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordingInfo> {
+class PutArchivedRecordingMetadataMutator
+        extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
@@ -66,10 +69,12 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
 
     @Inject
     PutArchivedRecordingMetadataMutator(
+            AuthManager auth,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
+        super(auth);
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.gson = gson;
@@ -77,7 +82,23 @@ class PutArchivedRecordingMetadataMutator implements DataFetcher<ArchivedRecordi
     }
 
     @Override
-    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+    Set<String> applicableContexts() {
+        return Set.of("ArchivedRecording");
+    }
+
+    @Override
+    String name() {
+        return "doPutMetadata";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return Set.of(ResourceAction.READ_RECORDING, ResourceAction.UPDATE_RECORDING);
+    }
+
+    @Override
+    public ArchivedRecordingInfo getAuthenticated(DataFetchingEnvironment environment)
+            throws Exception {
         ArchivedRecordingInfo source = environment.getSource();
         String uri = source.getServiceUri();
         String recordingName = source.getName();

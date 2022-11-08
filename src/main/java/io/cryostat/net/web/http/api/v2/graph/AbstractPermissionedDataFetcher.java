@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.util.Set;
+
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
@@ -53,6 +55,14 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
 
     AbstractPermissionedDataFetcher(AuthManager auth) {
         this.auth = auth;
+    }
+
+    abstract Set<String> applicableContexts();
+
+    abstract String name();
+
+    boolean blocking() {
+        return true;
     }
 
     @Override

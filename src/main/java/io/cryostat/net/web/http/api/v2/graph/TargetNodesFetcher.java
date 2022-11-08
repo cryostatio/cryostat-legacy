@@ -72,8 +72,23 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("Query");
+    }
+
+    @Override
+    String name() {
+        return "targetNodes";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    boolean blocking() {
+        return false;
     }
 
     @Override

@@ -43,12 +43,16 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 
 import graphql.TypeResolutionEnvironment;
 import graphql.schema.GraphQLObjectType;
-import graphql.schema.TypeResolver;
 
-class NodeTypeResolver implements TypeResolver {
+class NodeTypeResolver extends AbstractTypeResolver {
 
     @Inject
     NodeTypeResolver() {}
+
+    @Override
+    String typeName() {
+        return "Node";
+    }
 
     @Override
     public GraphQLObjectType getType(TypeResolutionEnvironment env) {

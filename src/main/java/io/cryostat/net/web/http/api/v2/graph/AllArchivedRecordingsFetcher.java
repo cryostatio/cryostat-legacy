@@ -72,6 +72,16 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("Query");
+    }
+
+    @Override
+    String name() {
+        return "archivedRecordings";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_RECORDING);
     }

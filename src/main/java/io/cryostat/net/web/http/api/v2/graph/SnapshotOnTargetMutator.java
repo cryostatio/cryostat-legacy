@@ -67,6 +67,16 @@ class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecor
     }
 
     @Override
+    Set<String> applicableContexts() {
+        return Set.of("TargetNode");
+    }
+
+    @Override
+    String name() {
+        return "doSnapshot";
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_RECORDING,

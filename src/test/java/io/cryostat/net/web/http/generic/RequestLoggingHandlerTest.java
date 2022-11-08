@@ -52,6 +52,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.LoggerFormat;
+import io.vertx.ext.web.handler.LoggerFormatter;
 import io.vertx.ext.web.handler.LoggerHandler;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -81,7 +83,11 @@ class RequestLoggingHandlerTest {
     @BeforeEach
     void setupEach() {
         delegateStatic = Mockito.mockStatic(LoggerHandler.class);
-        delegateStatic.when(LoggerHandler::create).thenReturn(delegate);
+        delegateStatic
+                .when(() -> LoggerHandler.create(Mockito.any(LoggerFormat.class)))
+                .thenReturn(delegate);
+        Mockito.when(delegate.customFormatter(Mockito.any(LoggerFormatter.class)))
+                .thenReturn(delegate);
 
         eventConstruction =
                 Mockito.mockConstruction(
@@ -145,7 +151,7 @@ class RequestLoggingHandlerTest {
         HttpServerResponse rep = Mockito.mock(HttpServerResponse.class);
         Mockito.when(req.response()).thenReturn(rep);
 
-        Mockito.verifyNoInteractions(delegate);
+        Mockito.verify(delegate, Mockito.never()).handle(Mockito.any());
         MatcherAssert.assertThat(eventConstruction.constructed(), Matchers.empty());
 
         handler.handle(ctx);
@@ -171,7 +177,7 @@ class RequestLoggingHandlerTest {
         int sc = 200 + ((int) Math.random() * 300);
         Mockito.when(rep.getStatusCode()).thenReturn(sc);
 
-        Mockito.verifyNoInteractions(delegate);
+        Mockito.verify(delegate, Mockito.never()).handle(Mockito.any());
         MatcherAssert.assertThat(eventConstruction.constructed(), Matchers.empty());
 
         handler.handle(ctx);

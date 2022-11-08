@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -48,8 +49,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -58,11 +61,10 @@ import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
 class PutActiveRecordingMetadataMutator
-        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor> {
+        extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
     private final CredentialsManager credentialsManager;
     private final TargetConnectionManager targetConnectionManager;
@@ -73,12 +75,14 @@ class PutActiveRecordingMetadataMutator
 
     @Inject
     PutActiveRecordingMetadataMutator(
+            AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
+        super(auth);
         this.credentialsManager = credentialsManager;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
@@ -88,8 +92,26 @@ class PutActiveRecordingMetadataMutator
     }
 
     @Override
-    public HyperlinkedSerializableRecordingDescriptor get(DataFetchingEnvironment environment)
-            throws Exception {
+    Set<String> applicableContexts() {
+        return Set.of("ActiveRecording");
+    }
+
+    @Override
+    String name() {
+        return "doPutMetadata";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return Set.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.READ_TARGET);
+    }
+
+    @Override
+    public HyperlinkedSerializableRecordingDescriptor getAuthenticated(
+            DataFetchingEnvironment environment) throws Exception {
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();
