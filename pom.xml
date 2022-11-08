@@ -49,7 +49,7 @@
   <cryostat.itest.jfr-datasource.version>latest</cryostat.itest.jfr-datasource.version>
   <cryostat.itest.jmx.db-passwd>${cryostat.itest.podName}</cryostat.itest.jmx.db-passwd>
 
-  <io.reactiverse.plugin.version>1.0.27</io.reactiverse.plugin.version>
+  <io.reactiverse.plugin.version>1.0.28</io.reactiverse.plugin.version>
   <org.apache.maven.plugins.compiler.version>3.10.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>2.22.2</org.apache.maven.plugins.surefire.version>
   <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
