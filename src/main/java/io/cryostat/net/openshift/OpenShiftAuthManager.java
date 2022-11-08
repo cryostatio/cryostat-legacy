@@ -77,12 +77,11 @@ import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.StatusDetails;
@@ -126,6 +125,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
     private final Map<ResourceType, Set<GroupResource>> resourceMap;
+    private final Gson gson;
 
     private final LoadingCache<String, OpenShiftClient> userClients;
 
@@ -135,6 +135,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
+            Gson gson,
             Executor cacheExecutor,
             Scheduler cacheScheduler,
             Logger logger) {
@@ -144,6 +145,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.serviceAccountClient = serviceAccountClient;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
+        this.gson = gson;
 
         Caffeine<String, OpenShiftClient> cacheBuilder =
                 Caffeine.newBuilder()
@@ -515,11 +517,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     .thenCompose(
                             res -> {
                                 try {
-                                    // TODO replace with gson?
-                                    ObjectMapper objectMapper = new ObjectMapper();
                                     return CompletableFuture.completedStage(
-                                            objectMapper.readValue(
-                                                    res.body(), OAuthMetadata.class));
+                                            gson.fromJson(res.body(), OAuthMetadata.class));
                                 } catch (Exception e) {
                                     return CompletableFuture.failedStage(e);
                                 }
@@ -698,18 +697,15 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    // Holder for deserialized response from OAuth server. Ignores unneeded properties.
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    // Holder for deserialized response from OAuth server.
     static class OAuthMetadata {
-        private String baseUrl;
-        private String authorizationEndpoint;
+        private @SerializedName("issuer") String baseUrl;
+        private @SerializedName("authorization_endpoint") String authorizationEndpoint;
 
-        @JsonProperty("issuer")
         public String getBaseUrl() {
             return baseUrl;
         }
 
-        @JsonProperty("authorization_endpoint")
         public String getAuthorizationEndpoint() {
             return authorizationEndpoint;
         }

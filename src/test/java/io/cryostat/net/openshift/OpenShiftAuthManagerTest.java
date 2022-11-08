@@ -169,6 +169,7 @@ class OpenShiftAuthManagerTest {
                         () -> client,
                         tokenProvider,
                         classPropertiesLoader,
+                        gson,
                         Runnable::run,
                         Scheduler.disabledScheduler(),
                         logger);
