@@ -58,7 +58,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.MissingEnvironmentVariableException;
 import io.cryostat.net.PermissionDeniedException;
-import io.cryostat.net.TokenNotFoundException;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.openshift.OpenShiftAuthManager.GroupResource;
 import io.cryostat.net.security.ResourceAction;
@@ -552,7 +551,7 @@ class OpenShiftAuthManagerTest {
     }
 
     @Test
-    void shouldThrowWhenTokenDeletionFailsOnLogout() throws Exception {
+    void shouldLogWhenTokenDeletionFailsOnLogout() throws Exception {
         Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
         NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
                 tokens = Mockito.mock(NonNamespaceOperation.class);
@@ -568,8 +567,35 @@ class OpenShiftAuthManagerTest {
         Mockito.when(status.getCauses()).thenReturn(List.of(cause));
         Mockito.when(token.delete()).thenReturn(List.of(status));
 
-        Assertions.assertThrows(
-                TokenNotFoundException.class, () -> mgr.logout(() -> "Bearer myToken").get());
+        Mockito.when(client.getHttpClient()).thenReturn(httpClient);
+        Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
+
+        HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
+        Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
+        Mockito.when(requestBuilder.header(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(requestBuilder);
+
+        HttpRequest request = Mockito.mock(HttpRequest.class);
+        Mockito.when(requestBuilder.build()).thenReturn(request);
+        Mockito.when(httpClient.newHttpRequestBuilder()).thenReturn(requestBuilder);
+
+        HttpResponse<String> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(resp.body()).thenReturn(OAUTH_METADATA);
+
+        Mockito.when(httpClient.sendAsync(request, String.class))
+                .thenReturn(CompletableFuture.completedFuture(resp));
+
+        Mockito.verifyNoInteractions(logger);
+
+        mgr.logout(() -> "Bearer myToken").get();
+
+        ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
+        Mockito.verify(logger).warn(logCaptor.capture());
+        MatcherAssert.assertThat(
+                logCaptor.getValue().toString(),
+                Matchers.equalTo(
+                        "io.cryostat.net.TokenNotFoundException: Token not found: [[token] some"
+                                + " reason: some message]"));
     }
 
     @ParameterizedTest

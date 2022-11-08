@@ -406,7 +406,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 sc.getField(), sc.getReason(), sc.getMessage()))
                         .toList();
         if (!causes.isEmpty()) {
-            throw new TokenNotFoundException(causes);
+            logger.warn(new TokenNotFoundException(causes));
         }
     }
 
