@@ -76,7 +76,7 @@
   <org.apache.commons.validator.version>1.7</org.apache.commons.validator.version>
   <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
-  <io.fabric8.client.version>5.12.2</io.fabric8.client.version>
+  <io.fabric8.client.version>6.2.0</io.fabric8.client.version>
   <io.vertx.web.version>4.3.4</io.vertx.web.version>
   <com.nimbusds.jose.jwt.version>9.25.6</com.nimbusds.jose.jwt.version>
   <org.bouncycastle.version>1.70</org.bouncycastle.version>

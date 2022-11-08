@@ -52,6 +52,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -131,6 +132,7 @@ public abstract class OpenShiftNetworkModule {
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
+            Gson gson,
             Logger logger) {
         return new OpenShiftAuthManager(
                 env,
@@ -138,6 +140,7 @@ public abstract class OpenShiftNetworkModule {
                 serviceAccountClient,
                 clientProvider,
                 classPropertiesLoader,
+                gson,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 logger);
