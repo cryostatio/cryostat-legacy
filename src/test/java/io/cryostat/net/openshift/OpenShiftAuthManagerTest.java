@@ -67,8 +67,6 @@ import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
-import io.fabric8.kubernetes.api.model.authentication.TokenReview;
-import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
@@ -78,6 +76,8 @@ import io.fabric8.kubernetes.client.http.HttpRequest;
 import io.fabric8.kubernetes.client.http.HttpResponse;
 import io.fabric8.openshift.api.model.OAuthAccessToken;
 import io.fabric8.openshift.api.model.OAuthAccessTokenList;
+import io.fabric8.openshift.api.model.User;
+import io.fabric8.openshift.api.model.UserBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
@@ -109,6 +109,7 @@ class OpenShiftAuthManagerTest {
     static final String SUBJECT_REVIEW_API_PATH =
             "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews";
     static final String TOKEN_REVIEW_API_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";
+    static final String USER_SELF_INFO_API_PATH = "/apis/user.openshift.io/v1/users/~";
     static final String BASE_URL = "https://oauth-issuer";
     static final String AUTHORIZATION_URL = BASE_URL + "/oauth/authorize";
     static final String NAMESPACE = "namespace";
@@ -119,7 +120,7 @@ class OpenShiftAuthManagerTest {
     static final String BASE_ROLE_SCOPE = "oauth-role-scope";
     static final String CUSTOM_ROLE_SCOPE = "custom-oauth-role-scope";
     static final String BASE_TOKEN_SCOPE =
-            String.format("user:check-access+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
+            String.format("user:check-access+user:info+role:%s:%s", BASE_ROLE_SCOPE, NAMESPACE);
     static final String CUSTOM_TOKEN_SCOPE =
             String.format("%s+role:%s:%s", BASE_TOKEN_SCOPE, CUSTOM_ROLE_SCOPE, NAMESPACE);
     static final String BASE_OAUTH_QUERY_PARAMETERS =
@@ -239,19 +240,11 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldReturnUserInfo() throws Exception {
-        TokenReview tokenReview =
-                new TokenReviewBuilder()
-                        .withNewStatus()
-                        .withAuthenticated(true)
-                        .withNewUser()
-                        .withUsername("fooUser")
-                        .endUser()
-                        .endStatus()
-                        .build();
+        User user = new UserBuilder().withFullName("fooUser").build();
         server.expect()
-                .post()
-                .withPath(TOKEN_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .get()
+                .withPath(USER_SELF_INFO_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_OK, user)
                 .once();
 
         UserInfo userInfo = mgr.getUserInfo(() -> "Bearer abc123").get();
@@ -267,16 +260,11 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldValidateTokenWithNoRequiredPermissions() throws Exception {
-        TokenReview tokenReview =
-                new TokenReviewBuilder()
-                        .withNewStatus()
-                        .withAuthenticated(true)
-                        .endStatus()
-                        .build();
+        User user = new UserBuilder().withFullName("fooUser").build();
         server.expect()
-                .post()
-                .withPath(TOKEN_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .get()
+                .withPath(USER_SELF_INFO_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_OK, user)
                 .once();
 
         MatcherAssert.assertThat(
@@ -285,16 +273,24 @@ class OpenShiftAuthManagerTest {
 
     @Test
     void shouldNotValidateTokenWithNoRequiredPermissionsButNoTokenAccess() throws Exception {
-        TokenReview tokenReview =
-                new TokenReviewBuilder()
-                        .withNewStatus()
-                        .withAuthenticated(false)
-                        .endStatus()
-                        .build();
         server.expect()
-                .post()
-                .withPath(TOKEN_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .get()
+                .withPath(USER_SELF_INFO_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_UNAUTHORIZED, "")
+                .once();
+
+        MatcherAssert.assertThat(
+                mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(),
+                Matchers.is(false));
+    }
+
+    @Test
+    void shouldNotValidateTokenWithNoRequiredPermissionsButNoUserInfo() throws Exception {
+        User user = new UserBuilder().withFullName("").build();
+        server.expect()
+                .get()
+                .withPath(USER_SELF_INFO_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_OK, user)
                 .once();
 
         MatcherAssert.assertThat(
@@ -439,9 +435,6 @@ class OpenShiftAuthManagerTest {
         Mockito.when(client.getMasterUrl()).thenReturn(new URL("https://example.com"));
 
         HttpRequest.Builder requestBuilder = Mockito.mock(HttpRequest.Builder.class);
-        Mockito.when(requestBuilder.post(Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(requestBuilder);
-        Mockito.when(requestBuilder.url(Mockito.any(URL.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.uri(Mockito.any(URI.class))).thenReturn(requestBuilder);
         Mockito.when(requestBuilder.header(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(requestBuilder);
@@ -449,7 +442,6 @@ class OpenShiftAuthManagerTest {
         HttpRequest request = Mockito.mock(HttpRequest.class);
         Mockito.when(requestBuilder.build()).thenReturn(request);
         Mockito.when(httpClient.newHttpRequestBuilder()).thenReturn(requestBuilder);
-        Mockito.when(request.uri()).thenReturn(URI.create("https://example.com"));
 
         HttpResponse<String> resp = Mockito.mock(HttpResponse.class);
         Mockito.when(resp.body()).thenReturn(OAUTH_METADATA);

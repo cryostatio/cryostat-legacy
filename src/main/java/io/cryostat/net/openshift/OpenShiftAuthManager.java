@@ -85,15 +85,13 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.api.model.authentication.TokenReview;
-import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
-import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.ResourceAttributes;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.http.HttpClient;
 import io.fabric8.kubernetes.client.http.HttpRequest;
+import io.fabric8.openshift.api.model.User;
 import io.fabric8.openshift.client.OpenShiftClient;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
@@ -191,15 +189,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        String token = getTokenFromHttpHeader(httpHeaderProvider.get());
-        Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
-            TokenReviewStatus status = fStatus.get();
-            if (!Boolean.TRUE.equals(status.getAuthenticated())) {
-                return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException("Authentication Failed"));
-            }
-            return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
+            String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+            Future<String> fUserName = authenticateUserToken(token);
+            return CompletableFuture.completedFuture(new UserInfo(fUserName.get()));
         } catch (ExecutionException ee) {
             return CompletableFuture.failedFuture(ee.getCause());
         } catch (Exception e) {
@@ -276,14 +269,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    Future<Boolean> reviewToken(String token) {
-        Future<TokenReviewStatus> fStatus = performTokenReview(token);
+    private Future<Boolean> reviewToken(String token) {
+        Future<String> fUserName = authenticateUserToken(token);
         try {
-            TokenReviewStatus status = fStatus.get();
-            Boolean authenticated = status.getAuthenticated();
-            return CompletableFuture.completedFuture(authenticated != null && authenticated);
+            return CompletableFuture.completedFuture(StringUtils.isNotBlank(fUserName.get()));
         } catch (ExecutionException ee) {
-            return CompletableFuture.failedFuture(ee.getCause());
+            return CompletableFuture.completedFuture(false);
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -419,23 +410,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Future<TokenReviewStatus> performTokenReview(String token) {
+    /**
+     * @param token the token to authenticate
+     * @return the FullName of the User who owns the token
+     */
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification = "SpotBugs thinks the client instance is null")
+    private Future<String> authenticateUserToken(String token) {
         try {
-            TokenReview review =
-                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = serviceAccountClient.get().tokenReviews().create(review);
-            TokenReviewStatus status = review.getStatus();
-            if (StringUtils.isNotBlank(status.getError())) {
-                return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException(status.getError()));
-            }
-            return CompletableFuture.completedFuture(status);
+            OpenShiftClient client = userClients.get(token);
+            User user = client.currentUser(); // user.openshift.io/v1/users/~
+            return CompletableFuture.completedFuture(user.getFullName());
         } catch (KubernetesClientException e) {
+            userClients.invalidate(token);
             logger.info(e);
-            return CompletableFuture.failedFuture(e);
+            return CompletableFuture.failedFuture(new AuthorizationErrorException(e));
         } catch (Exception e) {
+            userClients.invalidate(token);
             logger.error(e);
-            return CompletableFuture.failedFuture(e);
+            return CompletableFuture.failedFuture(new AuthorizationErrorException(e));
         }
     }
 
@@ -540,7 +534,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         String tokenScope =
                 String.format(
-                        "user:check-access role:%s:%s",
+                        "user:check-access user:info role:%s:%s",
                         baseOAuthRole.orElseThrow(
                                 () ->
                                         new MissingEnvironmentVariableException(
