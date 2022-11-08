@@ -46,14 +46,21 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpVersion;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.LoggerFormat;
+import io.vertx.ext.web.handler.LoggerFormatter;
 import io.vertx.ext.web.handler.LoggerHandler;
+import io.vertx.ext.web.impl.Utils;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.apache.commons.io.FileUtils;
 
 class RequestLoggingHandler implements RequestHandler {
 
@@ -61,7 +68,9 @@ class RequestLoggingHandler implements RequestHandler {
 
     @Inject
     RequestLoggingHandler() {
-        this.delegate = LoggerHandler.create();
+        this.delegate =
+                LoggerHandler.create(LoggerFormat.CUSTOM)
+                        .customFormatter(new VertxDefaultFormatterWithDuration());
     }
 
     @Override
@@ -112,6 +121,74 @@ class RequestLoggingHandler implements RequestHandler {
                         });
 
         this.delegate.handle(ctx);
+    }
+
+    // this is ripped from the LoggerHandler's `DEFAULT` format, but with the addition of the
+    // request duration after the timestamp and formatting the content-length
+    private static class VertxDefaultFormatterWithDuration implements LoggerFormatter {
+
+        @Override
+        public String format(RoutingContext context, long ms) {
+            HttpServerRequest request = context.request();
+
+            String remoteClient = getClientAddress(context.request().remoteAddress());
+            String rfc1123DateTime = Utils.formatRFC1123DateTime(System.currentTimeMillis());
+            HttpMethod method = context.request().method();
+            String uri = context.request().uri();
+            String httpVersion = httpVersion(context.request().version());
+            int status = request.response().getStatusCode();
+            String contentLength =
+                    FileUtils.byteCountToDisplaySize(request.response().bytesWritten());
+
+            MultiMap headers = request.headers();
+            String referrer =
+                    orDefault(
+                            headers.contains("referrer")
+                                    ? headers.get("referrer")
+                                    : headers.get("referer"),
+                            "-");
+            String userAgent = orDefault(request.headers().get("user-agent"), "-");
+
+            return String.format(
+                    "%s - - [%s] %dms \"%s %s %s\" %d %s \"%s\"" + " \"%s\"",
+                    remoteClient,
+                    rfc1123DateTime,
+                    ms,
+                    method,
+                    uri,
+                    httpVersion,
+                    status,
+                    contentLength,
+                    referrer,
+                    userAgent);
+        }
+
+        private String httpVersion(HttpVersion version) {
+            String versionFormatted = "-";
+            switch (version) {
+                case HTTP_1_0:
+                    versionFormatted = "HTTP/1.0";
+                    break;
+                case HTTP_1_1:
+                    versionFormatted = "HTTP/1.1";
+                    break;
+                case HTTP_2:
+                    versionFormatted = "HTTP/2.0";
+                    break;
+            }
+            return versionFormatted;
+        }
+
+        private String getClientAddress(SocketAddress inetSocketAddress) {
+            if (inetSocketAddress == null) {
+                return null;
+            }
+            return inetSocketAddress.host();
+        }
+
+        private String orDefault(String v, String d) {
+            return v == null ? d : v;
+        }
     }
 
     @Name("io.cryostat.net.web.WebServer.WebServerRequest")
