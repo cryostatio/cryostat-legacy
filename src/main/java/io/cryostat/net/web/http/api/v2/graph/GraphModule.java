@@ -252,16 +252,6 @@ public abstract class GraphModule {
             TargetNodeRecurseFetcher apdf);
 
     @Provides
-    static EnvironmentNodeRecurseFetcher provideEnvironmentNodeRecurseFetcher(AuthManager auth) {
-        return new EnvironmentNodeRecurseFetcher(auth);
-    }
-
-    @Binds
-    @IntoSet
-    abstract AbstractPermissionedDataFetcher<?> bindEnvironmentNodeRecurseFetcher(
-            EnvironmentNodeRecurseFetcher apdf);
-
-    @Provides
     static NodeFetcher provideNodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
         return new NodeFetcher(auth, rootNodeFetcher);
     }
