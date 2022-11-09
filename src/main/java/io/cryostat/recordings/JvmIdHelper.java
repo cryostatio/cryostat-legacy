@@ -43,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -135,6 +137,10 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         }
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
+        if (sr.getJvmId() != null) {
+            reverse.put(sr.getJvmId(), sr);
+            return sr;
+        }
         try {
             CompletableFuture<String> future =
                     this.targetConnectionManager.executeConnectedTaskAsync(

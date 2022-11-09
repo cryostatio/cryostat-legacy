@@ -669,9 +669,12 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            Metadata metadata = new Metadata(); // FIXME this needs to have a security context -
-            // should do a reverse lookup of the jvmId to get
-            // its ServiceRef and build the context from that
+            SecurityContext sc =
+                    jvmIdHelper
+                            .reverseLookup(jvmId)
+                            .map(SecurityContext::new)
+                            .orElse(SecurityContext.DEFAULT);
+            Metadata metadata = new Metadata(sc, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
             return metadata;
         }
@@ -1007,14 +1010,14 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
+        /*
+         * The main Gson instance ignores transient fields, but the Gson instance used by
+         * RecordingMetadataManager is the GSON_INTERNAL which /does/ serialize transient fields.
+         * This keeps the securityContext out of API responses but preserves it for internal
+         * bookkeeping.
+         * */
         protected final transient SecurityContext securityContext;
         protected final Map<String, String> labels;
-
-        @Deprecated
-        public Metadata() {
-            this.securityContext = SecurityContext.DEFAULT;
-            this.labels = new ConcurrentHashMap<>();
-        }
 
         public Metadata(Metadata o) {
             this.securityContext = o.securityContext;
