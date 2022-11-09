@@ -46,6 +46,8 @@ import java.util.function.Supplier;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
@@ -96,5 +98,15 @@ public class NoopAuthManager extends AbstractAuthManager {
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return SecurityContext.DEFAULT;
     }
 }

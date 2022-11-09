@@ -63,6 +63,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebModule;
@@ -172,6 +173,7 @@ public abstract class RecordingsModule {
     @Provides
     @Singleton
     static RecordingMetadataManager provideRecordingMetadataManager(
+            AuthManager auth,
             // FIXME Use a database connection or create a new filesystem path instead of
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
@@ -200,6 +202,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
+                    auth,
                     executor,
                     metadataDir,
                     archivedRecordingsPath,

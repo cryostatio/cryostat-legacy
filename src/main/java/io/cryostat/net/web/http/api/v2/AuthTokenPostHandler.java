@@ -54,13 +54,13 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
@@ -175,7 +175,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         }
         return discoveryStorage
                 .lookupServiceByTargetId(targetId)
-                .map(SecurityContext::new)
+                .map(auth::contextFor)
                 .orElse(null);
     }
 

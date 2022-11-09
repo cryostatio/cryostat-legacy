@@ -49,9 +49,9 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -107,7 +107,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
-                .map(SecurityContext::new)
+                .map(auth::contextFor)
                 .orElse(null);
     }
 

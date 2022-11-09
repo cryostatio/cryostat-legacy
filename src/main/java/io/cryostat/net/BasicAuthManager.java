@@ -56,6 +56,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -176,6 +178,16 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return SecurityContext.DEFAULT;
     }
 
     private Pair<String, String> splitCredentials(String credentials) {

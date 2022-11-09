@@ -52,11 +52,11 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.net.security.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
@@ -82,13 +82,12 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         try {
             // all nodes here came from the same parent and must be in the same namespace, so all
-            // have
-            // the same security context
+            // have the same security context
             List<TargetNode> nodes = getAuthenticated(environment);
             if (nodes.isEmpty()) {
                 return SecurityContext.DEFAULT;
             }
-            return new SecurityContext(nodes.get(0).getTarget());
+            return auth.contextFor(nodes.get(0));
         } catch (Exception e) {
             return null;
         }

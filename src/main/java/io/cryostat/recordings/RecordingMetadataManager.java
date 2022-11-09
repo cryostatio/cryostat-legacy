@@ -40,11 +40,9 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -69,16 +67,13 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
@@ -100,6 +95,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
+    private final AuthManager auth;
     private final ExecutorService executor;
     private final Path recordingMetadataDir;
     private final Path archivedRecordingsPath;
@@ -118,6 +114,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final CountDownLatch migrationLatch = new CountDownLatch(1);
 
     RecordingMetadataManager(
+            AuthManager auth,
             ExecutorService executor,
             Path recordingMetadataDir,
             Path archivedRecordingsPath,
@@ -132,6 +129,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             Gson gson,
             Base32 base32,
             Logger logger) {
+        this.auth = auth;
         this.executor = executor;
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
@@ -529,7 +527,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         SecurityContext securityContext =
                 discoveryStorage
                         .lookupServiceByTargetId(connectUrl)
-                        .map(SecurityContext::new)
+                        .map(auth::contextFor)
                         .orElse(SecurityContext.DEFAULT);
 
         Metadata contextualMetadata = new Metadata(securityContext, metadata.getLabels());
@@ -576,7 +574,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         SecurityContext securityContext =
                 discoveryStorage
                         .lookupServiceByTargetId(connectionDescriptor.getTargetId())
-                        .map(SecurityContext::new)
+                        .map(auth::contextFor)
                         .orElse(SecurityContext.DEFAULT);
 
         Metadata contextualMetadata = new Metadata(securityContext, labels);
@@ -652,7 +650,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             SecurityContext securityContext =
                     discoveryStorage
                             .lookupServiceByTargetId(connectionDescriptor.getTargetId())
-                            .map(SecurityContext::new)
+                            .map(auth::contextFor)
                             .orElse(SecurityContext.DEFAULT);
 
             metadata = new Metadata(securityContext, Map.of());
@@ -673,7 +671,7 @@ public class RecordingMetadataManager extends AbstractVerticle
             SecurityContext sc =
                     jvmIdHelper
                             .reverseLookup(jvmId)
-                            .map(SecurityContext::new)
+                            .map(auth::contextFor)
                             .orElse(SecurityContext.DEFAULT);
             Metadata metadata = new Metadata(sc, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
@@ -1031,7 +1029,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
 
         public SecurityContext getSecurityContext() {
-            return new SecurityContext(securityContext);
+            return securityContext;
         }
 
         public Map<String, String> getLabels() {

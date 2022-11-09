@@ -43,9 +43,9 @@ import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.security.SecurityContext;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;

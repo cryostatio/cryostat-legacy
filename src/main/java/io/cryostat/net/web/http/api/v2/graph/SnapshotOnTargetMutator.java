@@ -50,6 +50,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -80,7 +81,7 @@ class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecor
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         TargetNode node = environment.getSource();
-        return new SecurityContext(node);
+        return auth.contextFor(node);
     }
 
     @Override

@@ -51,10 +51,10 @@ import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
@@ -115,7 +115,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
-                .map(SecurityContext::new)
+                .map(auth::contextFor)
                 .orElse(null);
     }
 

@@ -47,6 +47,8 @@ import java.util.function.Supplier;
 
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 public interface AuthManager {
     AuthenticationScheme getScheme();
@@ -77,4 +79,8 @@ public interface AuthManager {
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+
+    SecurityContext contextFor(AbstractNode node);
+
+    SecurityContext contextFor(ServiceRef serviceRef);
 }

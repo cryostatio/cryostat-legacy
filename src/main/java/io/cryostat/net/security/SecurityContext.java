@@ -37,98 +37,14 @@
  */
 package io.cryostat.net.security;
 
-import java.net.URI;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+public interface SecurityContext {
 
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
+    static final SecurityContext DEFAULT = new DefaultSecurityContext();
 
-public class SecurityContext {
-    private static final String KEY_NS = "NS";
-    private static final String KEY_SRC = "SRC";
-    private static final String KEY_JVMID = "JVMID";
-
-    public static final SecurityContext DEFAULT =
-        new SecurityContext(Map.of("__SC__", "default")) {
-            @Override
-            public String toString() {
-                return "__DEFAULT__";
-            }
-        };
-
-    private final Map<String, String> ctx;
-
-    private SecurityContext(Map<String, String> ctx) {
-        this.ctx = Collections.unmodifiableMap(new HashMap<>(ctx));
-    }
-
-    public SecurityContext(SecurityContext o) {
-        this.ctx = new HashMap<>(o.ctx);
-    }
-
-    public SecurityContext(ServiceRef serviceRef) {
-        this.ctx = new HashMap<>();
-        if (serviceRef.getCryostatAnnotations().containsKey(AnnotationKey.NAMESPACE)) {
-            ctx.put(KEY_NS, serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
+    static class DefaultSecurityContext implements SecurityContext {
+        @Override
+        public String toString() {
+            return "__DEFAULT__";
         }
-        ctx.put(KEY_SRC, serviceRef.getServiceUri().toString());
-        ctx.put(KEY_JVMID, serviceRef.getJvmId());
-    }
-
-    public SecurityContext(TargetNode node) {
-        this(node.getTarget());
-    }
-
-    public SecurityContext(EnvironmentNode node) {
-        // FIXME this should be more platform-agnostic
-        if (KubernetesNodeType.NAMESPACE.getKind().equals(node.getNodeType().getKind())) {
-            this.ctx = new HashMap<>();
-            ctx.put(KEY_NS, node.getName());
-        } else {
-            this.ctx = new HashMap<>(DEFAULT.ctx);
-        }
-    }
-
-    public String getNamespace() {
-        return ctx.get(KEY_NS);
-    }
-
-    public URI getSource() {
-        return URI.create(ctx.get(KEY_SRC));
-    }
-
-    public String getJvmId() {
-        return ctx.get(KEY_JVMID);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ctx);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        SecurityContext other = (SecurityContext) obj;
-        return Objects.equals(ctx, other.ctx);
-    }
-
-    @Override
-    public String toString() {
-        return ctx.toString();
     }
 }

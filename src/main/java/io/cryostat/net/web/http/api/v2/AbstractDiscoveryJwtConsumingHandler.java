@@ -55,6 +55,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -63,7 +64,6 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.StringUtil;
 
 import com.nimbusds.jose.JOSEException;

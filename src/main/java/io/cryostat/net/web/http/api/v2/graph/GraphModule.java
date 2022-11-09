@@ -271,8 +271,9 @@ public abstract class GraphModule {
     static NodeFetcher provideNodeFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
-        return new NodeFetcher(auth, credentialsManager, rootNodeFetcher);
+            RootNodeFetcher rootNodeFetcher,
+            Logger logger) {
+        return new NodeFetcher(auth, credentialsManager, rootNodeFetcher, logger);
     }
 
     @Binds

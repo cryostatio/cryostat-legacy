@@ -47,9 +47,9 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.net.security.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
@@ -73,7 +73,7 @@ class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<Lis
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         EnvironmentNode source = environment.getSource();
-        return new SecurityContext(source);
+        return auth.contextFor(source);
     }
 
     @Override

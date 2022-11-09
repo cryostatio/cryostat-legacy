@@ -45,26 +45,28 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.net.security.SecurityContext;
 
 import graphql.schema.DataFetchingEnvironment;
 
 class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
 
     private final RootNodeFetcher rootNodeFetcher;
+    private final Logger logger;
 
     @Inject
     NodeFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
+            RootNodeFetcher rootNodeFetcher, Logger logger) {
         super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodeFetcher;
+        this.logger = logger;
     }
 
     @Override
@@ -81,16 +83,10 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         try {
             AbstractNode source = getAuthenticated(environment);
-            if (source instanceof TargetNode) {
-                return new SecurityContext((TargetNode) source);
-            } else if (source instanceof EnvironmentNode) {
-                return new SecurityContext((EnvironmentNode) source);
-            } else {
-                return null;
-            }
+            return auth.contextFor(source);
         } catch (Exception e) {
-            // FIXME log
-            return null;
+            logger.error(e);
+            throw new IllegalStateException(e);
         }
     }
 

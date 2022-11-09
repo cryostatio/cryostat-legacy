@@ -76,6 +76,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -252,11 +254,19 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Supplier<String> tokenProvider,
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions) {
+        if (securityContext == null) {
+            throw new IllegalStateException("SecurityContext was null");
+        }
+        if (!(securityContext instanceof OpenShiftSecurityContext)) {
+            throw new IllegalStateException(
+                    String.format(
+                            "SecurityContext was of type %s, expected s",
+                            securityContext.getClass().getName(),
+                            OpenShiftSecurityContext.class.getName()));
+        }
+
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
-            return CompletableFuture.completedFuture(false);
-        }
-        if (securityContext == null) {
             return CompletableFuture.completedFuture(false);
         }
         if (resourceActions.isEmpty()) {
@@ -269,7 +279,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             // two separate contexts?
             ns = namespace.get();
         } else {
-            ns = securityContext.getNamespace();
+            ns = ((OpenShiftSecurityContext) securityContext).getNamespace();
         }
         // FIXME remove
         logger.info(
@@ -300,6 +310,16 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return new OpenShiftSecurityContext(node);
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return new OpenShiftSecurityContext(serviceRef);
     }
 
     Future<Boolean> reviewToken(String token) {

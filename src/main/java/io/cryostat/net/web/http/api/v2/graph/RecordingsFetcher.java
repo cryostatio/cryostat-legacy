@@ -58,6 +58,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.platform.ServiceRef;
@@ -65,7 +66,6 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -109,7 +109,7 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         TargetNode source = (TargetNode) environment.getSource();
-        return new SecurityContext(source);
+        return auth.contextFor(source);
     }
 
     @Override

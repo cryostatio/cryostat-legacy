@@ -40,8 +40,8 @@ package io.cryostat.net.web.http;
 import java.util.List;
 
 import io.cryostat.net.security.PermissionedAction;
-import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;

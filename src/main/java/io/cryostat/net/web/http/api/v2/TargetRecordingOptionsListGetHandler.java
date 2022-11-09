@@ -54,9 +54,9 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.security.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -119,7 +119,7 @@ class TargetRecordingOptionsListGetHandler
         ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
-                .map(SecurityContext::new)
+                .map(auth::contextFor)
                 .orElse(null);
     }
 

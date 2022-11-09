@@ -46,8 +46,8 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.discovery.EnvironmentNode;
 
 import graphql.schema.DataFetchingEnvironment;
 
