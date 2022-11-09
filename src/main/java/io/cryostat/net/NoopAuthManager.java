@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 
 public class NoopAuthManager extends AbstractAuthManager {
 

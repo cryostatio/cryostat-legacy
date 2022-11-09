@@ -53,7 +53,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingArchiveHelper.ArchiveDirectory;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.rules.ArchivePathException;
 
 import com.google.gson.Gson;

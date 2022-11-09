@@ -75,7 +75,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Caffeine;

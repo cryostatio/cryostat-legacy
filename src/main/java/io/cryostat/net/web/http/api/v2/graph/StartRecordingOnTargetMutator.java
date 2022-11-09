@@ -64,7 +64,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 

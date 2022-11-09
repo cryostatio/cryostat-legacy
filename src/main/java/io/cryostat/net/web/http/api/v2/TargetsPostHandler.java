@@ -67,6 +67,7 @@ import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;

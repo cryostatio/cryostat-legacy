@@ -63,7 +63,7 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.StringUtil;
 
 import com.nimbusds.jose.JOSEException;

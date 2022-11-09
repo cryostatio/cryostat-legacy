@@ -61,7 +61,7 @@ import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;

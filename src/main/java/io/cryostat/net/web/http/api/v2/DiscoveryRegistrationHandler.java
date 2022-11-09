@@ -65,7 +65,7 @@ import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.StringUtil;
 
 import com.google.gson.Gson;

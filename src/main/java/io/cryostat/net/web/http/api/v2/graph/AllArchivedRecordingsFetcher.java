@@ -55,7 +55,7 @@ import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Aggregate
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetchingEnvironment;

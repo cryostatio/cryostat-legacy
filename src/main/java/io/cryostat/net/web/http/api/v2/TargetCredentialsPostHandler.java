@@ -54,7 +54,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;

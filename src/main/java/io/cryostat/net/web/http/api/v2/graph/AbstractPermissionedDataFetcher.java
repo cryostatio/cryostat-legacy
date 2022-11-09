@@ -50,7 +50,7 @@ import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;

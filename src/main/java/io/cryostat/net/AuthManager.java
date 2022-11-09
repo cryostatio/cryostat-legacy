@@ -46,7 +46,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 
 public interface AuthManager {
     AuthenticationScheme getScheme();
