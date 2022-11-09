@@ -84,7 +84,7 @@ runDemoApps() {
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -92,7 +92,7 @@ runDemoApps() {
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -101,7 +101,7 @@ runDemoApps() {
         --env USE_SSL=true \
         --env USE_AUTH=true \
         --pod cryostat-pod \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.8.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
@@ -118,8 +118,8 @@ runDemoApps() {
     podman run \
         --name quarkus-test-agent \
         --pod cryostat-pod \
+        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9898 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10012 \
-        --env JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9898 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
@@ -128,12 +128,13 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --rm -d quay.io/andrewazores/quarkus-test:0.0.9
+        --rm -d quay.io/andrewazores/quarkus-test:0.0.10
 
     podman run \
         --name quarkus-test-plugin \
         --pod cryostat-pod \
         --restart unless-stopped \
+        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="true" \
         --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(printf user:pass | base64)" \
@@ -141,21 +142,21 @@ runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
         --env ORG_ACME_JMXPORT="9097" \
-        -d quay.io/andrewazores/quarkus-test:0.0.8
+        -d quay.io/andrewazores/quarkus-test:0.0.10
 
     podman run \
         --name quarkus-test-plugin-2 \
         --pod cryostat-pod \
         --restart unless-stopped \
+        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9197 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false" \
         --env QUARKUS_HTTP_PORT=10011 \
-        --env JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9197 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false" \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="true" \
         --env ORG_ACME_CRYOSTATSERVICE_AUTHORIZATION="Basic $(printf user:pass | base64)" \
         --env ORG_ACME_CRYOSTATSERVICE_MP_REST_URL="${protocol}://cryostat:${webPort}" \
         --env ORG_ACME_CRYOSTATSERVICE_CALLBACK_HOST="cryostat" \
         --env ORG_ACME_JMXHOST="cryostat" \
         --env ORG_ACME_JMXPORT="9197" \
-        -d quay.io/andrewazores/quarkus-test:0.0.8
+        -d quay.io/andrewazores/quarkus-test:0.0.10
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
