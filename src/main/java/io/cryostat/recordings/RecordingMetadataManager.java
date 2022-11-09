@@ -1007,6 +1007,8 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
+        // FIXME this needs to be persisted to disk for archived recordings, but it should not be
+        // present in serialized form for API responses. Use a separate Gson instance or something?
         protected final SecurityContext securityContext;
         protected final Map<String, String> labels;
 
@@ -1059,6 +1061,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
+    // TODO move this into io.cryostat.net.security , make an interface, and have each AuthManager
+    // implementation produce and consume a concrete type specific to the AuthManager
     public static class SecurityContext {
         private static final String KEY_NS = "NS";
         private static final String KEY_SRC = "SRC";
