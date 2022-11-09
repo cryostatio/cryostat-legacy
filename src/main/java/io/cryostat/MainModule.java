@@ -47,30 +47,26 @@ import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.management.remote.JMXServiceURL;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
-import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
-import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
-import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.MemoryUsageTypeAdapter;
+import io.cryostat.util.JmxServiceUrlAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
@@ -82,6 +78,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
@@ -145,6 +142,34 @@ public abstract class MainModule {
         return provideGson(Set.of(), Set.of(), logger);
     }
 
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideJmxServiceUrlAdapter(Logger logger) {
+        return new JmxServiceUrlAdapter(logger);
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideHttpMimeTypeAdapter() {
+        return new HttpMimeTypeAdapter();
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideProbeTemplateAdapter() {
+        return new ProbeTemplateTypeAdapter();
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableJsonDeserializer<?> provideRuleDeserializer() {
+        return new RuleDeserializer();
+    }
+
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
@@ -156,13 +181,14 @@ public abstract class MainModule {
     }
 
     private static GsonBuilder gsonBuilder(
-            Set<PluggableTypeAdapter<?>> extraAdapters,
+            Set<PluggableTypeAdapter<?>> typeAdapters,
             Set<PluggableJsonDeserializer<?>> deserializers,
             Logger logger) {
         GsonBuilder builder =
                 new GsonBuilder()
                         .serializeNulls()
                         .disableHtmlEscaping()
+<<<<<<< HEAD
                         .registerTypeAdapter(
                                 JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
@@ -171,6 +197,10 @@ public abstract class MainModule {
                         .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter())
                         .registerTypeAdapter(MemoryUsage.class, new MemoryUsageTypeAdapter());
         for (PluggableTypeAdapter<?> pta : extraAdapters) {
+=======
+                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter());
+        for (PluggableTypeAdapter<?> pta : typeAdapters) {
+>>>>>>> f99f5a1b (gson adapter refactor)
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }
         for (PluggableJsonDeserializer<?> pjd : deserializers) {

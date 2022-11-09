@@ -43,12 +43,15 @@ import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 
-public class RuleDeserializer implements JsonDeserializer<Rule> {
+public class RuleDeserializer extends PluggableJsonDeserializer<Rule> {
+
+    public RuleDeserializer() {
+        super(Rule.class);
+    }
 
     @Override
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)

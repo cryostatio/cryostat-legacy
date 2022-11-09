@@ -43,15 +43,15 @@ import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
+public class JmxServiceUrlAdapter extends PluggableTypeAdapter<JMXServiceURL> {
 
     private final Logger logger;
 
-    public GsonJmxServiceUrlAdapter(Logger logger) {
+    public JmxServiceUrlAdapter(Logger logger) {
+        super(JMXServiceURL.class);
         this.logger = logger;
     }
 
