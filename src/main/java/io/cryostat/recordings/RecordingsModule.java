@@ -185,7 +185,7 @@ public abstract class RecordingsModule {
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
-            Gson gson,
+            @Named(MainModule.GSON_INTERNAL) Gson gson,
             Base32 base32,
             Logger logger) {
         try {

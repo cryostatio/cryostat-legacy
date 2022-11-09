@@ -38,6 +38,7 @@
 package io.cryostat;
 
 import java.lang.management.MemoryUsage;
+import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
@@ -102,6 +103,7 @@ public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
     public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
+    public static final String GSON_INTERNAL = "GSON_INTERNAL";
 
     @Provides
     @Singleton
@@ -147,6 +149,13 @@ public abstract class MainModule {
     @Provides
     @Singleton
     public static Gson provideGson(
+            Set<PluggableTypeAdapter<?>> typeAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
+        return gsonBuilder(typeAdapters, deserializers, logger).create();
+    }
+
+    private static GsonBuilder gsonBuilder(
             Set<PluggableTypeAdapter<?>> extraAdapters,
             Set<PluggableJsonDeserializer<?>> deserializers,
             Logger logger) {
@@ -167,7 +176,24 @@ public abstract class MainModule {
         for (PluggableJsonDeserializer<?> pjd : deserializers) {
             builder = builder.registerTypeAdapter(pjd.getAdaptedType(), pjd);
         }
-        return builder.create();
+        return builder;
+    }
+
+    @Provides
+    @Singleton
+    @Named(GSON_INTERNAL)
+    /* provides a Gson instance which includes fields with the "transient" modifier. These fields
+     * will be excluded by the main Gson instance for most purposes, like serializing structures to
+     * send as API responses. This alternate instance can be used in cases where a field should not
+     * be exposed externally in an API response but should be serialized for local storage.
+     * */
+    public static Gson provideInternalGson(
+            Set<PluggableTypeAdapter<?>> typeAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
+        return gsonBuilder(typeAdapters, deserializers, logger)
+                .excludeFieldsWithModifiers(Modifier.STATIC)
+                .create();
     }
 
     @Provides

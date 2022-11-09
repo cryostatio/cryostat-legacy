@@ -1007,9 +1007,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
-        // FIXME this needs to be persisted to disk for archived recordings, but it should not be
-        // present in serialized form for API responses. Use a separate Gson instance or something?
-        protected final SecurityContext securityContext;
+        protected final transient SecurityContext securityContext;
         protected final Map<String, String> labels;
 
         @Deprecated
