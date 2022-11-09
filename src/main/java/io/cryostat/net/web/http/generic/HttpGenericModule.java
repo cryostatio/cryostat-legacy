@@ -50,7 +50,7 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRequestLoggingHandler(RequestLoggingHandler handler);
+    abstract RequestHandler<?> bindRequestLoggingHandler(RequestLoggingHandler handler);
 
     @Binds
     @IntoSet

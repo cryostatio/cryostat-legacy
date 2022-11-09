@@ -131,11 +131,6 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.HTML);
-    }
-
-    @Override
     public SecurityContext securityContext(RoutingContext ctx) {
         ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
         return discoveryStorage

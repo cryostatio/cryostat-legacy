@@ -76,8 +76,8 @@ class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecor
     String name() {
         return "doSnapshot";
     }
-    @Override
 
+    @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         TargetNode node = environment.getSource();
         return new SecurityContext(node);
