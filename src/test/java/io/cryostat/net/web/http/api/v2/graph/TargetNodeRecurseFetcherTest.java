@@ -217,7 +217,7 @@ class TargetNodeRecurseFetcherTest {
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(
-                    nodes, Matchers.equalTo(List.of(customTargetNode, orphanNode, jdpJvmNode)));
+                    nodes, Matchers.containsInAnyOrder(customTargetNode, orphanNode, jdpJvmNode));
         }
     }
 
