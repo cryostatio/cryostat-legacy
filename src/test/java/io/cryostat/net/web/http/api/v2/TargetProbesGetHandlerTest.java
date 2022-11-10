@@ -55,6 +55,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -82,6 +83,7 @@ public class TargetProbesGetHandlerTest {
     TargetProbesGetHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
@@ -93,7 +95,8 @@ public class TargetProbesGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetProbesGetHandler(auth, credentialsManager, targetConnectionManager, gson);
+                new TargetProbesGetHandler(
+                        auth, credentialsManager, storage, targetConnectionManager, gson);
     }
 
     @Nested

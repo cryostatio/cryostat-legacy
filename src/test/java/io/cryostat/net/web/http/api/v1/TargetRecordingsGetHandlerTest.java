@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -50,11 +51,13 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -85,6 +88,7 @@ class TargetRecordingsGetHandlerTest {
     TargetRecordingsGetHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager connectionManager;
     @Mock WebServer webServer;
     @Mock RecordingMetadataManager recordingMetadataManager;
@@ -98,6 +102,7 @@ class TargetRecordingsGetHandlerTest {
                         auth,
                         credentialsManager,
                         connectionManager,
+                        storage,
                         () -> webServer,
                         recordingMetadataManager,
                         gson,
@@ -193,8 +198,9 @@ class TargetRecordingsGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(metadata);
 
         handler.handleAuthenticated(ctx);
 
@@ -213,11 +219,13 @@ class TargetRecordingsGetHandlerTest {
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("foo"),
                                         "http://example.com:1234/api/v1/targets/fooHost:1/recordings/foo",
-                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/foo"),
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/foo",
+                                        metadata),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
                                         "http://example.com:1234/api/v1/targets/fooHost:1/recordings/bar",
-                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/bar"))));
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/bar",
+                                        metadata))));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

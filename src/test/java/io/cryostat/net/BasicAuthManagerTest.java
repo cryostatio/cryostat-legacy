@@ -46,6 +46,7 @@ import java.nio.file.Path;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 
 import org.apache.commons.codec.binary.Base64;
 import org.hamcrest.MatcherAssert;
@@ -163,7 +164,9 @@ class BasicAuthManagerTest {
 
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user", ResourceAction.NONE).get());
+            Assertions.assertFalse(
+                    mgr.validateToken(() -> "user", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -174,7 +177,10 @@ class BasicAuthManagerTest {
 
         @Test
         void shouldFailAuthenticationWhenNoMatchFound() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
+            Assertions.assertFalse(
+                    mgr.validateToken(
+                                    () -> "user:pass", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -195,7 +201,10 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
+            Assertions.assertTrue(
+                    mgr.validateToken(
+                                    () -> "user:pass", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
             Mockito.verifyNoInteractions(logger);
         }
 
@@ -211,10 +220,20 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
-            Assertions.assertFalse(mgr.validateToken(() -> "user:sass", ResourceAction.NONE).get());
+            Assertions.assertTrue(
+                    mgr.validateToken(
+                                    () -> "user:pass", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
             Assertions.assertFalse(
-                    mgr.validateToken(() -> "user2:pass", ResourceAction.NONE).get());
+                    mgr.validateToken(
+                                    () -> "user:sass", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
+            Assertions.assertFalse(
+                    mgr.validateToken(
+                                    () -> "user2:pass",
+                                    SecurityContext.DEFAULT,
+                                    ResourceAction.NONE)
+                            .get());
             Mockito.verifyNoInteractions(logger);
         }
 
@@ -235,10 +254,19 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     String.join(System.lineSeparator(), creds1, creds2, creds3)));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
-            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar", ResourceAction.NONE).get());
             Assertions.assertTrue(
-                    mgr.validateToken(() -> "admin:admin", ResourceAction.NONE).get());
+                    mgr.validateToken(
+                                    () -> "user:pass", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
+            Assertions.assertFalse(
+                    mgr.validateToken(() -> "foo:bar", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
+            Assertions.assertTrue(
+                    mgr.validateToken(
+                                    () -> "admin:admin",
+                                    SecurityContext.DEFAULT,
+                                    ResourceAction.NONE)
+                            .get());
             Mockito.verifyNoInteractions(logger);
         }
     }
@@ -258,7 +286,11 @@ class BasicAuthManagerTest {
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertTrue(
-                    mgr.validateHttpHeader(() -> "Basic dXNlcjpwYXNz", ResourceAction.NONE).get());
+                    mgr.validateHttpHeader(
+                                    () -> "Basic dXNlcjpwYXNz",
+                                    SecurityContext.DEFAULT,
+                                    ResourceAction.NONE)
+                            .get());
         }
 
         @Test
@@ -274,14 +306,18 @@ class BasicAuthManagerTest {
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertFalse(
-                    mgr.validateHttpHeader(() -> "Basic foo", ResourceAction.NONE).get());
+                    mgr.validateHttpHeader(
+                                    () -> "Basic foo", SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"", "Bearer sometoken", "Basic (not_b64)", "Basic "})
         @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
-            Assertions.assertFalse(mgr.validateHttpHeader(() -> s, ResourceAction.NONE).get());
+            Assertions.assertFalse(
+                    mgr.validateHttpHeader(() -> s, SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
         }
     }
 
@@ -303,6 +339,7 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
                                     () -> "basic.authorization.cryostat.dXNlcjpwYXNz",
+                                    SecurityContext.DEFAULT,
                                     ResourceAction.NONE)
                             .get());
         }
@@ -323,6 +360,7 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
                                     () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA==",
+                                    SecurityContext.DEFAULT,
                                     ResourceAction.NONE)
                             .get());
         }
@@ -347,6 +385,7 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
                                     () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA",
+                                    SecurityContext.DEFAULT,
                                     ResourceAction.NONE)
                             .get());
         }
@@ -366,7 +405,9 @@ class BasicAuthManagerTest {
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertFalse(
                     mgr.validateWebSocketSubProtocol(
-                                    () -> "basic.authorization.cryostat.foo", ResourceAction.NONE)
+                                    () -> "basic.authorization.cryostat.foo",
+                                    SecurityContext.DEFAULT,
+                                    ResourceAction.NONE)
                             .get());
         }
 
@@ -376,7 +417,9 @@ class BasicAuthManagerTest {
         @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
             Assertions.assertFalse(
-                    mgr.validateWebSocketSubProtocol(() -> s, ResourceAction.NONE).get());
+                    mgr.validateWebSocketSubProtocol(
+                                    () -> s, SecurityContext.DEFAULT, ResourceAction.NONE)
+                            .get());
         }
     }
 }

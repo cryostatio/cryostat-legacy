@@ -72,6 +72,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -223,7 +224,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
@@ -239,7 +240,7 @@ public class RecordingTargetHelperTest {
                 connectionDescriptorCaptor.getValue().getTargetId(),
                 Matchers.equalTo(connectionDescriptor.getTargetId()));
 
-        Metadata metadata = new Metadata();
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
@@ -276,7 +277,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
@@ -292,7 +293,7 @@ public class RecordingTargetHelperTest {
                 connectionDescriptorCaptor.getValue().getTargetId(),
                 Matchers.equalTo(connectionDescriptor.getTargetId()));
 
-        Metadata metadata = new Metadata();
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
@@ -344,7 +345,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
@@ -381,7 +382,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
@@ -458,8 +459,9 @@ public class RecordingTargetHelperTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(metadata);
 
         HyperlinkedSerializableRecordingDescriptor result =
                 recordingTargetHelper.createSnapshot(connectionDescriptor).get();
@@ -473,7 +475,8 @@ public class RecordingTargetHelperTest {
                 new HyperlinkedSerializableRecordingDescriptor(
                         recordingDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
@@ -545,11 +548,13 @@ public class RecordingTargetHelperTest {
                 .thenReturn(true);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
 
         boolean verified =
                 recordingTargetHelperSpy
@@ -591,11 +596,13 @@ public class RecordingTargetHelperTest {
                 .thenReturn(true);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
 
         boolean verified =
                 recordingTargetHelperSpy
@@ -627,11 +634,13 @@ public class RecordingTargetHelperTest {
         Mockito.when(future.get()).thenReturn(snapshotOptional);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
 
         Assertions.assertThrows(
                 ExecutionException.class,
@@ -687,11 +696,13 @@ public class RecordingTargetHelperTest {
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
         IRecordingDescriptor minimalDescriptor = createDescriptor(snapshotName);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
 
         boolean verified =
                 recordingTargetHelperSpy
@@ -711,8 +722,9 @@ public class RecordingTargetHelperTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
-        Metadata metadata =
-                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+        Map<String, String> labels =
+                Map.of("template.name", "Profiling", "template.type", "TARGET");
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -741,7 +753,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
-                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Map.class)))
                 .thenAnswer(
                         new Answer<Future<Metadata>>() {
                             @Override
@@ -757,13 +769,14 @@ public class RecordingTargetHelperTest {
                 recordingOptions,
                 templateName,
                 templateType,
-                metadata,
+                labels,
                 false);
 
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
 
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                new HyperlinkedSerializableRecordingDescriptor(recordingDescriptor, null, null);
+                new HyperlinkedSerializableRecordingDescriptor(
+                        recordingDescriptor, null, null, metadata);
 
         ArgumentCaptor<Map> messageCaptor = ArgumentCaptor.forClass(Map.class);
 
@@ -803,6 +816,7 @@ public class RecordingTargetHelperTest {
                 capturedDescriptor.getMetadata(),
                 Matchers.equalTo(
                         new Metadata(
+                                SecurityContext.DEFAULT,
                                 Map.of("template.name", "Profiling", "template.type", "TARGET"))));
     }
 
@@ -829,7 +843,7 @@ public class RecordingTargetHelperTest {
 
         Mockito.verify(service).stop(descriptor);
 
-        Metadata metadata = new Metadata();
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 

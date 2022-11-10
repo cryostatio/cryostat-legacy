@@ -88,7 +88,7 @@ class EnvironmentNodeChildrenFetcherTest {
     @Test
     void shouldReturnEmptyList() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode source = Mockito.mock(EnvironmentNode.class);
@@ -106,7 +106,7 @@ class EnvironmentNodeChildrenFetcherTest {
     @Test
     void shouldReturnChildren() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode source = Mockito.mock(EnvironmentNode.class);

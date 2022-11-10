@@ -46,6 +46,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -79,6 +80,7 @@ class TargetTemplateGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock JFRConnection conn;
     @Mock TemplateService templateService;
     @Mock Logger logger;
@@ -87,7 +89,7 @@ class TargetTemplateGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetTemplateGetHandler(
-                        auth, credentialsManager, targetConnectionManager, logger);
+                        auth, credentialsManager, targetConnectionManager, storage, logger);
     }
 
     @Test

@@ -42,6 +42,7 @@ import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -71,6 +72,7 @@ class TargetRecordingPatchHandlerTest {
     TargetRecordingPatchHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
@@ -83,7 +85,7 @@ class TargetRecordingPatchHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingPatchHandler(
-                        authManager, credentialsManager, patchSave, patchStop, logger);
+                        authManager, credentialsManager, storage, patchSave, patchStop, logger);
     }
 
     @Test
@@ -118,7 +120,7 @@ class TargetRecordingPatchHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -129,7 +131,7 @@ class TargetRecordingPatchHandlerTest {
     @ValueSource(strings = {"unknown", "start", "dump"})
     @NullAndEmptySource
     void shouldThrow400InvalidOperations(String mtd) {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -145,7 +147,7 @@ class TargetRecordingPatchHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = {"save", "stop"})
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(ctx.request()).thenReturn(req);

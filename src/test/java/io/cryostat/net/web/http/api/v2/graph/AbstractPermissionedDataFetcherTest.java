@@ -46,7 +46,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
+import io.cryostat.net.security.SecurityContext;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;

@@ -136,7 +136,7 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnNone() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
@@ -166,7 +166,7 @@ class RecordingsFetcherTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
@@ -200,11 +200,15 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnActiveRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+<<<<<<< HEAD
         when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+=======
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
+>>>>>>> 269950ac (fix test compile, executions still broken)
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
@@ -238,7 +242,7 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnArchivedRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
@@ -275,11 +279,15 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnAllRecordings() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+<<<<<<< HEAD
         when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+=======
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
+>>>>>>> 269950ac (fix test compile, executions still broken)
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);

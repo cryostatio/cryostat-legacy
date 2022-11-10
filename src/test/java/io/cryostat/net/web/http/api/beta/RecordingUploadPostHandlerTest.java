@@ -48,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -94,6 +95,7 @@ class RecordingUploadPostHandlerTest {
     @Mock WebClient webClient;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Gson gson;
+    @Mock Logger logger;
 
     static final String DATASOURCE_URL = "http://localhost:8080";
 
@@ -104,7 +106,14 @@ class RecordingUploadPostHandlerTest {
     void setup() {
         this.handler =
                 new RecordingUploadPostHandler(
-                        auth, credentialsManager, env, 30, webClient, recordingArchiveHelper, gson);
+                        auth,
+                        credentialsManager,
+                        env,
+                        30,
+                        webClient,
+                        recordingArchiveHelper,
+                        gson,
+                        logger);
     }
 
     @Nested

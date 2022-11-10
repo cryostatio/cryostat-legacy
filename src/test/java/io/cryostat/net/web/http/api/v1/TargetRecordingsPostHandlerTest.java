@@ -56,10 +56,12 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -94,6 +96,7 @@ class TargetRecordingsPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock WebServer webServer;
@@ -115,6 +118,7 @@ class TargetRecordingsPostHandlerTest {
                         auth,
                         credentialsManager,
                         targetConnectionManager,
+                        storage,
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
@@ -149,7 +153,7 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldStartRecording() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -213,7 +217,7 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(descriptor);
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         handler.handle(ctx);
 
@@ -236,7 +240,7 @@ class TargetRecordingsPostHandlerTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        ArgumentCaptor<Map> labelsCaptor = ArgumentCaptor.forClass(Map.class);
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
@@ -247,7 +251,7 @@ class TargetRecordingsPostHandlerTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture(),
+                        labelsCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
@@ -266,7 +270,7 @@ class TargetRecordingsPostHandlerTest {
         MatcherAssert.assertThat(
                 templateTypeCaptor.getValue(), Matchers.equalTo(TemplateType.CUSTOM));
 
-        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+        MatcherAssert.assertThat(labelsCaptor.getValue(), Matchers.equalTo(Map.of()));
 
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "/someRecording");
@@ -391,7 +395,7 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldHandleNameCollision() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -464,7 +468,7 @@ class TargetRecordingsPostHandlerTest {
     @ParameterizedTest
     @MethodSource("getRequestMaps")
     void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         IRecordingDescriptor existingRecording = createDescriptor("someRecording");
 
@@ -520,7 +524,7 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldStartRecordingAndArchiveOnStop() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -584,7 +588,7 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(descriptor);
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         handler.handle(ctx);
 
@@ -607,7 +611,7 @@ class TargetRecordingsPostHandlerTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        ArgumentCaptor<Map> labelsCaptor = ArgumentCaptor.forClass(Map.class);
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
@@ -618,7 +622,7 @@ class TargetRecordingsPostHandlerTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture(),
+                        labelsCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
@@ -637,7 +641,7 @@ class TargetRecordingsPostHandlerTest {
         MatcherAssert.assertThat(
                 templateTypeCaptor.getValue(), Matchers.equalTo(TemplateType.CUSTOM));
 
-        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+        MatcherAssert.assertThat(labelsCaptor.getValue(), Matchers.equalTo(Map.of()));
 
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "/someRecording");

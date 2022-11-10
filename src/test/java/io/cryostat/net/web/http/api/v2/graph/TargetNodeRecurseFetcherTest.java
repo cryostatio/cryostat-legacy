@@ -111,7 +111,7 @@ class TargetNodeRecurseFetcherTest {
     @Test
     void shouldThrowIllegalStateExceptionOnUnknownNode() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         UnknownNode source = Mockito.mock(UnknownNode.class);
@@ -130,7 +130,7 @@ class TargetNodeRecurseFetcherTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
@@ -160,7 +160,7 @@ class TargetNodeRecurseFetcherTest {
             HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
             when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             ServiceRef sharedTarget = new ServiceRef(JVM_ID, EXAMPLE_URI, EXAMPLE_ALIAS);
@@ -236,7 +236,7 @@ class TargetNodeRecurseFetcherTest {
                 HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
                 when(ctx.request()).thenReturn(req);
                 when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-                when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
                 when(filter.contains(Mockito.any())).thenReturn(false);

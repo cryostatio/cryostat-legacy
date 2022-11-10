@@ -109,7 +109,7 @@ class GraphQLGetHandlerTest {
 
         @Test
         void shouldThrow401OnInvalidAuthHeader() {
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(false));
 
             ApiException ex =

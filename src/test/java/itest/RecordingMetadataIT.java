@@ -119,7 +119,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
         form.add("events", "template=ALL");
         form.add(
                 "metadata",
-                gson.toJson(new Metadata(requestLabels), new TypeToken<Metadata>() {}.getType()));
+                gson.toJson(
+                        new Metadata(null, requestLabels), new TypeToken<Metadata>() {}.getType()));
         webClient
                 .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
@@ -404,7 +405,8 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             form.add(
                     "metadata",
                     gson.toJson(
-                            new Metadata(updatedLabels), new TypeToken<Metadata>() {}.getType()));
+                            new Metadata(null, updatedLabels),
+                            new TypeToken<Metadata>() {}.getType()));
             webClient
                     .post(String.format("/api/v1/targets/%s/recordings", targetId))
                     .sendForm(

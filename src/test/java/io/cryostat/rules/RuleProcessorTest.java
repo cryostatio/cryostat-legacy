@@ -40,6 +40,7 @@ package io.cryostat.rules;
 import static org.mockito.Mockito.never;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -64,7 +65,6 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.util.events.Event;
@@ -222,7 +222,7 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        ArgumentCaptor<Map> labelsCaptor = ArgumentCaptor.forClass(Map.class);
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
@@ -233,7 +233,7 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture(),
+                        labelsCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
@@ -252,7 +252,7 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
-        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+        MatcherAssert.assertThat(labelsCaptor.getValue(), Matchers.equalTo(Map.of()));
 
         ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
         Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());
@@ -475,7 +475,7 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        ArgumentCaptor<Map> labelsCaptor = ArgumentCaptor.forClass(Map.class);
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
@@ -486,7 +486,7 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture(),
+                        labelsCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
         Assertions.assertTrue(restartCaptor.getValue());
@@ -498,7 +498,7 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
-        MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
+        MatcherAssert.assertThat(labelsCaptor.getValue(), Matchers.equalTo(Map.of()));
     }
 
     @Test
@@ -543,7 +543,7 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        ArgumentCaptor<Metadata> metadataCaptor = ArgumentCaptor.forClass(Metadata.class);
+        ArgumentCaptor<Map> labelsCaptor = ArgumentCaptor.forClass(Map.class);
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
@@ -554,7 +554,7 @@ class RuleProcessorTest {
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
-                        metadataCaptor.capture(),
+                        labelsCaptor.capture(),
                         archiveOnStopCaptor.capture());
     }
 }

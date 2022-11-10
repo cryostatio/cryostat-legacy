@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -71,6 +72,7 @@ class TargetSnapshotPostHandlerTest {
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
 
@@ -78,7 +80,7 @@ class TargetSnapshotPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetSnapshotPostHandler(
-                        auth, credentialsManager, recordingTargetHelper, logger);
+                        auth, credentialsManager, storage, recordingTargetHelper, logger);
     }
 
     @Test
@@ -91,7 +93,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldCreateSnapshot() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -127,7 +129,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringCreation() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -154,7 +156,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -192,7 +194,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleFailedSnapshotVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);

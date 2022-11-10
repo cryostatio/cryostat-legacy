@@ -48,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -92,7 +93,7 @@ class ArchivedRecordingsFetcherTest {
     @Test
     void shouldReturnEmpty() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         Recordings source = Mockito.mock(Recordings.class);
@@ -110,7 +111,7 @@ class ArchivedRecordingsFetcherTest {
     @Test
     void shouldReturnRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         ArchivedRecordingInfo recording = Mockito.mock(ArchivedRecordingInfo.class);
@@ -130,7 +131,7 @@ class ArchivedRecordingsFetcherTest {
     @Test
     void shouldReturnRecordingsMultiple() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
@@ -155,7 +156,7 @@ class ArchivedRecordingsFetcherTest {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
@@ -187,7 +188,7 @@ class ArchivedRecordingsFetcherTest {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             String nameFilter = "foo";
@@ -207,19 +208,31 @@ class ArchivedRecordingsFetcherTest {
             when(recording5.getName()).thenReturn("foo");
             when(recording1.getMetadata())
                     .thenReturn(
-                            new Metadata(Map.of("myLabel", "bar", "template.name", "Cryostat")));
+                            new Metadata(
+                                    SecurityContext.DEFAULT,
+                                    Map.of("myLabel", "bar", "template.name", "Cryostat")));
             lenient()
                     .when(recording2.getMetadata())
-                    .thenReturn(new Metadata(Map.of("template.type", "CUSTOM", "", "")));
+                    .thenReturn(
+                            new Metadata(
+                                    SecurityContext.DEFAULT,
+                                    Map.of("template.type", "CUSTOM", "", "")));
             when(recording3.getMetadata())
-                    .thenReturn(new Metadata(Map.of("template.type", "TARGET", "myLabel", "foo")));
+                    .thenReturn(
+                            new Metadata(
+                                    SecurityContext.DEFAULT,
+                                    Map.of("template.type", "TARGET", "myLabel", "foo")));
             lenient()
                     .when(recording4.getMetadata())
                     .thenReturn(
-                            new Metadata(Map.of("myLabel", "value", "reason", "service-outage")));
+                            new Metadata(
+                                    SecurityContext.DEFAULT,
+                                    Map.of("myLabel", "value", "reason", "service-outage")));
             when(recording5.getMetadata())
                     .thenReturn(
-                            new Metadata(Map.of("myLabel", "foo", "template.type", "Profiling")));
+                            new Metadata(
+                                    SecurityContext.DEFAULT,
+                                    Map.of("myLabel", "foo", "template.type", "Profiling")));
             when(recording3.getSize()).thenReturn(1234577L);
             when(recording5.getSize()).thenReturn(1234569L);
             when(filter.contains(Mockito.any())).thenReturn(false);

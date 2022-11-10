@@ -203,7 +203,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(false));
 
             ApiException ex =
@@ -213,7 +213,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails2() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new PermissionDeniedException(
@@ -226,7 +226,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails3() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
@@ -238,7 +238,7 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails4() {
             // Check a doubly-nested PermissionDeniedException
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -256,7 +256,7 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails5() {
             // Check doubly-nested KubernetesClientException with its own cause
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -270,7 +270,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthThrows() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
             ApiException ex =
@@ -304,7 +304,7 @@ class AbstractAssetJwtConsumingHandlerTest {
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
 
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -435,13 +435,13 @@ class AbstractAssetJwtConsumingHandlerTest {
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
 
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             handler =
                     new ConnectionDescriptorHandler(
                             auth, credentialsManager, jwtHelper, () -> webServer, logger);
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 

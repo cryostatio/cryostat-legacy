@@ -50,6 +50,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
@@ -79,12 +80,14 @@ class ReportGetHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock ReportService reportService;
+    @Mock RecordingArchiveHelper archiveHelper;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
-                new ReportGetHandler(authManager, credentialsManager, reportService, 30, logger);
+                new ReportGetHandler(
+                        authManager, credentialsManager, reportService, archiveHelper, 30, logger);
     }
 
     @Nested
@@ -133,7 +136,7 @@ class ReportGetHandlerTest {
 
         @Test
         void shouldRespondBySendingFile() throws Exception {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.parsedHeaders()).thenReturn(phv);
@@ -167,7 +170,7 @@ class ReportGetHandlerTest {
 
         @Test
         void shouldRespondBySendingFileFiltered() throws Exception {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.parsedHeaders()).thenReturn(phv);
@@ -201,7 +204,7 @@ class ReportGetHandlerTest {
 
         @Test
         void shouldRespondBySendingFileUnformatted() throws Exception {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.parsedHeaders()).thenReturn(phv);
@@ -239,7 +242,7 @@ class ReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfRecordingNameNotFound() throws Exception {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.parsedHeaders()).thenReturn(phv);
@@ -264,7 +267,7 @@ class ReportGetHandlerTest {
 
         @Test
         void shouldRespond406IfAcceptInvalid() throws Exception {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             when(ctx.parsedHeaders()).thenReturn(phv);

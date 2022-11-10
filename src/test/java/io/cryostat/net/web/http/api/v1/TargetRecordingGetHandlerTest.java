@@ -55,6 +55,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
@@ -92,6 +93,7 @@ class TargetRecordingGetHandlerTest {
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock HttpServer httpServer;
     @Mock Vertx vertx;
@@ -110,6 +112,7 @@ class TargetRecordingGetHandlerTest {
                         authManager,
                         credentialsManager,
                         targetConnectionManager,
+                        storage,
                         httpServer,
                         recordingTargetHelper,
                         logger);
@@ -144,7 +147,7 @@ class TargetRecordingGetHandlerTest {
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
         String recordingName = "someRecording";
 
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -173,7 +176,7 @@ class TargetRecordingGetHandlerTest {
     void shouldRespond500IfUnexpectedExceptionThrown() throws Exception {
         String recordingName = "someRecording";
 
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -202,7 +205,7 @@ class TargetRecordingGetHandlerTest {
 
     @Test
     void shouldRespond500IfIOExceptionThrownDuringRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -259,7 +262,7 @@ class TargetRecordingGetHandlerTest {
     }
 
     private void shouldHandleRecordingDownloadRequest(String recordingName) throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);

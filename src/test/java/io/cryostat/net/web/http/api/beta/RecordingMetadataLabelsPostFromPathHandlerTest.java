@@ -50,10 +50,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -92,6 +94,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock RequestParameters requestParameters;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
@@ -101,7 +104,8 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
                         credentialsManager,
                         gson,
                         recordingArchiveHelper,
-                        recordingMetadataManager);
+                        recordingMetadataManager,
+                        logger);
     }
 
     @Nested
@@ -164,7 +168,7 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
             String recordingName = "someRecording";
             String subdirectoryName = "someTarget";
             Map<String, String> labels = Map.of("key", "value");
-            Metadata metadata = new Metadata(labels);
+            Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 

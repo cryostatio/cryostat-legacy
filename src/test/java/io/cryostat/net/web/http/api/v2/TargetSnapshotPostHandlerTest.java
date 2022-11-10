@@ -50,10 +50,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
@@ -83,6 +85,7 @@ class TargetSnapshotPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
+    @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -90,7 +93,7 @@ class TargetSnapshotPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetSnapshotPostHandler(
-                        auth, credentialsManager, recordingTargetHelper, gson);
+                        auth, credentialsManager, recordingTargetHelper, storage, gson);
     }
 
     @Test
@@ -103,7 +106,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldCreateSnapshot() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -120,7 +123,7 @@ class TargetSnapshotPostHandlerTest {
                         minimalDescriptor,
                         "http://example.com/download",
                         "http://example.com/report",
-                        new Metadata(),
+                        new Metadata(SecurityContext.DEFAULT, Map.of()),
                         false);
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
                 Mockito.mock(CompletableFuture.class);
@@ -174,7 +177,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringCreation() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -199,7 +202,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -209,11 +212,13 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
         IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
                 Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
@@ -238,7 +243,7 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleFailedSnapshotVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -250,11 +255,13 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
         IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
                 new HyperlinkedSerializableRecordingDescriptor(
                         minimalDescriptor,
                         "http://example.com/download",
-                        "http://example.com/report");
+                        "http://example.com/report",
+                        metadata);
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
                 Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))

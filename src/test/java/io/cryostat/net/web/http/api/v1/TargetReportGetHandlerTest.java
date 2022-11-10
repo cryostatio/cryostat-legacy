@@ -49,6 +49,7 @@ import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
@@ -81,6 +82,7 @@ class TargetReportGetHandlerTest {
     TargetReportGetHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock ReportService reportService;
     @Mock Logger logger;
 
@@ -88,7 +90,7 @@ class TargetReportGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetReportGetHandler(
-                        authManager, credentialsManager, reportService, 30, logger);
+                        authManager, credentialsManager, storage, reportService, 30, logger);
     }
 
     @Nested
@@ -133,7 +135,7 @@ class TargetReportGetHandlerTest {
 
         @BeforeEach
         void setup() {
-            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
             when(ctx.request()).thenReturn(req);
             when(ctx.response()).thenReturn(resp);
@@ -298,6 +300,7 @@ class TargetReportGetHandlerTest {
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 
+        // FIXME
         // @Test
         // void shouldRespond406IfAcceptInvalid() throws Exception {
         //         when(ctx.getAcceptableContentType()).thenReturn(H);

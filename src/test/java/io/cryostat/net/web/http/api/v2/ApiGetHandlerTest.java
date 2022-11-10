@@ -47,11 +47,11 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -156,7 +156,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -203,7 +203,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -230,7 +230,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -271,7 +271,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -298,7 +298,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -339,7 +339,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -366,7 +366,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -393,7 +393,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -420,7 +420,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -468,7 +468,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };
@@ -497,7 +497,7 @@ class ApiGetHandlerTest {
                         }
 
                         @Override
-                        public SecurityContext securityContext(RoutingContext ctx) {
+                        public SecurityContext securityContext(Void ctx) {
                             return SecurityContext.DEFAULT;
                         }
                     };

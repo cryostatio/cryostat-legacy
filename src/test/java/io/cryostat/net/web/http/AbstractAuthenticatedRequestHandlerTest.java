@@ -53,6 +53,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -102,7 +103,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
     @Test
     void shouldPutDefaultContentTypeHeader() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         handler.handle(ctx);
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/plain");
@@ -110,7 +111,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -119,7 +120,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails2() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new PermissionDeniedException(
@@ -131,7 +132,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails3() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -141,7 +142,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     @Test
     void shouldThrow401IfAuthFails4() {
         // Check a doubly-nested PermissionDeniedException
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new ExecutionException(
@@ -155,7 +156,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     @Test
     void shouldThrow401IfAuthFails5() {
         // Check doubly-nested KubernetesClientException with its own cause
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
                                 new ExecutionException(
@@ -168,7 +169,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
     @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -180,7 +181,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
         @BeforeEach
         void setup2() {
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -280,7 +281,7 @@ class AbstractAuthenticatedRequestHandlerTest {
             handler = new ConnectionDescriptorHandler(auth, credentialsManager, logger);
             Mockito.when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(headers);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -452,6 +453,11 @@ class AbstractAuthenticatedRequestHandlerTest {
 
         @Override
         public void handleAuthenticated(RoutingContext ctx) throws Exception {}
+
+        @Override
+        public SecurityContext securityContext(RoutingContext ctx) {
+            return SecurityContext.DEFAULT;
+        }
     }
 
     static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {

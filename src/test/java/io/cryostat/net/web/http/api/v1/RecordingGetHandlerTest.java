@@ -49,6 +49,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
@@ -75,6 +76,7 @@ class RecordingGetHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock RecordingMetadataManager metadataManager;
     @Mock Logger logger;
 
     @Mock RoutingContext ctx;
@@ -84,7 +86,11 @@ class RecordingGetHandlerTest {
     void setup() {
         this.handler =
                 new RecordingGetHandler(
-                        authManager, credentialsManager, recordingArchiveHelper, logger);
+                        authManager,
+                        credentialsManager,
+                        recordingArchiveHelper,
+                        metadataManager,
+                        logger);
     }
 
     @Test
@@ -106,7 +112,7 @@ class RecordingGetHandlerTest {
 
     @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
@@ -130,7 +136,7 @@ class RecordingGetHandlerTest {
 
     @Test
     void shouldHandleSuccessfulGETRequest() throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(

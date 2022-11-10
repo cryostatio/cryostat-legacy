@@ -124,7 +124,7 @@ class CertificatePostHandlerTest {
         Mockito.lenient().when(ctx.request()).thenReturn(req);
 
         Mockito.lenient()
-                .when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
     }
 

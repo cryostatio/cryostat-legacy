@@ -106,7 +106,7 @@ class DeleteActiveRecordingMutatorTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         GraphRecordingDescriptor source = Mockito.mock(GraphRecordingDescriptor.class);

@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -74,6 +75,7 @@ class NodeFetcherTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock RootNodeFetcher rootNodeFetcher;
+    @Mock Logger logger;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -81,7 +83,7 @@ class NodeFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new NodeFetcher(auth, credentialsManager, rootNodeFetcher);
+        this.fetcher = new NodeFetcher(auth, credentialsManager, rootNodeFetcher, logger);
     }
 
     @Test
@@ -93,7 +95,7 @@ class NodeFetcherTest {
     @Test
     void shouldThrowNoSuchElementException() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode universe =
@@ -115,7 +117,7 @@ class NodeFetcherTest {
     @Test
     void shouldReturnUniverseNode() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode universe =
@@ -134,7 +136,7 @@ class NodeFetcherTest {
     @Test
     void shouldReturnRealmNode() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode leftChildNode = Mockito.mock(EnvironmentNode.class);

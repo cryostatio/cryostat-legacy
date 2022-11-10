@@ -104,7 +104,7 @@ class RecordingDeleteHandlerTest {
 
     @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
@@ -126,7 +126,7 @@ class RecordingDeleteHandlerTest {
 
     @Test
     void shouldHandleSuccessfulDELETERequest() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String recordingName = "someRecording";

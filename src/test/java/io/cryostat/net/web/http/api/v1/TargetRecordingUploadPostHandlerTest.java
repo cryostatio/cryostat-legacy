@@ -52,6 +52,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -93,6 +94,7 @@ class TargetRecordingUploadPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock Environment env;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock WebClient webClient;
     @Mock FileSystem fs;
@@ -112,6 +114,7 @@ class TargetRecordingUploadPostHandlerTest {
                         auth,
                         credentialsManager,
                         env,
+                        storage,
                         targetConnectionManager,
                         30,
                         webClient,
@@ -153,7 +156,7 @@ class TargetRecordingUploadPostHandlerTest {
             })
     @NullAndEmptySource
     void shouldThrow501IfDatasourceUrlMalformed(String rawUrl) {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -176,7 +179,7 @@ class TargetRecordingUploadPostHandlerTest {
                 .thenReturn(resp);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -207,7 +210,7 @@ class TargetRecordingUploadPostHandlerTest {
         Path tempFile = Mockito.mock(Path.class);
         Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -278,7 +281,7 @@ class TargetRecordingUploadPostHandlerTest {
         Path tempFile = Mockito.mock(Path.class);
         Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -352,7 +355,7 @@ class TargetRecordingUploadPostHandlerTest {
         Path tempFile = Mockito.mock(Path.class);
         Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -426,7 +429,7 @@ class TargetRecordingUploadPostHandlerTest {
         Path tempFile = Mockito.mock(Path.class);
         Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(

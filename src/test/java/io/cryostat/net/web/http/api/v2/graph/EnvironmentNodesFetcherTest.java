@@ -92,7 +92,7 @@ class EnvironmentNodesFetcherTest {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             EnvironmentNode universe =
@@ -113,7 +113,7 @@ class EnvironmentNodesFetcherTest {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             EnvironmentNode leftChildNode = Mockito.mock(EnvironmentNode.class);
@@ -142,7 +142,7 @@ class EnvironmentNodesFetcherTest {
         try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
             staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             EnvironmentNode leftGrandchildNode =

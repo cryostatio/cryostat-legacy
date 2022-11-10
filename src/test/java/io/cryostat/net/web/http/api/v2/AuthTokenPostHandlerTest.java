@@ -45,11 +45,13 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -73,6 +75,8 @@ class AuthTokenPostHandlerTest {
     AuthTokenPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
+    @Mock RecordingArchiveHelper archiveHelper;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock Logger logger;
@@ -82,7 +86,14 @@ class AuthTokenPostHandlerTest {
     void setup() {
         this.handler =
                 new AuthTokenPostHandler(
-                        auth, credentialsManager, gson, jwt, () -> webServer, logger);
+                        auth,
+                        credentialsManager,
+                        storage,
+                        archiveHelper,
+                        gson,
+                        jwt,
+                        () -> webServer,
+                        logger);
     }
 
     @Nested

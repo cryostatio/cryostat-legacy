@@ -48,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -56,6 +57,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -79,12 +81,19 @@ class RecordingGetHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock RecordingMetadataManager metadataManager;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetHandler(
-                        authManager, credentialsManager, gson, recordingArchiveHelper);
+                        authManager,
+                        credentialsManager,
+                        gson,
+                        recordingArchiveHelper,
+                        metadataManager,
+                        logger);
     }
 
     @Nested

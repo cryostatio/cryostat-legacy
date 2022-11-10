@@ -54,6 +54,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -83,6 +84,7 @@ class TargetRecordingOptionsListGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock IFlightRecorderService service;
     @Mock JFRConnection connection;
     @Mock Logger logger;
@@ -92,7 +94,7 @@ class TargetRecordingOptionsListGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingOptionsListGetHandler(
-                        auth, credentialsManager, targetConnectionManager, gson);
+                        auth, credentialsManager, targetConnectionManager, storage, gson);
     }
 
     @Test
@@ -138,7 +140,7 @@ class TargetRecordingOptionsListGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         try {

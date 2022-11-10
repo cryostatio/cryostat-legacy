@@ -48,6 +48,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -78,6 +79,7 @@ class TargetTemplatesGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager connectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -85,7 +87,7 @@ class TargetTemplatesGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetTemplatesGetHandler(
-                        auth, credentialsManager, connectionManager, gson, logger);
+                        auth, credentialsManager, connectionManager, storage, gson, logger);
     }
 
     @Test

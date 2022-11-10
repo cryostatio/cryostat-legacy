@@ -40,12 +40,14 @@ package io.cryostat.rules;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -183,7 +185,7 @@ class PeriodicArchiverTest {
                                 "targetFoo_recordingFoo_20210101T202547Z.jfr",
                                 "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0),
                         new ArchivedRecordingInfo(
@@ -191,7 +193,7 @@ class PeriodicArchiverTest {
                                 "targetA_recordingA_20190801T202547Z.jfr",
                                 "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0),
                         new ArchivedRecordingInfo(
@@ -199,7 +201,7 @@ class PeriodicArchiverTest {
                                 "target123_123recording_20211107T202547Z.jfr",
                                 "/some/path/download/123recording",
                                 "/some/path/archive/123recording",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0),
                         new ArchivedRecordingInfo(
@@ -207,7 +209,7 @@ class PeriodicArchiverTest {
                                 matchingFileName,
                                 String.format("/some/path/download/%s", rule.getRecordingName()),
                                 String.format("/some/path/archive/%s", rule.getRecordingName()),
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0)));
         Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
@@ -219,7 +221,7 @@ class PeriodicArchiverTest {
                         "someRecording.jfr",
                         "/some/path/download/someRecording.jfr",
                         "/some/path/archive/someRecording.jfr",
-                        new Metadata(),
+                        new Metadata(SecurityContext.DEFAULT, Map.of()),
                         0,
                         0);
         saveFuture.complete(newlySavedRecording);
