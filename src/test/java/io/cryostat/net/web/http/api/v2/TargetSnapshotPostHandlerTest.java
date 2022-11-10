@@ -59,6 +59,7 @@ import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
+import io.cryostat.util.HttpMimeTypeAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -87,7 +88,7 @@ class TargetSnapshotPostHandlerTest {
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock DiscoveryStorage storage;
     @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
+    Gson gson = MainModule.provideGson(logger, new HttpMimeTypeAdapter());
 
     @BeforeEach
     void setup() {
