@@ -160,6 +160,8 @@ class TargetRecordingUploadPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
