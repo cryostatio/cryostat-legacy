@@ -609,6 +609,10 @@ public class RecordingArchiveHelper {
     }
 
     private void validateSavePath(String recordingName, Path path) throws IOException {
+        if (path == null) {
+            throw new IOException(
+                    String.format("Filesystem path for %s could not be determined", recordingName));
+        }
         if (path.getParent() == null) {
             throw new IOException(
                     String.format(
