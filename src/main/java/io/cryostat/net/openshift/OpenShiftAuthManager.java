@@ -257,7 +257,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (securityContext == null) {
             throw new IllegalStateException("SecurityContext was null");
         }
-        if (!(securityContext instanceof OpenShiftSecurityContext)) {
+        if (!SecurityContext.DEFAULT.equals(securityContext)
+                && !(securityContext instanceof OpenShiftSecurityContext)) {
             throw new IllegalStateException(
                     String.format(
                             "SecurityContext was of type %s, expected s",
