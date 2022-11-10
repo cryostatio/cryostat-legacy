@@ -186,6 +186,9 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
                             subdirectoryName, recordingName, metadata))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
+            when(recordingMetadataManager.getMetadataFromPathIfExists(Mockito.any(), Mockito.any()))
+                    .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
+
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(metadata));
@@ -224,6 +227,9 @@ public class RecordingMetadataLabelsPostFromPathHandlerTest {
                             CompletableFuture.failedFuture(
                                     new RecordingNotFoundException(
                                             RecordingArchiveHelper.ARCHIVES, recordingName)));
+
+            when(recordingMetadataManager.getMetadataFromPathIfExists(Mockito.any(), Mockito.any()))
+                    .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
             ApiException ex =
                     Assertions.assertThrows(
