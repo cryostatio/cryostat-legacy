@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,7 +62,7 @@ import io.cryostat.platform.discovery.TargetNode;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
+class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<TargetNode>> {
 
     @Inject
     TargetNodeRecurseFetcher(AuthManager auth, CredentialsManager credentialsManager) {
@@ -80,17 +81,8 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
 
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
-        try {
-            // all nodes here came from the same parent and must be in the same namespace, so all
-            // have the same security context
-            List<TargetNode> nodes = getAuthenticated(environment);
-            if (nodes.isEmpty()) {
-                return SecurityContext.DEFAULT;
-            }
-            return auth.contextFor(nodes.get(0));
-        } catch (Exception e) {
-            return null;
-        }
+        AbstractNode source = environment.getSource();
+        return auth.contextFor(source);
     }
 
     @Override
@@ -104,10 +96,10 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
     }
 
     @Override
-    public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public Set<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
-        List<TargetNode> result = new ArrayList<>();
+        Set<TargetNode> result = new HashSet<>();
         if (node instanceof TargetNode) {
             result.add((TargetNode) node);
         } else if (node instanceof EnvironmentNode) {
@@ -124,14 +116,14 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
 
         if (filter.contains(FilterInput.Key.ID)) {
             int id = filter.get(FilterInput.Key.ID);
-            result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toList());
+            result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toSet());
         }
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             result =
                     result.stream()
                             .filter(n -> Objects.equals(n.getName(), nodeName))
-                            .collect(Collectors.toList());
+                            .collect(Collectors.toSet());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
@@ -139,7 +131,7 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
                 result =
                         result.stream()
                                 .filter(n -> LabelSelectorMatcher.parse(label).test(n.getLabels()))
-                                .collect(Collectors.toList());
+                                .collect(Collectors.toSet());
             }
         }
         if (filter.contains(FilterInput.Key.ANNOTATIONS)) {
@@ -160,7 +152,7 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
                                         n ->
                                                 LabelSelectorMatcher.parse(annotation)
                                                         .test(mergedAnnotations.apply(n)))
-                                .collect(Collectors.toList());
+                                .collect(Collectors.toSet());
             }
         }
         result.forEach(

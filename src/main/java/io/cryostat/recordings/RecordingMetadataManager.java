@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1020,12 +1019,12 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         public Metadata(Metadata o) {
             this.securityContext = o.securityContext;
-            this.labels = new ConcurrentHashMap<>(o.labels);
+            this.labels = new HashMap<>(o.labels);
         }
 
         public Metadata(SecurityContext securityContext, Map<String, String> labels) {
             this.securityContext = securityContext;
-            this.labels = new ConcurrentHashMap<>(labels);
+            this.labels = new HashMap<>(labels);
         }
 
         public SecurityContext getSecurityContext() {
@@ -1033,7 +1032,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
 
         public Map<String, String> getLabels() {
-            return new ConcurrentHashMap<>(labels);
+            return new HashMap<>(labels);
         }
 
         @Override

@@ -42,6 +42,9 @@ public interface SecurityContext {
     static final SecurityContext DEFAULT = new DefaultSecurityContext();
 
     static class DefaultSecurityContext implements SecurityContext {
+
+        private DefaultSecurityContext() {}
+
         @Override
         public String toString() {
             return "__DEFAULT__";

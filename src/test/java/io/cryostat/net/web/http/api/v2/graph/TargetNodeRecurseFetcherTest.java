@@ -163,12 +163,17 @@ class TargetNodeRecurseFetcherTest {
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
-            ServiceRef sharedTarget = new ServiceRef(JVM_ID, EXAMPLE_URI, EXAMPLE_ALIAS);
+            URI uriA = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
+            URI uriB = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi");
+            URI uriC = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi");
+            ServiceRef targetA = new ServiceRef(JVM_ID, uriA, EXAMPLE_ALIAS);
+            ServiceRef targetB = new ServiceRef(JVM_ID, uriB, EXAMPLE_ALIAS);
+            ServiceRef targetC = new ServiceRef(JVM_ID, uriC, EXAMPLE_ALIAS);
 
-            TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
+            TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, targetA);
             TargetNode customTargetNode =
-                    new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, sharedTarget);
-            TargetNode orphanNode = new TargetNode(KubernetesNodeType.DEPLOYMENT, sharedTarget);
+                    new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, targetB);
+            TargetNode orphanNode = new TargetNode(KubernetesNodeType.DEPLOYMENT, targetC);
 
             EnvironmentNode jdpRealm =
                     new EnvironmentNode(
@@ -186,34 +191,33 @@ class TargetNodeRecurseFetcherTest {
                             Collections.emptyMap(),
                             Set.of(jdpRealm, customTargetRealm, orphanNode));
 
-            DataFetchingEnvironment jdpEnv = Mockito.mock(DataFetchingEnvironment.class);
-            DataFetchingEnvironment customTargetEnv = Mockito.mock(DataFetchingEnvironment.class);
-            DataFetchingEnvironment targetNodeEnvs = Mockito.mock(DataFetchingEnvironment.class);
+            DataFetchingEnvironment env = Mockito.mock(DataFetchingEnvironment.class);
 
             // Mocking the depth-first order in which the recursion happens (ordered by the
             // SortedSet passed in to universe.children)
-            when(builder.build())
+            when(builder.build()).thenReturn(env);
+
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(env.getSource())
                     .thenReturn(
-                            jdpEnv,
-                            targetNodeEnvs,
-                            customTargetEnv,
-                            targetNodeEnvs,
-                            targetNodeEnvs);
-
-            when(jdpEnv.getGraphQlContext()).thenReturn(graphCtx);
-            when(jdpEnv.getSource()).thenReturn(jdpRealm);
-            when(customTargetEnv.getGraphQlContext()).thenReturn(graphCtx);
-            when(customTargetEnv.getSource()).thenReturn(customTargetRealm);
-            when(targetNodeEnvs.getGraphQlContext()).thenReturn(graphCtx);
-            when(targetNodeEnvs.getSource()).thenReturn(jdpJvmNode, customTargetNode, orphanNode);
-
-            when(env.getSource()).thenReturn(universe);
+                            universe,
+                            universe,
+                            jdpRealm,
+                            jdpRealm,
+                            jdpJvmNode,
+                            jdpJvmNode,
+                            customTargetRealm,
+                            customTargetRealm,
+                            customTargetNode,
+                            customTargetNode,
+                            orphanNode,
+                            orphanNode);
 
             List<TargetNode> nodes = fetcher.get(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(
-                    nodes, Matchers.containsInAnyOrder(customTargetNode, jdpJvmNode, orphanNode));
+                    nodes, Matchers.equalTo(List.of(customTargetNode, orphanNode, jdpJvmNode)));
         }
     }
 
@@ -239,19 +243,21 @@ class TargetNodeRecurseFetcherTest {
                 when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
+                URI uriA = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
+                URI uriB = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi");
+                URI uriC = URI.create("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi");
+                ServiceRef targetA = new ServiceRef(JVM_ID, uriA, EXAMPLE_ALIAS);
+                ServiceRef targetB = new ServiceRef(JVM_ID, uriB, EXAMPLE_ALIAS);
+                ServiceRef targetC = new ServiceRef(JVM_ID, uriC, EXAMPLE_ALIAS);
+
+                TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, targetA);
+                TargetNode customTargetNode =
+                        new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, targetB);
+                TargetNode orphanNode = new TargetNode(KubernetesNodeType.DEPLOYMENT, targetC);
+
                 when(filter.contains(Mockito.any())).thenReturn(false);
                 when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
-                when(filter.get(FilterInput.Key.NAME)).thenReturn(EXAMPLE_URI_2.toString());
-
-                ServiceRef sharedTarget = new ServiceRef(JVM_ID, EXAMPLE_URI, EXAMPLE_ALIAS);
-
-                TargetNode jdpJvmNode = new TargetNode(BaseNodeType.JVM, sharedTarget);
-                TargetNode customTargetNode =
-                        new TargetNode(CustomTargetNodeType.CUSTOM_TARGET, sharedTarget);
-                TargetNode orphanNode =
-                        new TargetNode(
-                                KubernetesNodeType.DEPLOYMENT,
-                                new ServiceRef(JVM_ID, EXAMPLE_URI_2, EXAMPLE_ALIAS));
+                when(filter.get(FilterInput.Key.NAME)).thenReturn(uriC.toString());
 
                 EnvironmentNode jdpRealm =
                         new EnvironmentNode(
@@ -272,31 +278,31 @@ class TargetNodeRecurseFetcherTest {
                                 Collections.emptyMap(),
                                 Set.of(jdpRealm, customTargetRealm, orphanNode));
 
-                DataFetchingEnvironment jdpEnv = Mockito.mock(DataFetchingEnvironment.class);
-                DataFetchingEnvironment customTargetEnv =
-                        Mockito.mock(DataFetchingEnvironment.class);
-                DataFetchingEnvironment targetNodeEnvs =
-                        Mockito.mock(DataFetchingEnvironment.class);
+                DataFetchingEnvironment env = Mockito.mock(DataFetchingEnvironment.class);
 
                 // Mocking the depth-first order in which the recursion happens (ordered by the
                 // SortedSet passed in to universe.children)
-                when(builder.build())
+                when(builder.build()).thenReturn(env);
+
+                when(env.getGraphQlContext()).thenReturn(graphCtx);
+
+                // when(env.getSource()).thenReturn(universe, jdpRealm, jdpJvmNode,
+                // customTargetRealm,
+                //         customTargetNode, orphanNode);
+                when(env.getSource())
                         .thenReturn(
-                                jdpEnv,
-                                targetNodeEnvs,
-                                customTargetEnv,
-                                targetNodeEnvs,
-                                targetNodeEnvs);
-
-                when(jdpEnv.getGraphQlContext()).thenReturn(graphCtx);
-                when(jdpEnv.getSource()).thenReturn(jdpRealm);
-                when(customTargetEnv.getGraphQlContext()).thenReturn(graphCtx);
-                when(customTargetEnv.getSource()).thenReturn(customTargetRealm);
-                when(targetNodeEnvs.getGraphQlContext()).thenReturn(graphCtx);
-                when(targetNodeEnvs.getSource())
-                        .thenReturn(jdpJvmNode, customTargetNode, orphanNode);
-
-                when(env.getSource()).thenReturn(universe);
+                                universe,
+                                universe,
+                                jdpRealm,
+                                jdpRealm,
+                                jdpJvmNode,
+                                jdpJvmNode,
+                                customTargetRealm,
+                                customTargetRealm,
+                                customTargetNode,
+                                customTargetNode,
+                                orphanNode,
+                                orphanNode);
 
                 List<TargetNode> nodes = fetcher.get(env);
 
