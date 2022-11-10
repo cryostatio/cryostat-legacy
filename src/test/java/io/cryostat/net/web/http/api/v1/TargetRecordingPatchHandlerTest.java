@@ -122,6 +122,8 @@ class TargetRecordingPatchHandlerTest {
     void shouldThrow401IfAuthFails() {
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
@@ -135,6 +137,8 @@ class TargetRecordingPatchHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
