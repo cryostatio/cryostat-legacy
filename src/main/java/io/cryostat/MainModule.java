@@ -137,9 +137,19 @@ public abstract class MainModule {
         };
     }
 
-    // testing-only when extra adapters aren't needed
+    // testing-only when extra adapters and deserializers aren't needed
+    public static Gson provideGson(Logger logger) {
+        return provideGson(Set.of(), Set.of(), logger);
+    }
+
+    // testing-only when extra deserializers aren't needed
     public static Gson provideGson(Logger logger, PluggableTypeAdapter<?>... adapters) {
         return provideGson(Set.of(adapters), Set.of(), logger);
+    }
+
+    // testing-only when extra adapters aren't needed
+    public static Gson provideGson(Logger logger, PluggableJsonDeserializer<?>... deserializers) {
+        return provideGson(Set.of(), Set.of(deserializers), logger);
     }
 
     @Provides
