@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -49,8 +50,10 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.GraphQLContext;
@@ -117,6 +120,7 @@ class ArchiveRecordingMutatorTest {
 
         when(env.getSource()).thenReturn(source);
         when(source.getName()).thenReturn("foo");
+        when(source.getMetadata()).thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
         when(target.getServiceUri()).thenReturn(uri);
         when(credentialsManager.getCredentials(Mockito.any(ServiceRef.class)))
                 .thenReturn(credentials);
