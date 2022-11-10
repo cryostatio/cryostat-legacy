@@ -54,7 +54,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -95,8 +94,8 @@ class StopRecordingMutator extends AbstractPermissionedDataFetcher<GraphRecordin
 
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
-        TargetNode node = environment.getSource();
-        return auth.contextFor(node);
+        GraphRecordingDescriptor source = environment.getSource();
+        return auth.contextFor(source.target);
     }
 
     @Override
