@@ -82,10 +82,9 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
         try {
-            AbstractNode source = getAuthenticated(environment);
-            return auth.contextFor(source);
+            EnvironmentNode root = rootNodeFetcher.get(environment);
+            return auth.contextFor(root);
         } catch (Exception e) {
-            logger.error(e);
             throw new IllegalStateException(e);
         }
     }
