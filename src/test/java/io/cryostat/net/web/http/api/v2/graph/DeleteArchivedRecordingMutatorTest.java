@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -48,7 +49,9 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.GraphQLContext;
@@ -98,21 +101,21 @@ class DeleteArchivedRecordingMutatorTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        ArchivedRecordingInfo mockRecording = Mockito.mock(ArchivedRecordingInfo.class);
         ArchivedRecordingInfo source = Mockito.mock(ArchivedRecordingInfo.class);
 
         when(env.getSource()).thenReturn(source);
         when(source.getName()).thenReturn("foo");
         when(source.getServiceUri()).thenReturn("someServiceUri");
+        when(source.getMetadata()).thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         when(recordingArchiveHelper.deleteRecording(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(future);
-        when(future.get()).thenReturn(mockRecording);
+        when(future.get()).thenReturn(source);
 
         ArchivedRecordingInfo recording = mutator.get(env);
 
         MatcherAssert.assertThat(recording, Matchers.notNullValue());
-        MatcherAssert.assertThat(recording, Matchers.equalTo(mockRecording));
+        MatcherAssert.assertThat(recording, Matchers.equalTo(source));
 
         Mockito.verify(recordingArchiveHelper)
                 .deleteRecording(Mockito.anyString(), Mockito.anyString());
