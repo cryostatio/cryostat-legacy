@@ -1050,8 +1050,8 @@ public class RecordingMetadataManager extends AbstractVerticle
 
             Metadata metadata = (Metadata) o;
             return new EqualsBuilder()
-                    .append(labels, metadata.labels)
                     .append(securityContext, metadata.securityContext)
+                    .append(labels, metadata.labels)
                     .build();
         }
 

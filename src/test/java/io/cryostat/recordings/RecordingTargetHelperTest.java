@@ -759,7 +759,10 @@ public class RecordingTargetHelperTest {
                             @Override
                             public Future<Metadata> answer(InvocationOnMock invocation)
                                     throws Throwable {
-                                return CompletableFuture.completedFuture(invocation.getArgument(2));
+                                return CompletableFuture.completedFuture(
+                                        new Metadata(
+                                                SecurityContext.DEFAULT,
+                                                invocation.getArgument(2)));
                             }
                         });
 
@@ -834,16 +837,20 @@ public class RecordingTargetHelperTest {
                             }
                         });
         Mockito.when(connection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = createDescriptor("someRecording");
-        Mockito.when(descriptor.getName()).thenReturn("someRecording");
+        String recordingName = "someRecording";
+        IRecordingDescriptor descriptor = createDescriptor(recordingName);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        recordingTargetHelper.stopRecording(new ConnectionDescriptor("fooTarget"), "someRecording");
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
+        Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.any()))
+                .thenReturn(metadata);
+
+        recordingTargetHelper.stopRecording(new ConnectionDescriptor("fooTarget"), recordingName);
 
         Mockito.verify(service).stop(descriptor);
 
-        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
 
