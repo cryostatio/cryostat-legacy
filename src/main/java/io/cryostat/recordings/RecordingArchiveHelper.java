@@ -485,6 +485,12 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     public List<ArchivedRecordingInfo> getRecordingsFromPath(String subdirectoryName) {
         try {
             String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
@@ -492,6 +498,7 @@ public class RecordingArchiveHelper {
             List<ArchivedRecordingInfo> list = new ArrayList<>();
             for (String recordingName : fs.listDirectoryChildren(subdirectoryPath)) {
                 Path recordingPath = subdirectoryPath.resolve(recordingName);
+                validateSavePath(recordingName, recordingPath);
                 Path filenamePath = recordingPath.getFileName();
                 String filename = filenamePath.toString();
                 String targetId = getConnectUrlFromPath(subdirectoryPath).get();
@@ -512,6 +519,12 @@ public class RecordingArchiveHelper {
         }
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
     public Optional<ArchivedRecordingInfo> getRecordingFromPath(
             String subdirectoryName, String recordingName) {
         try {
