@@ -137,9 +137,12 @@ public abstract class MainModule {
         };
     }
 
-    // testing-only when extra adapters and deserializers aren't needed
+    // testing-only with a default set of usually needed adapters and deserializers
     public static Gson provideGson(Logger logger) {
-        return provideGson(Set.of(), Set.of(), logger);
+        return provideGson(
+                Set.of(new JmxServiceUrlAdapter(logger), new HttpMimeTypeAdapter()),
+                Set.of(new RuleDeserializer()),
+                logger);
     }
 
     // testing-only when extra deserializers aren't needed

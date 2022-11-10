@@ -126,6 +126,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         HyperlinkedSerializableRecordingDescriptor descriptor =
                 (HyperlinkedSerializableRecordingDescriptor) o;
         return new EqualsBuilder()
+                .appendSuper(super.equals(o))
                 .append(downloadUrl, descriptor.downloadUrl)
                 .append(reportUrl, descriptor.reportUrl)
                 .append(metadata, descriptor.metadata)
@@ -136,6 +137,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
+                .appendSuper(super.hashCode())
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)

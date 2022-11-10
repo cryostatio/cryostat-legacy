@@ -86,6 +86,7 @@ import io.vertx.core.eventbus.EventBus;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
@@ -1057,6 +1058,11 @@ public class RecordingMetadataManager extends AbstractVerticle
         @Override
         public int hashCode() {
             return new HashCodeBuilder().append(securityContext).append(labels).toHashCode();
+        }
+
+        @Override
+        public String toString() {
+            return ToStringBuilder.reflectionToString(this);
         }
     }
 }

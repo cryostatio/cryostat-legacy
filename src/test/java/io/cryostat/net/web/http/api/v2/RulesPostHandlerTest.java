@@ -54,7 +54,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
-import io.cryostat.util.RuleDeserializer;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -87,7 +86,7 @@ class RulesPostHandlerTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger, new RuleDeserializer());
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() throws IOException {

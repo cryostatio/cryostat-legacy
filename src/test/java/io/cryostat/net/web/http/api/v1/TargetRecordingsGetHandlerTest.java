@@ -198,9 +198,10 @@ class TargetRecordingsGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Metadata metadata = new Metadata(SecurityContext.DEFAULT, Map.of());
+        Metadata metadataIn = new Metadata(SecurityContext.DEFAULT, Map.of());
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(metadata);
+                .thenReturn(metadataIn);
+        Metadata metadataOut = new Metadata(null, Map.of());
 
         handler.handleAuthenticated(ctx);
 
@@ -220,12 +221,12 @@ class TargetRecordingsGetHandlerTest {
                                         createDescriptor("foo"),
                                         "http://example.com:1234/api/v1/targets/fooHost:1/recordings/foo",
                                         "http://example.com:1234/api/v1/targets/fooHost:1/reports/foo",
-                                        metadata),
+                                        metadataOut),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
                                         "http://example.com:1234/api/v1/targets/fooHost:1/recordings/bar",
                                         "http://example.com:1234/api/v1/targets/fooHost:1/reports/bar",
-                                        metadata))));
+                                        metadataOut))));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
