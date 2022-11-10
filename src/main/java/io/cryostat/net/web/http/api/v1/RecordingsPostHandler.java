@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -228,6 +229,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         Metadata metadata = new Metadata(labels);
 
         long size = upload.size();
+        long archivedTime = Instant.now().getEpochSecond();
         String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
@@ -292,7 +294,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                                         subdirectoryName,
                                                                                         fsName),
                                                                         metadata,
-                                                                        size),
+                                                                        size,
+                                                                        archivedTime),
                                                                 "target",
                                                                 subdirectoryName))
                                                 .build()

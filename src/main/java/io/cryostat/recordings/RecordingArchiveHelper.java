@@ -48,6 +48,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -395,7 +397,8 @@ public class RecordingArchiveHelper {
                                     .getArchivedReportURL(
                                             connectionDescriptor.getTargetId(), filename),
                             metadata,
-                            getFileSize(filename));
+                            getFileSize(filename),
+                            Instant.now().getEpochSecond());
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -440,7 +443,8 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(targetId, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     jvmId, recordingName),
-                            getFileSize(filename));
+                            getFileSize(filename),
+                            getArchivedTime(filename));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -503,7 +507,8 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(targetId, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     new ConnectionDescriptor(targetId), recordingName),
-                            getFileSize(filename));
+                            getFileSize(filename),
+                            getArchivedTime(filename));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
@@ -648,7 +653,8 @@ public class RecordingArchiveHelper {
                                             webServer.getArchivedReportURL(targetId, file),
                                             recordingMetadataManager.getMetadata(
                                                     new ConnectionDescriptor(targetId), file),
-                                            getFileSize(file));
+                                            getFileSize(file),
+                                            getArchivedTime(file));
                                 } catch (IOException | URISyntaxException e) {
                                     logger.warn(e);
                                     return null;
@@ -713,7 +719,8 @@ public class RecordingArchiveHelper {
                                                         recordingMetadataManager
                                                                 .getMetadataFromPathIfExists(
                                                                         jvmId, file),
-                                                        getFileSize(file));
+                                                        getFileSize(file),
+                                                        getArchivedTime(file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
@@ -768,7 +775,8 @@ public class RecordingArchiveHelper {
                                                         recordingMetadataManager.getMetadata(
                                                                 new ConnectionDescriptor(targetId),
                                                                 file),
-                                                        getFileSize(file));
+                                                        getFileSize(file),
+                                                        Instant.now().getEpochSecond());
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;
@@ -993,6 +1001,19 @@ public class RecordingArchiveHelper {
     private long getFileSize(String recordingName) {
         try {
             return Files.size(getRecordingPath(recordingName).get());
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            logger.error("Invalid path: {}", recordingName);
+            return 0;
+        }
+    }
+
+    private long getArchivedTime(String recordingName) {
+        try {
+            FileTime fileTime =
+                    (FileTime)
+                            Files.getAttribute(
+                                    getRecordingPath(recordingName).get(), "creationTime");
+            return fileTime.toMillis();
         } catch (IOException | InterruptedException | ExecutionException e) {
             logger.error("Invalid path: {}", recordingName);
             return 0;

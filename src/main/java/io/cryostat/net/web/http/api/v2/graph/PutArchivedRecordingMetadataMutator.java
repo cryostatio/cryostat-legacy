@@ -103,6 +103,7 @@ class PutArchivedRecordingMetadataMutator
         String uri = source.getServiceUri();
         String recordingName = source.getName();
         long size = source.getSize();
+        long archivedTime = source.getArchivedTime();
         Map<String, Object> settings = environment.getArgument("metadata");
         Map<String, String> labels = new HashMap<>();
 
@@ -132,6 +133,7 @@ class PutArchivedRecordingMetadataMutator
                 ws.getArchivedDownloadURL(uri, recordingName),
                 ws.getArchivedReportURL(uri, recordingName),
                 metadata,
-                size);
+                size,
+                archivedTime);
     }
 }
