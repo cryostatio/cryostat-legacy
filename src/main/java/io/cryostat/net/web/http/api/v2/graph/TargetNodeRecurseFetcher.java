@@ -40,7 +40,6 @@ package io.cryostat.net.web.http.api.v2.graph;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,7 +61,7 @@ import io.cryostat.platform.discovery.TargetNode;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
-class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<TargetNode>> {
+class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
     @Inject
     TargetNodeRecurseFetcher(AuthManager auth, CredentialsManager credentialsManager) {
@@ -96,10 +95,10 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<Targe
     }
 
     @Override
-    public Set<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public List<TargetNode> getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         AbstractNode node = environment.getSource();
         FilterInput filter = FilterInput.from(environment);
-        Set<TargetNode> result = new HashSet<>();
+        List<TargetNode> result = new ArrayList<>();
         if (node instanceof TargetNode) {
             result.add((TargetNode) node);
         } else if (node instanceof EnvironmentNode) {
@@ -116,14 +115,14 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<Targe
 
         if (filter.contains(FilterInput.Key.ID)) {
             int id = filter.get(FilterInput.Key.ID);
-            result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toSet());
+            result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             result =
                     result.stream()
                             .filter(n -> Objects.equals(n.getName(), nodeName))
-                            .collect(Collectors.toSet());
+                            .collect(Collectors.toList());
         }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
@@ -131,7 +130,7 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<Targe
                 result =
                         result.stream()
                                 .filter(n -> LabelSelectorMatcher.parse(label).test(n.getLabels()))
-                                .collect(Collectors.toSet());
+                                .collect(Collectors.toList());
             }
         }
         if (filter.contains(FilterInput.Key.ANNOTATIONS)) {
@@ -152,7 +151,7 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<Set<Targe
                                         n ->
                                                 LabelSelectorMatcher.parse(annotation)
                                                         .test(mergedAnnotations.apply(n)))
-                                .collect(Collectors.toSet());
+                                .collect(Collectors.toList());
             }
         }
         result.forEach(
