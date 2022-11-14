@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
@@ -62,16 +63,19 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
 
     private final RootNodeFetcher rootNodeFetcher;
     private final TargetNodeRecurseFetcher recurseFetcher;
+    private final Logger logger;
 
     @Inject
     TargetNodesFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
             RootNodeFetcher rootNodefetcher,
-            TargetNodeRecurseFetcher recurseFetcher) {
+            TargetNodeRecurseFetcher recurseFetcher,
+            Logger logger) {
         super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;
+        this.logger = logger;
     }
 
     @Override
@@ -95,7 +99,9 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
             }
             return auth.contextFor(nodes.get(0));
         } catch (Exception e) {
-            return null;
+            logger.warn(e);
+            // FIXME this should bubble up, not use the default context
+            return SecurityContext.DEFAULT;
         }
     }
 

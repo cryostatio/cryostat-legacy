@@ -40,6 +40,7 @@ package io.cryostat.net.openshift;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import io.cryostat.net.security.SecurityContext;
@@ -50,27 +51,52 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 
+import dagger.Lazy;
+
 class OpenShiftSecurityContext implements SecurityContext {
 
     static final String KEY_NAMESPACE = "SC_NAMESPACE";
 
     private final Map<String, String> ctx = new HashMap<>();
 
-    OpenShiftSecurityContext(Map<String, String> ctx) {
-        this.ctx.putAll(ctx);
+    OpenShiftSecurityContext(String namespace) {
+        this.ctx.put(KEY_NAMESPACE, namespace);
     }
 
-    OpenShiftSecurityContext(AbstractNode node) {
+    OpenShiftSecurityContext(Lazy<String> defaultNamespace, AbstractNode node) {
+        String ns;
         ServiceRef serviceRef = findServiceRef(node);
         if (serviceRef != null) {
-            ctx.put(
-                    KEY_NAMESPACE,
-                    serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
+            ns = serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE);
+            if (ns == null) {
+                // FIXME log properly
+                System.err.println(
+                        String.format(
+                                "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE value",
+                                serviceRef.getServiceUri()));
+                ns = defaultNamespace.get();
+            }
+        } else {
+            // FIXME
+            // throw new IllegalStateException(
+            //         String.format(
+            //                 "Could not find TargetNode/ServiceRef descendant of %s (%s)",
+            //                 node.getName(), node.getNodeType().getKind()));
+            ns = defaultNamespace.get();
         }
+        this.ctx.put(KEY_NAMESPACE, ns);
     }
 
-    OpenShiftSecurityContext(ServiceRef serviceRef) {
-        ctx.put(KEY_NAMESPACE, serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE));
+    OpenShiftSecurityContext(Lazy<String> defaultNamespace, ServiceRef serviceRef) {
+        String ns = serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE);
+        if (ns == null) {
+            System.err.println(
+                    String.format(
+                            "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE value",
+                            serviceRef.getServiceUri()));
+            ns = defaultNamespace.get();
+        }
+        this.ctx.put(KEY_NAMESPACE, ns);
     }
 
     String getNamespace() {
@@ -106,5 +132,30 @@ class OpenShiftSecurityContext implements SecurityContext {
         } else {
             throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(ctx);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        OpenShiftSecurityContext other = (OpenShiftSecurityContext) obj;
+        return Objects.equals(ctx, other.ctx);
+    }
+
+    @Override
+    public String toString() {
+        return "OpenShiftSecurityContext [ctx=" + ctx + "]";
     }
 }

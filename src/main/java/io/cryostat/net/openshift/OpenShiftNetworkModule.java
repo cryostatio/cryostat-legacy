@@ -38,7 +38,6 @@
 package io.cryostat.net.openshift;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.Map;
@@ -59,10 +58,6 @@ import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -165,24 +160,7 @@ public abstract class OpenShiftNetworkModule {
     @Singleton
     @IntoSet
     public static PluggableJsonDeserializer<?> provideSecurityContextAdapter(
-            Lazy<AuthManager> auth) {
-        return new PluggableJsonDeserializer<SecurityContext>(SecurityContext.class) {
-
-            @Override
-            public SecurityContext deserialize(
-                    JsonElement json, Type typeOfT, JsonDeserializationContext context)
-                    throws JsonParseException {
-                if (!(auth.get() instanceof OpenShiftAuthManager)) {
-                    // FIXME actually deserialize, don't make this assumption
-                    return SecurityContext.DEFAULT;
-                }
-                JsonObject obj = json.getAsJsonObject();
-                Map<String, String> ctx =
-                        Map.of(
-                                OpenShiftSecurityContext.KEY_NAMESPACE,
-                                obj.get(OpenShiftSecurityContext.KEY_NAMESPACE).getAsString());
-                return new OpenShiftSecurityContext(ctx);
-            }
-        };
+            Lazy<AuthManager> auth, @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace) {
+        return new OpenShiftSecurityContextDeserializer(auth, namespace);
     }
 }
