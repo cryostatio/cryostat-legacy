@@ -199,6 +199,9 @@ runGrafana() {
 
 runReportGenerator() {
     local RJMX_PORT=10000
+    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.imageStream)"
+    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.version)"
+    port="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.port)"
     podman run \
         --name reports \
         --pull always \
@@ -207,8 +210,8 @@ runReportGenerator() {
         --memory 512M \
         --restart on-failure \
         --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
-        --env QUARKUS_HTTP_PORT=10001 \
-        --rm -d quay.io/cryostat/cryostat-reports:latest
+        --env QUARKUS_HTTP_PORT="${port}" \
+        --rm -d "${stream}:${tag}"
 }
 
 createPod() {

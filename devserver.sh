@@ -69,7 +69,7 @@ runReportGenerator() {
         --pod "${podname}" \
         --restart on-failure \
         --env QUARKUS_HTTP_PORT="${port}" \
-        --rm -d quay.io/cryostat/cryostat-reports:latest
+        --rm -d "${stream}:${tag}"
 }
 
 runJfrDatasource() {
