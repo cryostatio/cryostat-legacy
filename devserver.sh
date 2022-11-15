@@ -60,18 +60,22 @@ createPod() {
 }
 
 runReportGenerator() {
+    local stream; local tag; local port;
+    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.imageStream -q -DforceStdout)"
+    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.version -q -DforceStdout)"
+    port="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.port -q -DforceStdout)"
     podman run \
         --name "${reports_container}" \
         --pod "${podname}" \
         --restart on-failure \
-        --env QUARKUS_HTTP_PORT=10001 \
+        --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d quay.io/cryostat/cryostat-reports:latest
 }
 
 runJfrDatasource() {
     local stream; local tag;
-    stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
-    tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
+    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.jfr-datasource.imageStream -q -DforceStdout)"
+    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.jfr-datasource.version -q -DforceStdout)"
     podman run \
         --name "${datasource_container}" \
         --pod "${podname}" \
@@ -80,8 +84,8 @@ runJfrDatasource() {
 
 runGrafana() {
     local stream; local tag;
-    stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
-    tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
+    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.grafana.imageStream -q -DforceStdout)"
+    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.grafana.version -q -DforceStdout)"
     podman run \
         --name "${grafana_container}" \
         --pod "${podname}" \
