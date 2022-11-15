@@ -4,12 +4,16 @@
 set -x
 set -e
 
+if [ -z "${MVN}" ]; then
+    MVN="$(which mvn)"
+fi
+
 runCryostat() {
     local DIR; local host; local datasourcePort; local grafanaPort;
     DIR="$(dirname "$(readlink -f "$0")")"
-    host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
-    datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
-    grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+    host="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
+    datasourcePort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
+    grafanaPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.port)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
 
@@ -63,8 +67,8 @@ runPostgres() {
         mkdir "$(dirname "$0")/conf/postgres"
     fi
     local image; local version;
-    image="$(xpath -q -e 'project/properties/postgres.image/text()' pom.xml)"
-    version="$(xpath -q -e 'project/properties/postgres.version/text()' pom.xml)"
+    image="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=postgres.image)"
+    version="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=postgres.version)"
     podman run \
         --name postgres \
         --pod cryostat-pod \
@@ -105,7 +109,7 @@ runDemoApps() {
 
     local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-        webPort="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
+        webPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
     else
         webPort="${CRYOSTAT_WEB_PORT}"
     fi
@@ -168,8 +172,8 @@ runDemoApps() {
 
 runJfrDatasource() {
     local stream; local tag;
-    stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
-    tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
+    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.imageStream)"
+    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.version)"
     podman run \
         --name jfr-datasource \
         --pull always \
@@ -179,10 +183,10 @@ runJfrDatasource() {
 
 runGrafana() {
     local stream; local tag; local host; local port;
-    stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
-    tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
-    host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
-    port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.imageStream)"
+    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.version)"
+    host="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
+    port="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
     podman run \
         --name grafana \
         --pull always \
@@ -209,10 +213,10 @@ runReportGenerator() {
 
 createPod() {
     local jmxPort; local webPort; local datasourcePort; local grafanaPort;
-    jmxPort="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
-    webPort="$(xpath -q -e 'project/properties/cryostat.webPort/text()' pom.xml)"
-    datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
-    grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+    jmxPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
+    webPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.webPort)"
+    datasourcePort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
+    grafanaPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.port)"
     podman pod create \
         --replace \
         --hostname cryostat \

@@ -16,15 +16,15 @@ if [ -z "${MVN}" ]; then
 fi
 
 if [ -z "${POD_NAME}" ]; then
-    POD_NAME="$(xpath -q -e 'project/properties/cryostat.itest.podName/text()' pom.xml)"
+    POD_NAME="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.podName)"
 fi
 
 if [ -z "${CONTAINER_NAME}" ]; then
-    CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
+    CONTAINER_NAME="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.containerName)"
 fi
 
 if [ -z "${ITEST_IMG_VERSION}" ]; then
-    ITEST_IMG_VERSION="$(xpath -q -e 'project/version/text()' pom.xml)"
+    ITEST_IMG_VERSION="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=project.version)"
     ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
 fi
 

@@ -61,9 +61,9 @@ createPod() {
 
 runReportGenerator() {
     local stream; local tag; local port;
-    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.imageStream -q -DforceStdout)"
-    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.version -q -DforceStdout)"
-    port="$(${MVN} help:evaluate -Dexpression=cryostat.itest.reports.port -q -DforceStdout)"
+    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.imageStream -q -DforceStdout)"
+    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.version -q -DforceStdout)"
+    port="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.port -q -DforceStdout)"
     podman run \
         --name "${reports_container}" \
         --pod "${podname}" \
@@ -74,8 +74,8 @@ runReportGenerator() {
 
 runJfrDatasource() {
     local stream; local tag;
-    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.jfr-datasource.imageStream -q -DforceStdout)"
-    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.jfr-datasource.version -q -DforceStdout)"
+    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.jfr-datasource.imageStream -q -DforceStdout)"
+    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.jfr-datasource.version -q -DforceStdout)"
     podman run \
         --name "${datasource_container}" \
         --pod "${podname}" \
@@ -84,8 +84,8 @@ runJfrDatasource() {
 
 runGrafana() {
     local stream; local tag;
-    stream="$(${MVN} help:evaluate -Dexpression=cryostat.itest.grafana.imageStream -q -DforceStdout)"
-    tag="$(${MVN} help:evaluate -Dexpression=cryostat.itest.grafana.version -q -DforceStdout)"
+    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.grafana.imageStream -q -DforceStdout)"
+    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.grafana.version -q -DforceStdout)"
     podman run \
         --name "${grafana_container}" \
         --pod "${podname}" \

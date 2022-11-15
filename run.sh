@@ -21,7 +21,7 @@ fi
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
-    CRYOSTAT_RJMX_PORT="$(${MVN} help:evaluate -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
+    CRYOSTAT_RJMX_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
 fi
 
 if [ -z "$CRYOSTAT_RMI_PORT" ]; then
@@ -29,11 +29,11 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
 fi
 
 if [ -z "$CRYOSTAT_WEB_HOST" ]; then
-    CRYOSTAT_WEB_HOST="$(${MVN} help:evaluate -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
+    CRYOSTAT_WEB_HOST="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
 fi
 
 if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-    CRYOSTAT_WEB_PORT="$(${MVN} help:evaluate -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
+    CRYOSTAT_WEB_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
 fi
 
 if [ -z "$CRYOSTAT_EXT_WEB_PORT" ]; then
