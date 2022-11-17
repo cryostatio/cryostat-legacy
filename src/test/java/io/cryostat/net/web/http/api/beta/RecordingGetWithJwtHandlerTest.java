@@ -37,13 +37,17 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.util.EnumSet;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.HttpServer;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -79,13 +83,22 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock HttpServer httpServer;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth,
+                        credentialsManager,
+                        jwt,
+                        () -> webServer,
+                        archive,
+                        targetConnectionManager,
+                        httpServer,
+                        logger);
     }
 
     @Nested
@@ -131,7 +144,16 @@ class RecordingGetWithJwtHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
+                
+        @BeforeEach
+        void setup() {
+            String sourceTarget = "mytarget";
+            String recordingName = "myrecording";
+            lenient().when(ctx.pathParam("sourceTarget")).thenReturn(sourceTarget);
+            lenient().when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
+        }
+    
         @Test
         void shouldRespond404IfNotFound() throws Exception {
             String sourceTarget = "mytarget";
@@ -157,8 +179,9 @@ class RecordingGetWithJwtHandlerTest {
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
 
             byte[] buffer = new byte[1024];
+            ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
 
-            when(archive.getRecordingForDownload("mytarget", "myrecording")).thenReturn(buffer);
+            when(archive.getRecordingForDownload("mytarget", "myrecording")).thenReturn(stream);
 
             handler.handleWithValidJwt(ctx, token);
 

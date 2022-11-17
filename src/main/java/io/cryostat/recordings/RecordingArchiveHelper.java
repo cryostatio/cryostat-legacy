@@ -38,6 +38,7 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -860,24 +861,22 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public byte[] getRecordingForDownload(String sourceTarget, String recordingName)
-            throws ExecutionException, RecordingNotFoundException {
-        byte[] recordingFile = null;
+    public InputStream getRecordingForDownload(String sourceTarget, String recordingName)
+            throws ExecutionException, RecordingNotFoundException, IOException {
+        Path recordingPath = null;
         try {
-            Path recordingPath = getRecordingPath(sourceTarget, recordingName).get();
-            if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(recordingPath)) {
-                return unGzip(recordingPath);
-            }
-            recordingFile = Files.readAllBytes(recordingPath);
-        } catch (InterruptedException | IOException ioe) {
-            logger.error(ioe);
+            recordingPath = getRecordingPath(sourceTarget, recordingName).get();
+
+        } catch (InterruptedException ex) {
+            logger.error(ex);
+
         } catch (ExecutionException ex) {
             if (ex.getCause() instanceof RecordingNotFoundException) {
                 throw new RecordingNotFoundException(sourceTarget, recordingName);
             }
             throw ex;
         }
-        return recordingFile;
+        return unGzip(recordingPath);
     }
 
     private Path searchSubdirectory(Path subdirectory, String recordingName) {
@@ -1098,24 +1097,22 @@ public class RecordingArchiveHelper {
         }
     }
 
-    private byte[] unGzip(Path gzipFile) throws IOException {
-        byte[] fileContent = null;
+    public InputStream unGzip(Path gzipFile) throws IOException {
+        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(gzipFile)) {
 
-        try (FileInputStream source = new FileInputStream(gzipFile.toString());
-                ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                GZIPInputStream input = new GZIPInputStream(source); ) {
+            try (FileInputStream source = new FileInputStream(gzipFile.toString());
+                    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                    GZIPInputStream input = new GZIPInputStream(source); ) {
 
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = input.read(buffer)) != -1) {
-                bout.write(buffer, 0, len);
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = input.read(buffer)) != -1) {
+                    bout.write(buffer, 0, len);
+                }
+                return new ByteArrayInputStream(bout.toByteArray());
             }
-            fileContent = bout.toByteArray();
-        } catch (IOException ioe) {
-            logger.error("Failed to decompress the file: " + ioe);
-            throw ioe;
         }
-        return fileContent;
+        return new ByteArrayInputStream(Files.readAllBytes(gzipFile));
     }
 
     private boolean isGzip(Path file) {
