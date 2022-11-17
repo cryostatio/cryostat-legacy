@@ -114,8 +114,6 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             boolean formatted) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            logger.info("THIS IS EXPITY :" + cacheExpirySeconds);
-            logger.info("THIS IS REFRESH :" + cacheRefreshSeconds);
             if (formatted) {
                 if (filter.isBlank()) {
                     f.complete(
