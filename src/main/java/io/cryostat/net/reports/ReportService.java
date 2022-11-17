@@ -75,7 +75,8 @@ public class ReportService {
         return activeCache.get(connectionDescriptor, recordingName, filter, formatted);
     }
 
-    public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return activeCache.delete(connectionDescriptor, recordingName);
+    public boolean delete(
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean formatted) {
+        return activeCache.delete(connectionDescriptor, recordingName, formatted);
     }
 }

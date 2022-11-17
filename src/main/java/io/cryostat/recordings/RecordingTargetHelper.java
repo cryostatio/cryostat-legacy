@@ -453,7 +453,9 @@ public class RecordingTargetHelper {
                                 if (descriptor.isPresent()) {
                                     IRecordingDescriptor d = descriptor.get();
                                     connection.getService().close(d);
-                                    reportService.delete(connectionDescriptor, recordingName);
+                                    reportService.delete(connectionDescriptor, recordingName, true);
+                                    reportService.delete(
+                                            connectionDescriptor, recordingName, false);
                                     this.cancelScheduledTasksIfExists(targetId, recordingName);
                                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                             new HyperlinkedSerializableRecordingDescriptor(
