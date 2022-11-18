@@ -61,6 +61,9 @@ import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.util.InputStreamToReadStream;
 
 import com.nimbusds.jwt.JWT;
+
+import org.apache.commons.lang3.StringUtils;
+
 import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -120,12 +123,14 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
-
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
 
         try {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            if (StringUtils.isBlank(recordingName)) {
+                throw new ApiException(404);
+            }
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
         }
