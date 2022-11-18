@@ -846,7 +846,8 @@
               <include>src/test/**/*.java</include>
             </includes>
             <excludes>
-              <exclude>src/main/java/io/cryostat/util/OutputToReadStream.java</exclude>
+              <exclude>src/main/java/io/cryostat/util/ActiveRecordingOutputToReadStream.java</exclude>
+              <exclude>src/main/java/io/cryostat/util/InputStreamToReadStream.java</exclude>
             </excludes>
           </licenseSet>
         </licenseSets>

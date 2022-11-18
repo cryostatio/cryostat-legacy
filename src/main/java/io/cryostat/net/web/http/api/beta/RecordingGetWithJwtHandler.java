@@ -48,9 +48,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -60,7 +58,7 @@ import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
-import io.cryostat.util.ActiveRecordingOutputToReadStream;
+import io.cryostat.util.InputStreamToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -73,7 +71,6 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName/jwt";
 
-    private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Vertx vertx;
 
@@ -85,11 +82,9 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             Lazy<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
             HttpServer httpServer,
-            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
-        this.targetConnectionManager = targetConnectionManager;
         this.vertx = httpServer.getVertx();
     }
 
@@ -146,8 +141,6 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             RoutingContext ctx, JWT jwt, String recordingName, String sourceTarget)
             throws Exception {
 
-        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromJwt(ctx, jwt);
-
         Path recordingPath =
                 recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
 
@@ -158,14 +151,12 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                         String.format("attachment; filename=\"%s\"", recordingName));
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
 
-        try (final ActiveRecordingOutputToReadStream otrs =
-                        new ActiveRecordingOutputToReadStream(
-                                vertx, targetConnectionManager, connectionDescriptor);
+        try (final InputStreamToReadStream istors = new InputStreamToReadStream(vertx);
                 final InputStream is = recordingArchiveHelper.unGzip(recordingPath)) {
 
             CompletableFuture<Void> future = new CompletableFuture<>();
 
-            otrs.pipeFromInput(
+            istors.pipeFromInput(
                     is,
                     ctx.response(),
                     res -> {
@@ -177,5 +168,6 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                     });
             future.get();
         }
+        ctx.response().end();
     }
 }

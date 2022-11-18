@@ -47,7 +47,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -83,7 +82,6 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock HttpServer httpServer;
     @Mock Logger logger;
 
@@ -96,7 +94,6 @@ class RecordingGetWithJwtHandlerTest {
                         jwt,
                         () -> webServer,
                         archive,
-                        targetConnectionManager,
                         httpServer,
                         logger);
     }
