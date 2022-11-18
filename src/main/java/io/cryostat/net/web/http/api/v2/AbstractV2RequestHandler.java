@@ -67,6 +67,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 
 public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
@@ -125,6 +126,9 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {
         String targetId = params.getPathParams().get("targetId");
+        if (StringUtils.isBlank(targetId)) {
+            throw new IllegalArgumentException("targetId path parameter was blank");
+        }
         try {
             Credentials credentials;
             if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {

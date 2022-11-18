@@ -108,6 +108,7 @@ import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class RecordingArchiveHelper {
 
@@ -910,6 +911,9 @@ public class RecordingArchiveHelper {
 
     public void validateSourceTarget(String sourceTarget)
             throws RecordingSourceTargetNotFoundException {
+        if (StringUtils.isBlank(sourceTarget)) {
+            throw new RecordingSourceTargetNotFoundException(sourceTarget);
+        }
         if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return;
         }

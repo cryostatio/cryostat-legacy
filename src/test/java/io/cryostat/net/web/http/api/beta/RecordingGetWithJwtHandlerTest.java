@@ -144,16 +144,15 @@ class RecordingGetWithJwtHandlerTest {
 
         @Mock RoutingContext ctx;
         @Mock JWT token;
-                
+
         @BeforeEach
         void setup() {
             String sourceTarget = "mytarget";
             String recordingName = "myrecording";
             lenient().when(ctx.pathParam("sourceTarget")).thenReturn(sourceTarget);
             lenient().when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-
         }
-    
+
         @Test
         void shouldRespond404IfNotFound() throws Exception {
             String sourceTarget = "mytarget";

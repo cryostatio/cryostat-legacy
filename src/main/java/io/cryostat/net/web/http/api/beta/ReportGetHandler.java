@@ -66,6 +66,7 @@ import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
@@ -135,6 +136,9 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
         String recordingName = params.getPathParams().get("recordingName");
         try {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
+            if (StringUtils.isBlank(recordingName)) {
+                throw new ApiException(404);
+            }
             List<String> queriedFilter = params.getQueryParams().getAll("filter");
             String rawFilter = queriedFilter.isEmpty() ? "" : queriedFilter.get(0);
             String contentType =
