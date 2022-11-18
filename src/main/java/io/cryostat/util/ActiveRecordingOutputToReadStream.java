@@ -72,7 +72,7 @@ import io.vertx.core.streams.WriteStream;
  * @author guss77, hareetd
  * @source https://github.com/cloudonix/vertx-java.io
  */
-public class OutputToReadStream extends OutputStream implements ReadStream<Buffer> {
+public class ActiveRecordingOutputToReadStream extends OutputStream implements ReadStream<Buffer> {
 
     private AtomicReference<CountDownLatch> paused = new AtomicReference<>(new CountDownLatch(0));
     private boolean closed;
@@ -84,7 +84,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     private TargetConnectionManager targetConnectionManager;
     private ConnectionDescriptor connectionDescriptor;
 
-    public OutputToReadStream(
+    public ActiveRecordingOutputToReadStream(
             Vertx vertx,
             TargetConnectionManager targetConnectionManager,
             ConnectionDescriptor connectionDescriptor) {
@@ -172,7 +172,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     /* ReadStream stuff */
 
     @Override
-    public OutputToReadStream exceptionHandler(Handler<Throwable> handler) {
+    public ActiveRecordingOutputToReadStream exceptionHandler(Handler<Throwable> handler) {
         // we are usually not propagating exceptions as OutputStream has no mechanism for
         // propagating exceptions down,
         // except when wrapping an input stream, in which case we can forward InputStream read
@@ -182,32 +182,32 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     }
 
     @Override
-    public OutputToReadStream handler(Handler<Buffer> handler) {
+    public ActiveRecordingOutputToReadStream handler(Handler<Buffer> handler) {
         this.dataHandler = Objects.requireNonNullElse(handler, d -> {});
         return this;
     }
 
     @Override
-    public OutputToReadStream pause() {
+    public ActiveRecordingOutputToReadStream pause() {
         paused.getAndSet(new CountDownLatch(1)).countDown();
         return this;
     }
 
     @Override
-    public OutputToReadStream resume() {
+    public ActiveRecordingOutputToReadStream resume() {
         paused.getAndSet(new CountDownLatch(0)).countDown();
         return this;
     }
 
     @Override
-    public OutputToReadStream fetch(long amount) {
+    public ActiveRecordingOutputToReadStream fetch(long amount) {
         resume();
         demand.addAndGet(amount);
         return null;
     }
 
     @Override
-    public OutputToReadStream endHandler(Handler<Void> endHandler) {
+    public ActiveRecordingOutputToReadStream endHandler(Handler<Void> endHandler) {
         this.endHandler = Objects.requireNonNullElse(endHandler, v -> {});
         return this;
     }

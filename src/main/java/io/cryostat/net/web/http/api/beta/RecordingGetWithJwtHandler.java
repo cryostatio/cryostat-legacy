@@ -60,7 +60,7 @@ import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
-import io.cryostat.util.OutputToReadStream;
+import io.cryostat.util.ActiveRecordingOutputToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -158,8 +158,8 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                         String.format("attachment; filename=\"%s\"", recordingName));
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
 
-        try (final OutputToReadStream otrs =
-                        new OutputToReadStream(
+        try (final ActiveRecordingOutputToReadStream otrs =
+                        new ActiveRecordingOutputToReadStream(
                                 vertx, targetConnectionManager, connectionDescriptor);
                 final InputStream is = recordingArchiveHelper.unGzip(recordingPath)) {
 

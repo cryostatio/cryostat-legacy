@@ -57,7 +57,7 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.util.OutputToReadStream;
+import io.cryostat.util.ActiveRecordingOutputToReadStream;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -139,8 +139,8 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
 
         try (final InputStream is = stream.get();
-                final OutputToReadStream otrs =
-                        new OutputToReadStream(
+                final ActiveRecordingOutputToReadStream otrs =
+                        new ActiveRecordingOutputToReadStream(
                                 vertx, targetConnectionManager, connectionDescriptor)) {
             CompletableFuture<Void> future = new CompletableFuture<>();
             otrs.pipeFromInput(
