@@ -4,6 +4,10 @@
 set -x
 set -e
 
+if [ -z "${MVN}" ]; then
+    MVN="$(which mvn)"
+fi
+
 cleanup() {
     podman pod stop cryostat-pod
     podman pod rm cryostat-pod
@@ -11,13 +15,13 @@ cleanup() {
 trap cleanup EXIT
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:latest"
+    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)"
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
-    CRYOSTAT_RJMX_PORT="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
+    CRYOSTAT_RJMX_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
 fi
 
 if [ -z "$CRYOSTAT_RMI_PORT" ]; then
@@ -25,11 +29,11 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
 fi
 
 if [ -z "$CRYOSTAT_WEB_HOST" ]; then
-    CRYOSTAT_WEB_HOST="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
+    CRYOSTAT_WEB_HOST="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
 fi
 
 if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-    CRYOSTAT_WEB_PORT="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
+    CRYOSTAT_WEB_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
 fi
 
 if [ -z "$CRYOSTAT_EXT_WEB_PORT" ]; then

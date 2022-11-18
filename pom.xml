@@ -47,6 +47,9 @@
   <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
   <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
   <cryostat.itest.jfr-datasource.version>latest</cryostat.itest.jfr-datasource.version>
+  <cryostat.itest.reports.port>10001</cryostat.itest.reports.port>
+  <cryostat.itest.reports.imageStream>quay.io/cryostat/cryostat-reports</cryostat.itest.reports.imageStream>
+  <cryostat.itest.reports.version>latest</cryostat.itest.reports.version>
   <cryostat.itest.jmx.db-passwd>${cryostat.itest.podName}</cryostat.itest.jmx.db-passwd>
 
   <io.reactiverse.plugin.version>1.0.27</io.reactiverse.plugin.version>

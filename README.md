@@ -114,8 +114,6 @@ exec:exec@destroy-pod`
 *To run on local podman, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) should be enabled.
 This allows resource configuration for any rootless containers running on podman. To ensure podman works with cgroups v2, follow these [instructions](https://podman.io/blogs/2019/10/29/podman-crun-f31.html).
 
-*Requires `xpath` to be available on your `$PATH` - ex. `dnf install perl-XML-XPath`.
-
 Note: If your podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it to crun as recommended in the instructions, since this version of runc supports cgroups v2. The article refers to an older version of runc.
 
 ## CONFIGURATION
