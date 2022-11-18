@@ -61,14 +61,12 @@ import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 import io.cryostat.util.InputStreamToReadStream;
 
 import com.nimbusds.jwt.JWT;
-
-import org.apache.commons.lang3.StringUtils;
-
 import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
 class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 

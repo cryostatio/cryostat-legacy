@@ -71,14 +71,14 @@ import io.vertx.core.streams.WriteStream;
  */
 public class InputStreamToReadStream extends OutputStream implements ReadStream<Buffer> {
 
-    private final AtomicReference<CountDownLatch> paused =
+    protected final AtomicReference<CountDownLatch> paused =
             new AtomicReference<>(new CountDownLatch(0));
-    private boolean closed;
-    private final AtomicLong demand = new AtomicLong(0);
-    private Handler<Void> endHandler = v -> {};
-    private Handler<Buffer> dataHandler = d -> {};
-    private Handler<Throwable> errorHandler = t -> {};
-    private final Context context;
+    protected boolean closed;
+    protected final AtomicLong demand = new AtomicLong(0);
+    protected Handler<Void> endHandler = v -> {};
+    protected Handler<Buffer> dataHandler = d -> {};
+    protected Handler<Throwable> errorHandler = t -> {};
+    protected final Context context;
 
     public InputStreamToReadStream(Vertx vertx) {
         this.context = vertx.getOrCreateContext();
@@ -237,6 +237,10 @@ public class InputStreamToReadStream extends OutputStream implements ReadStream<
             throw new IOException("Interrupted a wait for stream to resume", e);
         }
         push(null);
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     /* Internal implementation */
