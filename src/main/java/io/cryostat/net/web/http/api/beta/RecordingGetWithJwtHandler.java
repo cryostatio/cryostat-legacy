@@ -168,6 +168,5 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
                     });
             future.get();
         }
-        ctx.response().end();
     }
 }
