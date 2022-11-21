@@ -80,7 +80,7 @@
   <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
   <io.fabric8.client.version>6.2.0</io.fabric8.client.version>
-  <io.vertx.web.version>4.3.4</io.vertx.web.version>
+  <io.vertx.web.version>4.3.5</io.vertx.web.version>
   <!--
     FIXME this needs to be synced with the vertx version - is there a BOM to use or something?
     https://github.com/vert-x3/vertx-web/blob/${io.vertx.web.version}/vertx-web-graphql/pom.xml#L35
