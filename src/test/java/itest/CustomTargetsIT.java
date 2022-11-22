@@ -66,6 +66,27 @@ public class CustomTargetsIT extends StandardSelfTest {
 
     @Test
     @Order(1)
+    void shouldBeAbleToTestTargetConnection() throws InterruptedException, ExecutionException {
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("connectUrl", "localhost:0");
+        form.add("alias", "self");
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2/targets?dryrun=true")
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                            response.complete(ar.result().bodyAsJsonObject());
+                        });
+        JsonObject body = response.get().getJsonObject("data").getJsonObject("result");
+        MatcherAssert.assertThat(body.getString("connectUrl"), Matchers.equalTo("localhost:0"));
+        MatcherAssert.assertThat(body.getString("alias"), Matchers.equalTo("self"));
+    }
+
+    @Test
+    @Order(2)
     void shouldBeAbleToDefineTarget()
             throws TimeoutException, ExecutionException, InterruptedException {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
@@ -121,7 +142,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     void targetShouldAppearInListing()
             throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
@@ -185,7 +206,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void shouldBeAbleToDeleteTarget()
             throws TimeoutException, ExecutionException, InterruptedException {
         CountDownLatch latch = new CountDownLatch(2);
@@ -233,7 +254,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void targetShouldNoLongerAppearInListing() throws ExecutionException, InterruptedException {
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
