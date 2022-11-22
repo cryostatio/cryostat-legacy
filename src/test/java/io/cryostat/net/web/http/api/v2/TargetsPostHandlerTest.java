@@ -204,6 +204,7 @@ class TargetsPostHandlerTest {
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
         Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
@@ -223,6 +224,8 @@ class TargetsPostHandlerTest {
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
+        Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
         Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
@@ -233,8 +236,6 @@ class TargetsPostHandlerTest {
         attrs.set("annotations.cryostat.HOST", "app.example.com");
         attrs.set("annotations.cryostat.PID", "1234");
         attrs.set("annotations.cryostat.MADEUPKEY", "should not appear");
-
-        Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
 
         IntermediateResponse<ServiceRef> response = handler.handle(params);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -286,6 +287,7 @@ class TargetsPostHandlerTest {
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(queries);
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
         Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("id");
 
@@ -317,6 +319,7 @@ class TargetsPostHandlerTest {
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(queries);
+        Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
         Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("id");
