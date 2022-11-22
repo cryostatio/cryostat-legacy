@@ -156,10 +156,16 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             }
-            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
 
-            String jvmId = jvmIdHelper.getJvmId(uri.toString());
+            MultiMap queries = params.getQueryParams();
+            boolean dryRun =
+                    StringUtils.isNotBlank(queries.get("dryrun"))
+                            && Boolean.TRUE.equals(Boolean.valueOf(queries.get("dryrun")));
+
+            String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun);
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
+
+            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?
@@ -171,9 +177,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
-            boolean v = customTargetPlatformClient.addTarget(serviceRef);
-            if (!v) {
-                throw new ApiException(400, "Duplicate connectUrl");
+            if (!dryRun) {
+                boolean v = customTargetPlatformClient.addTarget(serviceRef);
+                if (!v) {
+                    throw new ApiException(400, "Duplicate connectUrl");
+                }
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
         } catch (JvmIdGetException e) {

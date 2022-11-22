@@ -143,18 +143,20 @@ class TargetsPostHandlerTest {
     @Test
     void testSuccessfulRequest() throws Exception {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        RequestParameters requestParameters = Mockito.mock(RequestParameters.class);
-        Mockito.when(requestParameters.getFormAttributes()).thenReturn(attrs);
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+        Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         String alias = "TestTarget";
         attrs.set("connectUrl", connectUrl);
         attrs.set("alias", alias);
 
-        IntermediateResponse<ServiceRef> response = handler.handle(requestParameters);
+        IntermediateResponse<ServiceRef> response = handler.handle(params);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
         ArgumentCaptor<ServiceRef> refCaptor = ArgumentCaptor.forClass(ServiceRef.class);
@@ -201,7 +203,9 @@ class TargetsPostHandlerTest {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
+        Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
         attrs.set("connectUrl", connectUrl);
@@ -218,7 +222,9 @@ class TargetsPostHandlerTest {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
+        Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         String alias = "TestTarget";
 
@@ -257,7 +263,9 @@ class TargetsPostHandlerTest {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString())).thenReturn("id");
+        Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
         attrs.set("connectUrl", connectUrl);
@@ -268,5 +276,71 @@ class TargetsPostHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "TRUE", "True"})
+    void testRequestWithDryRunQuery(String dryRunStr) throws Exception {
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        MultiMap queries = MultiMap.caseInsensitiveMultiMap();
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+        Mockito.when(params.getQueryParams()).thenReturn(queries);
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
+
+        String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
+        String alias = "TestTarget";
+
+        attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", alias);
+
+        queries.set("dryrun", dryRunStr);
+
+        IntermediateResponse<ServiceRef> response = handler.handle(params);
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+        ServiceRef respRef = response.getBody();
+        MatcherAssert.assertThat(respRef.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
+        MatcherAssert.assertThat(respRef.getAlias(), Matchers.equalTo(Optional.of(alias)));
+        MatcherAssert.assertThat(respRef.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                respRef.getCryostatAnnotations(),
+                Matchers.equalTo(Map.of(AnnotationKey.REALM, "Custom Targets")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "asdfg", "false", "FALSE", "False"})
+    void testRequestWithBadOrFalseDryRunQuery(String dryRunStr) throws Exception {
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        MultiMap queries = MultiMap.caseInsensitiveMultiMap();
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+        Mockito.when(params.getQueryParams()).thenReturn(queries);
+        Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
+        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+                .thenReturn("id");
+
+        String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
+        String alias = "TestTarget";
+
+        attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", alias);
+
+        queries.set("dryrun", dryRunStr);
+
+        IntermediateResponse<ServiceRef> response = handler.handle(params);
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+        ArgumentCaptor<ServiceRef> refCaptor = ArgumentCaptor.forClass(ServiceRef.class);
+        Mockito.verify(customTargetPlatformClient).addTarget(refCaptor.capture());
+        ServiceRef captured = refCaptor.getValue();
+        MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
+        MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
+        MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                captured.getCryostatAnnotations(),
+                Matchers.equalTo(Map.of(AnnotationKey.REALM, "Custom Targets")));
+        MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 }
