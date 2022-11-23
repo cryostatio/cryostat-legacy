@@ -148,7 +148,11 @@ class TargetsPostHandlerTest {
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
@@ -205,7 +209,11 @@ class TargetsPostHandlerTest {
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
@@ -226,7 +234,11 @@ class TargetsPostHandlerTest {
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         String alias = "TestTarget";
@@ -265,7 +277,11 @@ class TargetsPostHandlerTest {
         RequestParameters params = Mockito.mock(RequestParameters.class);
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
@@ -288,7 +304,11 @@ class TargetsPostHandlerTest {
         Mockito.when(params.getFormAttributes()).thenReturn(attrs);
         Mockito.when(params.getQueryParams()).thenReturn(queries);
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
@@ -321,7 +341,11 @@ class TargetsPostHandlerTest {
         Mockito.when(params.getQueryParams()).thenReturn(queries);
         Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
-        Mockito.when(jvmIdHelper.getJvmId(Mockito.anyString(), Mockito.anyBoolean()))
+        Mockito.when(
+                        jvmIdHelper.getJvmId(
+                                Mockito.anyString(),
+                                Mockito.anyBoolean(),
+                                Mockito.any(Optional.class)))
                 .thenReturn("id");
 
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";

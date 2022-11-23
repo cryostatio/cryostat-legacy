@@ -45,15 +45,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -157,12 +160,19 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
 
+            String username = attrs.get("username");
+            String password = attrs.get("password");
+            Optional<Credentials> credentials =
+                    StringUtils.isBlank(username) || StringUtils.isBlank(password)
+                            ? Optional.empty()
+                            : Optional.of(new Credentials(username, password));
+
             MultiMap queries = params.getQueryParams();
             boolean dryRun =
                     StringUtils.isNotBlank(queries.get("dryrun"))
                             && Boolean.TRUE.equals(Boolean.valueOf(queries.get("dryrun")));
 
-            String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun);
+            String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun, credentials);
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
 
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
@@ -185,7 +195,19 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
         } catch (JvmIdGetException e) {
-            throw new ApiException(404, "Couldn't connect to target: " + e.getTarget());
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)) {
+                throw new ApiException(406, "Credentials Not Acceptable", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
+                throw new ApiException(404, "Target Not Found", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+                throw new ApiException(502, "Target SSL Untrusted", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+                throw new ApiException(504, "Non-JMX Port", e);
+            }
+            throw new ApiException(500, "Internal Error", e);
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {
