@@ -53,6 +53,7 @@ import itest.bases.StandardSelfTest;
 import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,14 @@ import org.junit.jupiter.api.TestMethodOrder;
 public class CustomTargetsIT extends StandardSelfTest {
 
     private final ExecutorService worker = ForkJoinPool.commonPool();
-    private static String itestJvmId = null;
+    private String itestJvmId;
+
+    @BeforeEach
+    void setup() throws InterruptedException, ExecutionException, TimeoutException {
+        itestJvmId =
+                JvmIdWebRequest.jvmIdRequest(
+                        "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi");
+    }
 
     @Test
     @Order(1)
@@ -87,6 +95,49 @@ public class CustomTargetsIT extends StandardSelfTest {
 
     @Test
     @Order(2)
+    void targetShouldNotAppearInListing() throws InterruptedException, ExecutionException {
+        CompletableFuture<JsonArray> response = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                            response.complete(ar.result().bodyAsJsonArray());
+                        });
+        JsonArray body = response.get();
+        MatcherAssert.assertThat(body, Matchers.notNullValue());
+        MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
+
+        JsonObject selfJdp =
+                new JsonObject(
+                        Map.of(
+                                "jvmId",
+                                itestJvmId,
+                                "alias",
+                                "io.cryostat.Cryostat",
+                                "connectUrl",
+                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi",
+                                "labels",
+                                Map.of(),
+                                "annotations",
+                                Map.of(
+                                        "cryostat",
+                                        Map.of(
+                                                "REALM",
+                                                "JDP",
+                                                "HOST",
+                                                "cryostat-itests",
+                                                "PORT",
+                                                "9091",
+                                                "JAVA_MAIN",
+                                                "io.cryostat.Cryostat"),
+                                        "platform",
+                                        Map.of())));
+        MatcherAssert.assertThat(body, Matchers.contains(selfJdp));
+    }
+
+    @Test
+    @Order(3)
     void shouldBeAbleToDefineTarget()
             throws TimeoutException, ExecutionException, InterruptedException {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
@@ -142,7 +193,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void targetShouldAppearInListing()
             throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
@@ -157,9 +208,6 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(body, Matchers.notNullValue());
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(2));
 
-        itestJvmId =
-                JvmIdWebRequest.jvmIdRequest(
-                        "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi");
         JsonObject selfJdp =
                 new JsonObject(
                         Map.of(
@@ -206,7 +254,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void shouldBeAbleToDeleteTarget()
             throws TimeoutException, ExecutionException, InterruptedException {
         CountDownLatch latch = new CountDownLatch(2);
@@ -254,7 +302,7 @@ public class CustomTargetsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     void targetShouldNoLongerAppearInListing() throws ExecutionException, InterruptedException {
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
         webClient
