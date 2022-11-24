@@ -85,13 +85,13 @@ public abstract class ReportsModule {
     @Provides
     @Named(ACTIVE_REPORT_CACHE_EXPIRY_SECONDS)
     static long provideActiveReportCacheExpirySeconds(Environment env) {
-        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_EXPIRY_ENV, "1800"));
+        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_EXPIRY_ENV, "30"));
     }
 
     @Provides
     @Named(ACTIVE_REPORT_CACHE_REFRESH_SECONDS)
     static long provideActiveReportCacheRefreshSeconds(Environment env) {
-        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_REFRESH_ENV, "300"));
+        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_REFRESH_ENV, "10"));
     }
 
     @Provides

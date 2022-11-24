@@ -94,8 +94,8 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         this.htmlCache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
-                        .expireAfterWrite(cacheExpirySeconds, TimeUnit.SECONDS)
-                        .refreshAfterWrite(cacheRefreshSeconds, TimeUnit.SECONDS)
+                        .expireAfterWrite(30, TimeUnit.MINUTES)
+                        .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
                         .build((k) -> getHtmlReport(k));
         this.jsonCache =
