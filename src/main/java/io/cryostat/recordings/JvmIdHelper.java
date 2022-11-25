@@ -178,10 +178,10 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         return getJvmId(targetId, true, Optional.empty());
     }
 
-    public String getJvmId(String targetId, boolean saveToCached, Optional<Credentials> credentials)
+    public String getJvmId(String targetId, boolean cache, Optional<Credentials> credentials)
             throws JvmIdGetException {
         try {
-            return (saveToCached ? this.ids.get(targetId) : computeJvmId(targetId, credentials))
+            return (cache ? this.ids.get(targetId) : computeJvmId(targetId, credentials))
                     .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
             logger.warn("Could not get jvmId for target {}", targetId);

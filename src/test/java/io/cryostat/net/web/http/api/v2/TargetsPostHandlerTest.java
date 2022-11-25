@@ -441,6 +441,6 @@ class TargetsPostHandlerTest {
                 .thenThrow(jvmIdGetException);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(406));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(420));
     }
 }
