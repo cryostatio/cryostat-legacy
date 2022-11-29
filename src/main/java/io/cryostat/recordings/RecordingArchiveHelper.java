@@ -49,7 +49,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -398,7 +397,7 @@ public class RecordingArchiveHelper {
                                             connectionDescriptor.getTargetId(), filename),
                             metadata,
                             getFileSize(filename),
-                            Instant.now().getEpochSecond());
+                            getArchivedTime(filename));
             future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
@@ -776,7 +775,7 @@ public class RecordingArchiveHelper {
                                                                 new ConnectionDescriptor(targetId),
                                                                 file),
                                                         getFileSize(file),
-                                                        Instant.now().getEpochSecond());
+                                                        getArchivedTime(file));
                                             } catch (IOException | URISyntaxException e) {
                                                 logger.warn(e);
                                                 return null;

@@ -140,6 +140,7 @@ class RecordingsGetHandlerTest {
                                 "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo",
                                 new Metadata(),
+                                0,
                                 0)));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
@@ -155,6 +156,6 @@ class RecordingsGetHandlerTest {
 
         Mockito.verify(resp)
                 .end(
-                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0}]");
+                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0,\"archivedTime\":0}]");
     }
 }

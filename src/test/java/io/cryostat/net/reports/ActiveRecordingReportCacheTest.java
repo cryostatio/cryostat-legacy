@@ -90,12 +90,18 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator, fs, targetConnectionManager, 30, logger);
+                        () -> subprocessReportGenerator,
+                        fs,
+                        targetConnectionManager,
+                        30,
+                        30,
+                        30,
+                        logger);
     }
 
     @Test
     void shouldReturnFalseWhenDeletingNonExistentReport() {
-        Assertions.assertFalse(cache.delete(new ConnectionDescriptor("foo"), "bar"));
+        Assertions.assertFalse(cache.delete(new ConnectionDescriptor("foo"), "bar", false));
     }
 
     @Test
@@ -114,7 +120,7 @@ class ActiveRecordingReportCacheTest {
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         cache.get(connectionDescriptor, recordingName, "", true);
-        Assertions.assertTrue(cache.delete(connectionDescriptor, recordingName));
+        Assertions.assertTrue(cache.delete(connectionDescriptor, recordingName, true));
     }
 
     @Test

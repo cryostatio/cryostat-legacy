@@ -45,6 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,6 +110,9 @@ class RecordingsPostHandlerTest {
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
+
+    // this is the basename file name timestamp (December 19, 2019)
+    long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
 
     @BeforeEach
     void setup() {
@@ -311,7 +315,8 @@ class RecordingsPostHandlerTest {
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
                         new Metadata(),
-                        0);
+                        0,
+                        expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
@@ -499,7 +504,8 @@ class RecordingsPostHandlerTest {
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
                         metadata,
-                        0);
+                        0,
+                        expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");

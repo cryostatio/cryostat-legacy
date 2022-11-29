@@ -125,6 +125,20 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
                             .filter(r -> r.getSize() <= fileSize)
                             .collect(Collectors.toList());
         }
+        if (filter.contains(FilterInput.Key.ARCHIVED_TIME_AFTER)) {
+            long startTime = filter.get(FilterInput.Key.ARCHIVED_TIME_AFTER);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getArchivedTime() >= startTime)
+                            .collect(Collectors.toList());
+        }
+        if (filter.contains(FilterInput.Key.ARCHIVED_TIME_BEFORE)) {
+            long endTime = filter.get(FilterInput.Key.ARCHIVED_TIME_BEFORE);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> r.getArchivedTime() <= endTime)
+                            .collect(Collectors.toList());
+        }
 
         Archived archived = new Archived();
         AggregateInfo aggregate = new AggregateInfo();

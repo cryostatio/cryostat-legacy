@@ -140,6 +140,7 @@ class ArchivedDirectoriesGetHandlerTest {
                         "/some/path/download/recordingFoo",
                         "/some/path/archive/recordingFoo",
                         new Metadata(),
+                        0,
                         0);
 
         listFuture.complete(
@@ -160,6 +161,6 @@ class ArchivedDirectoriesGetHandlerTest {
 
         Mockito.verify(resp)
                 .end(
-                        "[{\"connectUrl\":\"encodedServiceUriFoo\",\"jvmId\":\"someJvmId\",\"recordings\":[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0}]}]");
+                        "[{\"connectUrl\":\"encodedServiceUriFoo\",\"jvmId\":\"someJvmId\",\"recordings\":[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0,\"archivedTime\":0}]}]");
     }
 }

@@ -41,6 +41,8 @@ input ArchivedRecordingFilterInput {
     sourceTarget: String
     sizeBytesGreaterThanEqual: Long
     sizeBytesLessThanEqual: Long
+    archivedTimeGreaterThanEqual: Long
+    archivedTimeLessThanEqual: Long
 }
 
 type ServiceRef {
