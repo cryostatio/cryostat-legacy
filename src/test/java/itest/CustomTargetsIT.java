@@ -43,6 +43,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -143,37 +144,39 @@ public class CustomTargetsIT extends StandardSelfTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("connectUrl", "localhost:0");
         form.add("alias", "self");
+        form.add("username", "username");
+        form.add("password", "password");
 
-        CountDownLatch latch = new CountDownLatch(2);
+        CountDownLatch latch = new CountDownLatch(3);
 
-        worker.submit(
-                () -> {
-                    try {
-                        expectNotification("TargetJvmDiscovery", 5, TimeUnit.SECONDS)
-                                .thenAcceptAsync(
-                                        notification -> {
-                                            JsonObject event =
-                                                    notification
-                                                            .getJsonObject("message")
-                                                            .getJsonObject("event");
-                                            MatcherAssert.assertThat(
-                                                    event.getString("kind"),
-                                                    Matchers.equalTo("FOUND"));
-                                            MatcherAssert.assertThat(
-                                                    event.getJsonObject("serviceRef")
-                                                            .getString("connectUrl"),
-                                                    Matchers.equalTo("localhost:0"));
-                                            MatcherAssert.assertThat(
-                                                    event.getJsonObject("serviceRef")
-                                                            .getString("alias"),
-                                                    Matchers.equalTo("self"));
-                                            latch.countDown();
-                                        })
-                                .get();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        Future<JsonObject> resultFuture1 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification("CredentialsStored", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Future<JsonObject> resultFuture2 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "TargetJvmDiscovery", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000); // Sleep to setup notification listening before query resolves
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -185,11 +188,31 @@ public class CustomTargetsIT extends StandardSelfTest {
                             response.complete(ar.result().bodyAsJsonObject());
                             latch.countDown();
                         });
+        latch.await(30, TimeUnit.SECONDS);
+
         JsonObject body = response.get().getJsonObject("data").getJsonObject("result");
         MatcherAssert.assertThat(body.getString("connectUrl"), Matchers.equalTo("localhost:0"));
         MatcherAssert.assertThat(body.getString("alias"), Matchers.equalTo("self"));
 
-        latch.await(5, TimeUnit.SECONDS);
+        JsonObject result1 = resultFuture1.get();
+
+        JsonObject message = result1.getJsonObject("message");
+        MatcherAssert.assertThat(message.getInteger("id"), Matchers.any(Integer.class));
+
+        MatcherAssert.assertThat(
+                message.getString("matchExpression"),
+                Matchers.equalTo("target.connectUrl == 'localhost:0'"));
+        MatcherAssert.assertThat(
+                message.getInteger("numMatchingTargets"), Matchers.equalTo(Integer.valueOf(1)));
+
+        JsonObject result2 = resultFuture2.get();
+        JsonObject event = result2.getJsonObject("message").getJsonObject("event");
+        MatcherAssert.assertThat(event.getString("kind"), Matchers.equalTo("FOUND"));
+        MatcherAssert.assertThat(
+                event.getJsonObject("serviceRef").getString("connectUrl"),
+                Matchers.equalTo("localhost:0"));
+        MatcherAssert.assertThat(
+                event.getJsonObject("serviceRef").getString("alias"), Matchers.equalTo("self"));
     }
 
     @Test

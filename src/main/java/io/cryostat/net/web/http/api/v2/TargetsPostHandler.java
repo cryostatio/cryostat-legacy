@@ -54,6 +54,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -64,6 +65,7 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
+import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -79,6 +81,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
     private final Logger logger;
+    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetsPostHandler(
@@ -88,12 +91,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             DiscoveryStorage storage,
             JvmIdHelper jvmIdHelper,
             CustomTargetPlatformClient customTargetPlatformClient,
+            NotificationFactory notificationFactory,
             Logger logger) {
         super(auth, credentialsManager, gson);
         this.storage = storage;
         this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
         this.logger = logger;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -160,6 +165,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                 }
             }
 
+            MultiMap queries = params.getQueryParams();
+            boolean dryRun =
+                    StringUtils.isNotBlank(queries.get("dryrun"))
+                            && Boolean.valueOf(queries.get("dryrun"));
+
             String username = attrs.get("username");
             String password = attrs.get("password");
             Optional<Credentials> credentials =
@@ -167,10 +177,24 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                             ? Optional.empty()
                             : Optional.of(new Credentials(username, password));
 
-            MultiMap queries = params.getQueryParams();
-            boolean dryRun =
-                    StringUtils.isNotBlank(queries.get("dryrun"))
-                            && Boolean.valueOf(queries.get("dryrun"));
+            if (!dryRun && credentials.isPresent()) {
+                String matchExpression = String.format("target.connectUrl == '%s'", connectUrl);
+                int id = credentialsManager.addCredentials(matchExpression, credentials.get());
+                notificationFactory
+                        .createBuilder()
+                        .metaCategory("CredentialsStored")
+                        .metaType(HttpMimeType.JSON)
+                        .message(
+                                Map.of(
+                                        "id",
+                                        id,
+                                        "matchExpression",
+                                        matchExpression,
+                                        "numMatchingTargets",
+                                        1))
+                        .build()
+                        .send();
+            }
 
             String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun, credentials);
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
@@ -212,6 +236,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {
             throw new ApiException(500, "Internal Error", ioe);
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(400, e);
         }
     }
 }
