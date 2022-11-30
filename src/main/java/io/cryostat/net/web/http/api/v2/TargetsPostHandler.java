@@ -196,7 +196,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
         } catch (JvmIdGetException e) {
             if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)) {
-                throw new ApiException(420, "JMX Credentials Not Provided or Not Valid", e);
+                throw new ApiException(427, "JMX Authentication Failure", e);
             }
             if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
                 throw new ApiException(404, "Target Not Found", e);
