@@ -72,7 +72,8 @@ class OpenShiftSecurityContext implements SecurityContext {
                 // FIXME log properly
                 System.err.println(
                         String.format(
-                                "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE value",
+                                "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE"
+                                        + " value",
                                 serviceRef.getServiceUri()));
                 ns = defaultNamespace.get();
             }
