@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
@@ -84,13 +85,16 @@ class TargetNodesFetcherTest {
     @Mock RoutingContext ctx;
     @Mock FilterInput filter;
 
+    @Mock Logger logger;
+
     @Mock(answer = RETURNS_SELF)
     DataFetchingEnvironmentImpl.Builder builder;
 
     @BeforeEach
     void setup() {
         this.fetcher =
-                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
+                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher,
+                        logger);
     }
 
     @Test
