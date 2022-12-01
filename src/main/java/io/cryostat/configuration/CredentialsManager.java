@@ -153,7 +153,6 @@ public class CredentialsManager
         }
     }
 
-    @Deprecated
     public static String targetIdToMatchExpression(String targetId) {
         if (StringUtils.isBlank(targetId)) {
             return null;

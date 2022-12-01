@@ -45,15 +45,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -61,6 +65,7 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
+import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
@@ -76,6 +81,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     private final JvmIdHelper jvmIdHelper;
     private final CustomTargetPlatformClient customTargetPlatformClient;
     private final Logger logger;
+    private final NotificationFactory notificationFactory;
 
     @Inject
     TargetsPostHandler(
@@ -85,12 +91,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             DiscoveryStorage storage,
             JvmIdHelper jvmIdHelper,
             CustomTargetPlatformClient customTargetPlatformClient,
+            NotificationFactory notificationFactory,
             Logger logger) {
         super(auth, credentialsManager, gson);
         this.storage = storage;
         this.jvmIdHelper = jvmIdHelper;
         this.customTargetPlatformClient = customTargetPlatformClient;
         this.logger = logger;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -156,10 +164,42 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             }
-            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
 
-            String jvmId = jvmIdHelper.getJvmId(uri.toString());
+            MultiMap queries = params.getQueryParams();
+            boolean dryRun =
+                    StringUtils.isNotBlank(queries.get("dryrun"))
+                            && Boolean.valueOf(queries.get("dryrun"));
+
+            String username = attrs.get("username");
+            String password = attrs.get("password");
+            Optional<Credentials> credentials =
+                    StringUtils.isBlank(username) || StringUtils.isBlank(password)
+                            ? Optional.empty()
+                            : Optional.of(new Credentials(username, password));
+
+            if (!dryRun && credentials.isPresent()) {
+                String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
+                int id = credentialsManager.addCredentials(matchExpression, credentials.get());
+                notificationFactory
+                        .createBuilder()
+                        .metaCategory("CredentialsStored")
+                        .metaType(HttpMimeType.JSON)
+                        .message(
+                                Map.of(
+                                        "id",
+                                        id,
+                                        "matchExpression",
+                                        matchExpression,
+                                        "numMatchingTargets",
+                                        1))
+                        .build()
+                        .send();
+            }
+
+            String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun, credentials);
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
+
+            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             for (AnnotationKey ak : AnnotationKey.values()) {
                 // TODO is there a good way to determine this prefix from the structure of the
                 // ServiceRef's serialized form?
@@ -171,17 +211,33 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
-            boolean v = customTargetPlatformClient.addTarget(serviceRef);
-            if (!v) {
-                throw new ApiException(400, "Duplicate connectUrl");
+            if (!dryRun) {
+                boolean v = customTargetPlatformClient.addTarget(serviceRef);
+                if (!v) {
+                    throw new ApiException(400, "Duplicate connectUrl");
+                }
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
         } catch (JvmIdGetException e) {
-            throw new ApiException(404, "Couldn't connect to target: " + e.getTarget());
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)) {
+                throw new ApiException(427, "JMX Authentication Failure", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isUnknownTargetFailure(e)) {
+                throw new ApiException(404, "Target Not Found", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+                throw new ApiException(502, "Target SSL Untrusted", e);
+            }
+            if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+                throw new ApiException(504, "Non-JMX Port", e);
+            }
+            throw new ApiException(500, "Internal Error", e);
         } catch (URISyntaxException use) {
             throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {
             throw new ApiException(500, "Internal Error", ioe);
+        } catch (MatchExpressionValidationException e) {
+            throw new ApiException(400, e);
         }
     }
 }

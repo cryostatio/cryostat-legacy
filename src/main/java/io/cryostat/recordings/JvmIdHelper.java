@@ -39,6 +39,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -49,6 +50,7 @@ import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
@@ -142,7 +144,8 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         }
     }
 
-    private CompletableFuture<String> computeJvmId(String targetId) throws ScriptException {
+    private CompletableFuture<String> computeJvmId(
+            String targetId, Optional<Credentials> credentials) throws ScriptException {
         // FIXME: this should be refactored after the 2.2.0 release
         if (targetId == null
                 || targetId.equals(RecordingArchiveHelper.ARCHIVES)
@@ -156,7 +159,10 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         CompletableFuture<String> future =
                 this.targetConnectionManager.executeConnectedTaskAsync(
                         new ConnectionDescriptor(
-                                targetId, credentialsManager.getCredentialsByTargetId(targetId)),
+                                targetId,
+                                credentials.isPresent()
+                                        ? credentials.get()
+                                        : credentialsManager.getCredentialsByTargetId(targetId)),
                         connection -> {
                             return connection.getJvmId();
                         });
@@ -165,13 +171,19 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
-        return getJvmId(connectionDescriptor.getTargetId());
+        return getJvmId(connectionDescriptor.getTargetId(), true, Optional.empty());
     }
 
     public String getJvmId(String targetId) throws JvmIdGetException {
+        return getJvmId(targetId, true, Optional.empty());
+    }
+
+    public String getJvmId(String targetId, boolean cache, Optional<Credentials> credentials)
+            throws JvmIdGetException {
         try {
-            return this.ids.get(targetId).get(connectionTimeoutSeconds, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return (cache ? this.ids.get(targetId) : computeJvmId(targetId, credentials))
+                    .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
             logger.warn("Could not get jvmId for target {}", targetId);
             throw new JvmIdGetException(e, targetId);
         }
@@ -222,7 +234,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
 
         @Override
         public CompletableFuture<String> asyncLoad(String key, Executor executor) throws Exception {
-            return computeJvmId(key);
+            return computeJvmId(key, Optional.empty());
         }
 
         @Override
