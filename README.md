@@ -97,8 +97,8 @@ exec:exec@start-grafana-dashboard exec:exec@start-container
 exec:exec@wait-for-container failsafe:integration-test
 exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
 exec:exec@destroy-pod`
-* or `bash repeated-integration-tests.sh 1`.
-* To run selected integration tests without rebuilding, append the name(s) of your itest class(es) as an argument to `repeated-integration-tests.sh`, e.g. `bash repeated-integration-tests.bash 1 AutoRulesIT,RecordingWorkflowIT`. Note that modifying a test file does not require a rebuild.
+* or `bash repeated-integration-tests.bash 1`.
+* To run selected integration tests without rebuilding, append the name(s) of your itest class(es) as an argument to `repeated-integration-tests.bash`, e.g. `bash repeated-integration-tests.bash 1 AutoRulesIT,RecordingWorkflowIT`. Note that modifying a test file does not require a rebuild.
 
 ## RUN
 
