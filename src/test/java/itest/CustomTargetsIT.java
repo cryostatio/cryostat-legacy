@@ -250,7 +250,7 @@ public class CustomTargetsIT extends StandardSelfTest {
         MatcherAssert.assertThat(storedCredential.id, Matchers.any(Integer.class));
         MatcherAssert.assertThat(
                 storedCredential.matchExpression,
-                Matchers.equalTo("target.connectUrl == 'localhost:0'"));
+                Matchers.equalTo("target.connectUrl == \"localhost:0\""));
         MatcherAssert.assertThat(
                 storedCredential.numMatchingTargets, Matchers.equalTo(Integer.valueOf(1)));
 

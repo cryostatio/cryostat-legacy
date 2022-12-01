@@ -178,7 +178,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                             : Optional.of(new Credentials(username, password));
 
             if (!dryRun && credentials.isPresent()) {
-                String matchExpression = String.format("target.connectUrl == '%s'", connectUrl);
+                String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
                 int id = credentialsManager.addCredentials(matchExpression, credentials.get());
                 notificationFactory
                         .createBuilder()
