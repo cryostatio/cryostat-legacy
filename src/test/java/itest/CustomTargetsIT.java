@@ -37,6 +37,7 @@
  */
 package itest;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -47,13 +48,18 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
 import itest.util.http.JvmIdWebRequest;
+import itest.util.http.StoredCredential;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -64,13 +70,50 @@ import org.junit.jupiter.api.TestMethodOrder;
 public class CustomTargetsIT extends StandardSelfTest {
 
     private final ExecutorService worker = ForkJoinPool.commonPool();
+    static final Map<String, String> NULL_RESULT = new HashMap<>();
     private String itestJvmId;
+    private static StoredCredential storedCredential;
+
+    static {
+        NULL_RESULT.put("result", null);
+    }
 
     @BeforeEach
     void setup() throws InterruptedException, ExecutionException, TimeoutException {
         itestJvmId =
                 JvmIdWebRequest.jvmIdRequest(
                         "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi");
+    }
+
+    @AfterAll
+    static void cleanup() throws Exception {
+        // Delete credentials to clean up
+        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+        webClient
+                .delete("/api/v2.2/credentials/" + storedCredential.id)
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, deleteResponse)) {
+                                deleteResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        JsonObject expectedDeleteResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                "data",
+                                NULL_RESULT));
+        try {
+            MatcherAssert.assertThat(
+                    deleteResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    Matchers.equalTo(expectedDeleteResponse));
+        } catch (Exception e) {
+            throw new ITestCleanupFailedException(
+                    String.format("Failed to clean up credential with ID %d", storedCredential.id),
+                    e);
+        }
     }
 
     @Test
@@ -197,13 +240,19 @@ public class CustomTargetsIT extends StandardSelfTest {
         JsonObject result1 = resultFuture1.get();
 
         JsonObject message = result1.getJsonObject("message");
-        MatcherAssert.assertThat(message.getInteger("id"), Matchers.any(Integer.class));
 
+        storedCredential =
+                new StoredCredential(
+                        message.getInteger("id"),
+                        message.getString("matchExpression"),
+                        message.getInteger("numMatchingTargets"));
+
+        MatcherAssert.assertThat(storedCredential.id, Matchers.any(Integer.class));
         MatcherAssert.assertThat(
-                message.getString("matchExpression"),
+                storedCredential.matchExpression,
                 Matchers.equalTo("target.connectUrl == 'localhost:0'"));
         MatcherAssert.assertThat(
-                message.getInteger("numMatchingTargets"), Matchers.equalTo(Integer.valueOf(1)));
+                storedCredential.numMatchingTargets, Matchers.equalTo(Integer.valueOf(1)));
 
         JsonObject result2 = resultFuture2.get();
         JsonObject event = result2.getJsonObject("message").getJsonObject("event");
