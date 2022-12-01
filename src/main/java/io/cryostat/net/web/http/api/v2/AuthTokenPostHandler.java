@@ -137,7 +137,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     public SecurityContext securityContext(RequestParameters params) {
         String targetId = params.getFormAttributes().get("targetId");
         if (StringUtils.isBlank(targetId)) {
-            return null;
+            throw new ApiException(404);
         }
         try {
             new URI(targetId);
@@ -147,7 +147,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             if (resourceClaim.contains("recording")) {
                 String recordingName = params.getFormAttributes().get("recordingName");
                 if (StringUtils.isBlank(recordingName)) {
-                    return null;
+                    throw new ApiException(400);
                 }
                 Optional<ArchivedRecordingInfo> recordingInfo =
                         archiveHelper.getRecordings(targetId).get().stream()
@@ -171,12 +171,12 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                 | InterruptedException
                 | ExecutionException e) {
             logger.error(e);
-            return null;
+            throw new ApiException(500, e);
         }
         return discoveryStorage
                 .lookupServiceByTargetId(targetId)
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new ApiException(500));
     }
 
     @Override
