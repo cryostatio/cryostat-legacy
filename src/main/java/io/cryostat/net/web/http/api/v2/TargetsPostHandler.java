@@ -57,8 +57,8 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -67,8 +67,6 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionValidationException;
-import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
