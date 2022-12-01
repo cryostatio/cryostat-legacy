@@ -113,7 +113,7 @@ class TargetProbesGetHandler extends AbstractV2RequestHandler<List<Event>> {
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

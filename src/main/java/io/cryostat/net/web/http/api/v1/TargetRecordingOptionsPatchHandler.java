@@ -140,7 +140,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

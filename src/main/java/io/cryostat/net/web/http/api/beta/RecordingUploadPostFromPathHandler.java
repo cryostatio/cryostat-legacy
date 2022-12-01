@@ -148,7 +148,7 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
                 .findFirst()
                 .map(ArchivedRecordingInfo::getMetadata)
                 .map(Metadata::getSecurityContext)
-                .orElse(SecurityContext.DEFAULT);
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

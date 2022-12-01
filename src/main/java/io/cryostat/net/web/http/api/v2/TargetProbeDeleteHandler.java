@@ -125,7 +125,7 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

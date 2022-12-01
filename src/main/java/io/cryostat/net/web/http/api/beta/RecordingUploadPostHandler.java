@@ -153,10 +153,9 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
                     .findFirst()
                     .map(ArchivedRecordingInfo::getMetadata)
                     .map(Metadata::getSecurityContext)
-                    .orElse(SecurityContext.DEFAULT);
+                    .orElseThrow(() -> new ApiException(404));
         } catch (InterruptedException | ExecutionException e) {
-            logger.error(e);
-            return SecurityContext.DEFAULT;
+            throw new ApiException(500, e);
         }
     }
 

@@ -53,6 +53,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
 
@@ -100,8 +101,7 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
             return auth.contextFor(nodes.get(0));
         } catch (Exception e) {
             logger.warn(e);
-            // FIXME this should bubble up, not use the default context
-            return SecurityContext.DEFAULT;
+            throw new ApiException(500, e);
         }
     }
 

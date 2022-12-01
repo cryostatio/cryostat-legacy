@@ -113,10 +113,10 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
                     .findFirst()
                     .map(ArchivedRecordingInfo::getMetadata)
                     .map(Metadata::getSecurityContext)
-                    .orElse(null);
+                    .orElseThrow(() -> new HttpException(404));
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
-            return null;
+            throw new HttpException(500, e);
         }
     }
 

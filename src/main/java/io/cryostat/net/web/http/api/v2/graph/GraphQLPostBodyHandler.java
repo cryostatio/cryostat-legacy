@@ -94,7 +94,6 @@ class GraphQLPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
-        // TODO Auto-generated method stub
         return SecurityContext.DEFAULT;
     }
 }

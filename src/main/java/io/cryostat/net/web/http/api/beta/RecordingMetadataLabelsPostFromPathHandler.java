@@ -132,9 +132,8 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
                             subdirectoryName, recordingName);
             return m.getSecurityContext();
         } catch (IOException ioe) {
-            logger.error(ioe);
+            throw new ApiException(500, ioe);
         }
-        return SecurityContext.DEFAULT;
     }
 
     @Override

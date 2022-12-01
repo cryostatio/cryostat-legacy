@@ -62,6 +62,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -128,7 +129,7 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

@@ -121,7 +121,7 @@ class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableE
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElse(null);
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

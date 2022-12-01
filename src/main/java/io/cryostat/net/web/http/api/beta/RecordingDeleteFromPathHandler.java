@@ -122,7 +122,7 @@ public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Voi
                 .getRecordingFromPath(subdirectoryName, recordingName)
                 .map(ArchivedRecordingInfo::getMetadata)
                 .map(Metadata::getSecurityContext)
-                .orElse(SecurityContext.DEFAULT);
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

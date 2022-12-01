@@ -132,9 +132,8 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
                             new ConnectionDescriptor(sourceTarget), recordingName);
             return m.getSecurityContext();
         } catch (IOException ioe) {
-            logger.error(ioe);
+            throw new ApiException(500, ioe);
         }
-        return SecurityContext.DEFAULT;
     }
 
     @Override

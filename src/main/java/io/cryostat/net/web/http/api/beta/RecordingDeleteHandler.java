@@ -123,9 +123,9 @@ public class RecordingDeleteHandler extends AbstractV2RequestHandler<Void> {
                     .findFirst()
                     .map(ArchivedRecordingInfo::getMetadata)
                     .map(Metadata::getSecurityContext)
-                    .orElse(SecurityContext.DEFAULT);
+                    .orElseThrow(() -> new ApiException(404));
         } catch (InterruptedException | ExecutionException e) {
-            return null;
+            throw new ApiException(500, e);
         }
     }
 
