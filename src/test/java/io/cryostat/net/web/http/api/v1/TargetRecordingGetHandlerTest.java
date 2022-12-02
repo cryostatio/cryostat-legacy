@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,10 +61,10 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.platform.ServiceRef;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;

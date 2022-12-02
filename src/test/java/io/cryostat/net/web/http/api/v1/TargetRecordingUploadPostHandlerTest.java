@@ -182,7 +182,8 @@ class TargetRecordingUploadPostHandlerTest {
     @NullAndEmptySource
     void shouldThrow501IfDatasourceUrlMalformed(String rawUrl) {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -204,7 +205,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(ctx.request()).thenReturn(req);
@@ -244,7 +246,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldDoUpload() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Path tempFile = Mockito.mock(Path.class);
@@ -319,7 +322,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldHandleInvalidResponseStatusCode() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Path tempFile = Mockito.mock(Path.class);
@@ -397,7 +401,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldHandleNullStatusMessage() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Path tempFile = Mockito.mock(Path.class);
@@ -475,7 +480,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldHandleNullResponseBody() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Path tempFile = Mockito.mock(Path.class);

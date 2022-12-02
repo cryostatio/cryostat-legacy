@@ -119,7 +119,8 @@ class TargetSnapshotPostHandlerTest {
     @Test
     void shouldCreateSnapshot() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -159,7 +160,8 @@ class TargetSnapshotPostHandlerTest {
     @Test
     void shouldHandleSnapshotCreationExceptionDuringCreation() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -190,7 +192,8 @@ class TargetSnapshotPostHandlerTest {
     @Test
     void shouldHandleSnapshotCreationExceptionDuringVerification() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -232,7 +235,8 @@ class TargetSnapshotPostHandlerTest {
     @Test
     void shouldHandleFailedSnapshotVerification() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))

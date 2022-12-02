@@ -59,7 +59,6 @@ import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler

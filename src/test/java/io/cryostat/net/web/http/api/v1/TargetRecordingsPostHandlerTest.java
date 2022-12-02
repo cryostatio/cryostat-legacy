@@ -178,7 +178,8 @@ class TargetRecordingsPostHandlerTest {
     @Test
     void shouldStartRecording() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -424,7 +425,8 @@ class TargetRecordingsPostHandlerTest {
     @Test
     void shouldHandleNameCollision() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -501,7 +503,8 @@ class TargetRecordingsPostHandlerTest {
     @MethodSource("getRequestMaps")
     void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -561,7 +564,8 @@ class TargetRecordingsPostHandlerTest {
     @Test
     void shouldStartRecordingAndArchiveOnStop() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))

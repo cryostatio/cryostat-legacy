@@ -172,7 +172,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldHandleRecordingDownloadRequest() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
@@ -202,7 +203,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
@@ -232,7 +234,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldHandleRecordingDownloadRequestUnformatted() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
@@ -262,7 +265,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldRespond404IfRecordingNameNotFound() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
@@ -288,7 +292,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldRespond404IfTargetNotFound() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
@@ -320,7 +325,8 @@ class TargetReportGetHandlerTest {
         @Test
         void shouldRespond404IfRecordingNotFound() throws Exception {
             ServiceRef sr = Mockito.mock(ServiceRef.class);
-            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                    .thenReturn(Optional.of(sr));
             Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());

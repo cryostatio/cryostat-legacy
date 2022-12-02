@@ -142,7 +142,8 @@ class TargetRecordingOptionsListGetHandlerTest {
     @Test
     void shouldRespondWithRecordingOptionsList() throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);

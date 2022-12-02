@@ -49,6 +49,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -145,7 +146,8 @@ class TargetRecordingPatchHandlerTest {
     @Test
     void shouldThrow401IfAuthFails() {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -163,7 +165,8 @@ class TargetRecordingPatchHandlerTest {
     @NullAndEmptySource
     void shouldThrow400InvalidOperations(String mtd) {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
@@ -186,7 +189,8 @@ class TargetRecordingPatchHandlerTest {
     @ValueSource(strings = {"save", "stop"})
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
         ServiceRef sr = Mockito.mock(ServiceRef.class);
-        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
         Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
