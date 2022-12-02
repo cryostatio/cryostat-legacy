@@ -37,7 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +64,8 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.net.security.SecurityContext;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -144,8 +148,34 @@ class TargetRecordingGetHandlerTest {
     }
 
     @Test
+    void shouldUseSecurityContextForTarget() throws Exception {
+        String targetId = "fooHost:0";
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        when(ctx.pathParam("targetId")).thenReturn(targetId);
+
+        ServiceRef sr = mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+        SecurityContext sc = Mockito.mock(SecurityContext.class);
+        when(authManager.contextFor(sr)).thenReturn(sc);
+
+        SecurityContext actual = handler.securityContext(ctx);
+        MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+        verify(storage).lookupServiceByTargetId(targetId);
+        verify(authManager).contextFor(sr);
+    }
+
+    @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
         String recordingName = "someRecording";
+
+        ServiceRef sr = mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(anyString())).thenReturn(Optional.of(sr));
+        when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
 
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -176,6 +206,10 @@ class TargetRecordingGetHandlerTest {
     void shouldRespond500IfUnexpectedExceptionThrown() throws Exception {
         String recordingName = "someRecording";
 
+        ServiceRef sr = mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(anyString())).thenReturn(Optional.of(sr));
+        when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -205,6 +239,10 @@ class TargetRecordingGetHandlerTest {
 
     @Test
     void shouldRespond500IfIOExceptionThrownDuringRecordingDownloadRequest() throws Exception {
+        ServiceRef sr = mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(anyString())).thenReturn(Optional.of(sr));
+        when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -262,6 +300,10 @@ class TargetRecordingGetHandlerTest {
     }
 
     private void shouldHandleRecordingDownloadRequest(String recordingName) throws Exception {
+        ServiceRef sr = mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(anyString())).thenReturn(Optional.of(sr));
+        when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 

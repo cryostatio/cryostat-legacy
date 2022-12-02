@@ -121,7 +121,7 @@ class TargetSnapshotPostHandler
         return discoveryStorage
                 .lookupServiceByTargetId(cd.getTargetId())
                 .map(auth::contextFor)
-                .orElseThrow(() -> new HttpException(404));
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

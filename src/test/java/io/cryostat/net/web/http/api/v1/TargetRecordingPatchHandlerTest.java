@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -46,7 +47,8 @@ import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
-
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -119,11 +121,38 @@ class TargetRecordingPatchHandlerTest {
     }
 
     @Test
+    void shouldUseSecurityContextForTarget() throws Exception {
+        String targetId = "fooHost:0";
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+        SecurityContext sc = Mockito.mock(SecurityContext.class);
+        Mockito.when(authManager.contextFor(sr)).thenReturn(sc);
+
+        SecurityContext actual = handler.securityContext(ctx);
+        MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+        Mockito.verify(storage).lookupServiceByTargetId(targetId);
+        Mockito.verify(authManager).contextFor(sr);
+    }
+
+    @Test
     void shouldThrow401IfAuthFails() {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
@@ -133,8 +162,13 @@ class TargetRecordingPatchHandlerTest {
     @ValueSource(strings = {"unknown", "start", "dump"})
     @NullAndEmptySource
     void shouldThrow400InvalidOperations(String mtd) {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.request()).thenReturn(req);
@@ -151,6 +185,10 @@ class TargetRecordingPatchHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = {"save", "stop"})
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");

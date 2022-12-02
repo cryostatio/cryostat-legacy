@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +64,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -152,7 +154,33 @@ class TargetRecordingsPostHandlerTest {
     }
 
     @Test
+    void shouldUseSecurityContextForTarget() throws Exception {
+        String targetId = "fooHost:0";
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+        SecurityContext sc = Mockito.mock(SecurityContext.class);
+        Mockito.when(auth.contextFor(sr)).thenReturn(sc);
+
+        SecurityContext actual = handler.securityContext(ctx);
+        MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+        Mockito.verify(storage).lookupServiceByTargetId(targetId);
+        Mockito.verify(auth).contextFor(sr);
+    }
+
+    @Test
     void shouldStartRecording() throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -395,6 +423,10 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldHandleNameCollision() throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -468,6 +500,10 @@ class TargetRecordingsPostHandlerTest {
     @ParameterizedTest
     @MethodSource("getRequestMaps")
     void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         IRecordingDescriptor existingRecording = createDescriptor("someRecording");
@@ -524,6 +560,10 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldStartRecordingAndArchiveOnStop() throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))

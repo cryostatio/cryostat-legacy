@@ -41,6 +41,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -55,7 +56,9 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.MultiMap;
@@ -120,6 +123,28 @@ class TargetReportGetHandlerTest {
         }
 
         @Test
+        void shouldUseSecurityContextForTarget() throws Exception {
+            String targetId = "fooHost:0";
+
+            RoutingContext ctx = Mockito.mock(RoutingContext.class);
+            HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+            Mockito.when(ctx.request()).thenReturn(req);
+            Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+            SecurityContext sc = Mockito.mock(SecurityContext.class);
+            Mockito.when(authManager.contextFor(sr)).thenReturn(sc);
+
+            SecurityContext actual = handler.securityContext(ctx);
+            MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+            Mockito.verify(storage).lookupServiceByTargetId(targetId);
+            Mockito.verify(authManager).contextFor(sr);
+        }
+
+        @Test
         void shouldProduceHtmlAndJson() {
             MatcherAssert.assertThat(
                     handler.produces(),
@@ -146,6 +171,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldHandleRecordingDownloadRequest() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             String targetId = "fooHost:0";
@@ -172,6 +201,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldHandleRecordingDownloadRequestFiltered() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             String targetId = "fooHost:0";
@@ -198,6 +231,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldHandleRecordingDownloadRequestUnformatted() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.JSON.mime());
 
             String targetId = "fooHost:0";
@@ -224,6 +261,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfRecordingNameNotFound() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             when(reportService.get(
@@ -246,6 +287,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfTargetNotFound() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             String targetId = "fooHost:0";
@@ -274,6 +319,10 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldRespond404IfRecordingNotFound() throws Exception {
+            ServiceRef sr = Mockito.mock(ServiceRef.class);
+            Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString())).thenReturn(Optional.of(sr));
+            Mockito.when(authManager.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
             when(ctx.getAcceptableContentType()).thenReturn(HttpMimeType.HTML.mime());
 
             String targetId = "fooHost:0";
