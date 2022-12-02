@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -45,6 +46,9 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
@@ -134,11 +138,12 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                 }
                 try (InputStream is = fs.newInputStream(path)) {
                     probeTemplateService.addTemplate(is, templateName);
+                    String template = probeTemplateService.getTemplate(templateName);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("probeTemplate", u.uploadedFileName()))
+                            .message(Map.of("probeTemplate", u.uploadedFileName(), "templateName", FilenameUtils.removeExtension(templateName), "templateContent", template))
                             .build()
                             .send();
                 } finally {
