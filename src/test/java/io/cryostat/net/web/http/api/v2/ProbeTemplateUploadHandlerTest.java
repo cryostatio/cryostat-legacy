@@ -216,10 +216,21 @@ public class ProbeTemplateUploadHandlerTest {
 
             InputStream stream = Mockito.mock(InputStream.class);
             Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
+            Mockito.when(templateService.getTemplate(Mockito.anyString()))
+                    .thenReturn("someContent");
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
             Mockito.verify(templateService).addTemplate(stream, "foo.xml");
+            Mockito.verify(notificationBuilder)
+                    .message(
+                            Map.of(
+                                    "probeTemplate",
+                                    "/file-uploads/abcd-1234",
+                                    "templateName",
+                                    "foo.xml",
+                                    "templateContent",
+                                    "someContent"));
             Mockito.verifyNoMoreInteractions(templateService);
             Mockito.verify(fs).deleteIfExists(uploadPath);
 

@@ -133,14 +133,22 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                     continue;
                 }
                 try (InputStream is = fs.newInputStream(path)) {
+                    probeTemplateService.addTemplate(is, templateName);
+                    String template = probeTemplateService.getTemplate(templateName);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("probeTemplate", u.uploadedFileName()))
+                            .message(
+                                    Map.of(
+                                            "probeTemplate",
+                                            u.uploadedFileName(),
+                                            "templateName",
+                                            templateName,
+                                            "templateContent",
+                                            template))
                             .build()
                             .send();
-                    probeTemplateService.addTemplate(is, templateName);
                 } finally {
                     fs.deleteIfExists(path);
                 }
