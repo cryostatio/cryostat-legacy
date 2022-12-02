@@ -65,8 +65,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 
 public abstract class StandardSelfTest {
 
-    public static final String SELF_REFERENCE_TARGET_ID_RAW =
-            String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+    public static final String SELF_REFERENCE_TARGET_ID_RAW = jmxServiceUrl(9091);
     public static final String SELF_REFERENCE_TARGET_ID =
             URLEncodedUtils.formatSegments(SELF_REFERENCE_TARGET_ID_RAW);
     public static final Pair<String, String> VERTX_FIB_CREDENTIALS =
@@ -107,6 +106,14 @@ public abstract class StandardSelfTest {
                 });
 
         return future.orTimeout(timeout, unit);
+    }
+
+    public static String jmxServiceUrl(String host, int port) {
+        return String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", host, port);
+    }
+
+    public static String jmxServiceUrl(int port) {
+        return jmxServiceUrl(Podman.POD_NAME, port);
     }
 
     public static boolean assertRequestStatus(

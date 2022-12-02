@@ -64,6 +64,7 @@ import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.http.JvmIdWebRequest;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -148,8 +149,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         // size should not change
         MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS_TOTAL + 1));
         Set<ServiceRef> expected = new HashSet<>();
-        String cryostatTargetId =
-                String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+        String cryostatTargetId = jmxServiceUrl(9091);
         String cryostatJvmId = JvmIdWebRequest.jvmIdRequest(cryostatTargetId);
         ServiceRef cryostat =
                 new ServiceRef(cryostatJvmId, new URI(cryostatTargetId), "io.cryostat.Cryostat");
@@ -253,9 +253,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                 webClient.post(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings",
-                                                Podman.POD_NAME
-                                                        + ":"
-                                                        + (TARGET_PORT_NUMBER_START + fi)));
+                                                URLEncodedUtils.formatSegments(
+                                                        jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
                         if (useAuth) {
                             req =
                                     req.putHeader(
@@ -290,7 +289,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)));
+                                    URLEncodedUtils.formatSegments(jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
             if (useAuth) {
                 req =
                         req.putHeader(
@@ -336,9 +335,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                 webClient.delete(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings/%s",
-                                                Podman.POD_NAME
-                                                        + ":"
-                                                        + (TARGET_PORT_NUMBER_START + fi),
+                                                URLEncodedUtils.formatSegments(
+                                                        jmxServiceUrl(TARGET_PORT_NUMBER_START + fi)),
                                                 "interleaved-" + fi));
                         if (useAuth) {
                             req =
@@ -374,7 +372,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)));
+                                    URLEncodedUtils.formatSegments(jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
             if (useAuth) {
                 req =
                         req.putHeader(
