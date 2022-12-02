@@ -67,6 +67,7 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.DefaultPlatformClient;
 import io.cryostat.platform.internal.KubeApiPlatformClient;
+import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionEvaluator;
@@ -271,8 +272,10 @@ class DiscoveryStorageTest {
         void retainsPluginIfCallbackSucceeds() throws Exception {
             Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
                     .thenReturn(Future.succeededFuture());
+            EnvironmentNode envNode = new EnvironmentNode("MyEnvironment", KubernetesNodeType.POD);
             PluginInfo plugin =
-                    new PluginInfo("test-realm", URI.create("http://example.com"), "[]");
+                    new PluginInfo(
+                            "test-realm", URI.create("http://example.com"), gson.toJson(envNode));
             plugin.setId(UUID.randomUUID());
             Mockito.when(dao.getAll()).thenReturn(List.of(plugin));
 
