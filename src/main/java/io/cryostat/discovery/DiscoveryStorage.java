@@ -160,10 +160,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                                 + " deployed")))
                 .onFailure(future::fail);
 
-        this.getLeafNodes().forEach(target -> {
-            ServiceRef sr = target.getTarget();
-            serviceRefReverseLookup.put(sr.getServiceUri().toString(), sr);
-        });
+        this.getLeafNodes()
+                .forEach(
+                        target -> {
+                            ServiceRef sr = target.getTarget();
+                            serviceRefReverseLookup.put(sr.getServiceUri().toString(), sr);
+                        });
 
         this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
         this.credentialsManager
