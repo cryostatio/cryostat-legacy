@@ -42,6 +42,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +73,8 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
             resource = createRecording();
             Thread.sleep(10_000L);
             archivedResource = createArchivedRecording(resource);
+            String recordingName =
+                    StringUtils.substringAfter(archivedResource.getPath(), "recordings/");
             String downloadUrl =
                     getTokenDownloadUrl(
                             new URL(
@@ -80,8 +83,12 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
                                             Utils.WEB_HOST,
                                             Utils.WEB_PORT,
                                             SELF_REFERENCE_TARGET_ID,
-                                            StringUtils.substringAfter(
-                                                    archivedResource.getPath(), "recordings/"))));
+                                            recordingName)),
+                            Map.of(
+                                    "targetId",
+                                    SELF_REFERENCE_TARGET_ID_RAW,
+                                    "recordingName",
+                                    recordingName));
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

@@ -134,9 +134,8 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
                             new ConnectionDescriptor(sourceTarget), recordingName);
             return m.getSecurityContext();
         } catch (IOException ioe) {
-            logger.error(ioe);
+            throw new ApiException(404, ioe);
         }
-        return SecurityContext.DEFAULT;
     }
 
     @Override

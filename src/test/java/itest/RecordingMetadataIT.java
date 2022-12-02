@@ -43,7 +43,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -74,6 +77,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class RecordingMetadataIT extends ExternalTargetsTest {
+    private final ExecutorService worker = ForkJoinPool.commonPool();
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
     static final Map<String, String> NULL_RESULT = new HashMap<>();
@@ -157,83 +161,93 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
     @Test
     @Order(1)
     void testRecordingsQueriedFromDifferentTargetIdsHaveSameLabels() throws Exception {
-        String aliasTargetOne =
-                URLEncodedUtils.formatSegments("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
-        String aliasTargetTwo =
-                URLEncodedUtils.formatSegments(
-                        "service:jmx:rmi:///jndi/rmi://localhost:9091/jmxrmi");
-        String aliasTargetThree =
-                URLEncodedUtils.formatSegments(String.format("%s:9091", Podman.POD_NAME));
+        String targetOneUrl = "service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi";
+        defineCustomTarget(targetOneUrl);
+        String targetOneFmtd = URLEncodedUtils.formatSegments(targetOneUrl);
+        String targetTwoUrl = "service:jmx:rmi:///jndi/rmi://localhost:9091/jmxrmi";
+        defineCustomTarget(targetTwoUrl);
+        String targetTwoFmtd = URLEncodedUtils.formatSegments(targetTwoUrl);
+        String targetThreeUrl = String.format("%s:9091", Podman.POD_NAME);
+        defineCustomTarget(targetThreeUrl);
+        String targetThreeFmtd = URLEncodedUtils.formatSegments(targetThreeUrl);
 
-        // verify in-memory recording from previous test created with labels for self with alias
-        // aliasTargetOne
-        CompletableFuture<JsonArray> listRespFutureTargetOne = new CompletableFuture<>();
-        webClient
-                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetOne))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, listRespFutureTargetOne)) {
-                                listRespFutureTargetOne.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonArray listRespTargetOne =
-                listRespFutureTargetOne.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject recordingInfoTargetOne = listRespTargetOne.getJsonObject(0);
-        Metadata actualMetadataTargetOne =
-                gson.fromJson(
-                        recordingInfoTargetOne.getValue("metadata").toString(),
-                        new TypeToken<Metadata>() {}.getType());
+        try {
 
-        MatcherAssert.assertThat(
-                recordingInfoTargetOne.getString("name"), Matchers.equalTo(RECORDING_NAME));
-        MatcherAssert.assertThat(
-                actualMetadataTargetOne.getLabels(), Matchers.equalTo(responseLabels));
+            // verify in-memory recording from previous test created with labels for self with alias
+            // targetOneUrl
+            CompletableFuture<JsonArray> listRespFutureTargetOne = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", targetOneFmtd))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFutureTargetOne)) {
+                                    listRespFutureTargetOne.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listRespTargetOne =
+                    listRespFutureTargetOne.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject recordingInfoTargetOne = listRespTargetOne.getJsonObject(0);
+            Metadata actualMetadataTargetOne =
+                    gson.fromJson(
+                            recordingInfoTargetOne.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
 
-        // verify in-memory recording created with labels from aliased self aliasTargetTwo
-        CompletableFuture<JsonArray> listRespFutureTargetTwo = new CompletableFuture<>();
-        webClient
-                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetTwo))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, listRespFutureTargetTwo)) {
-                                listRespFutureTargetTwo.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonArray listRespTargetTwo =
-                listRespFutureTargetTwo.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject recordingInfoTargetTwo = listRespTargetTwo.getJsonObject(0);
-        Metadata actualMetadataTargetTwo =
-                gson.fromJson(
-                        recordingInfoTargetTwo.getValue("metadata").toString(),
-                        new TypeToken<Metadata>() {}.getType());
+            MatcherAssert.assertThat(
+                    recordingInfoTargetOne.getString("name"), Matchers.equalTo(RECORDING_NAME));
+            MatcherAssert.assertThat(
+                    actualMetadataTargetOne.getLabels(), Matchers.equalTo(responseLabels));
 
-        MatcherAssert.assertThat(
-                recordingInfoTargetTwo.getString("name"), Matchers.equalTo(RECORDING_NAME));
-        MatcherAssert.assertThat(
-                actualMetadataTargetTwo.getLabels(), Matchers.equalTo(responseLabels));
+            // verify in-memory recording created with labels from aliased self targetTwoUrl
+            CompletableFuture<JsonArray> listRespFutureTargetTwo = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", targetTwoFmtd))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFutureTargetTwo)) {
+                                    listRespFutureTargetTwo.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listRespTargetTwo =
+                    listRespFutureTargetTwo.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject recordingInfoTargetTwo = listRespTargetTwo.getJsonObject(0);
+            Metadata actualMetadataTargetTwo =
+                    gson.fromJson(
+                            recordingInfoTargetTwo.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
 
-        // verify in-memory recording created with labels from aliased self aliasTargetThree
-        CompletableFuture<JsonArray> listRespFutureTargetThree = new CompletableFuture<>();
-        webClient
-                .get(String.format("/api/v1/targets/%s/recordings", aliasTargetThree))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, listRespFutureTargetThree)) {
-                                listRespFutureTargetThree.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonArray listRespTargetThree =
-                listRespFutureTargetThree.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject recordingInfoTargetThree = listRespTargetThree.getJsonObject(0);
-        Metadata actualMetadataTargetThree =
-                gson.fromJson(
-                        recordingInfoTargetThree.getValue("metadata").toString(),
-                        new TypeToken<Metadata>() {}.getType());
+            MatcherAssert.assertThat(
+                    recordingInfoTargetTwo.getString("name"), Matchers.equalTo(RECORDING_NAME));
+            MatcherAssert.assertThat(
+                    actualMetadataTargetTwo.getLabels(), Matchers.equalTo(responseLabels));
 
-        MatcherAssert.assertThat(
-                recordingInfoTargetThree.getString("name"), Matchers.equalTo(RECORDING_NAME));
-        MatcherAssert.assertThat(
-                actualMetadataTargetThree.getLabels(), Matchers.equalTo(responseLabels));
+            // verify in-memory recording created with labels from aliased self targetThreeUrl
+            CompletableFuture<JsonArray> listRespFutureTargetThree = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", targetThreeFmtd))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFutureTargetThree)) {
+                                    listRespFutureTargetThree.complete(
+                                            ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listRespTargetThree =
+                    listRespFutureTargetThree.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject recordingInfoTargetThree = listRespTargetThree.getJsonObject(0);
+            Metadata actualMetadataTargetThree =
+                    gson.fromJson(
+                            recordingInfoTargetThree.getValue("metadata").toString(),
+                            new TypeToken<Metadata>() {}.getType());
+
+            MatcherAssert.assertThat(
+                    recordingInfoTargetThree.getString("name"), Matchers.equalTo(RECORDING_NAME));
+            MatcherAssert.assertThat(
+                    actualMetadataTargetThree.getLabels(), Matchers.equalTo(responseLabels));
+        } finally {
+            deleteCustomTarget(targetOneUrl);
+            deleteCustomTarget(targetTwoUrl);
+            deleteCustomTarget(targetThreeUrl);
+        }
     }
 
     @Test
@@ -545,5 +559,53 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
                         e);
             }
         }
+    }
+
+    private void defineCustomTarget(String connectUrl) throws InterruptedException {
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("connectUrl", connectUrl);
+        form.add("alias", connectUrl);
+
+        CountDownLatch latch = new CountDownLatch(2);
+
+        worker.submit(
+                () -> {
+                    try {
+                        return expectNotification("TargetJvmDiscovery", 15, TimeUnit.SECONDS).get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+
+        Thread.sleep(2_000); // Sleep to setup notification listening before query resolves
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .post("/api/v2/targets")
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                            response.complete(ar.result().bodyAsJsonObject());
+                            latch.countDown();
+                        });
+        latch.await(30, TimeUnit.SECONDS);
+    }
+
+    private void deleteCustomTarget(String connectUrl)
+            throws InterruptedException, ExecutionException {
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .delete(
+                        String.format(
+                                "/api/v2/targets/%s", URLEncodedUtils.formatSegments(connectUrl)))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                            response.complete(null);
+                        });
+        response.get();
     }
 }

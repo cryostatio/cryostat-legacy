@@ -159,7 +159,7 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
 
             CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
             webClient
-                    .get("/api/v1/targets/localhost:0/templates")
+                    .get(String.format("/api/v1/targets/%s/templates", SELF_REFERENCE_TARGET_ID))
                     .send(
                             ar -> {
                                 assertRequestStatus(ar, getResponse);

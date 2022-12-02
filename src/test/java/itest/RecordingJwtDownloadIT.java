@@ -40,6 +40,7 @@ package itest;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +66,12 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
                     getTokenDownloadUrl(
                             new URL(
                                     resource.getString("downloadUrl")
-                                            .replace("/api/v1/", "/api/v2.1/")));
+                                            .replace("/api/v1/", "/api/v2.1/")),
+                            Map.of(
+                                    "targetId",
+                                    SELF_REFERENCE_TARGET_ID_RAW,
+                                    "recordingName",
+                                    TEST_RECORDING_NAME));
             Thread.sleep(10_000L);
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
@@ -90,7 +96,7 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
         form.add("duration", "10");
         form.add("events", "template=ALL");
         webClient
-                .post(String.format("/api/v1/targets/%s/recordings", "localhost:0"))
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
                         form,
                         ar -> {

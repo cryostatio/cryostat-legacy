@@ -38,6 +38,7 @@
 package itest.bases;
 
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +50,14 @@ import itest.util.ITestCleanupFailedException;
 public class JwtAssetsSelfTest extends StandardSelfTest {
 
     public String getTokenDownloadUrl(URL resource) throws Exception {
+        return getTokenDownloadUrl(resource, Map.of());
+    }
+
+    public String getTokenDownloadUrl(URL resource, Map<String, String> formAttrs)
+            throws Exception {
         CompletableFuture<String> future = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.addAll(formAttrs);
         form.add("resource", resource.toString());
         webClient
                 .post("/api/v2.1/auth/token")

@@ -59,7 +59,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
-import itest.util.Podman;
 import org.apache.http.client.utils.URIBuilder;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -94,11 +93,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             JsonArray dirRecordings = dir.getJsonArray("recordings");
 
             MatcherAssert.assertThat(
-                    dir.getString("connectUrl"),
-                    Matchers.equalTo(
-                            String.format(
-                                    "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
-                                    Podman.POD_NAME)));
+                    dir.getString("connectUrl"), Matchers.equalTo(SELF_REFERENCE_TARGET_ID_RAW));
             MatcherAssert.assertThat(dir.getString("jvmId"), Matchers.notNullValue());
             MatcherAssert.assertThat(dirRecordings, Matchers.notNullValue());
             MatcherAssert.assertThat(dirRecordings.size(), Matchers.equalTo(1));
@@ -173,7 +168,13 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                     ExecutionException.class,
                     () ->
                             downloadFileAbs(
-                                            getTokenDownloadUrl(badReportUrl),
+                                            getTokenDownloadUrl(
+                                                    badReportUrl,
+                                                    Map.of(
+                                                            "targetId",
+                                                            SELF_REFERENCE_TARGET_ID_RAW,
+                                                            "recordingName",
+                                                            TEST_RECORDING_NAME)),
                                             TEST_RECORDING_NAME,
                                             ".html")
                                     .get());
@@ -182,7 +183,14 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.add(HttpHeaders.ACCEPT, HttpMimeType.HTML.mime());
             URL reportUrl = new URL(updatedArchivedRecording.getString("reportUrl"));
-            String downloadUrl = getTokenDownloadUrl(new URL(reportUrl.toString()));
+            String downloadUrl =
+                    getTokenDownloadUrl(
+                            new URL(reportUrl.toString()),
+                            Map.of(
+                                    "targetId",
+                                    SELF_REFERENCE_TARGET_ID_RAW,
+                                    "recordingName",
+                                    updatedArchivedRecording.getString("recordingName")));
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

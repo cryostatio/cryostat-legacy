@@ -135,9 +135,11 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
+        // FIXME need to verify that these additional form attributes (targetId, recordingName) also
+        // appear in and match the request URL and resource claims
         String targetId = params.getFormAttributes().get("targetId");
         if (StringUtils.isBlank(targetId)) {
-            throw new ApiException(404);
+            throw new ApiException(401);
         }
         try {
             new URI(targetId);
@@ -147,7 +149,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             if (resourceClaim.contains("recording")) {
                 String recordingName = params.getFormAttributes().get("recordingName");
                 if (StringUtils.isBlank(recordingName)) {
-                    throw new ApiException(400);
+                    throw new ApiException(401);
                 }
                 Optional<ArchivedRecordingInfo> recordingInfo =
                         archiveHelper.getRecordings(targetId).get().stream()
@@ -163,14 +165,13 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                 // if it does then we fall through to the bottom and use the security context of the
                 // service ref
                 if (!resource.getPath().contains(targetId)) {
-                    return null;
+                    throw new ApiException(400);
                 }
             }
         } catch (URISyntaxException
                 | MalformedURLException
                 | InterruptedException
                 | ExecutionException e) {
-            logger.error(e);
             throw new ApiException(500, e);
         }
         return discoveryStorage

@@ -65,9 +65,10 @@ import org.apache.http.client.utils.URLEncodedUtils;
 
 public abstract class StandardSelfTest {
 
+    public static final String SELF_REFERENCE_TARGET_ID_RAW =
+            String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
     public static final String SELF_REFERENCE_TARGET_ID =
-            URLEncodedUtils.formatSegments(
-                    String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME));
+            URLEncodedUtils.formatSegments(SELF_REFERENCE_TARGET_ID_RAW);
     public static final Pair<String, String> VERTX_FIB_CREDENTIALS =
             Pair.of("admin", "adminpass123");
 

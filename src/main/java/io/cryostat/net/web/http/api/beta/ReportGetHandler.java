@@ -148,7 +148,6 @@ public class ReportGetHandler extends AbstractV2RequestHandler<Path> {
                     .map(Metadata::getSecurityContext)
                     .orElseThrow(() -> new ApiException(404));
         } catch (InterruptedException | ExecutionException e) {
-            logger.error(e);
             throw new ApiException(500, e);
         }
     }
