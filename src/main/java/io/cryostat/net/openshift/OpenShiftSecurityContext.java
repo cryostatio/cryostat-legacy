@@ -112,8 +112,8 @@ class OpenShiftSecurityContext implements SecurityContext {
     // required - these are above the Namespace, so there are no explicit required permissions at
     // that level.
     // If we encounter the Namespace node itself along the way then we end up continuing down to the
-    // first TargetNode. FIXME refactor to just return early when encountering a TargetNode and
-    // take its name directly for the context.
+    // first TargetNode. FIXME refactor to just return early when encountering a Namespace
+    // EnrivonmentNode and take its name directly for the context.
     private ServiceRef findServiceRef(AbstractNode node) {
         if (node instanceof TargetNode) {
             return ((TargetNode) node).getTarget();
