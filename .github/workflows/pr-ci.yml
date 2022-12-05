@@ -30,7 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-test]
     steps:
-    - name: Fail if safe-to-test label not applied
+    - name: Fail if needs-triage label applied
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
+      run: exit 1
+    - name: Fail if safe-to-test label NOT applied
       if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
     - uses: actions/download-artifact@v3
