@@ -1,0 +1,18 @@
+name: Check labels not applied
+
+on:
+  pull_request:
+    types:
+      - opened
+      - labeled
+      - unlabeled
+      - synchronize
+
+jobs:
+  check-needs-triage-not-applied:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if needs-triage label applied
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage')}}
+        run: exit 1
+
