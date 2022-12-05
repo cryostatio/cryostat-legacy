@@ -261,7 +261,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 && !(securityContext instanceof OpenShiftSecurityContext)) {
             throw new IllegalStateException(
                     String.format(
-                            "SecurityContext was of type %s, expected s",
+                            "SecurityContext was of type %s, expected %s",
                             securityContext.getClass().getName(),
                             OpenShiftSecurityContext.class.getName()));
         }
