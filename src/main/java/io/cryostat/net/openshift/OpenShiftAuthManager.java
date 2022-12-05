@@ -276,8 +276,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         String ns;
         if (SecurityContext.DEFAULT.equals(securityContext)) {
-            // FIXME should this be the deployment namespace or just no namespace? Should those be
-            // two separate contexts?
+            // TODO does this make sense? Operations that use the DEFAULT security context are
+            // considered to be operations within the namespace that Cryostat is deployed within.
+            // This means that the requesting client must have some permissions to access Cryostat
+            // itself.
             ns = namespace.get();
         } else {
             ns = ((OpenShiftSecurityContext) securityContext).getNamespace();
