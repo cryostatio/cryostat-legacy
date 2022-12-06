@@ -21,8 +21,8 @@
   <baseImage>localhost/cryostat-base</baseImage>
   <baseImageTag>latest</baseImageTag>
   <baseImageTarball>base.tar.gz</baseImageTarball>
-  <node.version>v14.17.0</node.version>
-  <yarn.version>v1.22.13</yarn.version>
+  <node.version>v16.18.1</node.version>
+  <yarn.version>v1.22.19</yarn.version>
 
   <postgres.image>docker.io/postgres</postgres.image>
   <postgres.version>13-bullseye</postgres.version>
