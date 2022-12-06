@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -166,28 +165,31 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    helper.defineEventProbes(probeTemplateService.getTemplate(probeTemplate));
-                    System.out.println("Probe template applied: " + probeTemplate);
-                    List<Event> response = new ArrayList<Event>();
-                    String probes = helper.retrieveEventProbes();
-                    if (probes != null && !probes.isBlank()) {
-                        ProbeTemplate template = new ProbeTemplate();
-                        template.deserialize(
-                                new ByteArrayInputStream(
-                                        probes.getBytes(StandardCharsets.UTF_8)));
-                        for (Event e : template.getEvents()) {
-                            response.add(e);
-                            System.out.println(e);
-                        }
+                    String templateString = probeTemplateService.getTemplate(probeTemplate);
+                    helper.defineEventProbes(templateString);
+                    ProbeTemplate template = new ProbeTemplate();
+                    template.deserialize(
+                            new ByteArrayInputStream(
+                                    templateString.getBytes(StandardCharsets.UTF_8)));
+                    if (template.getEvents().length > 0) {
+                        Event event = template.getEvents()[0];
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(
+                                        Map.of(
+                                                "targetId",
+                                                targetId,
+                                                "probeTemplate",
+                                                probeTemplate,
+                                                "event",
+                                                event))
+                                .build()
+                                .send();
+                    } else {
+                        throw new ApiException(501, "No event found in probe template");
                     }
-                    System.out.println(response);
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
-                            .metaType(HttpMimeType.JSON)
-                            .message(Map.of("targetId", targetId, "probeTemplate", probeTemplate, "event", response))
-                            .build()
-                            .send();
                     return new IntermediateResponse<Void>().body(null);
                 });
     }
