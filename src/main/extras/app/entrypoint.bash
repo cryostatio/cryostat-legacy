@@ -166,8 +166,6 @@ if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
     FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
 fi
 
-FLAGS+=("-javaagent:/opt/cryostat.d/conf.d/jmc_agent.jar")
-
 CLASSPATH="$( cat /app/jib-classpath-file )"
 if [ -n "$CRYOSTAT_CLIENTLIB_PATH" ]; then
     CLASSPATH="$CLASSPATH:$CRYOSTAT_CLIENTLIB_PATH/*"
