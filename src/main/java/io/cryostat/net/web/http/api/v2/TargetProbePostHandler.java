@@ -39,7 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -168,14 +168,11 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                     String templateContent = probeTemplateService.getTemplate(probeTemplate);
                     helper.defineEventProbes(templateContent);
-                    List<Event> events = new ArrayList<Event>();
                     ProbeTemplate template = new ProbeTemplate();
                     template.deserialize(
                             new ByteArrayInputStream(
                                     templateContent.getBytes(StandardCharsets.UTF_8)));
-                    for (Event e : template.getEvents()) {
-                        events.add(e);
-                    }
+                    List<Event> events = Arrays.asList(template.getEvents());
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)

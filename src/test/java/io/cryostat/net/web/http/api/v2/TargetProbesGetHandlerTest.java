@@ -77,7 +77,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class TargetProbeGetHandlerTest {
+public class TargetProbesGetHandlerTest {
 
     TargetProbesGetHandler handler;
     @Mock AuthManager auth;

@@ -73,6 +73,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -178,6 +179,19 @@ public class TargetProbePostHandlerTest {
                                     ((TargetConnectionManager.ConnectedTask<Object>)
                                                     arg0.getArgument(1))
                                             .execute(connection));
+            String templateContent =
+                    "<jfragent> <config> <classprefix>_test</classprefix>"
+                        + " <allowtostring>true</allowtostring>"
+                        + " <allowconverter>true</allowconverter> </config> <events> <event"
+                        + " id=\"test\"> <label>Test</label> <description>TestEvent</description>"
+                        + " <class>io.cryostat.net.web.http.api.v2.TargetProbePostHandlerTest</class>"
+                        + " <path>test</path> <stacktrace>true</stacktrace>"
+                        + " <rethrow>false</rethrow> <location>ENTRY</location> <method>"
+                        + " <name>handleAuthenticated</name>"
+                        + " <descriptor>(Lio/vertx/ext/web/RoutingContext;)V</descriptor> </method>"
+                        + " </event> </events> </jfragent>";
+            Mockito.when(templateService.getTemplate(Mockito.anyString()))
+                    .thenReturn(templateContent);
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
             Object result = Mockito.mock(Object.class);
@@ -189,6 +203,13 @@ public class TargetProbePostHandlerTest {
                                     any(String[].class)))
                     .thenReturn(result);
             IntermediateResponse<Void> response = handler.handle(requestParams);
+            ArgumentCaptor<Map> argumentCaptor = ArgumentCaptor.forClass(Map.class);
+
+            Mockito.verify(notificationBuilder).message(argumentCaptor.capture());
+            Map<String, Object> s = argumentCaptor.getValue();
+            MatcherAssert.assertThat(s.get("probeTemplate"), Matchers.equalTo("bar"));
+            MatcherAssert.assertThat(s.get("targetId"), Matchers.equalTo("foo"));
+            MatcherAssert.assertThat(s.get("events"), Matchers.instanceOf(List.class));
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 
