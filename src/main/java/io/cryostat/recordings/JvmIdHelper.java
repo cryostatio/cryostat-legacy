@@ -38,7 +38,9 @@
 package io.cryostat.recordings;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -51,6 +53,7 @@ import javax.script.ScriptException;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
@@ -113,34 +116,32 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     // Use dao directly since refs resolve before listDiscoverableServices is populated
     public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
         if (sr.getJvmId() != null) return sr;
+        URI serviceUri = sr.getServiceUri();
+        String uriStr = serviceUri.toString();
         try {
             CompletableFuture<String> future =
                     this.targetConnectionManager.executeConnectedTaskAsync(
-                            new ConnectionDescriptor(
-                                    sr.getServiceUri().toString(),
-                                    credentialsManager.getCredentials(sr)),
-                            connection -> {
-                                return connection.getJvmId();
-                            });
+                            new ConnectionDescriptor(uriStr, credentialsManager.getCredentials(sr)),
+                            JFRConnection::getJvmId);
             future.thenAccept(
                     id -> {
-                        this.ids.synchronous().put(sr.getServiceUri().toString(), id);
-                        logger.info("JVM ID: {} -> {}", sr.getServiceUri().toString(), id);
+                        String prevId = this.ids.synchronous().get(uriStr);
+                        if (Objects.equals(prevId, id)) {
+                            return;
+                        }
+                        this.ids.put(uriStr, CompletableFuture.completedFuture(id));
+                        logger.info("JVM ID: {} -> {}", uriStr, id);
                     });
             String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
 
-            ServiceRef updated =
-                    new ServiceRef(
-                            id,
-                            sr.getServiceUri(),
-                            sr.getAlias().orElse(sr.getServiceUri().toString()));
+            ServiceRef updated = new ServiceRef(id, serviceUri, sr.getAlias().orElse(uriStr));
             updated.setLabels(sr.getLabels());
             updated.setPlatformAnnotations(sr.getPlatformAnnotations());
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
             return updated;
         } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
-            logger.warn("Could not get jvmId for target {}", sr.getServiceUri().toString());
-            throw new JvmIdGetException(e, sr.getServiceUri().toString());
+            logger.warn("Could not get jvmId for target {}", uriStr);
+            throw new JvmIdGetException(e, uriStr);
         }
     }
 
@@ -163,9 +164,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                 credentials.isPresent()
                                         ? credentials.get()
                                         : credentialsManager.getCredentialsByTargetId(targetId)),
-                        connection -> {
-                            return connection.getJvmId();
-                        });
+                        JFRConnection::getJvmId);
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
         return future;
     }
