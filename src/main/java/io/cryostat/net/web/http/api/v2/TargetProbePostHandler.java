@@ -37,6 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +48,9 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.AgentJMXHelper;
+import io.cryostat.core.agent.Event;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -161,13 +166,25 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    helper.defineEventProbes(probeTemplateService.getTemplate(probeTemplate));
+                    String templateContent = probeTemplateService.getTemplate(probeTemplate);
+                    helper.defineEventProbes(templateContent);
+                    ProbeTemplate template = new ProbeTemplate();
+                    template.deserialize(
+                            new ByteArrayInputStream(
+                                    templateContent.getBytes(StandardCharsets.UTF_8)));
+                    List<Event> events = Arrays.asList(template.getEvents());
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
-                            .message(Map.of("targetId", targetId))
-                            .message(Map.of("probeTemplate", probeTemplate))
+                            .message(
+                                    Map.of(
+                                            "targetId",
+                                            targetId,
+                                            "probeTemplate",
+                                            probeTemplate,
+                                            "events",
+                                            events))
                             .build()
                             .send();
                     return new IntermediateResponse<Void>().body(null);
