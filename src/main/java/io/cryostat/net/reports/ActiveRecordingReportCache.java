@@ -76,6 +76,8 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
 
     protected final Logger logger;
 
+    protected static final String EMPTY_FILTERS = "";
+
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
@@ -97,14 +99,14 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build((k) -> getReport(k, "", true));
+                        .build((k) -> getReport(k, true));
         this.jsonCache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(cacheExpirySeconds, TimeUnit.SECONDS)
                         .refreshAfterWrite(cacheRefreshSeconds, TimeUnit.SECONDS)
                         .softValues()
-                        .build((k) -> getReport(k, "", false));
+                        .build((k) -> getReport(k, false));
     }
 
     Future<String> get(
@@ -162,6 +164,11 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             logger.trace("No cache entry for {} to invalidate", recordingName);
         }
         return hasKey;
+    }
+
+    protected String getReport(RecordingDescriptor recordingDescriptor, boolean formatted)
+            throws Exception {
+        return getReport(recordingDescriptor, EMPTY_FILTERS, formatted);
     }
 
     protected String getReport(
