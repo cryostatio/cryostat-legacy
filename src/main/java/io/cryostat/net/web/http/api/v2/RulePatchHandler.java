@@ -46,15 +46,21 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 
@@ -62,21 +68,31 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
 
     private static final String UPDATE_RULE_CATEGORY = "RuleUpdated";
     static final String PATH = RuleGetHandler.PATH;
+    static final String CLEAN_PARAM = "clean";
 
+    private final Vertx vertx;
     private final RuleRegistry ruleRegistry;
+    private final DiscoveryStorage storage;
+    private final RecordingTargetHelper recordings;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     @Inject
     RulePatchHandler(
+            Vertx vertx,
             AuthManager auth,
+            DiscoveryStorage storage,
+            RecordingTargetHelper recordings,
             CredentialsManager credentialsManager,
             RuleRegistry ruleRegistry,
             NotificationFactory notificationFactory,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, gson);
+        this.vertx = vertx;
+        this.recordings = recordings;
         this.ruleRegistry = ruleRegistry;
+        this.storage = storage;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
@@ -144,6 +160,40 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                 .build()
                 .send();
 
+        if (!enabled && Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
+            vertx.executeBlocking(
+                    promise -> {
+                        try {
+                            cleanup(params, rule);
+                            promise.complete();
+                        } catch (Exception e) {
+                            promise.fail(e);
+                        }
+                    });
+        }
+
         return new IntermediateResponse<Void>().statusCode(204);
+    }
+
+    private void cleanup(RequestParameters params, Rule rule) {
+        for (ServiceRef ref : storage.listDiscoverableServices()) {
+            vertx.executeBlocking(
+                    promise -> {
+                        try {
+                            if (ruleRegistry.applies(rule, ref)) {
+                                String targetId = ref.getServiceUri().toString();
+                                Credentials credentials =
+                                        credentialsManager.getCredentialsByTargetId(targetId);
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(targetId, credentials);
+                                recordings.stopRecording(cd, rule.getRecordingName());
+                            }
+                            promise.complete();
+                        } catch (Exception e) {
+                            logger.error(e);
+                            promise.fail(e);
+                        }
+                    });
+        }
     }
 }
