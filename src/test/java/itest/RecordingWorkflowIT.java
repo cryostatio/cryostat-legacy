@@ -223,6 +223,8 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
             MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
 
+            unGzip(savedDownloadPath.toString());
+
             List<RecordedEvent> inMemoryEvents = RecordingFile.readAllEvents(inMemoryDownloadPath);
             List<RecordedEvent> savedEvents = RecordingFile.readAllEvents(savedDownloadPath);
 

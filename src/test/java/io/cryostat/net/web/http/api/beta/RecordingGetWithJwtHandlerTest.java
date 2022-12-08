@@ -37,16 +37,16 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
 import java.util.EnumSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -56,6 +56,7 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -81,13 +82,20 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
+    @Mock HttpServer httpServer;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth,
+                        credentialsManager,
+                        jwt,
+                        () -> webServer,
+                        archive,
+                        httpServer,
+                        logger);
     }
 
     @Nested
@@ -134,15 +142,25 @@ class RecordingGetWithJwtHandlerTest {
         @Mock RoutingContext ctx;
         @Mock JWT token;
 
+        @BeforeEach
+        void setup() {
+            String sourceTarget = "mytarget";
+            String recordingName = "myrecording";
+            lenient().when(ctx.pathParam("sourceTarget")).thenReturn(sourceTarget);
+            lenient().when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+        }
+
         @Test
         void shouldRespond404IfNotFound() throws Exception {
-            when(ctx.pathParam("sourceTarget")).thenReturn("mytarget");
-            when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Future<Path> future =
-                    CompletableFuture.failedFuture(
-                            new RecordingNotFoundException("mytarget", "myrecording"));
-            when(archive.getRecordingPath(Mockito.anyString(), Mockito.anyString()))
-                    .thenReturn(future);
+            String sourceTarget = "mytarget";
+            String recordingName = "myrecording";
+            when(ctx.pathParam("sourceTarget")).thenReturn(sourceTarget);
+            when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+            Mockito.doThrow(new RecordingNotFoundException(sourceTarget, recordingName))
+                    .when(archive)
+                    .getRecordingForDownload("mytarget", "myrecording");
+
             ApiException ex =
                     Assertions.assertThrows(
                             ApiException.class, () -> handler.handleWithValidJwt(ctx, token));
@@ -155,12 +173,11 @@ class RecordingGetWithJwtHandlerTest {
             when(ctx.response()).thenReturn(resp);
             when(ctx.pathParam("sourceTarget")).thenReturn("mytarget");
             when(ctx.pathParam("recordingName")).thenReturn("myrecording");
-            Path path = Mockito.mock(Path.class);
-            when(path.toAbsolutePath()).thenReturn(path);
-            when(path.toString()).thenReturn("foo.jfr");
-            Future<Path> future = CompletableFuture.completedFuture(path);
-            when(archive.getRecordingPath(Mockito.anyString(), Mockito.anyString()))
-                    .thenReturn(future);
+
+            byte[] buffer = new byte[1024];
+            ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
+
+            when(archive.getRecordingForDownload("mytarget", "myrecording")).thenReturn(stream);
 
             handler.handleWithValidJwt(ctx, token);
 
@@ -170,7 +187,7 @@ class RecordingGetWithJwtHandlerTest {
                             HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"myrecording\"");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
-            inOrder.verify(resp).sendFile("foo.jfr");
+            inOrder.verify(resp).end(Buffer.buffer(buffer));
         }
     }
 }

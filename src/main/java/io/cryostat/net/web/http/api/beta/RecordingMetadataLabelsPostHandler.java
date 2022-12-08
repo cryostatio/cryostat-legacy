@@ -60,6 +60,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler<Metadata> {
 
@@ -119,6 +120,9 @@ public class RecordingMetadataLabelsPostHandler extends AbstractV2RequestHandler
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String sourceTarget = params.getPathParams().get("sourceTarget");
+        if (StringUtils.isAnyBlank(sourceTarget, recordingName)) {
+            throw new ApiException(404);
+        }
 
         try {
             Metadata metadata =

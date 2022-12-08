@@ -57,7 +57,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.util.OutputToReadStream;
+import io.cryostat.util.ActiveRecordingOutputToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
@@ -158,8 +158,8 @@ class TargetRecordingGetHandler extends AbstractAssetJwtConsumingHandler {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
 
         try (final InputStream is = stream.get();
-                final OutputToReadStream otrs =
-                        new OutputToReadStream(
+                final ActiveRecordingOutputToReadStream otrs =
+                        new ActiveRecordingOutputToReadStream(
                                 vertx, targetConnectionManager, connectionDescriptor)) {
             CompletableFuture<Void> future = new CompletableFuture<>();
             otrs.pipeFromInput(

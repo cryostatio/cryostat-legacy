@@ -62,6 +62,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -76,6 +77,7 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -113,6 +115,8 @@ class RecordingArchiveHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock Environment env;
+    @Mock Vertx vertx;
 
     String targetId = "fooTarget";
     String recordingName = "someRecording";
@@ -163,6 +167,8 @@ class RecordingArchiveHelperTest {
                         platformClient,
                         notificationFactory,
                         jvmIdHelper,
+                        env,
+                        vertx,
                         base32);
     }
 

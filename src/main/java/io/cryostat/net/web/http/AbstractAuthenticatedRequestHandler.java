@@ -67,6 +67,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
@@ -120,6 +121,9 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
+        if (StringUtils.isBlank(targetId)) {
+            throw new IllegalArgumentException("targetId path parameter was blank");
+        }
         try {
             Credentials credentials;
             if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {

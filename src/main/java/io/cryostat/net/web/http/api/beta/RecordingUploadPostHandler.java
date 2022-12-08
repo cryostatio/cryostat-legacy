@@ -73,6 +73,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 
 class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
@@ -139,6 +140,9 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
     public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
+        if (StringUtils.isAnyBlank(sourceTarget, recordingName)) {
+            throw new ApiException(404);
+        }
         try {
             URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =

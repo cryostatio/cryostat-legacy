@@ -38,8 +38,13 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
@@ -47,6 +52,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -62,17 +68,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
+import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
@@ -88,8 +101,14 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class RecordingArchiveHelper {
 
@@ -104,6 +123,8 @@ public class RecordingArchiveHelper {
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
+    private final Environment env;
+    private final Vertx vertx;
     private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
@@ -129,6 +150,8 @@ public class RecordingArchiveHelper {
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
+            Environment env,
+            Vertx vertx,
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
@@ -141,6 +164,8 @@ public class RecordingArchiveHelper {
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
+        this.env = env;
+        this.vertx = vertx;
         this.base32 = base32;
     }
 
@@ -837,6 +862,24 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    public InputStream getRecordingForDownload(String sourceTarget, String recordingName)
+            throws ExecutionException, RecordingNotFoundException, IOException {
+        Path recordingPath = null;
+        try {
+            recordingPath = getRecordingPath(sourceTarget, recordingName).get();
+
+        } catch (InterruptedException ex) {
+            logger.error(ex);
+
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof RecordingNotFoundException) {
+                throw new RecordingNotFoundException(sourceTarget, recordingName);
+            }
+            throw ex;
+        }
+        return unGzip(recordingPath);
+    }
+
     private Path searchSubdirectory(Path subdirectory, String recordingName) {
         Path recordingPath = null;
         try {
@@ -868,6 +911,9 @@ public class RecordingArchiveHelper {
 
     public void validateSourceTarget(String sourceTarget)
             throws RecordingSourceTargetNotFoundException {
+        if (StringUtils.isBlank(sourceTarget)) {
+            throw new RecordingSourceTargetNotFoundException(sourceTarget);
+        }
         if (sourceTarget.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
             return;
         }
@@ -978,6 +1024,8 @@ public class RecordingArchiveHelper {
             bufferedStream.reset();
 
             fs.copy(bufferedStream, destinationPath);
+
+            gzip(destinationPath);
         }
         return destinationPath;
     }
@@ -990,7 +1038,7 @@ public class RecordingArchiveHelper {
                 .findFirst();
     }
 
-    private long getFileSize(String recordingName) {
+    public long getFileSize(String recordingName) {
         try {
             return Files.size(getRecordingPath(recordingName).get());
         } catch (IOException | InterruptedException | ExecutionException e) {
@@ -1029,5 +1077,208 @@ public class RecordingArchiveHelper {
         public List<ArchivedRecordingInfo> getRecordings() {
             return Collections.unmodifiableList(recordings);
         }
+    }
+
+    private void gzip(Path originalFile) {
+        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && !isGzip(originalFile)) {
+            Path tmp = originalFile.resolve(originalFile + ".tmp");
+            try (FileInputStream source = new FileInputStream(originalFile.toString()); ) {
+                fs.copy(source, tmp, StandardCopyOption.REPLACE_EXISTING);
+
+                try (FileInputStream input = new FileInputStream(tmp.toString());
+                        FileOutputStream output = new FileOutputStream(originalFile.toString());
+                        GZIPOutputStream gzipFile = new GZIPOutputStream(output); ) {
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = input.read(buffer)) != -1) {
+                        gzipFile.write(buffer, 0, len);
+                    }
+                    fs.deleteIfExists(tmp);
+                }
+            } catch (IOException e) {
+                logger.error("Failed to compress the file: " + e);
+            }
+        }
+    }
+
+    public InputStream unGzip(Path gzipFile) throws IOException {
+        if (!env.hasEnv(Variables.DISABLE_ARCHIVE_COMPRESS) && isGzip(gzipFile)) {
+
+            try (FileInputStream source = new FileInputStream(gzipFile.toString());
+                    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                    GZIPInputStream input = new GZIPInputStream(source); ) {
+
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = input.read(buffer)) != -1) {
+                    bout.write(buffer, 0, len);
+                }
+                return new ByteArrayInputStream(bout.toByteArray());
+            }
+        }
+        return new ByteArrayInputStream(Files.readAllBytes(gzipFile));
+    }
+
+    private boolean isGzip(Path file) {
+        try (InputStream is = new FileInputStream(file.toString()); ) {
+            byte[] signature = new byte[2];
+            int n = is.read(signature);
+            return n == 2 && signature[0] == (byte) 0x1f && signature[1] == (byte) 0x8b;
+        } catch (IOException e) {
+            logger.error("Error to check the file :" + e);
+            return false;
+        }
+    }
+
+    public void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
+        vertx.executeBlocking(
+                event -> {
+                    try {
+                        // try loading chunk info to see if it's a valid file
+                        try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
+                            var supplier = FlightRecordingLoader.createChunkSupplier(is);
+                            var chunks = FlightRecordingLoader.readChunkInfo(supplier);
+                            if (chunks.size() < 1) {
+                                throw new InvalidJfrFileException();
+                            }
+                        }
+                        event.complete();
+                    } catch (CouldNotLoadRecordingException | IOException e) {
+                        event.fail(e);
+                    }
+                },
+                res -> {
+                    if (res.failed()) {
+                        Throwable t;
+                        if (res.cause() instanceof CouldNotLoadRecordingException) {
+                            t =
+                                    new HttpException(
+                                            400, "Not a valid JFR recording file", res.cause());
+                        } else {
+                            t = res.cause();
+                        }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
+
+                        handler.handle(makeFailedAsyncResult(t));
+                        return;
+                    }
+
+                    handler.handle(makeAsyncResult(null));
+                });
+    }
+
+    public void saveRecording(
+            String subdirectoryName,
+            String basename,
+            String tmpFile,
+            int counter,
+            Handler<AsyncResult<String>> handler) {
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
+        // are also differentiated by second-resolution timestamp
+        if (counter >= Byte.MAX_VALUE) {
+            handler.handle(
+                    makeFailedAsyncResult(
+                            new IOException(
+                                    "Recording could not be saved. File already exists and rename"
+                                            + " attempts were exhausted.")));
+            return;
+        }
+
+        String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectoryName);
+
+        if (!fs.exists(specificRecordingsPath)) {
+            try {
+                Files.createDirectory(specificRecordingsPath);
+            } catch (IOException e) {
+                handler.handle(makeFailedAsyncResult(e));
+                return;
+            }
+        }
+
+        vertx.fileSystem()
+                .exists(
+                        specificRecordingsPath.resolve(filename).toString(),
+                        (res) -> {
+                            if (res.failed()) {
+                                handler.handle(makeFailedAsyncResult(res.cause()));
+                                return;
+                            }
+
+                            if (res.result()) {
+                                saveRecording(
+                                        subdirectoryName, basename, tmpFile, counter + 1, handler);
+                                return;
+                            }
+
+                            // verified no name clash at this time
+                            vertx.fileSystem()
+                                    .move(
+                                            tmpFile,
+                                            specificRecordingsPath.resolve(filename).toString(),
+                                            (res2) -> {
+                                                if (res2.failed()) {
+                                                    handler.handle(
+                                                            makeFailedAsyncResult(res2.cause()));
+                                                    return;
+                                                }
+
+                                                gzip(specificRecordingsPath.resolve(filename));
+                                                handler.handle(makeAsyncResult(filename));
+                                            });
+                        });
+    }
+
+    public void deleteTempFileUpload(FileUpload upload) {
+        Path p = archivedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        vertx.fileSystem().deleteBlocking(p.toString());
+    }
+
+    private <T> AsyncResult<T> makeAsyncResult(T result) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return result;
+            }
+
+            @Override
+            public Throwable cause() {
+                return null;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return true;
+            }
+
+            @Override
+            public boolean failed() {
+                return false;
+            }
+        };
+    }
+
+    private <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return null;
+            }
+
+            @Override
+            public Throwable cause() {
+                return cause;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return false;
+            }
+
+            @Override
+            public boolean failed() {
+                return true;
+            }
+        };
     }
 }

@@ -41,7 +41,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
@@ -107,6 +106,7 @@ class RecordingsPostHandlerTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock RecordingMetadataManager recordingMetadataManager;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -136,6 +136,7 @@ class RecordingsPostHandlerTest {
                         notificationFactory,
                         () -> webServer,
                         recordingMetadataManager,
+                        recordingArchiveHelper,
                         logger);
     }
 
@@ -156,7 +157,6 @@ class RecordingsPostHandlerTest {
     void shouldHandleRecordingUploadRequest() throws Exception {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
-        String savePath = "/some/path/";
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -175,14 +175,9 @@ class RecordingsPostHandlerTest {
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
 
-        Path filePath = mock(Path.class);
-        when(filePath.toString()).thenReturn(savePath + filename);
-        Path specificRecordingsPath = mock(Path.class);
-        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(specificRecordingsPath);
-        when(specificRecordingsPath.resolve(filename)).thenReturn(filePath);
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         doAnswer(
                         invocation -> {
@@ -212,20 +207,17 @@ class RecordingsPostHandlerTest {
 
                             return null;
                         })
-                .when(vertx)
-                .executeBlocking(any(Handler.class), any(Handler.class));
+                .when(recordingArchiveHelper)
+                .validateRecording(Mockito.any(String.class), Mockito.any(Handler.class));
 
-        when(cryoFs.exists(specificRecordingsPath)).thenReturn(true);
-
-        when(vertxFs.exists(Mockito.eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
+        doAnswer(
                         invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            Handler<AsyncResult<String>> handler = invocation.getArgument(4);
                             handler.handle(
                                     new AsyncResult<>() {
                                         @Override
-                                        public Boolean result() {
-                                            return false;
+                                        public String result() {
+                                            return filename;
                                         }
 
                                         @Override
@@ -245,41 +237,14 @@ class RecordingsPostHandlerTest {
                                     });
 
                             return null;
-                        });
-
-        when(vertxFs.move(Mockito.eq("foo"), Mockito.eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
-                            handler.handle(
-                                    new AsyncResult<>() {
-                                        @Override
-                                        public Boolean result() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public Throwable cause() {
-                                            return null;
-                                        }
-
-                                        @Override
-                                        public boolean succeeded() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public boolean failed() {
-                                            return false;
-                                        }
-                                    });
-
-                            return null;
-                        });
-
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+                        })
+                .when(recordingArchiveHelper)
+                .saveRecording(
+                        Mockito.any(String.class),
+                        Mockito.any(String.class),
+                        Mockito.any(String.class),
+                        Mockito.any(Integer.class),
+                        Mockito.any(Handler.class));
 
         when(webServer.getArchivedDownloadURL(Mockito.anyString(), Mockito.anyString()))
                 .then(
@@ -360,15 +325,6 @@ class RecordingsPostHandlerTest {
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
 
-        Path filePath = mock(Path.class);
-        when(filePath.toString()).thenReturn(savePath + filename);
-        Path specificRecordingsPath = mock(Path.class);
-        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(specificRecordingsPath);
-        when(specificRecordingsPath.resolve(filename)).thenReturn(filePath);
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
-
         doAnswer(
                         invocation -> {
                             Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
@@ -397,20 +353,17 @@ class RecordingsPostHandlerTest {
 
                             return null;
                         })
-                .when(vertx)
-                .executeBlocking(any(Handler.class), any(Handler.class));
+                .when(recordingArchiveHelper)
+                .validateRecording(Mockito.any(String.class), Mockito.any(Handler.class));
 
-        when(cryoFs.exists(specificRecordingsPath)).thenReturn(true);
-
-        when(vertxFs.exists(Mockito.eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
+        doAnswer(
                         invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            Handler<AsyncResult<String>> handler = invocation.getArgument(4);
                             handler.handle(
                                     new AsyncResult<>() {
                                         @Override
-                                        public Boolean result() {
-                                            return false;
+                                        public String result() {
+                                            return filename;
                                         }
 
                                         @Override
@@ -430,37 +383,14 @@ class RecordingsPostHandlerTest {
                                     });
 
                             return null;
-                        });
-
-        when(vertxFs.move(Mockito.eq("foo"), Mockito.eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
-                            handler.handle(
-                                    new AsyncResult<>() {
-                                        @Override
-                                        public Boolean result() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public Throwable cause() {
-                                            return null;
-                                        }
-
-                                        @Override
-                                        public boolean succeeded() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public boolean failed() {
-                                            return false;
-                                        }
-                                    });
-
-                            return null;
-                        });
+                        })
+                .when(recordingArchiveHelper)
+                .saveRecording(
+                        Mockito.any(String.class),
+                        Mockito.any(String.class),
+                        Mockito.any(String.class),
+                        Mockito.any(Integer.class),
+                        Mockito.any(Handler.class));
 
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
@@ -540,7 +470,6 @@ class RecordingsPostHandlerTest {
 
     @Test
     void shouldHandleIncorrectFormField() throws Exception {
-        String savePath = "/some/path/";
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -557,23 +486,14 @@ class RecordingsPostHandlerTest {
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("incorrect_field_name");
-        when(upload.uploadedFileName()).thenReturn("foo");
-
-        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
-
-        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
     }
 
     @Test
     void shouldHandleEmptyRecordingName() throws Exception {
-        String savePath = "/some/path/";
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -591,26 +511,17 @@ class RecordingsPostHandlerTest {
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn("");
-        when(upload.uploadedFileName()).thenReturn("foo");
-
-        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
-
-        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
     }
 
     @Test
     void shouldHandleIncorectFileNamePattern() {
         String basename = "incorrect_file_name";
         String filename = basename + ".jfr";
-        String savePath = "/some/path/";
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -628,19 +539,11 @@ class RecordingsPostHandlerTest {
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
-        when(upload.uploadedFileName()).thenReturn("foo");
-
-        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getPayload(), Matchers.equalTo("Incorrect recording file name pattern"));
-
-        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
     }
 
     @Test
@@ -648,7 +551,6 @@ class RecordingsPostHandlerTest {
 
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
-        String savePath = "/some/path/";
         String labels = "invalid";
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -667,12 +569,6 @@ class RecordingsPostHandlerTest {
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
-        when(upload.uploadedFileName()).thenReturn("foo");
-
-        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
-
-        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(vertxFs);
 
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels);
@@ -685,7 +581,5 @@ class RecordingsPostHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Invalid labels"));
-
-        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
     }
 }

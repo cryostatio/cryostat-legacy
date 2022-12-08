@@ -117,5 +117,6 @@ MAVEN_OPTS="${flags}" \
     CRYOSTAT_TEMPLATE_PATH="${work_dir}/templates" \
     CRYOSTAT_PROBE_TEMPLATE_PATH="${work_dir}/probes" \
     CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=devserver \
+    CRYOSTAT_DISABLE_ARCHIVE_COMPRESS="${CRYOSTAT_DISABLE_ARCHIVE_COMPRESS}" \
     CRYOSTAT_DEV_MODE=true \
     "${MVN}" -Dheadless=true -DskipBaseImage=true -Djib.skip=true -DskipTests=true vertx:run

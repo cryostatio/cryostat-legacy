@@ -32,9 +32,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -72,25 +69,19 @@ import io.vertx.core.streams.WriteStream;
  * @author guss77, hareetd
  * @source https://github.com/cloudonix/vertx-java.io
  */
-public class OutputToReadStream extends OutputStream implements ReadStream<Buffer> {
+public class InputStreamToReadStream extends OutputStream implements ReadStream<Buffer> {
 
-    private AtomicReference<CountDownLatch> paused = new AtomicReference<>(new CountDownLatch(0));
-    private boolean closed;
-    private AtomicLong demand = new AtomicLong(0);
-    private Handler<Void> endHandler = v -> {};
-    private Handler<Buffer> dataHandler = d -> {};
-    private Handler<Throwable> errorHandler = t -> {};
-    private Context context;
-    private TargetConnectionManager targetConnectionManager;
-    private ConnectionDescriptor connectionDescriptor;
+    protected final AtomicReference<CountDownLatch> paused =
+            new AtomicReference<>(new CountDownLatch(0));
+    protected boolean closed;
+    protected final AtomicLong demand = new AtomicLong(0);
+    protected Handler<Void> endHandler = v -> {};
+    protected Handler<Buffer> dataHandler = d -> {};
+    protected Handler<Throwable> errorHandler = t -> {};
+    protected final Context context;
 
-    public OutputToReadStream(
-            Vertx vertx,
-            TargetConnectionManager targetConnectionManager,
-            ConnectionDescriptor connectionDescriptor) {
+    public InputStreamToReadStream(Vertx vertx) {
         this.context = vertx.getOrCreateContext();
-        this.targetConnectionManager = targetConnectionManager;
-        this.connectionDescriptor = connectionDescriptor;
     }
 
     /**
@@ -172,7 +163,7 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     /* ReadStream stuff */
 
     @Override
-    public OutputToReadStream exceptionHandler(Handler<Throwable> handler) {
+    public InputStreamToReadStream exceptionHandler(Handler<Throwable> handler) {
         // we are usually not propagating exceptions as OutputStream has no mechanism for
         // propagating exceptions down,
         // except when wrapping an input stream, in which case we can forward InputStream read
@@ -182,32 +173,32 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
     }
 
     @Override
-    public OutputToReadStream handler(Handler<Buffer> handler) {
+    public InputStreamToReadStream handler(Handler<Buffer> handler) {
         this.dataHandler = Objects.requireNonNullElse(handler, d -> {});
         return this;
     }
 
     @Override
-    public OutputToReadStream pause() {
+    public InputStreamToReadStream pause() {
         paused.getAndSet(new CountDownLatch(1)).countDown();
         return this;
     }
 
     @Override
-    public OutputToReadStream resume() {
+    public InputStreamToReadStream resume() {
         paused.getAndSet(new CountDownLatch(0)).countDown();
         return this;
     }
 
     @Override
-    public OutputToReadStream fetch(long amount) {
+    public InputStreamToReadStream fetch(long amount) {
         resume();
         demand.addAndGet(amount);
         return null;
     }
 
     @Override
-    public OutputToReadStream endHandler(Handler<Void> endHandler) {
+    public InputStreamToReadStream endHandler(Handler<Void> endHandler) {
         this.endHandler = Objects.requireNonNullElse(endHandler, v -> {});
         return this;
     }
@@ -248,6 +239,10 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
         push(null);
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
     /* Internal implementation */
 
     private void push(Buffer data) {
@@ -272,10 +267,5 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
 
     private void checkConnection() throws IOException {
         if (closed) throw new IOException("OutputStream is closed");
-
-        if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
-            throw new IOException(
-                    "Target connection unexpectedly closed while streaming recording");
-        }
     }
 }

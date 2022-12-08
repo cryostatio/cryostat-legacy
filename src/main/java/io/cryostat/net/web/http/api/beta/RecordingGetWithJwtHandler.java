@@ -37,16 +37,18 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -55,20 +57,23 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
+import io.cryostat.util.InputStreamToReadStream;
 
 import com.nimbusds.jwt.JWT;
 import dagger.Lazy;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
 class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName/jwt";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final Vertx vertx;
 
     @Inject
     RecordingGetWithJwtHandler(
@@ -77,9 +82,11 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
+            HttpServer httpServer,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.vertx = httpServer.getVertx();
     }
 
     @Override
@@ -104,6 +111,11 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
         return true;
     }
 
@@ -111,23 +123,53 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String sourceTarget = ctx.pathParam("sourceTarget");
         String recordingName = ctx.pathParam("recordingName");
+
         try {
             recordingArchiveHelper.validateSourceTarget(sourceTarget);
-            Path archivedRecording =
-                    recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            String.format("attachment; filename=\"%s\"", recordingName));
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
+            if (StringUtils.isBlank(recordingName)) {
+                throw new ApiException(404);
+            }
         } catch (RecordingSourceTargetNotFoundException e) {
             throw new ApiException(404, e.getMessage(), e);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new ApiException(404, e.getMessage(), e);
-            }
-            throw e;
+        }
+
+        try {
+            handleRecordingDownloadRequest(ctx, jwt, recordingName, sourceTarget);
+        } catch (Exception e) {
+            throw new ApiException(500, e.getMessage(), e);
+        }
+    }
+
+    private void handleRecordingDownloadRequest(
+            RoutingContext ctx, JWT jwt, String recordingName, String sourceTarget)
+            throws Exception {
+
+        Path recordingPath =
+                recordingArchiveHelper.getRecordingPath(sourceTarget, recordingName).get();
+
+        ctx.response().setChunked(true);
+        ctx.response()
+                .putHeader(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        String.format("attachment; filename=\"%s\"", recordingName));
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+
+        try (final InputStreamToReadStream istors = new InputStreamToReadStream(vertx);
+                final InputStream is = recordingArchiveHelper.unGzip(recordingPath)) {
+
+            CompletableFuture<Void> future = new CompletableFuture<>();
+
+            istors.pipeFromInput(
+                    is,
+                    ctx.response(),
+                    res -> {
+                        if (res.succeeded()) {
+                            future.complete(null);
+                        } else {
+                            future.completeExceptionally(res.cause());
+                        }
+                    });
+            future.get();
         }
     }
 }

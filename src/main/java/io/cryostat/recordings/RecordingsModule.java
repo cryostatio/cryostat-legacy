@@ -127,6 +127,8 @@ public abstract class RecordingsModule {
             DiscoveryStorage storage,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
+            Environment env,
+            Vertx vertx,
             Base32 base32) {
         return new RecordingArchiveHelper(
                 fs,
@@ -140,6 +142,8 @@ public abstract class RecordingsModule {
                 storage,
                 notificationFactory,
                 jvmIdHelper,
+                env,
+                vertx,
                 base32);
     }
 

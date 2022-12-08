@@ -68,6 +68,7 @@ import com.nimbusds.jwt.proc.BadJWTException;
 import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 
 public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
 
@@ -166,6 +167,9 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(RoutingContext ctx, JWT jwt)
             throws ParseException {
         String targetId = ctx.pathParam("targetId");
+        if (StringUtils.isBlank(targetId)) {
+            throw new IllegalArgumentException("targetId path parameter was blank");
+        }
         Credentials credentials = null;
         String jmxauth = jwt.getJWTClaimsSet().getStringClaim(AssetJwtHelper.JMXAUTH_CLAIM);
         if (jmxauth == null) {
