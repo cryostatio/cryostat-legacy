@@ -41,6 +41,8 @@ input ArchivedRecordingFilterInput {
     sourceTarget: String
     sizeBytesGreaterThanEqual: Long
     sizeBytesLessThanEqual: Long
+    archivedTimeGreaterThanEqual: Long
+    archivedTimeLessThanEqual: Long
 }
 
 type ServiceRef {
@@ -117,6 +119,7 @@ type ArchivedRecording implements Recording {
     downloadUrl: Url!
     metadata: RecordingMetadata!
     size: Long!
+    archivedTime: Long!
 
     doDelete: ArchivedRecording!
     doPutMetadata(metadata: Object): ArchivedRecording!

@@ -78,7 +78,9 @@ class FilterInput {
         START_TIME_BEFORE("startTimeMsBeforeEqual"),
         START_TIME_AFTER("startTimeMsAfterEqual"),
         SIZE_GE("sizeBytesGreaterThanEqual"),
-        SIZE_LE("sizeBytesLessThanEqual");
+        SIZE_LE("sizeBytesLessThanEqual"),
+        ARCHIVED_TIME_BEFORE("archivedTimeMsBeforeEqual"),
+        ARCHIVED_TIME_AFTER("archivedTimeMsAfterEqual");
 
         private final String key;
 

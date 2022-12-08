@@ -70,6 +70,10 @@ public abstract class ReportsModule {
 
     public static final String REPORT_GENERATION_TIMEOUT_SECONDS =
             "REPORT_GENERATION_TIMEOUT_SECONDS";
+    public static final String ACTIVE_REPORT_CACHE_EXPIRY_SECONDS =
+            "ACTIVE_REPORT_CACHE_EXPIRY_SECONDS";
+    public static final String ACTIVE_REPORT_CACHE_REFRESH_SECONDS =
+            "ACTIVE_REPORT_CACHE_REFRESH_SECONDS";
 
     @Provides
     @Named(REPORT_GENERATION_TIMEOUT_SECONDS)
@@ -79,18 +83,34 @@ public abstract class ReportsModule {
     }
 
     @Provides
+    @Named(ACTIVE_REPORT_CACHE_EXPIRY_SECONDS)
+    static long provideActiveReportCacheExpirySeconds(Environment env) {
+        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_EXPIRY_ENV, "30"));
+    }
+
+    @Provides
+    @Named(ACTIVE_REPORT_CACHE_REFRESH_SECONDS)
+    static long provideActiveReportCacheRefreshSeconds(Environment env) {
+        return Long.parseLong(env.getEnv(Variables.ACTIVE_REPORTS_CACHE_REFRESH_ENV, "10"));
+    }
+
+    @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            @Named(ACTIVE_REPORT_CACHE_EXPIRY_SECONDS) long cacheExpirySeconds,
+            @Named(ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds,
             Logger logger) {
         return new ActiveRecordingReportCache(
                 reportGeneratorServiceProvider,
                 fs,
                 targetConnectionManager,
                 generationTimeoutSeconds,
+                cacheExpirySeconds,
+                cacheRefreshSeconds,
                 logger);
     }
 

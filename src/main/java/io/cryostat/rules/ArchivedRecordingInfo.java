@@ -51,6 +51,7 @@ public class ArchivedRecordingInfo {
     private final String reportUrl;
     private final Metadata metadata;
     private final long size;
+    private final long archivedTime;
 
     public ArchivedRecordingInfo(
             String serviceUri,
@@ -58,13 +59,15 @@ public class ArchivedRecordingInfo {
             String downloadUrl,
             String reportUrl,
             Metadata metadata,
-            long size) {
+            long size,
+            long archivedTime) {
         this.serviceUri = serviceUri;
         this.name = name;
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
         this.metadata = metadata;
         this.size = size;
+        this.archivedTime = archivedTime;
     }
 
     public String getServiceUri() {
@@ -91,6 +94,10 @@ public class ArchivedRecordingInfo {
         return this.size;
     }
 
+    public long getArchivedTime() {
+        return this.archivedTime;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == null) {
@@ -110,6 +117,7 @@ public class ArchivedRecordingInfo {
                 .append(reportUrl, ari.reportUrl)
                 .append(metadata, ari.metadata)
                 .append(size, ari.size)
+                .append(archivedTime, ari.archivedTime)
                 .isEquals();
     }
 
@@ -122,6 +130,7 @@ public class ArchivedRecordingInfo {
                 .append(reportUrl)
                 .append(metadata)
                 .append(size)
+                .append(archivedTime)
                 .hashCode();
     }
 }

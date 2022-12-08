@@ -248,4 +248,34 @@ class AllArchivedRecordingsFetcherTest {
             MatcherAssert.assertThat(recordings.data, Matchers.contains(recording1, recording2));
         }
     }
+
+    @Test
+    void shouldReturnRecordingsArchivedTimeFiltered() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            ArchivedRecordingInfo recording1 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording2 = Mockito.mock(ArchivedRecordingInfo.class);
+            ArchivedRecordingInfo recording3 = Mockito.mock(ArchivedRecordingInfo.class);
+
+            when(recording1.getArchivedTime()).thenReturn(12345L);
+            when(recording2.getArchivedTime()).thenReturn(123456L);
+            when(recording3.getArchivedTime()).thenReturn(1234567L);
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.ARCHIVED_TIME_AFTER)).thenReturn(true);
+            when(filter.get(FilterInput.Key.ARCHIVED_TIME_AFTER)).thenReturn(123456L);
+
+            when(archiveHelper.getRecordings()).thenReturn(future);
+            when(future.get()).thenReturn(List.of(recording1, recording2, recording3));
+
+            Archived recordings = fetcher.get(env);
+
+            MatcherAssert.assertThat(recordings, Matchers.notNullValue());
+            MatcherAssert.assertThat(recordings.data, Matchers.contains(recording2, recording3));
+        }
+    }
 }

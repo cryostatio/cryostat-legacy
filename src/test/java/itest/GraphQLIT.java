@@ -613,6 +613,7 @@ class GraphQLIT extends ExternalTargetsTest {
         String downloadUrl;
         RecordingMetadata metadata;
         long size;
+        long archivedTime;
 
         ArchivedRecording doDelete;
 
@@ -630,6 +631,8 @@ class GraphQLIT extends ExternalTargetsTest {
                     + reportUrl
                     + ", size="
                     + size
+                    + ", archivedTime="
+                    + archivedTime
                     + "]";
         }
 

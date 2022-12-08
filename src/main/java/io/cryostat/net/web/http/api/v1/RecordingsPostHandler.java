@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -94,6 +95,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+    private static final Pattern DATE_TIME_PATTERN =
+            Pattern.compile(
+                    "^([0-9]{4})(1[0-2]|0[1-9])(3[01]|0[1-9]|[12][0-9])T([0-2][0-9])([0-5][0-9])([0-5][0-9])Z$");
 
     static final String PATH = "recordings";
 
@@ -227,10 +231,30 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
         Metadata metadata = new Metadata(labels);
 
-        long size = upload.size();
         String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
+
+        Matcher dtm = DATE_TIME_PATTERN.matcher(timestamp);
+
+        long size = upload.size();
+        long archivedTime;
+
+        if (!dtm.matches()) {
+            logger.trace("Invalid timestamp: {}", timestamp);
+            archivedTime = Instant.now().toEpochMilli();
+        } else {
+            String isoString =
+                    String.format(
+                            "%s-%s-%sT%s:%s:%s.00Z",
+                            dtm.group(1),
+                            dtm.group(2),
+                            dtm.group(3),
+                            dtm.group(4),
+                            dtm.group(5),
+                            dtm.group(6));
+            archivedTime = Instant.parse(isoString).toEpochMilli();
+        }
         int count =
                 m.group(4) == null || m.group(4).isEmpty()
                         ? 0
@@ -292,7 +316,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                                                         subdirectoryName,
                                                                                         fsName),
                                                                         metadata,
-                                                                        size),
+                                                                        size,
+                                                                        archivedTime),
                                                                 "target",
                                                                 subdirectoryName))
                                                 .build()

@@ -863,6 +863,7 @@ class RecordingArchiveHelperTest {
                         "/some/path/download/" + recordingName,
                         "/some/path/archive/" + recordingName,
                         new Metadata(),
+                        0,
                         0);
 
         MatcherAssert.assertThat(deleted, Matchers.equalTo(matcher));
@@ -977,6 +978,7 @@ class RecordingArchiveHelperTest {
                                 "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA",
                                 new Metadata(),
+                                0,
                                 0),
                         new ArchivedRecordingInfo(
                                 "connectUrl123",
@@ -984,6 +986,7 @@ class RecordingArchiveHelperTest {
                                 "/some/path/download/123recording",
                                 "/some/path/archive/123recording",
                                 new Metadata(),
+                                0,
                                 0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
@@ -1070,6 +1073,7 @@ class RecordingArchiveHelperTest {
                                 "/some/path/download/foo_recording",
                                 "/some/path/archive/foo_recording",
                                 new Metadata(),
+                                0,
                                 0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
 
@@ -1085,6 +1089,7 @@ class RecordingArchiveHelperTest {
                                 "/some/path/download/foo_recording",
                                 "/some/path/archive/foo_recording",
                                 new Metadata(),
+                                0,
                                 0));
     }
 
@@ -1149,6 +1154,7 @@ class RecordingArchiveHelperTest {
                                                 "/some/path/download/recordingA",
                                                 "/some/path/archive/recordingA",
                                                 new Metadata(),
+                                                0,
                                                 0))),
                         new ArchiveDirectory(
                                 "connectUrl123",
@@ -1160,6 +1166,7 @@ class RecordingArchiveHelperTest {
                                                 "/some/path/download/123recording",
                                                 "/some/path/archive/123recording",
                                                 new Metadata(),
+                                                0,
                                                 0))));
 
         MatcherAssert.assertThat(result, Matchers.hasSize(2));

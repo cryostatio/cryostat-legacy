@@ -67,29 +67,46 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 class ActiveRecordingReportCache implements NotificationListener<Map<String, Object>> {
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
-    protected final LoadingCache<RecordingDescriptor, String> cache;
+    protected final LoadingCache<RecordingDescriptor, String> htmlCache;
+    protected final LoadingCache<RecordingDescriptor, String> jsonCache;
     protected final TargetConnectionManager targetConnectionManager;
     protected final long generationTimeoutSeconds;
+    protected final long cacheExpirySeconds;
+    protected final long cacheRefreshSeconds;
+
     protected final Logger logger;
+
+    protected static final String EMPTY_FILTERS = "";
 
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            @Named(ReportsModule.ACTIVE_REPORT_CACHE_EXPIRY_SECONDS) long cacheExpirySeconds,
+            @Named(ReportsModule.ACTIVE_REPORT_CACHE_REFRESH_SECONDS) long cacheRefreshSeconds,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.cacheExpirySeconds = cacheExpirySeconds;
+        this.cacheRefreshSeconds = cacheRefreshSeconds;
         this.logger = logger;
-        this.cache =
+        this.htmlCache =
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build((k) -> getReport(k));
+                        .build((k) -> getReport(k, true));
+        this.jsonCache =
+                Caffeine.newBuilder()
+                        .scheduler(Scheduler.systemScheduler())
+                        .expireAfterWrite(cacheExpirySeconds, TimeUnit.SECONDS)
+                        .refreshAfterWrite(cacheRefreshSeconds, TimeUnit.SECONDS)
+                        .softValues()
+                        .build((k) -> getReport(k, false));
     }
 
     Future<String> get(
@@ -99,14 +116,30 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             boolean formatted) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            if (filter.isBlank() && formatted) {
-                f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+            if (formatted) {
+                if (filter.isBlank()) {
+                    f.complete(
+                            htmlCache.get(
+                                    new RecordingDescriptor(connectionDescriptor, recordingName)));
+                } else {
+                    f.complete(
+                            getReport(
+                                    new RecordingDescriptor(connectionDescriptor, recordingName),
+                                    filter,
+                                    true));
+                }
             } else {
-                f.complete(
-                        getReport(
-                                new RecordingDescriptor(connectionDescriptor, recordingName),
-                                filter,
-                                formatted));
+                if (filter.isBlank()) {
+                    f.complete(
+                            jsonCache.get(
+                                    new RecordingDescriptor(connectionDescriptor, recordingName)));
+                } else {
+                    f.complete(
+                            getReport(
+                                    new RecordingDescriptor(connectionDescriptor, recordingName),
+                                    filter,
+                                    false));
+                }
             }
 
         } catch (Exception e) {
@@ -115,20 +148,27 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
         return f;
     }
 
-    boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    boolean delete(
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean formatted) {
         RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
-        boolean hasKey = cache.asMap().containsKey(key);
+        boolean hasKey =
+                formatted ? htmlCache.asMap().containsKey(key) : jsonCache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);
-            cache.invalidate(key);
+            if (formatted) {
+                htmlCache.invalidate(key);
+            } else {
+                jsonCache.invalidate(key);
+            }
         } else {
             logger.trace("No cache entry for {} to invalidate", recordingName);
         }
         return hasKey;
     }
 
-    protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
-        return getReport(recordingDescriptor, "", true);
+    protected String getReport(RecordingDescriptor recordingDescriptor, boolean formatted)
+            throws Exception {
+        return getReport(recordingDescriptor, EMPTY_FILTERS, formatted);
     }
 
     protected String getReport(
@@ -148,7 +188,10 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
             } catch (ExecutionException | CompletionException e) {
                 logger.error(e);
 
-                delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
+                delete(
+                        recordingDescriptor.connectionDescriptor,
+                        recordingDescriptor.recordingName,
+                        formatted);
 
                 if (e.getCause()
                         instanceof SubprocessReportGenerator.SubprocessReportGenerationException) {
@@ -196,7 +239,7 @@ class ActiveRecordingReportCache implements NotificationListener<Map<String, Obj
                         ((HyperlinkedSerializableRecordingDescriptor)
                                         notification.getMessage().get("recording"))
                                 .getName();
-                delete(new ConnectionDescriptor(targetId), recordingName);
+                delete(new ConnectionDescriptor(targetId), recordingName, true);
                 break;
             default:
                 break;

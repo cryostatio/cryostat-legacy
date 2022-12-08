@@ -184,6 +184,7 @@ class PeriodicArchiverTest {
                                 "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo",
                                 new Metadata(),
+                                0,
                                 0),
                         new ArchivedRecordingInfo(
                                 "aJmxUrl",
@@ -191,6 +192,7 @@ class PeriodicArchiverTest {
                                 "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA",
                                 new Metadata(),
+                                0,
                                 0),
                         new ArchivedRecordingInfo(
                                 "bJmxUrl",
@@ -198,6 +200,7 @@ class PeriodicArchiverTest {
                                 "/some/path/download/123recording",
                                 "/some/path/archive/123recording",
                                 new Metadata(),
+                                0,
                                 0),
                         new ArchivedRecordingInfo(
                                 jmxUrl,
@@ -205,6 +208,7 @@ class PeriodicArchiverTest {
                                 String.format("/some/path/download/%s", rule.getRecordingName()),
                                 String.format("/some/path/archive/%s", rule.getRecordingName()),
                                 new Metadata(),
+                                0,
                                 0)));
         Mockito.when(recordingArchiveHelper.getRecordings(jmxUrl)).thenReturn(listFuture);
 
@@ -216,6 +220,7 @@ class PeriodicArchiverTest {
                         "/some/path/download/someRecording.jfr",
                         "/some/path/archive/someRecording.jfr",
                         new Metadata(),
+                        0,
                         0);
         saveFuture.complete(newlySavedRecording);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
