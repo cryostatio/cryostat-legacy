@@ -78,7 +78,9 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
-    static final int NUM_EXT_CONTAINERS = 8;
+    static final int NUM_EXT_CONTAINERS = 4;
+    static final int NUM_AUTH_EXT_CONTAINERS = 4;
+    static final int NUM_EXT_CONTAINERS_TOTAL = NUM_EXT_CONTAINERS + NUM_AUTH_EXT_CONTAINERS;
     static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
@@ -87,8 +89,17 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+        }
+        for (int i = 0; i < NUM_AUTH_EXT_CONTAINERS; i++) {
+            specs.add(
+                    new Podman.ImageSpec(
                             FIB_DEMO_IMAGESPEC,
-                            Map.of("JMX_PORT", String.valueOf(9093 + i), "USE_AUTH", "true")));
+                            Map.of(
+                                    "JMX_PORT",
+                                    String.valueOf(9093 + NUM_EXT_CONTAINERS + i),
+                                    "USE_AUTH",
+                                    "true")));
         }
         for (Podman.ImageSpec spec : specs) {
             CONTAINERS.add(Podman.run(spec));
@@ -99,7 +110,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        waitForDiscovery(NUM_EXT_CONTAINERS);
+        waitForDiscovery(NUM_EXT_CONTAINERS_TOTAL);
     }
 
     @AfterAll
@@ -134,7 +145,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         Set<ServiceRef> actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
-        MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
+        MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS_TOTAL + 1));
         Set<ServiceRef> expected = new HashSet<>();
         String cryostatTargetId =
                 String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
@@ -152,7 +163,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                         AnnotationKey.PORT,
                         "9091"));
         expected.add(cryostat);
-        for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
+        for (int i = 0; i < NUM_EXT_CONTAINERS_TOTAL; i++) {
             URI uri =
                     new URI(
                             String.format(
@@ -182,16 +193,24 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         /* See https://github.com/cryostatio/cryostat-web/issues/656 */
         long start = System.nanoTime();
 
+        createInMemoryRecordings(false);
+
+        verifyInMemoryRecordingsCreated(false);
+
+        deleteInMemoryRecordings(false);
+
+        verifyInMemoryRecordingsDeleted(false);
+
         Assertions.assertThrows(
                 ExecutionException.class,
                 () -> {
-                    createInMemoryRecordings();
+                    createInMemoryRecordings(true);
 
-                    verifyInMemoryRecordingsCreated();
+                    verifyInMemoryRecordingsCreated(true);
 
-                    deleteInMemoryRecordings();
+                    deleteInMemoryRecordings(true);
 
-                    verifyInMemoryRecordingsDeleted();
+                    verifyInMemoryRecordingsDeleted(true);
                 });
 
         long stop = System.nanoTime();
@@ -200,9 +219,10 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                 String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
     }
 
-    private void createInMemoryRecordings() throws Exception {
+    private void createInMemoryRecordings(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        for (int i = 0; i < CONTAINERS.size(); i++) {
+        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
@@ -215,7 +235,9 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                 .post(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings",
-                                                Podman.POD_NAME + ":" + (9093 + fi)))
+                                                Podman.POD_NAME
+                                                        + ":"
+                                                        + (TARGET_PORT_NUMBER_START + fi)))
                                 .putHeader(
                                         "X-JMX-Authorization",
                                         "Basic "
@@ -235,9 +257,10 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void verifyInMemoryRecordingsCreated() throws Exception {
+    private void verifyInMemoryRecordingsCreated(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        for (int i = 0; i < CONTAINERS.size(); i++) {
+        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
@@ -245,7 +268,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     .get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (9093 + fi)))
+                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -275,9 +298,10 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void deleteInMemoryRecordings() throws Exception {
+    private void deleteInMemoryRecordings(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        for (int i = 0; i < CONTAINERS.size(); i++) {
+        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
@@ -288,7 +312,9 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                 .delete(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings/%s",
-                                                Podman.POD_NAME + ":" + (9093 + fi),
+                                                Podman.POD_NAME
+                                                        + ":"
+                                                        + (TARGET_PORT_NUMBER_START + fi),
                                                 "interleaved-" + fi))
                                 .putHeader(
                                         "X-JMX-Authorization",
@@ -309,9 +335,10 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void verifyInMemoryRecordingsDeleted() throws Exception {
+    private void verifyInMemoryRecordingsDeleted(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        for (int i = 0; i < CONTAINERS.size(); i++) {
+        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
@@ -319,7 +346,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     .get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (9093 + fi)))
+                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
