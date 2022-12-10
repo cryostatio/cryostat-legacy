@@ -510,7 +510,8 @@ public class RecordingArchiveHelper {
                                 webServerProvider.get().getArchivedReportURL(targetId, filename),
                                 recordingMetadataManager.deleteRecordingMetadataIfExists(
                                         jvmId, recordingName),
-                                getFileSize(filename));
+                                getFileSize(filename),
+                                getArchivedTime(filename));
                 list.add(archivedRecordingInfo);
             }
             return list;
@@ -543,7 +544,8 @@ public class RecordingArchiveHelper {
                             webServerProvider.get().getArchivedReportURL(targetId, filename),
                             recordingMetadataManager.deleteRecordingMetadataIfExists(
                                     jvmId, recordingName),
-                            getFileSize(filename));
+                            getFileSize(filename),
+                            getArchivedTime(filename));
             return Optional.of(archivedRecordingInfo);
         } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
             return Optional.empty();
