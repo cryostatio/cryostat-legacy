@@ -286,7 +286,7 @@ class RecordingsPostHandlerTest {
                         "/some/report/path/" + filename,
                         new Metadata(SecurityContext.DEFAULT, Map.of()),
                         0,
-                        0);
+                        expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
