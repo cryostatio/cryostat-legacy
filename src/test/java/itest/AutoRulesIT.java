@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.cryostat.net.web.http.HttpMimeType;
@@ -114,7 +115,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                         Map.of(
                                 "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data", Map.of("result", List.of())));
-        MatcherAssert.assertThat(preRules.get(), Matchers.equalTo(expectedPreRules));
+        MatcherAssert.assertThat(
+                preRules.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedPreRules));
 
         // POST a rule definition
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
@@ -153,7 +156,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                                 "status",
                                                 "Created"),
                                 "data", Map.of("result", "Auto_Rule")));
-        MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+        MatcherAssert.assertThat(
+                postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedPostResponse));
 
         // assert newly added rule is in total set
         CompletableFuture<JsonObject> rules = new CompletableFuture<>();
@@ -193,7 +198,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                         Map.of(
                                 "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data", Map.of("result", List.of(expectedRule))));
-        MatcherAssert.assertThat(rules.get(), Matchers.equalTo(expectedRules));
+        MatcherAssert.assertThat(
+                rules.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedRules));
 
         // assert newly added rule can be retrieved individually
         CompletableFuture<JsonObject> rule = new CompletableFuture<>();
@@ -210,7 +217,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                         Map.of(
                                 "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data", Map.of("result", expectedRule)));
-        MatcherAssert.assertThat(rule.get(), Matchers.equalTo(expectedRuleResponse));
+        MatcherAssert.assertThat(
+                rule.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedRuleResponse));
     }
 
     @Test
@@ -263,7 +272,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 Map.of("type", HttpMimeType.JSON.mime(), "status", "Created"),
                                 "data",
                                 NULL_RESULT));
-        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+        MatcherAssert.assertThat(
+                response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedResponse));
     }
 
     @Test
@@ -298,7 +309,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 response.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        JsonObject recording = response.get().getJsonObject(0);
+        JsonObject recording =
+                response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).getJsonObject(0);
         MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
         MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_Auto_Rule"));
         MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
@@ -360,7 +372,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                                     "status",
                                                     "Created"),
                                     "data", Map.of("result", "Regex_Rule")));
-            MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+            MatcherAssert.assertThat(
+                    postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    Matchers.equalTo(expectedPostResponse));
 
             // give rule some time to process. Five seconds should be massively overkill, but better
             // to give extra time and have a reliable test than try to time it quickly and have a
@@ -383,7 +397,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     getResponse.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            JsonObject recording = getResponse.get().getJsonObject(1);
+            JsonObject recording =
+                    getResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).getJsonObject(1);
             MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(2));
             MatcherAssert.assertThat(
                     recording.getString("name"), Matchers.equalTo(expectedRecordingName));
@@ -422,7 +437,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     getResponse2.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            JsonObject recording2 = getResponse2.get().getJsonObject(0);
+            JsonObject recording2 =
+                    getResponse2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).getJsonObject(0);
             MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(2));
             MatcherAssert.assertThat(
                     recording2.getString("name"), Matchers.equalTo(expectedRecordingName));
@@ -485,7 +501,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                             });
 
             try {
-                deleteFibDemoRecResponse.get();
+                deleteFibDemoRecResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format(
@@ -509,7 +525,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                             });
 
             try {
-                deleteCryostatRecResponse.get();
+                deleteCryostatRecResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format(
@@ -538,7 +554,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
-        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+        MatcherAssert.assertThat(
+                response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedResponse));
     }
 
     @Test
@@ -582,7 +600,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                                     "status",
                                                     "Created"),
                                     "data", Map.of("result", ruleName)));
-            MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+            MatcherAssert.assertThat(
+                    postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    Matchers.equalTo(expectedPostResponse));
 
             containerId =
                     Podman.run(
@@ -607,7 +627,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 }
                             });
 
-            MatcherAssert.assertThat(getResp.get().size(), Matchers.is(0));
+            MatcherAssert.assertThat(
+                    getResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size(), Matchers.is(0));
 
             JsonObject enableObject = new JsonObject();
             enableObject.put("enabled", true);
@@ -627,7 +648,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 }
                             });
 
-            patchResp.get();
+            patchResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             Thread.sleep(3_000);
 
@@ -646,7 +667,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 }
                             });
 
-            JsonArray postEnableRecordings = getResp2.get();
+            JsonArray postEnableRecordings =
+                    getResp2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(postEnableRecordings.size(), Matchers.equalTo(1));
             JsonObject recording2 = postEnableRecordings.getJsonObject(0);
             MatcherAssert.assertThat(recording2.getInteger("id"), Matchers.equalTo(1));
@@ -699,7 +721,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                                     NULL_RESULT));
             try {
                 MatcherAssert.assertThat(
-                        deleteRuleResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+                        deleteRuleResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                        Matchers.equalTo(expectedDeleteResponse));
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete rule %s", ruleName), e);
@@ -724,7 +747,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 getResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        JsonObject query = getResponse.get();
+        JsonObject query = getResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         JsonObject data = query.getJsonObject("data");
         JsonArray result = data.getJsonArray("result");
         MatcherAssert.assertThat(result.size(), Matchers.equalTo(1));
@@ -747,7 +770,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
                                 NULL_RESULT));
-        MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+        MatcherAssert.assertThat(
+                deleteResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedDeleteResponse));
     }
 
     @Test
@@ -762,7 +787,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                         });
 
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
@@ -780,7 +807,9 @@ class AutoRulesIT extends ExternalTargetsTest {
                         });
 
         ExecutionException ex =
-                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         MatcherAssert.assertThat(
                 ((HttpException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
@@ -803,6 +832,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                         Map.of(
                                 "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data", Map.of("result", List.of())));
-        MatcherAssert.assertThat(preRules.get(), Matchers.equalTo(expectedPreRules));
+        MatcherAssert.assertThat(
+                preRules.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedPreRules));
     }
 }

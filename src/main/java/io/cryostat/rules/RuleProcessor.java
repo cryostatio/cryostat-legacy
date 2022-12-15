@@ -286,23 +286,25 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                                 this::archivalFailureHandler);
                                 Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
                                 Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
+                                int initialDelay = rule.getInitialDelaySeconds();
+                                int archivalPeriodSeconds = rule.getArchivalPeriodSeconds();
+                                if (initialDelay <= 0) {
+                                    initialDelay = archivalPeriodSeconds;
+                                }
+                                if (rule.getPreservedArchives() <= 0
+                                        || archivalPeriodSeconds <= 0) {
+                                    return;
+                                }
                                 long initialTask =
                                         vertx.setTimer(
-                                                Duration.ofSeconds(rule.getInitialDelaySeconds())
-                                                        .toMillis(),
+                                                Duration.ofSeconds(initialDelay).toMillis(),
                                                 initialId -> {
                                                     tasks.get(key).remove(initialId);
                                                     periodicArchiver.run();
-                                                    if (rule.getPreservedArchives() <= 0
-                                                            || rule.getArchivalPeriodSeconds()
-                                                                    <= 0) {
-                                                        return;
-                                                    }
                                                     long periodicTask =
                                                             vertx.setPeriodic(
                                                                     Duration.ofSeconds(
-                                                                                    rule
-                                                                                            .getArchivalPeriodSeconds())
+                                                                                    archivalPeriodSeconds)
                                                                             .toMillis(),
                                                                     periodicId ->
                                                                             periodicArchiver.run());

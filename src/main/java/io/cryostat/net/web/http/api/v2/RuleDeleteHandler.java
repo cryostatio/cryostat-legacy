@@ -46,6 +46,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -166,7 +167,11 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                     promise -> {
                         try {
                             if (ruleRegistry.applies(rule, ref)) {
-                                ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+                                String targetId = ref.getServiceUri().toString();
+                                Credentials credentials =
+                                        credentialsManager.getCredentialsByTargetId(targetId);
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(targetId, credentials);
                                 recordings.stopRecording(cd, rule.getRecordingName());
                             }
                             promise.complete();
