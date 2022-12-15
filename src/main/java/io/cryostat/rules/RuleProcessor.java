@@ -292,7 +292,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     initialDelay = archivalPeriodSeconds;
                                 }
                                 if (rule.getPreservedArchives() <= 0
-                                        || initialDelay <= 0
                                         || archivalPeriodSeconds <= 0) {
                                     return;
                                 }

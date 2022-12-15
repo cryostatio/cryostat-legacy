@@ -91,7 +91,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        waitForDiscovery(1);
+        waitForDiscovery(CONTAINERS.size());
     }
 
     @AfterAll
@@ -124,7 +124,9 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                         Map.of(
                                 "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data", Map.of("result", List.of())));
-        MatcherAssert.assertThat(preRules.get(), Matchers.equalTo(expectedPreRules));
+        MatcherAssert.assertThat(
+                preRules.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedPreRules));
 
         // POST a rule definition
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
@@ -167,7 +169,9 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                                 "status",
                                                 "Created"),
                                 "data", Map.of("result", name)));
-        MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+        MatcherAssert.assertThat(
+                postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo(expectedPostResponse));
 
         // assert newly added rule is in total set
         CompletableFuture<JsonObject> rules = new CompletableFuture<>();
