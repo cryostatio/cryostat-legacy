@@ -38,6 +38,7 @@
 package io.cryostat.net;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -79,6 +80,8 @@ public interface AuthManager {
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+
+    List<? extends SecurityContext> getSecurityContexts();
 
     SecurityContext contextFor(AbstractNode node);
 

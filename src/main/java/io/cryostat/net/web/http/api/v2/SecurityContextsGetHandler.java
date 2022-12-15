@@ -35,84 +35,82 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.web.http.api.v2;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
+import javax.inject.Inject;
+
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
-public class NoopAuthManager extends AbstractAuthManager {
+import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.http.HttpMethod;
 
-    public NoopAuthManager(Logger logger) {
-        super(logger);
+class SecurityContextsGetHandler extends AbstractV2RequestHandler<List<? extends SecurityContext>> {
+
+    @Inject
+    SecurityContextsGetHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+        super(auth, credentialsManager, gson);
     }
 
     @Override
-    public AuthenticationScheme getScheme() {
-        return AuthenticationScheme.NONE;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_3;
     }
 
     @Override
-    public Optional<String> getLoginRedirectUrl(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return Optional.empty();
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
-    public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public Set<ResourceAction> resourceActions() {
+        // TODO
+        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public String path() {
+        return basePath() + "securitycontexts";
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider,
-            SecurityContext securityContext,
-            Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
-    public Optional<String> logout(Supplier<String> httpHeaderProvider) {
-        return Optional.empty();
+    public boolean isAsync() {
+        return false;
     }
 
     @Override
-    public List<SecurityContext> getSecurityContexts() {
-        return List.of(SecurityContext.DEFAULT);
-    }
-
-    @Override
-    public SecurityContext contextFor(AbstractNode node) {
+    public SecurityContext securityContext(RequestParameters params) {
         return SecurityContext.DEFAULT;
     }
 
     @Override
-    public SecurityContext contextFor(ServiceRef serviceRef) {
-        return SecurityContext.DEFAULT;
+    public IntermediateResponse<List<? extends SecurityContext>> handle(RequestParameters requestParams)
+            throws Exception {
+        return new IntermediateResponse<List<? extends SecurityContext>>().body(auth.getSecurityContexts());
     }
 }

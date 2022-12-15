@@ -316,6 +316,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public List<OpenShiftSecurityContext> getSecurityContexts() {
+        return serviceAccountClient.get().namespaces().list().getItems().stream()
+                .map(ns -> ns.getMetadata().getName())
+                .map(ns -> new OpenShiftSecurityContext(ns))
+                .toList();
+    }
+
+    @Override
     public SecurityContext contextFor(AbstractNode node) {
         return new OpenShiftSecurityContext(namespace, node);
     }

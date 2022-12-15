@@ -42,6 +42,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -178,6 +179,11 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<SecurityContext> getSecurityContexts() {
+        return List.of(SecurityContext.DEFAULT);
     }
 
     @Override
