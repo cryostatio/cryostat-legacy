@@ -94,11 +94,12 @@ public abstract class AbstractAuthenticatedRequestHandler
     @Override
     public void handle(RoutingContext ctx) {
         try {
-            boolean permissionGranted =
-                    validateRequestAuthorization(ctx.request(), securityContext(ctx)).get();
-            if (!permissionGranted) {
-                // expected to go into catch clause below
-                throw new HttpException(401, "HTTP Authorization Failure");
+            for (SecurityContext sc : securityContexts(ctx)) {
+                boolean permissionGranted = validateRequestAuthorization(ctx.request(), sc).get();
+                if (!permissionGranted) {
+                    // expected to go into catch clause below
+                    throw new HttpException(401, "HTTP Authorization Failure");
+                }
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());

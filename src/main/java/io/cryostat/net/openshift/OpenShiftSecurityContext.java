@@ -37,10 +37,7 @@
  */
 package io.cryostat.net.openshift;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import io.cryostat.net.security.SecurityContext;
@@ -53,17 +50,25 @@ import io.cryostat.platform.discovery.TargetNode;
 
 import dagger.Lazy;
 
-class OpenShiftSecurityContext implements SecurityContext {
-
-    static final String KEY_NAMESPACE = "SC_NAMESPACE";
-
-    private final Map<String, String> ctx = new HashMap<>();
+class OpenShiftSecurityContext extends SecurityContext {
 
     OpenShiftSecurityContext(String namespace) {
-        this.ctx.put(KEY_NAMESPACE, namespace);
+        super(namespace);
     }
 
     OpenShiftSecurityContext(Lazy<String> defaultNamespace, AbstractNode node) {
+        super(namespaceForNode(defaultNamespace, node));
+    }
+
+    OpenShiftSecurityContext(Lazy<String> defaultNamespace, ServiceRef serviceRef) {
+        super(namespaceForServiceRef(defaultNamespace, serviceRef));
+    }
+
+    String getNamespace() {
+        return name;
+    }
+
+    private static String namespaceForNode(Lazy<String> defaultNamespace, AbstractNode node) {
         String ns;
         ServiceRef serviceRef = findServiceRef(node);
         if (serviceRef != null) {
@@ -85,10 +90,11 @@ class OpenShiftSecurityContext implements SecurityContext {
             //                 node.getName(), node.getNodeType().getKind()));
             ns = defaultNamespace.get();
         }
-        this.ctx.put(KEY_NAMESPACE, ns);
+        return ns;
     }
 
-    OpenShiftSecurityContext(Lazy<String> defaultNamespace, ServiceRef serviceRef) {
+    private static String namespaceForServiceRef(
+            Lazy<String> defaultNamespace, ServiceRef serviceRef) {
         String ns = serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE);
         if (ns == null) {
             System.err.println(
@@ -97,11 +103,7 @@ class OpenShiftSecurityContext implements SecurityContext {
                             serviceRef.getServiceUri()));
             ns = defaultNamespace.get();
         }
-        this.ctx.put(KEY_NAMESPACE, ns);
-    }
-
-    String getNamespace() {
-        return ctx.get(KEY_NAMESPACE);
+        return ns;
     }
 
     // find the first ServiceRef descendant from this node, depth-first search. If this is a
@@ -114,7 +116,7 @@ class OpenShiftSecurityContext implements SecurityContext {
     // If we encounter the Namespace node itself along the way then we end up continuing down to the
     // first TargetNode. FIXME refactor to just return early when encountering a Namespace
     // EnrivonmentNode and take its name directly for the context.
-    private ServiceRef findServiceRef(AbstractNode node) {
+    private static ServiceRef findServiceRef(AbstractNode node) {
         if (node instanceof TargetNode) {
             return ((TargetNode) node).getTarget();
         } else if (node instanceof EnvironmentNode) {
@@ -133,30 +135,5 @@ class OpenShiftSecurityContext implements SecurityContext {
         } else {
             throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
         }
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ctx);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        OpenShiftSecurityContext other = (OpenShiftSecurityContext) obj;
-        return Objects.equals(ctx, other.ctx);
-    }
-
-    @Override
-    public String toString() {
-        return "OpenShiftSecurityContext [ctx=" + ctx + "]";
     }
 }

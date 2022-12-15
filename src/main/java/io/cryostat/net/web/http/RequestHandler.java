@@ -83,6 +83,10 @@ public interface RequestHandler<T> extends Handler<RoutingContext>, Permissioned
 
     SecurityContext securityContext(T ctx);
 
+    default List<SecurityContext> securityContexts(T ctx) {
+        return List.of(securityContext(ctx));
+    }
+
     default List<HttpMimeType> produces() {
         return List.of();
     }

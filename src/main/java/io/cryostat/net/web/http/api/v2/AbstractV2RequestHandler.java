@@ -101,14 +101,18 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler<Requ
         }
         try {
             if (requiresAuthentication()) {
-                boolean permissionGranted =
-                        validateRequestAuthorization(
-                                        requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
-                                        securityContext(requestParams))
-                                .get();
-                if (!permissionGranted) {
-                    // expected to go into catch clause below
-                    throw new ApiException(401, "HTTP Authorization Failure");
+                for (SecurityContext sc : securityContexts(requestParams)) {
+                    boolean permissionGranted =
+                            validateRequestAuthorization(
+                                            requestParams
+                                                    .getHeaders()
+                                                    .get(HttpHeaders.AUTHORIZATION),
+                                            sc)
+                                    .get();
+                    if (!permissionGranted) {
+                        // expected to go into catch clause below
+                        throw new ApiException(401, "HTTP Authorization Failure");
+                    }
                 }
             }
             writeResponse(ctx, handle(requestParams));

@@ -40,6 +40,8 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -138,11 +140,54 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        return SecurityContext.DEFAULT;
+        // FIXME cleanup and remove this, all handlers should use the list form below
+        return null;
+    }
+
+    @Override
+    public List<SecurityContext> securityContexts(RequestParameters params) {
+        // FIXME Rules should have a field of list of contexts
+        Rule rule = getRuleFromParams(params);
+        // TODO apply this same concept to credentials
+        Optional<? extends SecurityContext> scopedSc =
+                auth.getSecurityContexts().stream()
+                        .filter(sc -> Objects.equals(sc.getName(), rule.getContext()))
+                        .findFirst();
+        if (scopedSc.isPresent()) {
+            return List.of(scopedSc.get());
+        }
+        return List.of(SecurityContext.DEFAULT);
     }
 
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+        Rule rule = getRuleFromParams(params);
+
+        try {
+            rule = this.ruleRegistry.addRule(rule);
+        } catch (RuleException e) {
+            throw new ApiException(409, e);
+        } catch (IOException e) {
+            throw new ApiException(
+                    500,
+                    "IOException occurred while writing rule definition: " + e.getMessage(),
+                    e);
+        }
+        notificationFactory
+                .createBuilder()
+                .metaCategory(CREATE_RULE_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(rule)
+                .build()
+                .send();
+
+        return new IntermediateResponse<String>()
+                .statusCode(201)
+                .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), rule.getName()))
+                .body(rule.getName());
+    }
+
+    private Rule getRuleFromParams(RequestParameters params) {
         Rule rule;
         HttpMimeType mime =
                 HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
@@ -170,28 +215,6 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             default:
                 throw new ApiException(415, mime.mime());
         }
-
-        try {
-            rule = this.ruleRegistry.addRule(rule);
-        } catch (RuleException e) {
-            throw new ApiException(409, e);
-        } catch (IOException e) {
-            throw new ApiException(
-                    500,
-                    "IOException occurred while writing rule definition: " + e.getMessage(),
-                    e);
-        }
-        notificationFactory
-                .createBuilder()
-                .metaCategory(CREATE_RULE_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(rule)
-                .build()
-                .send();
-
-        return new IntermediateResponse<String>()
-                .statusCode(201)
-                .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), rule.getName()))
-                .body(rule.getName());
+        return rule;
     }
 }

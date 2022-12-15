@@ -37,17 +37,29 @@
  */
 package io.cryostat.net.security;
 
-public interface SecurityContext {
+public abstract class SecurityContext {
 
-    static final SecurityContext DEFAULT = new DefaultSecurityContext();
+    public static final SecurityContext DEFAULT = new DefaultSecurityContext();
 
-    static class DefaultSecurityContext implements SecurityContext {
+    // should be unique across all contexts at runtime
+    protected final String name;
 
-        private DefaultSecurityContext() {}
+    protected SecurityContext(String name) {
+        this.name = name;
+    }
 
-        @Override
-        public String toString() {
-            return "__DEFAULT__";
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    static class DefaultSecurityContext extends SecurityContext {
+        private DefaultSecurityContext() {
+            super("__DEFAULT__");
         }
     }
 }

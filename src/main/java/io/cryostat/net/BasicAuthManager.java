@@ -129,7 +129,7 @@ class BasicAuthManager extends AbstractAuthManager {
         // FIXME actually implement this
         resourceActions.forEach(
                 action ->
-                        logger.trace(
+                        logger.info(
                                 "user '{}' granted [{} {}] in context '{}'",
                                 user,
                                 action.getVerb(),

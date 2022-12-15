@@ -37,33 +37,26 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.CredentialsGetHandler.Cred;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 
 class SecurityContextsGetHandler extends AbstractV2RequestHandler<List<? extends SecurityContext>> {
 
     @Inject
-    SecurityContextsGetHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+    SecurityContextsGetHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, credentialsManager, gson);
     }
 
@@ -109,8 +102,9 @@ class SecurityContextsGetHandler extends AbstractV2RequestHandler<List<? extends
     }
 
     @Override
-    public IntermediateResponse<List<? extends SecurityContext>> handle(RequestParameters requestParams)
-            throws Exception {
-        return new IntermediateResponse<List<? extends SecurityContext>>().body(auth.getSecurityContexts());
+    public IntermediateResponse<List<? extends SecurityContext>> handle(
+            RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<List<? extends SecurityContext>>()
+                .body(auth.getSecurityContexts());
     }
 }

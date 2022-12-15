@@ -69,14 +69,14 @@ class OpenShiftSecurityContextDeserializer extends PluggableJsonDeserializer<Sec
             return SecurityContext.DEFAULT;
         }
         JsonObject obj = json.getAsJsonObject();
-        String ns;
-        if (obj.has(OpenShiftSecurityContext.KEY_NAMESPACE)) {
-            ns = obj.get(OpenShiftSecurityContext.KEY_NAMESPACE).getAsString();
+        String name;
+        if (obj.has("name")) {
+            name = obj.get("name").getAsString();
         } else {
             // FIXME don't override with a default like this, the namespace should always be
             // specified somewhere before it was serialized
-            ns = namespace.get();
+            name = namespace.get();
         }
-        return new OpenShiftSecurityContext(ns);
+        return new OpenShiftSecurityContext(name);
     }
 }
