@@ -1369,10 +1369,12 @@ The handler-specific descriptions below describe how each handler populates the
 * #### `TargetsPostHandler`
 
     ##### synopsis
-    Add a custom target definition to connect to Cryostat.
+    Add or test a custom target definition to connect to Cryostat.
 
     ##### request
-    `POST /api/v2/targets`
+    `POST /api/v2/targets[?dryrun=true]`
+
+    `dryrun` - optional. If set to "true", test whether the target definition is valid.
 
     The request should be an HTTP form. The
     attribute `connectUrl` must be specified.
@@ -1392,6 +1394,10 @@ The handler-specific descriptions below describe how each handler populates the
     * annotations.cryostat.CONTAINER_NAME
     * annotations.cryostat.POD_NAME
 
+    `username` - the username for the target with JMX Authentication enabled.
+
+    `password` - the password for the target with JMX Authentication enabled.
+
     ##### response
     `200` - The result is a JSON object containing information about the target. The format
     of the target data is `{"connectUrl":"$CONNECTURL","alias":"$ALIAS","annotations":{"platform": {$PLATFORM_ANNOTATIONS},"cryostat":{$CRYOSTAT_ANNOTATIONS}}`. `$PLATFORM_ANNOTATIONS` are automatically generated.
@@ -1402,10 +1408,21 @@ The handler-specific descriptions below describe how each handler populates the
     will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
     authentication scheme that is used.
 
+    `404` - The target could not be found. The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but Cryostat does not trust the
+    certificate.
+
+    `504` - JMX connection failed. This occurs when the port provided in `connectUrl` is a non-JMX port.
+
     ##### example
     ```
-    $ curl -F connectUrl=service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi -F alias=fooTarget -F annotations.cryostat.PORT=9099 -X POST https://0.0.0.0:8181/api/v2/targets
-    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi","alias":"fooTarget","annotations":{"platform":{},"cryostat":{"PORT":"9099"}}}}}
+    $ curl -F connectUrl=service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi -F alias=fooTarget -F annotations.cryostat.PORT=9099 -F username="user" -F password="pass" -X POST https://0.0.0.0:8181/api/v2/targets {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi","alias":"fooTarget","annotations":{"platform":{},"cryostat":{"PORT":"9099"}}}}}
     ```
 
 * #### `TargetDeleteHandler`
