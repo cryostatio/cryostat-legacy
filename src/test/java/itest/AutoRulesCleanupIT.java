@@ -76,6 +76,9 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
     final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
 
+    final String ruleName = "myrule";
+    final String recordingName = "auto_myrule";
+
     static {
         NULL_RESULT.put("result", null);
     }
@@ -131,9 +134,9 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
         // POST a rule definition
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
-        String name = "myrule";
+
         form.add("enabled", "true");
-        form.add("name", name);
+        form.add("name", ruleName);
         form.add(
                 "matchExpression",
                 "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
@@ -155,7 +158,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                         ar.result().statusCode(), Matchers.equalTo(201));
                                 MatcherAssert.assertThat(
                                         ar.result().getHeader("Location"),
-                                        Matchers.equalTo("/api/v2/rules/" + name));
+                                        Matchers.equalTo("/api/v2/rules/" + ruleName));
                                 postResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
@@ -168,7 +171,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                                 HttpMimeType.JSON.mime(),
                                                 "status",
                                                 "Created"),
-                                "data", Map.of("result", name)));
+                                "data", Map.of("result", ruleName)));
         MatcherAssert.assertThat(
                 postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 Matchers.equalTo(expectedPostResponse));
@@ -187,7 +190,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                 new JsonObject(
                         Map.of(
                                 "name",
-                                name,
+                                ruleName,
                                 "description",
                                 "",
                                 "eventSpecifier",
@@ -218,7 +221,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
 
     @Test
     @Order(2)
-    public void testAddRuleTriggersRecordingCreation()
+    void testAddRuleTriggersRecordingCreation()
             throws TimeoutException, InterruptedException, ExecutionException {
         CompletableFuture<JsonArray> future = new CompletableFuture<>();
         webClient
@@ -232,7 +235,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
         JsonArray recordings = future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(recordings.size(), Matchers.equalTo(1));
         JsonObject recording = recordings.getJsonObject(0);
-        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_myrule"));
+        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo(recordingName));
         MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
         Assertions.assertTrue(recording.getBoolean("continuous"));
         Assertions.assertTrue(recording.getBoolean("toDisk"));
@@ -255,7 +258,125 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
 
     @Test
     @Order(3)
-    public void testDeleteRule() throws TimeoutException, InterruptedException, ExecutionException {
+    void testDisableRuleWithCleanup()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<JsonObject> patchResp = new CompletableFuture<>();
+
+        JsonObject disabledObj = new JsonObject();
+        disabledObj.put("enabled", false);
+
+        webClient
+                .patch(String.format("/api/v2/rules/%s?clean=true", ruleName))
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                .sendJson(
+                        disabledObj,
+                        ar -> {
+                            if (assertRequestStatus(ar, patchResp)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(204));
+                                patchResp.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        patchResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        Thread.sleep(3_000); // Wait to stop recording
+
+        CompletableFuture<JsonArray> future = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, future)) {
+                                future.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray recordings = future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(recordings.size(), Matchers.equalTo(1));
+        JsonObject recording = recordings.getJsonObject(0);
+        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo(recordingName));
+        MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("STOPPED"));
+        Assertions.assertTrue(recording.getBoolean("continuous"));
+        Assertions.assertTrue(recording.getBoolean("toDisk"));
+        Assertions.assertFalse(recording.getBoolean("archiveOnStop"));
+        MatcherAssert.assertThat(recording.getNumber("maxAge"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording.getNumber("maxSize"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(
+                recording
+                        .getJsonObject("metadata")
+                        .getJsonObject("labels")
+                        .getString("template.name"),
+                Matchers.equalTo("Continuous"));
+        MatcherAssert.assertThat(
+                recording
+                        .getJsonObject("metadata")
+                        .getJsonObject("labels")
+                        .getString("template.type"),
+                Matchers.equalTo("TARGET"));
+    }
+
+    @Test
+    @Order(4)
+    void testEnableRuleSetRecordingStateToRunning()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<JsonObject> patchResp = new CompletableFuture<>();
+
+        JsonObject disabledObj = new JsonObject();
+        disabledObj.put("enabled", true);
+
+        webClient
+                .patch(String.format("/api/v2/rules/%s?clean=true", ruleName))
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
+                .sendJson(
+                        disabledObj,
+                        ar -> {
+                            if (assertRequestStatus(ar, patchResp)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(204));
+                                patchResp.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        patchResp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        Thread.sleep(3_000); // Wait to restart recording
+
+        CompletableFuture<JsonArray> future = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, future)) {
+                                future.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray recordings = future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(recordings.size(), Matchers.equalTo(1));
+        JsonObject recording = recordings.getJsonObject(0);
+        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo(recordingName));
+        MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
+        Assertions.assertTrue(recording.getBoolean("continuous"));
+        Assertions.assertTrue(recording.getBoolean("toDisk"));
+        Assertions.assertFalse(recording.getBoolean("archiveOnStop"));
+        MatcherAssert.assertThat(recording.getNumber("maxAge"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording.getNumber("maxSize"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(
+                recording
+                        .getJsonObject("metadata")
+                        .getJsonObject("labels")
+                        .getString("template.name"),
+                Matchers.equalTo("Continuous"));
+        MatcherAssert.assertThat(
+                recording
+                        .getJsonObject("metadata")
+                        .getJsonObject("labels")
+                        .getString("template.type"),
+                Matchers.equalTo("TARGET"));
+    }
+
+    @Test
+    @Order(5)
+    void testDeleteRule() throws TimeoutException, InterruptedException, ExecutionException {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
                 .delete(String.format("/api/v2/rules/%s", "myrule"))
@@ -273,8 +394,8 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(4)
-    public void testCleanedUp() throws TimeoutException, InterruptedException, ExecutionException {
+    @Order(6)
+    void testCleanedUp() throws TimeoutException, InterruptedException, ExecutionException {
         CompletableFuture<JsonArray> future = new CompletableFuture<>();
         webClient
                 .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))
@@ -287,7 +408,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
         JsonArray recordings = future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(recordings.size(), Matchers.equalTo(1));
         JsonObject recording = recordings.getJsonObject(0);
-        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_myrule"));
+        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo(recordingName));
         MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("STOPPED"));
         Assertions.assertTrue(recording.getBoolean("continuous"));
         Assertions.assertTrue(recording.getBoolean("toDisk"));
