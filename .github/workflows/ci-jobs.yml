@@ -114,8 +114,6 @@ jobs:
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
-        submodules: true
-        fetch-depth: 0
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
@@ -123,8 +121,15 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
+    - name: maven-settings
+      uses: s4u/maven-settings-action@v2
+      with:
+        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN_REF}"}]'
+        githubServer: false
     - name: Run spotbugs
       run: mvn -Dheadless=true compile spotbugs:check
+      env:
+        GITHUB_TOKEN_REF: ${{ secrets.GH_PKGS_READ_TOKEN }}
 
   shellcheck:
     runs-on: ubuntu-latest
