@@ -22,43 +22,16 @@ jobs:
         ref: ${{ inputs.checkout-ref }}
     - id: query-pom
       name: Get properties from POM
-      # Query POM for core and image version and save as output parameter
+      # Query POM for image version and save as output parameter
       run: |
-        CORE_VERSION="$(mvn help:evaluate -Dexpression=io.cryostat.core.version -q -DforceStdout)"
-        echo "::set-output name=core-version::v$CORE_VERSION"
         IMAGE_VERSION="$(mvn validate help:evaluate -Dexpression=cryostat.imageVersionLower -q -DforceStdout)"
         echo "::set-output name=image-version::$IMAGE_VERSION"
     outputs:
-      core-version: ${{ steps.query-pom.outputs.core-version }}
       image-version: ${{ steps.query-pom.outputs.image-version }}
-
-  build-deps:
-    runs-on: ubuntu-latest
-    needs: [get-pom-properties]
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        repository: cryostatio/cryostat-core
-        ref: ${{ needs.get-pom-properties.outputs.core-version }}
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '17'
-        distribution: 'adopt'
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: restore
-    - run: mvn -B -U -DskipTests=true clean install
-    - uses: actions/upload-artifact@v3
-      with:
-        name: cryostat-core
-        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
-    - uses: skjolber/maven-cache-github-action@v1
-      with:
-        step: save
 
   build-image:
     runs-on: ubuntu-latest
-    needs: [get-pom-properties, build-deps]
+    needs: [get-pom-properties]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -70,16 +43,19 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
+    - name: maven-settings
+      uses: s4u/maven-settings-action@v2
+      with:
+        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN_REF}"}]'
+        githubServer: false
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
-    - uses: actions/download-artifact@v3
-      with:
-        name: cryostat-core
-        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - run: git submodule init
     - run: git submodule update --remote
     - run: mvn -B -U clean package
+      env:
+        GITHUB_TOKEN_REF: ${{ secrets.GH_PKGS_READ_TOKEN }}
     - name: Save cryostat image
       run: podman save -o cryostat.tar --format oci-archive quay.io/cryostat/cryostat
     - uses: actions/upload-artifact@v3
@@ -147,8 +123,15 @@ jobs:
       with:
         java-version: '17'
         distribution: 'adopt'
+    - name: maven-settings
+      uses: s4u/maven-settings-action@v2
+      with:
+        servers: '[{"id": "github", "username": "dummy", "password": "${env.GITHUB_TOKEN_REF}"}]'
+        githubServer: false
     - name: Run spotbugs
       run: mvn -Dheadless=true compile spotbugs:check
+      env:
+        GITHUB_TOKEN_REF: ${{ secrets.GH_PKGS_READ_TOKEN }}
 
   shellcheck:
     runs-on: ubuntu-latest
