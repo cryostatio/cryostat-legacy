@@ -66,6 +66,7 @@ import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.StringUtils;
 
 public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
 
@@ -113,9 +114,20 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                 });
     }
 
+    private boolean observe(ServiceRef sr) {
+        logger.info("Observing new target: {}", sr);
+        if (StringUtils.isBlank(sr.getJvmId())) {
+            return false;
+        }
+        ids.put(sr.getServiceUri().toString(), CompletableFuture.completedFuture(sr.getJvmId()));
+        return true;
+    }
+
     // Use dao directly since refs resolve before listDiscoverableServices is populated
     public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
-        if (sr.getJvmId() != null) return sr;
+        if (observe(sr)) {
+            return sr;
+        }
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
         try {
@@ -140,7 +152,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
             return updated;
         } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
-            logger.warn("Could not get jvmId for target {}", uriStr);
+            logger.warn("Could not resolve jvmId for target {}", uriStr);
             throw new JvmIdGetException(e, uriStr);
         }
     }
