@@ -68,6 +68,7 @@ class TargetConnectionManagerTest {
     TargetConnectionManager mgr;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock AgentConnectionFactory agentConnectionFactory;
     @Mock PlatformClient platformClient;
     Duration TTL = Duration.ofMillis(250);
 
@@ -76,6 +77,7 @@ class TargetConnectionManagerTest {
         this.mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         new DirectExecutor(),
                         Scheduler.disabledScheduler(),

@@ -38,11 +38,13 @@
 package io.cryostat.net;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,6 +80,7 @@ public class TargetConnectionManager {
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
+    private final Lazy<AgentConnectionFactory> agentConnectionFactory;
     private final Executor executor;
     private final Logger logger;
 
@@ -87,6 +90,7 @@ public class TargetConnectionManager {
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            Lazy<AgentConnectionFactory> agentConnectionFactory,
             PlatformClient platform,
             Executor executor,
             Scheduler scheduler,
@@ -94,6 +98,7 @@ public class TargetConnectionManager {
             int maxTargetConnections,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
+        this.agentConnectionFactory = agentConnectionFactory;
         this.executor = executor;
         this.logger = logger;
 
@@ -219,10 +224,16 @@ public class TargetConnectionManager {
     }
 
     private JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
-        try {
-            return attemptConnectAsJMXServiceURL(connectionDescriptor);
-        } catch (MalformedURLException mue) {
-            return attemptConnectAsHostPortPair(connectionDescriptor);
+        URI uri = URI.create(connectionDescriptor.getTargetId());
+        String scheme = uri.getScheme();
+        if (Set.of("http", "https", "cryostat-agent").contains(scheme)) {
+            return agentConnectionFactory.get().createConnection(uri);
+        } else {
+            try {
+                return attemptConnectAsJMXServiceURL(connectionDescriptor);
+            } catch (MalformedURLException mue) {
+                return attemptConnectAsHostPortPair(connectionDescriptor);
+            }
         }
     }
 
