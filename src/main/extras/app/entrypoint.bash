@@ -51,7 +51,7 @@ function importTrustStores() {
     if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
         banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
-    elif [ ! "$(ls -A $SSL_TRUSTSTORE_DIR)" ]; then
+    elif [ ! "$(ls -A "$SSL_TRUSTSTORE_DIR")" ]; then
         banner "$SSL_TRUSTSTORE_DIR is empty; no certificates to import"
         return 0
     fi
