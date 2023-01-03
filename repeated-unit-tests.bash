@@ -35,7 +35,7 @@ fi
 DIR="$(dirname "$(readlink -f "$0")")"
 
 runcount=0
-while [ "${runcount}" -lt ${runs} ]; do
+while [ "${runcount}" -lt "${runs}" ]; do
     logfile="$DIR/target/cryostat-unittests-$(date -Iminutes).log"
     mkdir -p "$(dirname logfile)"
     >"${logfile}"
