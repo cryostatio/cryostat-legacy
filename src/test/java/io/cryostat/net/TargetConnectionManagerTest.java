@@ -196,6 +196,7 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         ForkJoinPool.commonPool(),
                         Scheduler.systemScheduler(),
@@ -237,6 +238,7 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         Runnable::run,
                         Scheduler.disabledScheduler(),
