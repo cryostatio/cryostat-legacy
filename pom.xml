@@ -113,7 +113,7 @@
   <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.28.0</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.15.3</org.jsoup.version>
-  <shellcheck-maven-plugin.version>0.4.1</shellcheck-maven-plugin.version>
+  <shellcheck-maven-plugin.version>0.5.0</shellcheck-maven-plugin.version>
 </properties>
 
 <dependencies>
