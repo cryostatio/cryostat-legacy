@@ -55,6 +55,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -222,5 +224,30 @@ class TargetConnectionManagerTest {
         JFRConnection conn1 = mgr.executeConnectedTask(desc1, a -> a);
         JFRConnection conn2 = mgr.executeConnectedTask(desc2, a -> a);
         MatcherAssert.assertThat(conn1, Matchers.not(Matchers.sameInstance(conn2)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "http://localhost:8080",
+                "https://cryostat.example.com",
+                "cryostat-agent://mypod.mycluster.svc:1234"
+            })
+    void shouldConnectToAgents(String url) throws Exception {
+        AgentConnection agentConn = Mockito.mock(AgentConnection.class);
+        Mockito.when(agentConnectionFactory.createConnection(Mockito.any())).thenReturn(agentConn);
+        TargetConnectionManager mgr =
+                new TargetConnectionManager(
+                        () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
+                        platformClient,
+                        Runnable::run,
+                        Scheduler.disabledScheduler(),
+                        Duration.ofNanos(1),
+                        -1,
+                        logger);
+        ConnectionDescriptor desc = new ConnectionDescriptor(url);
+        JFRConnection conn = mgr.executeConnectedTask(desc, a -> a);
+        MatcherAssert.assertThat(conn, Matchers.sameInstance(agentConn));
     }
 }
