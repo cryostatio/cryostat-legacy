@@ -290,7 +290,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
                 } catch (Exception e) {
-                    logger.warn("Failed to resolve jvmId for node [{}]", child.getName());
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {

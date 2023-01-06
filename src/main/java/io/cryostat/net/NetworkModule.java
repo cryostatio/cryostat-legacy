@@ -50,6 +50,7 @@ import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
@@ -58,6 +59,8 @@ import io.cryostat.net.openshift.OpenShiftNetworkModule;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
+import io.cryostat.net.web.http.HttpModule;
+import io.cryostat.recordings.JvmIdHelper;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
@@ -113,14 +116,26 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
+    static AgentConnectionFactory provideAgentConnectionFactory(
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
+            WebClient webClient,
+            Clock clock,
+            JvmIdHelper idHelper) {
+        return new AgentConnectionFactory(httpTimeoutSeconds, webClient, clock, idHelper);
+    }
+
+    @Provides
+    @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            Lazy<AgentConnectionFactory> agentConnectionFactory,
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
+                agentConnectionFactory,
                 storage,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),

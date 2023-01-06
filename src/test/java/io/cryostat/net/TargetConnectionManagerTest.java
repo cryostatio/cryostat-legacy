@@ -55,6 +55,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -68,6 +70,7 @@ class TargetConnectionManagerTest {
     TargetConnectionManager mgr;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock AgentConnectionFactory agentConnectionFactory;
     @Mock PlatformClient platformClient;
     Duration TTL = Duration.ofMillis(250);
 
@@ -76,6 +79,7 @@ class TargetConnectionManagerTest {
         this.mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         new DirectExecutor(),
                         Scheduler.disabledScheduler(),
@@ -109,7 +113,7 @@ class TargetConnectionManagerTest {
                                 return Mockito.mock(JFRConnection.class);
                             }
                         });
-        ConnectionDescriptor descriptor = new ConnectionDescriptor("foo");
+        ConnectionDescriptor descriptor = new ConnectionDescriptor("localhost:0");
         mgr.executeConnectedTask(
                 descriptor,
                 conn1 -> {
@@ -125,20 +129,6 @@ class TargetConnectionManagerTest {
 
     @Test
     void shouldReuseConnectionInSequentialAccessWithoutDelay() throws Exception {
-        Mockito.when(jfrConnectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<JMXServiceURL>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
-                            }
-                        });
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
@@ -148,7 +138,8 @@ class TargetConnectionManagerTest {
                                 return Mockito.mock(JFRConnection.class);
                             }
                         });
-        ConnectionDescriptor desc = new ConnectionDescriptor("foo");
+        ConnectionDescriptor desc =
+                new ConnectionDescriptor("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
         JFRConnection conn1 = mgr.executeConnectedTask(desc, a -> a);
         JFRConnection conn2 = mgr.executeConnectedTask(desc, a -> a);
         MatcherAssert.assertThat(conn1, Matchers.sameInstance(conn2));
@@ -156,20 +147,6 @@ class TargetConnectionManagerTest {
 
     @Test
     void shouldCreateNewConnectionIfPreviousExplicitlyClosed() throws Exception {
-        Mockito.when(jfrConnectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<JMXServiceURL>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
-                            }
-                        });
         ArgumentCaptor<List<Runnable>> closeListeners = ArgumentCaptor.forClass(List.class);
         Mockito.when(
                         jfrConnectionToolkit.connect(
@@ -182,7 +159,8 @@ class TargetConnectionManagerTest {
                                 return Mockito.mock(JFRConnection.class);
                             }
                         });
-        ConnectionDescriptor desc = new ConnectionDescriptor("foo");
+        ConnectionDescriptor desc =
+                new ConnectionDescriptor("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
         JFRConnection conn1 = mgr.executeConnectedTask(desc, a -> a);
         closeListeners.getValue().forEach(Runnable::run);
         JFRConnection conn2 = mgr.executeConnectedTask(desc, a -> a);
@@ -194,26 +172,13 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         ForkJoinPool.commonPool(),
                         Scheduler.systemScheduler(),
                         Duration.ofNanos(1),
                         1,
                         logger);
-        Mockito.when(jfrConnectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<JMXServiceURL>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
-                            }
-                        });
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
@@ -223,7 +188,8 @@ class TargetConnectionManagerTest {
                                 return Mockito.mock(JFRConnection.class);
                             }
                         });
-        ConnectionDescriptor desc = new ConnectionDescriptor("foo");
+        ConnectionDescriptor desc =
+                new ConnectionDescriptor("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
         JFRConnection conn1 = mgr.executeConnectedTask(desc, a -> a);
         Thread.sleep(10);
         JFRConnection conn2 = mgr.executeConnectedTask(desc, a -> a);
@@ -235,26 +201,13 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
                         platformClient,
                         Runnable::run,
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
                         logger);
-        Mockito.when(jfrConnectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<JMXServiceURL>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
-                            }
-                        });
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
@@ -264,10 +217,37 @@ class TargetConnectionManagerTest {
                                 return Mockito.mock(JFRConnection.class);
                             }
                         });
-        ConnectionDescriptor desc1 = new ConnectionDescriptor("foo");
-        ConnectionDescriptor desc2 = new ConnectionDescriptor("bar");
+        ConnectionDescriptor desc1 =
+                new ConnectionDescriptor("service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi");
+        ConnectionDescriptor desc2 =
+                new ConnectionDescriptor("service:jmx:rmi:///jndi/rmi://example:1/jmxrmi");
         JFRConnection conn1 = mgr.executeConnectedTask(desc1, a -> a);
         JFRConnection conn2 = mgr.executeConnectedTask(desc2, a -> a);
         MatcherAssert.assertThat(conn1, Matchers.not(Matchers.sameInstance(conn2)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "http://localhost:8080",
+                "https://cryostat.example.com",
+                "cryostat-agent://mypod.mycluster.svc:1234"
+            })
+    void shouldConnectToAgents(String url) throws Exception {
+        AgentConnection agentConn = Mockito.mock(AgentConnection.class);
+        Mockito.when(agentConnectionFactory.createConnection(Mockito.any())).thenReturn(agentConn);
+        TargetConnectionManager mgr =
+                new TargetConnectionManager(
+                        () -> jfrConnectionToolkit,
+                        () -> agentConnectionFactory,
+                        platformClient,
+                        Runnable::run,
+                        Scheduler.disabledScheduler(),
+                        Duration.ofNanos(1),
+                        -1,
+                        logger);
+        ConnectionDescriptor desc = new ConnectionDescriptor(url);
+        JFRConnection conn = mgr.executeConnectedTask(desc, a -> a);
+        MatcherAssert.assertThat(conn, Matchers.sameInstance(agentConn));
     }
 }
