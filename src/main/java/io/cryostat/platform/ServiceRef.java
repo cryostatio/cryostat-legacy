@@ -135,7 +135,6 @@ public class ServiceRef {
         }
         ServiceRef sr = (ServiceRef) other;
         return new EqualsBuilder()
-                .append(jvmId, sr.jvmId)
                 .append(serviceUri, sr.serviceUri)
                 .append(alias, sr.alias)
                 .append(labels, sr.labels)
@@ -146,7 +145,6 @@ public class ServiceRef {
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
-                .append(jvmId)
                 .append(serviceUri)
                 .append(alias)
                 .append(labels)
