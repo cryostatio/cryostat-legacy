@@ -44,6 +44,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,8 +52,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Named;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -98,7 +102,8 @@ public class WebServer extends AbstractVerticle {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
-            Logger logger) {
+            Logger logger,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
         this.server = server;
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
@@ -106,6 +111,11 @@ public class WebServer extends AbstractVerticle {
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
+        var fs = server.getVertx().fileSystem();
+        var fileUploads = recordingsPath.resolve("file-uploads").toAbsolutePath().toString();
+        if (!fs.existsBlocking(fileUploads)) {
+            fs.mkdirBlocking(fileUploads);
+        }
     }
 
     @Override

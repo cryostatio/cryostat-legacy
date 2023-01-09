@@ -44,6 +44,7 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -67,8 +68,16 @@ public abstract class WebModule {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+            Logger logger,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath) {
+        return new WebServer(
+                httpServer,
+                netConf,
+                requestHandlers,
+                gson,
+                authManager,
+                logger,
+                archivedRecordingsPath);
     }
 
     @Provides

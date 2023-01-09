@@ -38,6 +38,7 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -62,11 +63,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
+import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
@@ -81,7 +86,9 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
@@ -89,6 +96,10 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.FileUpload;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
 
@@ -105,11 +116,18 @@ public class RecordingArchiveHelper {
     private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
+    private final Vertx vertx;
     private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
     private static final long FS_TIMEOUT_SECONDS = 1;
+
+    public static final Pattern RECORDING_FILENAME_PATTERN =
+            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+    public static final Pattern DATE_TIME_PATTERN =
+            Pattern.compile(
+                    "^([0-9]{4})(1[0-2]|0[1-9])(3[01]|0[1-9]|[12][0-9])T([0-2][0-9])([0-5][0-9])([0-5][0-9])Z$");
 
     // FIXME: remove ARCHIVES after 2.2.0 release since we either use "uploads" or sourceTarget
     public static final String ARCHIVES = "archives";
@@ -130,6 +148,7 @@ public class RecordingArchiveHelper {
             PlatformClient platformClient,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
+            Vertx vertx,
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
@@ -142,6 +161,7 @@ public class RecordingArchiveHelper {
         this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
+        this.vertx = vertx;
         this.base32 = base32;
     }
 
@@ -193,11 +213,11 @@ public class RecordingArchiveHelper {
                                     if (!fs.exists(encodedJvmIdPath)) {
                                         fs.createDirectory(encodedJvmIdPath);
                                         fs.writeString(
-                                                encodedJvmIdPath.resolve("connectUrl"),
+                                                encodedJvmIdPath.resolve(CONNECT_URL),
                                                 connectUrl,
                                                 StandardOpenOption.CREATE);
                                     }
-                                    fs.deleteIfExists(subdirectoryPath.resolve("connectUrl"));
+                                    fs.deleteIfExists(subdirectoryPath.resolve(CONNECT_URL));
                                     for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
                                         Path oldLocation = subdirectoryPath.resolve(file);
                                         Path newLocation = encodedJvmIdPath.resolve(file);
@@ -218,7 +238,7 @@ public class RecordingArchiveHelper {
                                         fs.createDirectory(lostPath);
                                     }
                                     for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
-                                        if (file.equals("connectUrl")) {
+                                        if (file.equals(CONNECT_URL)) {
                                             continue;
                                         }
                                         Path oldLocation = subdirectoryPath.resolve(file);
@@ -264,7 +284,7 @@ public class RecordingArchiveHelper {
             Path subdirectoryPath = null;
             for (String encodedJvmId : fs.listDirectoryChildren(archivedRecordingsPath)) {
                 Path subdir = archivedRecordingsPath.resolve(encodedJvmId);
-                Path connectUrl = subdir.resolve("connectUrl");
+                Path connectUrl = subdir.resolve(CONNECT_URL);
                 if (fs.exists(connectUrl)) {
                     String u = fs.readString(connectUrl);
                     if (Objects.equals(targetId, u)) {
@@ -330,7 +350,7 @@ public class RecordingArchiveHelper {
             try {
                 for (String file : fs.listDirectoryChildren(subdirectory)) {
                     // use metadata file to determine connectUrl to probe for jvmId
-                    if (file.equals("connectUrl")) {
+                    if (file.equals(CONNECT_URL)) {
                         connectUrl =
                                 Optional.of(fs.readFile(subdirectory.resolve(file)).readLine());
                     }
@@ -828,7 +848,7 @@ public class RecordingArchiveHelper {
             if (!fs.exists(archivedRecordingsPath.resolve(subdirectory))) {
                 fs.createDirectory(archivedRecordingsPath.resolve(subdirectory));
                 fs.writeString(
-                        archivedRecordingsPath.resolve(subdirectory.resolve("connectUrl")),
+                        archivedRecordingsPath.resolve(subdirectory.resolve(CONNECT_URL)),
                         sourceTarget,
                         StandardOpenOption.CREATE);
             }
@@ -890,6 +910,27 @@ public class RecordingArchiveHelper {
         }
     }
 
+    // Returns serviceUri associated with jvmId
+    public String validateJvmId(String jvmId) throws JvmIdDoesNotExistException {
+        var ref =
+                this.platformClient.listDiscoverableServices().stream()
+                        .filter(
+                                target -> {
+                                    try {
+                                        return jvmIdHelper
+                                                .getJvmId(target.getServiceUri().toString())
+                                                .equals(jvmId);
+                                    } catch (JvmIdGetException e) {
+                                        return false;
+                                    }
+                                })
+                        .findFirst();
+
+        return ref.orElseThrow(() -> new JvmIdDoesNotExistException(jvmId))
+                .getServiceUri()
+                .toString();
+    }
+
     private void validateRecordingPath(
             Optional<Path> optional, String recordingName, boolean checkConnectUrl)
             throws RecordingNotFoundException, ArchivePathException {
@@ -920,7 +961,7 @@ public class RecordingArchiveHelper {
         if (!fs.exists(specificRecordingsPath)) {
             fs.createDirectory(specificRecordingsPath);
             fs.writeString(
-                    specificRecordingsPath.resolve("connectUrl"),
+                    specificRecordingsPath.resolve(CONNECT_URL),
                     serviceUri.toString(),
                     StandardOpenOption.CREATE);
         }
@@ -1017,6 +1058,170 @@ public class RecordingArchiveHelper {
             logger.error("Invalid path: {}", recordingName);
             return 0;
         }
+    }
+
+    public void saveUploadedRecording(
+            String subdirectoryName,
+            String basename,
+            String tmpFile,
+            String connectUrl,
+            int counter,
+            Handler<AsyncResult<String>> handler) {
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
+        // are also differentiated by second-resolution timestamp
+        if (counter >= Byte.MAX_VALUE) {
+            handler.handle(
+                    makeFailedAsyncResult(
+                            new IOException(
+                                    "Recording could not be saved. File already exists and rename"
+                                            + " attempts were exhausted.")));
+            return;
+        }
+
+        String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(subdirectoryName);
+
+        if (!fs.exists(specificRecordingsPath)) {
+            try {
+                Files.createDirectory(specificRecordingsPath);
+                if (!subdirectoryName.equals(UPLOADED_RECORDINGS_SUBDIRECTORY)) {
+                    fs.writeString(
+                            specificRecordingsPath.resolve(CONNECT_URL),
+                            connectUrl,
+                            StandardOpenOption.CREATE);
+                }
+
+            } catch (IOException e) {
+                handler.handle(makeFailedAsyncResult(e));
+                return;
+            }
+        }
+
+        vertx.fileSystem()
+                .exists(
+                        specificRecordingsPath.resolve(filename).toString(),
+                        (res) -> {
+                            if (res.failed()) {
+                                handler.handle(makeFailedAsyncResult(res.cause()));
+                                return;
+                            }
+
+                            if (res.result()) {
+                                saveUploadedRecording(
+                                        subdirectoryName,
+                                        basename,
+                                        tmpFile,
+                                        connectUrl,
+                                        counter + 1,
+                                        handler);
+                                return;
+                            }
+
+                            // verified no name clash at this time
+                            vertx.fileSystem()
+                                    .move(
+                                            tmpFile,
+                                            specificRecordingsPath.resolve(filename).toString(),
+                                            (res2) -> {
+                                                if (res2.failed()) {
+                                                    handler.handle(
+                                                            makeFailedAsyncResult(res2.cause()));
+                                                    return;
+                                                }
+
+                                                handler.handle(makeAsyncResult(filename));
+                                            });
+                        });
+    }
+
+    public void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
+        vertx.executeBlocking(
+                event -> {
+                    try {
+                        // try loading chunk info to see if it's a valid file
+                        try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
+                            var supplier = FlightRecordingLoader.createChunkSupplier(is);
+                            var chunks = FlightRecordingLoader.readChunkInfo(supplier);
+                            if (chunks.size() < 1) {
+                                throw new InvalidJfrFileException();
+                            }
+                        }
+                        event.complete();
+                    } catch (CouldNotLoadRecordingException | IOException e) {
+                        event.fail(e);
+                    }
+                },
+                res -> {
+                    if (res.failed()) {
+                        Throwable t;
+                        if (res.cause() instanceof CouldNotLoadRecordingException) {
+                            t =
+                                    new ApiException(
+                                            400, "Not a valid JFR recording file", res.cause());
+                        } else {
+                            t = res.cause();
+                        }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
+
+                        handler.handle(makeFailedAsyncResult(t));
+                        return;
+                    }
+
+                    handler.handle(makeAsyncResult(null));
+                });
+    }
+
+    public void deleteTempFileUpload(FileUpload upload) {
+        Path p = archivedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        vertx.fileSystem().deleteBlocking(p.toString());
+    }
+
+    public <T> AsyncResult<T> makeAsyncResult(T result) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return result;
+            }
+
+            @Override
+            public Throwable cause() {
+                return null;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return true;
+            }
+
+            @Override
+            public boolean failed() {
+                return false;
+            }
+        };
+    }
+
+    public <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return null;
+            }
+
+            @Override
+            public Throwable cause() {
+                return cause;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return false;
+            }
+
+            @Override
+            public boolean failed() {
+                return true;
+            }
+        };
     }
 
     // FIXME: override equals() so that tests are easier to write

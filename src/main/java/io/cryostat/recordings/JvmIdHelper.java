@@ -241,6 +241,12 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         }
     }
 
+    public static class JvmIdDoesNotExistException extends IOException {
+        public JvmIdDoesNotExistException(String jvmId) {
+            super(jvmId);
+        }
+    }
+
     private class IdLoader implements AsyncCacheLoader<String, String> {
 
         @Override

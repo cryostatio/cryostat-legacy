@@ -131,4 +131,13 @@ public abstract class HttpApiBetaModule {
     @IntoSet
     abstract RequestHandler bindRecordingMetadataLabelsPostFromPathBodyHandler(
             RecordingMetadataLabelsPostFromPathBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingsFromIdPostHandler(RecordingsFromIdPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingsFromIdPostBodyHandler(
+            RecordingsFromIdPostBodyHandler handler);
 }
