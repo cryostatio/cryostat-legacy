@@ -50,8 +50,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -1060,6 +1063,27 @@ public class RecordingArchiveHelper {
         }
     }
 
+    // Timestamp must be in form of 20191219T213834Z (YYYYMMDDTHHMMSSZ)
+    // Used on the third regex matcher group of a Cryostat archived recording name
+    public long getArchivedTimeFromTimestamp(String timestamp) {
+        Matcher dtm = DATE_TIME_PATTERN.matcher(timestamp);
+        if (!dtm.matches()) {
+            logger.trace("Invalid timestamp: {}", timestamp);
+            return Instant.now().toEpochMilli();
+        } else {
+            String isoString =
+                    String.format(
+                            "%s-%s-%sT%s:%s:%s.00Z",
+                            dtm.group(1),
+                            dtm.group(2),
+                            dtm.group(3),
+                            dtm.group(4),
+                            dtm.group(5),
+                            dtm.group(6));
+            return Instant.parse(isoString).toEpochMilli();
+        }
+    }
+
     public void saveUploadedRecording(
             String subdirectoryName,
             String basename,
@@ -1169,6 +1193,19 @@ public class RecordingArchiveHelper {
 
                     handler.handle(makeAsyncResult(null));
                 });
+    }
+
+    public FileUpload getTempFileUpload(Collection<FileUpload> fileUploads) {
+        FileUpload upload = null;
+        for (var fu : fileUploads) {
+            if (fu.name().equals("recording")) {
+                upload = fu;
+                break;
+            } else {
+                deleteTempFileUpload(fu);
+            }
+        }
+        return upload;
     }
 
     public void deleteTempFileUpload(FileUpload upload) {

@@ -76,6 +76,7 @@ import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -113,6 +114,8 @@ class RecordingArchiveHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock Vertx vertx;
+    @Mock io.vertx.core.file.FileSystem vertxFs;
 
     String targetId = "fooTarget";
     String recordingName = "someRecording";
@@ -150,6 +153,8 @@ class RecordingArchiveHelperTest {
                             }
                         });
 
+        lenient().when(vertx.fileSystem()).thenReturn(vertxFs);
+
         this.recordingArchiveHelper =
                 new RecordingArchiveHelper(
                         fs,
@@ -163,6 +168,7 @@ class RecordingArchiveHelperTest {
                         platformClient,
                         notificationFactory,
                         jvmIdHelper,
+                        null,
                         base32);
     }
 
@@ -1184,5 +1190,18 @@ class RecordingArchiveHelperTest {
                 result.get(1).getRecordings(), Matchers.equalTo(expected.get(1).getRecordings()));
 
         recordingArchiveHelper.getRecordingsAndDirectories().get();
+    }
+
+    @Test
+    void shouldGetArchivedTimeFromTimestamp() {
+        // December 19, 2019 | 8:38:34 PM UTC
+        String timestamp = "20191219T213834Z";
+        Long time = recordingArchiveHelper.getArchivedTimeFromTimestamp(timestamp);
+        long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
+        MatcherAssert.assertThat(time, Matchers.equalTo(expectedArchivedTime));
+
+        String invalid = "";
+        Long invalidTime = recordingArchiveHelper.getArchivedTimeFromTimestamp(invalid);
+        MatcherAssert.assertThat(invalidTime, Matchers.equalTo(Instant.now().toEpochMilli()));
     }
 }

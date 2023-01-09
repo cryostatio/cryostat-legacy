@@ -92,6 +92,7 @@ public class WebServer extends AbstractVerticle {
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final List<RequestHandler> requestHandlers;
+    private final Path recordingsPath;
     private final Gson gson;
     private final AuthManager auth;
     private final Logger logger;
@@ -108,20 +109,22 @@ public class WebServer extends AbstractVerticle {
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
         Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
+        this.recordingsPath = recordingsPath;
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
+
+    }
+
+    @Override
+    public void start() throws FlightRecorderException, SocketException, UnknownHostException {
+        Router router = Router.router(server.getVertx()); // a vertx is only available after server started
+
         var fs = server.getVertx().fileSystem();
         var fileUploads = recordingsPath.resolve("file-uploads").toAbsolutePath().toString();
         if (!fs.existsBlocking(fileUploads)) {
             fs.mkdirBlocking(fileUploads);
         }
-    }
-
-    @Override
-    public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        Router router =
-                Router.router(server.getVertx()); // a vertx is only available after server started
 
         // error page handler
         Handler<RoutingContext> failureHandler =

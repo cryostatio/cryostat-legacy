@@ -43,7 +43,6 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -64,12 +63,10 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -79,22 +76,25 @@ import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.RoutingContext;
 
-public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> {
+public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "recordings/:jvmId";
 
+    private final Gson gson;
     private final Logger logger;
 
     private final FileSystem fs;
     private final JvmIdHelper idHelper;
-    private final Path savedRecordingsPath;
     private final NotificationFactory notificationFactory;
-    private final Provider<WebServer> webServer;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final Path savedRecordingsPath;
+    private final Provider<WebServer> webServer;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
@@ -104,14 +104,14 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
             CredentialsManager credentialsManager,
             Gson gson,
             FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             JvmIdHelper idHelper,
             NotificationFactory notificationFactory,
-            Provider<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            Provider<WebServer> webServer,
             Logger logger) {
-        super(auth, credentialsManager, gson);
+        super(auth, credentialsManager, logger);
         this.fs = fs;
         this.idHelper = idHelper;
         this.notificationFactory = notificationFactory;
@@ -119,12 +119,8 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
         this.recordingMetadataManager = recordingMetadataManager;
         this.savedRecordingsPath = savedRecordingsPath;
         this.webServer = webServer;
+        this.gson = gson;
         this.logger = logger;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
     }
 
     @Override
@@ -138,17 +134,22 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
     }
 
     @Override
-    public String path() {
-        return basePath() + PATH;
-    }
-
-    @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.CREATE_RECORDING);
     }
 
     @Override
+    public String path() {
+        return basePath() + PATH;
+    }
+
+    @Override
     public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public boolean isOrdered() {
         return true;
     }
 
@@ -163,25 +164,18 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
     }
 
     @Override
-    public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new ApiException(503, "Recording saving not available");
         }
 
-        FileUpload upload = null;
-        for (var fu : params.getFileUploads()) {
-            if (fu.name().equals("recording")) {
-                upload = fu;
-                break;
-            } else {
-                recordingArchiveHelper.deleteTempFileUpload(fu);
-            }
-        }
+        FileUpload upload = recordingArchiveHelper.getTempFileUpload(ctx.fileUploads());
         if (upload == null) {
             throw new ApiException(400, "No recording submission");
         }
 
-        String jvmId = params.getPathParams().get("jvmId");
+        String jvmId = ctx.pathParam("jvmId");
         final String connectUrl;
         try {
             connectUrl = recordingArchiveHelper.validateJvmId(jvmId);
@@ -190,7 +184,7 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
             }
         } catch (JvmIdDoesNotExistException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, "jvmId must be valid " + e.getMessage());
+            throw new ApiException(400, String.format("jvmId [%s] must be valid ", e.getMessage()));
         }
         String subdirectoryName = idHelper.jvmIdToSubdirectoryName(jvmId);
 
@@ -210,7 +204,7 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
             throw new ApiException(400, "Incorrect recording file name pattern");
         }
 
-        MultiMap attrs = params.getFormAttributes();
+        MultiMap attrs = ctx.request().formAttributes();
         Map<String, String> labels = new HashMap<>();
         Boolean hasLabels = ((attrs.contains("labels") ? true : false));
 
@@ -228,26 +222,9 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
         String recordingName = m.group(2);
         String timestamp = m.group(3);
 
-        Matcher dtm = RecordingArchiveHelper.DATE_TIME_PATTERN.matcher(timestamp);
-
         long size = upload.size();
-        long archivedTime;
+        long archivedTime = recordingArchiveHelper.getArchivedTimeFromTimestamp(timestamp);
 
-        if (!dtm.matches()) {
-            logger.trace("Invalid timestamp: {}", timestamp);
-            archivedTime = Instant.now().toEpochMilli();
-        } else {
-            String isoString =
-                    String.format(
-                            "%s-%s-%sT%s:%s:%s.00Z",
-                            dtm.group(1),
-                            dtm.group(2),
-                            dtm.group(3),
-                            dtm.group(4),
-                            dtm.group(5),
-                            dtm.group(6));
-            archivedTime = Instant.parse(isoString).toEpochMilli();
-        }
         int count =
                 m.group(4) == null || m.group(4).isEmpty()
                         ? 0
@@ -320,8 +297,18 @@ public class RecordingsFromIdPostHandler extends AbstractV2RequestHandler<Path> 
                                         logger.error(e);
                                         throw new ApiException(500, e);
                                     }
+
+                                    ctx.response()
+                                            .putHeader(
+                                                    HttpHeaders.CONTENT_TYPE,
+                                                    HttpMimeType.JSON.mime())
+                                            .end(
+                                                    gson.toJson(
+                                                            Map.of(
+                                                                    "name",
+                                                                    fsName,
+                                                                    "metadata",
+                                                                    metadata)));
                                 }));
-        return new IntermediateResponse<Path>()
-                .body(savedRecordingsPath.resolve(subdirectoryName).resolve(fileName));
     }
 }

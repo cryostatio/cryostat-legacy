@@ -74,14 +74,6 @@ public class RecordingsFromIdPostBodyHandler extends AbstractAuthenticatedReques
         this.bodyHandler =
                 BodyHandler.create(true)
                         .setUploadsDirectory(fileUploads.toAbsolutePath().toString());
-        // try {
-        //     // FIXME put this somewhere more appropriate
-        //     if (!fs.isDirectory(fileUploads)) {
-        //         Files.createDirectories(fileUploads);
-        //     }
-        // } catch (IOException ioe) {
-        //     throw new RuntimeException(ioe);
-        // }
     }
 
     @Override

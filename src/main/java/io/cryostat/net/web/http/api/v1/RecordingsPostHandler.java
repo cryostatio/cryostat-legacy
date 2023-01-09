@@ -42,7 +42,6 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -164,21 +163,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpException(503, "Recording saving not available");
         }
 
-        FileUpload upload = null;
-        for (FileUpload fu : ctx.fileUploads()) {
-            // ignore unrecognized form fields
-            if ("recording".equals(fu.name())) {
-                upload = fu;
-            } else {
-                recordingArchiveHelper.deleteTempFileUpload(fu);
-            }
-        }
-
+        FileUpload upload = recordingArchiveHelper.getTempFileUpload(ctx.fileUploads());
         if (upload == null) {
             throw new HttpException(400, "No recording submission");
         }
@@ -217,26 +206,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         String recordingName = m.group(2);
         String timestamp = m.group(3);
 
-        Matcher dtm = RecordingArchiveHelper.DATE_TIME_PATTERN.matcher(timestamp);
-
         long size = upload.size();
-        long archivedTime;
+        long archivedTime = recordingArchiveHelper.getArchivedTimeFromTimestamp(timestamp);
 
-        if (!dtm.matches()) {
-            logger.trace("Invalid timestamp: {}", timestamp);
-            archivedTime = Instant.now().toEpochMilli();
-        } else {
-            String isoString =
-                    String.format(
-                            "%s-%s-%sT%s:%s:%s.00Z",
-                            dtm.group(1),
-                            dtm.group(2),
-                            dtm.group(3),
-                            dtm.group(4),
-                            dtm.group(5),
-                            dtm.group(6));
-            archivedTime = Instant.parse(isoString).toEpochMilli();
-        }
         int count =
                 m.group(4) == null || m.group(4).isEmpty()
                         ? 0

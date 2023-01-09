@@ -47,6 +47,7 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.util.Set;
 
 import javax.management.remote.JMXServiceURL;
@@ -69,6 +70,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,11 +83,16 @@ class WebServerTest {
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock Path recordingsPath;
+    @Mock io.vertx.core.Vertx vertx;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger);
+        io.vertx.core.file.FileSystem vertxFs = Mockito.mock(io.vertx.core.file.FileSystem.class);
+        exporter =
+                new WebServer(
+                        httpServer, netConf, Set.of(), gson, authManager, logger, recordingsPath);
     }
 
     @Test
@@ -98,7 +105,15 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         assertDoesNotThrow(
-                () -> new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger));
+                () ->
+                        new WebServer(
+                                httpServer,
+                                netConf,
+                                Set.of(),
+                                gson,
+                                authManager,
+                                logger,
+                                recordingsPath));
     }
 
     @Test
