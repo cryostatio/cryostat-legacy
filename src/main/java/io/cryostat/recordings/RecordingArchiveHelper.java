@@ -1175,7 +1175,10 @@ public class RecordingArchiveHelper {
     }
 
     public void deleteTempFileUpload(FileUpload upload) {
-        Path p = archivedRecordingsPath.resolve(TEMP_UPLOADS_SUBDIRECTORY).resolve(upload.uploadedFileName());
+        Path p =
+                archivedRecordingsPath
+                        .resolve(TEMP_UPLOADS_SUBDIRECTORY)
+                        .resolve(upload.uploadedFileName());
         vertx.fileSystem().deleteBlocking(p.toString());
     }
 

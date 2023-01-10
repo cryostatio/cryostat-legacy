@@ -53,6 +53,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -70,7 +71,7 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
             FileSystem fs,
             Logger logger) {
         super(auth, credentialsManager, logger);
-        Path fileUploads = recordingsPath.resolve("file-uploads");
+        Path fileUploads = recordingsPath.resolve(RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY);
         this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
     }
 
