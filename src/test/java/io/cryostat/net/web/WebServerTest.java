@@ -89,7 +89,6 @@ class WebServerTest {
 
     @BeforeEach
     void setup() {
-        io.vertx.core.file.FileSystem vertxFs = Mockito.mock(io.vertx.core.file.FileSystem.class);
         exporter =
                 new WebServer(
                         httpServer, netConf, Set.of(), gson, authManager, logger, recordingsPath);
