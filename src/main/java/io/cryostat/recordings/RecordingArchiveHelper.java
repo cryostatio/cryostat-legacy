@@ -53,7 +53,6 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +90,6 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
@@ -137,6 +135,8 @@ public class RecordingArchiveHelper {
     public static final String UPLOADED_RECORDINGS_SUBDIRECTORY = "uploads";
     public static final String DEFAULT_CACHED_REPORT_SUBDIRECTORY = "default";
     public static final String LOST_RECORDINGS_SUBDIRECTORY = "lost";
+    public static final String TEMP_UPLOADS_SUBDIRECTORY = "file-uploads";
+    public static final String MULTIFORM_RECORDINGS_KEY = "recording";
     private static final String CONNECT_URL = "connectUrl";
 
     RecordingArchiveHelper(
@@ -344,7 +344,7 @@ public class RecordingArchiveHelper {
         if (subdirectory == null || subdirectory.getFileName() == null) {
             future.completeExceptionally(new FileNotFoundException("No subdirectory name"));
         } else if (subdirectory.getFileName().toString().equals(UPLOADED_RECORDINGS_SUBDIRECTORY)
-                || subdirectory.getFileName().toString().equals("file-uploads")) {
+                || subdirectory.getFileName().toString().equals(TEMP_UPLOADS_SUBDIRECTORY)) {
             future.complete(UPLOADED_RECORDINGS_SUBDIRECTORY);
         } else if (subdirectory.getFileName().toString().equals(LOST_RECORDINGS_SUBDIRECTORY)) {
             future.complete(LOST_RECORDINGS_SUBDIRECTORY);
@@ -709,7 +709,7 @@ public class RecordingArchiveHelper {
             List<ArchiveDirectory> directories = new ArrayList<>();
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             for (String subdirectoryName : subdirectories) {
-                if (subdirectoryName.equals("file-uploads")) {
+                if (subdirectoryName.equals(TEMP_UPLOADS_SUBDIRECTORY)) {
                     continue;
                 }
                 Path subdirectory = archivedRecordingsPath.resolve(subdirectoryName);
@@ -911,27 +911,6 @@ public class RecordingArchiveHelper {
         if (!exists) {
             throw new RecordingSourceTargetNotFoundException(decodedTargetId);
         }
-    }
-
-    // Returns serviceUri associated with jvmId
-    public String validateJvmId(String jvmId) throws JvmIdDoesNotExistException {
-        var ref =
-                this.platformClient.listDiscoverableServices().stream()
-                        .filter(
-                                target -> {
-                                    try {
-                                        return jvmIdHelper
-                                                .getJvmId(target.getServiceUri().toString())
-                                                .equals(jvmId);
-                                    } catch (JvmIdGetException e) {
-                                        return false;
-                                    }
-                                })
-                        .findFirst();
-
-        return ref.orElseThrow(() -> new JvmIdDoesNotExistException(jvmId))
-                .getServiceUri()
-                .toString();
     }
 
     private void validateRecordingPath(
@@ -1195,21 +1174,8 @@ public class RecordingArchiveHelper {
                 });
     }
 
-    public FileUpload getTempFileUpload(Collection<FileUpload> fileUploads) {
-        FileUpload upload = null;
-        for (var fu : fileUploads) {
-            if (fu.name().equals("recording")) {
-                upload = fu;
-                break;
-            } else {
-                deleteTempFileUpload(fu);
-            }
-        }
-        return upload;
-    }
-
     public void deleteTempFileUpload(FileUpload upload) {
-        Path p = archivedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        Path p = archivedRecordingsPath.resolve(TEMP_UPLOADS_SUBDIRECTORY).resolve(upload.uploadedFileName());
         vertx.fileSystem().deleteBlocking(p.toString());
     }
 

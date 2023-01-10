@@ -45,10 +45,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -63,6 +65,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -116,6 +119,8 @@ class RecordingsFromIdPostHandlerTest {
     // this is the basename file name timestamp (December 19, 2019)
     long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
     String mockJvmId = "someJvmId";
+    @Mock ServiceRef mockServiceRef;
+    @Mock URI mockConnectUri;
     String mockConnectUrl = "someConnectUrl";
 
     @BeforeEach
@@ -132,6 +137,8 @@ class RecordingsFromIdPostHandlerTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient().when(mockServiceRef.getServiceUri()).thenReturn(mockConnectUri);
+        lenient().when(mockConnectUri.toString()).thenReturn(mockConnectUrl);
         this.handler =
                 new RecordingsFromIdPostHandler(
                         authManager,
@@ -210,12 +217,13 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
 
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenReturn(mockConnectUrl);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
         when(jvmIdHelper.jvmIdToSubdirectoryName(mockJvmId)).thenReturn(subdirectoryName);
         when(recordingArchiveHelper.getArchivedTimeFromTimestamp(Mockito.anyString()))
                 .thenReturn(expectedArchivedTime);
@@ -363,9 +371,10 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenReturn(mockConnectUrl);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -533,7 +542,8 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(null);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(null);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
@@ -557,10 +567,11 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn("");
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenReturn(mockConnectUrl);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
@@ -589,11 +600,12 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
 
         when(upload.fileName()).thenReturn(filename);
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenReturn(mockConnectUrl);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
@@ -623,10 +635,11 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenReturn(mockConnectUrl);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels);
@@ -659,11 +672,12 @@ class RecordingsFromIdPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        JvmIdDoesNotExistException jidnee = Mockito.mock(JvmIdDoesNotExistException.class);
-        when(jidnee.getMessage()).thenReturn(mockJvmId);
-        when(recordingArchiveHelper.validateJvmId(mockJvmId)).thenThrow(jidnee);
+        // JvmIdDoesNotExistException jidnee = Mockito.mock(JvmIdDoesNotExistException.class);
+        // when(jidnee.getMessage()).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.empty());
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));

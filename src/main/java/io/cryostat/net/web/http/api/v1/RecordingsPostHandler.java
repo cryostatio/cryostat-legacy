@@ -167,7 +167,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             throw new HttpException(503, "Recording saving not available");
         }
 
-        FileUpload upload = recordingArchiveHelper.getTempFileUpload(ctx.fileUploads());
+        FileUpload upload =
+                webServer
+                        .get()
+                        .getTempFileUpload(
+                                ctx.fileUploads(),
+                                savedRecordingsPath.resolve(
+                                        RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
+                                RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
             throw new HttpException(400, "No recording submission");
         }

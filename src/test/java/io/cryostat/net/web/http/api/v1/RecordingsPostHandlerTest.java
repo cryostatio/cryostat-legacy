@@ -170,7 +170,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
         when(recordingArchiveHelper.getArchivedTimeFromTimestamp(Mockito.anyString()))
@@ -323,7 +324,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
 
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
@@ -491,7 +493,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(null);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(null);
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
@@ -514,7 +517,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn("");
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
@@ -544,7 +548,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
 
         when(upload.fileName()).thenReturn(filename);
 
@@ -576,7 +581,8 @@ class RecordingsPostHandlerTest {
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
-        when(recordingArchiveHelper.getTempFileUpload(Mockito.any())).thenReturn(upload);
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
 
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();

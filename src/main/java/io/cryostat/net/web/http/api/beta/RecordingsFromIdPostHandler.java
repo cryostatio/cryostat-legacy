@@ -170,7 +170,14 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             throw new ApiException(503, "Recording saving not available");
         }
 
-        FileUpload upload = recordingArchiveHelper.getTempFileUpload(ctx.fileUploads());
+        FileUpload upload =
+                webServer
+                        .get()
+                        .getTempFileUpload(
+                                ctx.fileUploads(),
+                                savedRecordingsPath.resolve(
+                                        RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
+                                RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
             throw new ApiException(400, "No recording submission");
         }
@@ -178,7 +185,11 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         String jvmId = ctx.pathParam("jvmId");
         final String connectUrl;
         try {
-            connectUrl = recordingArchiveHelper.validateJvmId(jvmId);
+            connectUrl =
+                    idHelper.reverseLookup(jvmId)
+                            .orElseThrow(() -> new JvmIdDoesNotExistException(jvmId))
+                            .getServiceUri()
+                            .toString();
             if (connectUrl == null) {
                 throw new JvmIdDoesNotExistException(jvmId);
             }

@@ -47,6 +47,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,7 @@ import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -315,6 +317,20 @@ public class WebServer extends AbstractVerticle {
 
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
+    }
+
+    public FileUpload getTempFileUpload(
+            Collection<FileUpload> fileUploads, Path tempUploadPath, String name) {
+        FileUpload upload = null;
+        for (var fu : fileUploads) {
+            if (fu.name().equals(name)) {
+                upload = fu;
+            } else {
+                vertx.fileSystem()
+                        .deleteBlocking(tempUploadPath.resolve(fu.uploadedFileName()).toString());
+            }
+        }
+        return upload;
     }
 
     static class ApiErrorResponse extends ApiResponse<ApiErrorData> {
