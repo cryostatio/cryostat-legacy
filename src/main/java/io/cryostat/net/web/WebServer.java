@@ -113,12 +113,12 @@ public class WebServer extends AbstractVerticle {
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
-
     }
 
     @Override
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        Router router = Router.router(server.getVertx()); // a vertx is only available after server started
+        Router router =
+                Router.router(server.getVertx()); // a vertx is only available after server started
 
         var fs = server.getVertx().fileSystem();
         var fileUploads = recordingsPath.resolve("file-uploads").toAbsolutePath().toString();
