@@ -39,38 +39,50 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.NoopAuthManager;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import org.apache.commons.lang3.StringUtils;
 
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
-    private final Logger logger;
-    private final AuthManager authMgr;
-    private final FileSystem fs;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    protected final Logger logger;
+    protected final AuthManager authMgr;
+    protected final Environment env;
+    protected final FileSystem fs;
+    protected final Lazy<JFRConnectionToolkit> connectionToolkit;
     private KubernetesClient k8sClient;
 
     KubeApiPlatformStrategy(
             Logger logger,
-            NoopAuthManager authMgr,
+            AuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            Environment env,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
+        this.env = env;
         this.fs = fs;
         try {
-            this.k8sClient = new DefaultKubernetesClient();
+            this.k8sClient =
+                    new KubernetesClientBuilder()
+                            .withTaskExecutor(ForkJoinPool.commonPool())
+                            .build();
         } catch (Exception e) {
             logger.info(e);
             this.k8sClient = null;
@@ -89,7 +101,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
             return false;
         }
         try {
-            String namespace = getNamespace();
+            String namespace = getOwnNamespace();
             if (namespace == null) {
                 return false;
             }
@@ -105,7 +117,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, logger);
+        return new KubeApiPlatformClient(getNamespaces(), k8sClient, connectionToolkit, logger);
     }
 
     @Override
@@ -113,8 +125,20 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         return authMgr;
     }
 
+    protected List<String> getNamespaces() {
+        // TODO should the own-namespace always be implied or should it be required for the user to
+        // explicitly specify?
+        List<String> list = new ArrayList<>();
+        list.add(getOwnNamespace());
+        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
+        if (StringUtils.isNotBlank(cfg)) {
+            list.addAll(Arrays.asList(cfg.split(",")));
+        }
+        return list;
+    }
+
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    private String getNamespace() {
+    protected String getOwnNamespace() {
         try {
             return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
         } catch (IOException e) {

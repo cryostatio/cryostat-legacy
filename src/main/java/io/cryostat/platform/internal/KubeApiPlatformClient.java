@@ -38,8 +38,10 @@
 package io.cryostat.platform.internal;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,28 +74,35 @@ import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
+    private static final long ENDPOINTS_INFORMER_RESYNC_PERIOD = Duration.ofSeconds(30).toMillis();
     private static final String REALM = "KubernetesApi";
+
     private final KubernetesClient k8sClient;
-    private SharedIndexInformer<Endpoints> endpointsInformer;
+    private final Map<String, SharedIndexInformer<Endpoints>> nsInformers = new HashMap<>();
     private Integer memoHash;
     private EnvironmentNode memoTree;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
-    private final String namespace;
-    private final Map<Pair<String, String>, Pair<HasMetadata, EnvironmentNode>> discoveryNodeCache =
+    private final Map<Triple<String, String, String>, Pair<HasMetadata, EnvironmentNode>>
+            discoveryNodeCache = new ConcurrentHashMap<>();
+    private final Map<Triple<String, String, String>, Object> queryLocks =
             new ConcurrentHashMap<>();
-    private final Map<Pair<String, String>, Object> queryLocks = new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
-            String namespace,
+            List<String> namespaces,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Logger logger) {
-        this.namespace = namespace;
+        // TODO add support for some wildcard indicating a single Informer for any namespace that
+        // Cryostat has permissions to. This will need some restructuring of how the namespaces
+        // within the discovery tree are mapped.
+        namespaces.forEach(ns -> nsInformers.putIfAbsent(ns, null));
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;
         this.logger = logger;
@@ -101,92 +110,19 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public void start() {
-        startInformer();
-    }
-
-    private SharedIndexInformer<Endpoints> getInformer() {
-        startInformer();
-        return endpointsInformer;
-    }
-
-    private void startInformer() {
-        if (endpointsInformer != null && endpointsInformer.isRunning()) {
-            return;
-        }
-        if (endpointsInformer != null) {
-            endpointsInformer.stop();
-            endpointsInformer.close();
-        }
-        try {
-            endpointsInformer =
-                    k8sClient
-                            .endpoints()
-                            .inNamespace(namespace)
-                            .inform(
-                                    new ResourceEventHandler<Endpoints>() {
-                                        @Override
-                                        public void onAdd(Endpoints endpoints) {
-                                            getServiceRefs(endpoints)
-                                                    .forEach(
-                                                            serviceRef ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.FOUND,
-                                                                            serviceRef));
-                                        }
-
-                                        @Override
-                                        public void onUpdate(
-                                                Endpoints oldEndpoints, Endpoints newEndpoints) {
-                                            List<ServiceRef> previousRefs =
-                                                    getServiceRefs(oldEndpoints);
-                                            List<ServiceRef> currentRefs =
-                                                    getServiceRefs(newEndpoints);
-
-                                            if (previousRefs.equals(currentRefs)) {
-                                                return;
-                                            }
-
-                                            Set<ServiceRef> added = new HashSet<>(currentRefs);
-                                            added.removeAll(previousRefs);
-
-                                            Set<ServiceRef> removed = new HashSet<>(previousRefs);
-                                            removed.removeAll(currentRefs);
-
-                                            removed.stream()
-                                                    .forEach(
-                                                            sr ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.LOST, sr));
-                                            added.stream()
-                                                    .forEach(
-                                                            sr ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.FOUND, sr));
-                                        }
-
-                                        @Override
-                                        public void onDelete(
-                                                Endpoints endpoints,
-                                                boolean deletedFinalStateUnknown) {
-                                            if (deletedFinalStateUnknown) {
-                                                logger.warn(
-                                                        "Deleted final state unknown: {}",
-                                                        endpoints);
-                                                return;
-                                            }
-                                            getServiceRefs(endpoints)
-                                                    .forEach(
-                                                            serviceRef ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.LOST,
-                                                                            serviceRef));
-                                        }
-                                    },
-                                    30 * 1_000L);
-            logger.info("Started Endpoints SharedInformer");
-        } catch (Exception e) {
-            logger.error(e);
-        }
+        var copyKeys = new HashSet<>(nsInformers.keySet());
+        copyKeys.forEach(
+                ns -> {
+                    nsInformers.put(
+                            ns,
+                            k8sClient
+                                    .endpoints()
+                                    .inNamespace(ns)
+                                    .inform(
+                                            new EndpointsHandler(),
+                                            ENDPOINTS_INFORMER_RESYNC_PERIOD));
+                    logger.info("Started Endpoints SharedInformer for namespace \"{}\"", ns);
+                });
     }
 
     @Override
@@ -201,26 +137,40 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public EnvironmentNode getDiscoveryTree() {
-        List<Endpoints> store = getInformer().getStore().list();
-        if (Objects.equals(memoHash, store.hashCode())) {
+        int currentHash = 0;
+        HashCodeBuilder hcb = new HashCodeBuilder();
+        for (var informer : nsInformers.values()) {
+            List<Endpoints> store = informer.getStore().list();
+            hcb.append(store.hashCode());
+        }
+        currentHash = hcb.build();
+        if (Objects.equals(memoHash, currentHash)) {
             logger.trace("Using memoized discovery tree");
             return new EnvironmentNode(memoTree);
         }
-        memoHash = store.hashCode();
-        EnvironmentNode nsNode = new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
+        memoHash = currentHash;
         EnvironmentNode realmNode =
-                new EnvironmentNode(
-                        REALM, BaseNodeType.REALM, Collections.emptyMap(), Set.of(nsNode));
-        try {
-            store.stream()
-                    .flatMap(endpoints -> getTargetTuples(endpoints).stream())
-                    .forEach(tuple -> buildOwnerChain(nsNode, tuple));
-        } catch (Exception e) {
-            logger.warn(e);
-        } finally {
-            discoveryNodeCache.clear();
-            queryLocks.clear();
-        }
+                new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), Set.of());
+        nsInformers
+                .entrySet()
+                .forEach(
+                        entry -> {
+                            var namespace = entry.getKey();
+                            var store = entry.getValue().getStore().list();
+                            EnvironmentNode nsNode =
+                                    new EnvironmentNode(namespace, KubernetesNodeType.NAMESPACE);
+                            try {
+                                store.stream()
+                                        .flatMap(endpoints -> getTargetTuples(endpoints).stream())
+                                        .forEach(tuple -> buildOwnerChain(nsNode, tuple));
+                            } catch (Exception e) {
+                                logger.warn(e);
+                            } finally {
+                                discoveryNodeCache.clear();
+                                queryLocks.clear();
+                            }
+                            realmNode.addChildNode(nsNode);
+                        });
         memoTree = realmNode;
         return realmNode;
     }
@@ -243,7 +193,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             // add that to the Namespace
 
             Pair<HasMetadata, EnvironmentNode> pod =
-                    discoveryNodeCache.computeIfAbsent(cacheKey(target), this::queryForNode);
+                    discoveryNodeCache.computeIfAbsent(
+                            cacheKey(target.getNamespace(), target), this::queryForNode);
             pod.getRight()
                     .addChildNode(
                             new TargetNode(
@@ -284,26 +235,29 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         if (owners.isEmpty()) {
             return null;
         }
+        String namespace = childRef.getMetadata().getNamespace();
         OwnerReference owner =
                 owners.stream()
                         .filter(o -> KubernetesNodeType.fromKubernetesKind(o.getKind()) != null)
                         .findFirst()
                         .orElse(owners.get(0));
-        return discoveryNodeCache.computeIfAbsent(cacheKey(owner), this::queryForNode);
+        return discoveryNodeCache.computeIfAbsent(cacheKey(namespace, owner), this::queryForNode);
     }
 
-    private Pair<String, String> cacheKey(OwnerReference resource) {
-        return Pair.of(resource.getKind(), resource.getName());
+    private Triple<String, String, String> cacheKey(String ns, OwnerReference resource) {
+        return Triple.of(ns, resource.getKind(), resource.getName());
     }
 
     // Unfortunately, ObjectReference and OwnerReference both independently implement getKind and
     // getName - they don't come from a common base class.
-    private Pair<String, String> cacheKey(ObjectReference resource) {
-        return Pair.of(resource.getKind(), resource.getName());
+    private Triple<String, String, String> cacheKey(String ns, ObjectReference resource) {
+        return Triple.of(ns, resource.getKind(), resource.getName());
     }
 
-    private Pair<HasMetadata, EnvironmentNode> queryForNode(Pair<String, String> lookupKey) {
-        KubernetesNodeType nodeType = KubernetesNodeType.fromKubernetesKind(lookupKey.getLeft());
+    private Pair<HasMetadata, EnvironmentNode> queryForNode(
+            Triple<String, String, String> lookupKey) {
+        String namespace = lookupKey.getLeft();
+        KubernetesNodeType nodeType = KubernetesNodeType.fromKubernetesKind(lookupKey.getMiddle());
         String nodeName = lookupKey.getRight();
         if (nodeType == null) {
             return null;
@@ -326,7 +280,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private List<ServiceRef> getAllServiceRefs() {
-        return getInformer().getStore().list().stream()
+        return nsInformers.values().stream()
+                .flatMap(i -> i.getStore().list().stream())
                 .flatMap(endpoints -> getServiceRefs(endpoints).stream())
                 .collect(Collectors.toList());
     }
@@ -353,6 +308,43 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 .collect(Collectors.toList());
     }
 
+    private final class EndpointsHandler implements ResourceEventHandler<Endpoints> {
+        @Override
+        public void onAdd(Endpoints endpoints) {
+            getServiceRefs(endpoints)
+                    .forEach(serviceRef -> notifyAsyncTargetDiscovery(EventKind.FOUND, serviceRef));
+        }
+
+        @Override
+        public void onUpdate(Endpoints oldEndpoints, Endpoints newEndpoints) {
+            List<ServiceRef> previousRefs = getServiceRefs(oldEndpoints);
+            List<ServiceRef> currentRefs = getServiceRefs(newEndpoints);
+
+            if (previousRefs.equals(currentRefs)) {
+                return;
+            }
+
+            Set<ServiceRef> added = new HashSet<>(currentRefs);
+            added.removeAll(previousRefs);
+
+            Set<ServiceRef> removed = new HashSet<>(previousRefs);
+            removed.removeAll(currentRefs);
+
+            removed.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+            added.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+        }
+
+        @Override
+        public void onDelete(Endpoints endpoints, boolean deletedFinalStateUnknown) {
+            if (deletedFinalStateUnknown) {
+                logger.warn("Deleted final state unknown: {}", endpoints);
+                return;
+            }
+            getServiceRefs(endpoints)
+                    .forEach(serviceRef -> notifyAsyncTargetDiscovery(EventKind.LOST, serviceRef));
+        }
+    }
+
     private class TargetTuple {
         ObjectReference objRef;
         EndpointAddress addr;
@@ -368,7 +360,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             try {
                 Pair<HasMetadata, EnvironmentNode> node =
                         discoveryNodeCache.computeIfAbsent(
-                                cacheKey(objRef), KubeApiPlatformClient.this::queryForNode);
+                                cacheKey(objRef.getNamespace(), objRef),
+                                KubeApiPlatformClient.this::queryForNode);
                 String targetName = objRef.getName();
                 URI uri =
                         URIUtil.convert(

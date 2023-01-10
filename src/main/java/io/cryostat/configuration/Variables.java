@@ -66,6 +66,7 @@ public final class Variables {
     public static final String AUTH_MANAGER_ENV_VAR = "CRYOSTAT_AUTH_MANAGER";
     public static final String DISABLE_BUILTIN_DISCOVERY = "CRYOSTAT_DISABLE_BUILTIN_DISCOVERY";
     public static final String DISCOVERY_PING_PERIOD_MS = "CRYOSTAT_DISCOVERY_PING_PERIOD";
+    public static final String K8S_NAMESPACES = "CRYOSTAT_K8S_NAMESPACES";
 
     // webserver configuration
     public static final String WEBSERVER_HOST = "CRYOSTAT_WEB_HOST";
