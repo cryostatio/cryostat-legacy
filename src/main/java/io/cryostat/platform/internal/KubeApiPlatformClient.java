@@ -40,6 +40,7 @@ package io.cryostat.platform.internal;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,6 +76,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -84,7 +87,35 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     private static final String REALM = "KubernetesApi";
 
     private final KubernetesClient k8sClient;
-    private final Map<String, SharedIndexInformer<Endpoints>> nsInformers = new HashMap<>();
+    private final Set<String> namespaces;
+    private final LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>> nsInformers =
+            new LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>>() {
+                @Override
+                protected HashMap<String, SharedIndexInformer<Endpoints>> initialize()
+                        throws ConcurrentException {
+                    // TODO add support for some wildcard indicating a single Informer for any
+                    // namespace that
+                    // Cryostat has permissions to. This will need some restructuring of how the
+                    // namespaces
+                    // within the discovery tree are mapped.
+                    var result = new HashMap<String, SharedIndexInformer<Endpoints>>();
+                    namespaces.forEach(
+                            ns -> {
+                                result.put(
+                                        ns,
+                                        k8sClient
+                                                .endpoints()
+                                                .inNamespace(ns)
+                                                .inform(
+                                                        new EndpointsHandler(),
+                                                        ENDPOINTS_INFORMER_RESYNC_PERIOD));
+                                logger.info(
+                                        "Started Endpoints SharedInformer for namespace \"{}\"",
+                                        ns);
+                            });
+                    return result;
+                }
+            };
     private Integer memoHash;
     private EnvironmentNode memoTree;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
@@ -95,14 +126,11 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
-            List<String> namespaces,
+            Collection<String> namespaces,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Logger logger) {
-        // TODO add support for some wildcard indicating a single Informer for any namespace that
-        // Cryostat has permissions to. This will need some restructuring of how the namespaces
-        // within the discovery tree are mapped.
-        namespaces.forEach(ns -> nsInformers.putIfAbsent(ns, null));
+        this.namespaces = new HashSet<>(namespaces);
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;
         this.logger = logger;
@@ -110,19 +138,11 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     @Override
     public void start() {
-        var copyKeys = new HashSet<>(nsInformers.keySet());
-        copyKeys.forEach(
-                ns -> {
-                    nsInformers.put(
-                            ns,
-                            k8sClient
-                                    .endpoints()
-                                    .inNamespace(ns)
-                                    .inform(
-                                            new EndpointsHandler(),
-                                            ENDPOINTS_INFORMER_RESYNC_PERIOD));
-                    logger.info("Started Endpoints SharedInformer for namespace \"{}\"", ns);
-                });
+        try {
+            nsInformers.get(); // trigger lazy init
+        } catch (ConcurrentException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -139,7 +159,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     public EnvironmentNode getDiscoveryTree() {
         int currentHash = 0;
         HashCodeBuilder hcb = new HashCodeBuilder();
-        for (var informer : nsInformers.values()) {
+        Map<String, SharedIndexInformer<Endpoints>> informers = safeGetInformers();
+        for (var informer : informers.values()) {
             List<Endpoints> store = informer.getStore().list();
             hcb.append(store.hashCode());
         }
@@ -151,7 +172,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         memoHash = currentHash;
         EnvironmentNode realmNode =
                 new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), Set.of());
-        nsInformers
+        informers
                 .entrySet()
                 .forEach(
                         entry -> {
@@ -173,6 +194,16 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         });
         memoTree = realmNode;
         return realmNode;
+    }
+
+    private Map<String, SharedIndexInformer<Endpoints>> safeGetInformers() {
+        Map<String, SharedIndexInformer<Endpoints>> informers;
+        try {
+            informers = nsInformers.get();
+        } catch (ConcurrentException e) {
+            throw new IllegalStateException(e);
+        }
+        return informers;
     }
 
     private void buildOwnerChain(EnvironmentNode nsNode, TargetTuple targetTuple) {
@@ -280,7 +311,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private List<ServiceRef> getAllServiceRefs() {
-        return nsInformers.values().stream()
+        return safeGetInformers().values().stream()
                 .flatMap(i -> i.getStore().list().stream())
                 .flatMap(endpoints -> getServiceRefs(endpoints).stream())
                 .collect(Collectors.toList());
