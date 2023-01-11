@@ -78,6 +78,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
@@ -323,27 +324,91 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
-        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+        EnvironmentNode originalTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, updatedChildren);
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        Set<TargetNode> previousLeaves = findLeavesFrom(original);
+        Set<TargetNode> previousLeaves = findLeavesFrom(originalTree);
         Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
-        Set<TargetNode> added = new HashSet<>(currentLeaves);
-        added.removeAll(previousLeaves);
-
-        Set<TargetNode> removed = new HashSet<>(previousLeaves);
-        removed.removeAll(currentLeaves);
-
-        removed.stream()
+        Set<TargetNode> updated = getUpdatedLeaves(previousLeaves, currentLeaves);
+        updated.stream()
                 .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
+
+        Set<TargetNode> added =
+                removeAllUpdatedLeaves(
+                        getAddedOrUpdatedLeaves(previousLeaves, currentLeaves), updated);
         added.stream()
                 .map(TargetNode::getTarget)
                 .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+
+        Set<TargetNode> removed =
+                removeAllUpdatedLeaves(
+                        getRemovedOrUpdatedLeaves(previousLeaves, currentLeaves), updated);
+        removed.stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+
         return currentTree.getChildren();
+    }
+
+    public Set<TargetNode> getAddedOrUpdatedLeaves(
+            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
+        Set<TargetNode> added = new HashSet<>(currentLeaves);
+        added.removeAll(previousLeaves);
+        return added;
+    }
+
+    public Set<TargetNode> getRemovedOrUpdatedLeaves(
+            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
+        Set<TargetNode> removed = new HashSet<>(previousLeaves);
+        removed.removeAll(currentLeaves);
+        return removed;
+    }
+
+    public Set<TargetNode> getUpdatedLeaves(
+            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
+        Set<TargetNode> added = getAddedOrUpdatedLeaves(previousLeaves, currentLeaves);
+        Set<TargetNode> removed = getRemovedOrUpdatedLeaves(previousLeaves, currentLeaves);
+        Set<TargetNode> updated = new HashSet<>();
+
+        // Manual set intersection since ServiceRef also compares jvmId
+        for (TargetNode addedTNode : added) {
+            ServiceRef atServiceRef = addedTNode.getTarget();
+            for (TargetNode removedTNode : removed) {
+                if (new EqualsBuilder()
+                        .append(
+                                atServiceRef.getServiceUri(),
+                                removedTNode.getTarget().getServiceUri())
+                        .isEquals()) {
+                    updated.add(addedTNode);
+                }
+            }
+        }
+
+        return updated;
+    }
+
+    public Set<TargetNode> removeAllUpdatedLeaves(Set<TargetNode> src, Set<TargetNode> updated) {
+        Set<TargetNode> tnSet = new HashSet<>(src);
+
+        // Manual removal since ServiceRef also compares jvmId
+        for (TargetNode srcTNode : src) {
+            ServiceRef stServiceRef = srcTNode.getTarget();
+            for (TargetNode updatedTNode : updated) {
+                if (new EqualsBuilder()
+                        .append(
+                                stServiceRef.getServiceUri(),
+                                updatedTNode.getTarget().getServiceUri())
+                        .isEquals()) {
+                    tnSet.remove(srcTNode);
+                }
+            }
+        }
+
+        return tnSet;
     }
 
     public PluginInfo deregister(UUID id) {

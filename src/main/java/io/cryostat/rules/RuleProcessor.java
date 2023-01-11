@@ -231,6 +231,8 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             case LOST:
                 deactivate(null, tde.getServiceRef());
                 break;
+            case MODIFIED:
+                break;
             default:
                 throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
