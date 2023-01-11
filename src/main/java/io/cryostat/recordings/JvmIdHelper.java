@@ -40,6 +40,8 @@ package io.cryostat.recordings;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -77,6 +79,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     private final Logger logger;
 
     private final AsyncLoadingCache<String, String> ids;
+    private final Map<String, ServiceRef> reverse;
 
     JvmIdHelper(
             TargetConnectionManager targetConnectionManager,
@@ -112,6 +115,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                             break;
                     }
                 });
+        this.reverse = new HashMap<>();
     }
 
     private boolean observe(ServiceRef sr) {
@@ -119,6 +123,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         if (StringUtils.isBlank(sr.getJvmId())) {
             return false;
         }
+        reverse.put(sr.getJvmId(), sr);
         ids.put(sr.getServiceUri().toString(), CompletableFuture.completedFuture(sr.getJvmId()));
         return true;
     }
@@ -150,11 +155,16 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             updated.setLabels(sr.getLabels());
             updated.setPlatformAnnotations(sr.getPlatformAnnotations());
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
+            reverse.put(id, sr);
             return updated;
         } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
             logger.warn("Could not resolve jvmId for target {}", uriStr);
             throw new JvmIdGetException(e, uriStr);
         }
+    }
+
+    public Optional<ServiceRef> reverseLookup(String jvmId) {
+        return Optional.ofNullable(this.reverse.get(jvmId));
     }
 
     private CompletableFuture<String> computeJvmId(
@@ -216,10 +226,9 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         return base32.encodeAsString(jvmId.getBytes(StandardCharsets.UTF_8));
     }
 
-    // FIXME: refactor structure to remove file-uploads (v1 RecordingsPostBodyHandler)
     public boolean isSpecialDirectory(String directoryName) {
         return directoryName.equals(RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)
-                || directoryName.equals("file-uploads")
+                || directoryName.equals(RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY)
                 || directoryName.equals(RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY);
     }
 
@@ -238,6 +247,12 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
 
         public String getTarget() {
             return targetId;
+        }
+    }
+
+    public static class JvmIdDoesNotExistException extends IOException {
+        public JvmIdDoesNotExistException(String jvmId) {
+            super(jvmId);
         }
     }
 

@@ -35,7 +35,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+
+package io.cryostat.net.web.http.api.beta;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -44,10 +45,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,7 +64,10 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -72,15 +78,16 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -92,9 +99,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingsPostHandlerTest {
+class RecordingsFromIdPostHandlerTest {
 
-    RecordingsPostHandler handler;
+    RecordingsFromIdPostHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock FileSystem cryoFs;
@@ -103,6 +110,7 @@ class RecordingsPostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock JvmIdHelper jvmIdHelper;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
     @Mock Logger logger;
@@ -110,6 +118,10 @@ class RecordingsPostHandlerTest {
 
     // this is the basename file name timestamp (December 19, 2019)
     long expectedArchivedTime = Instant.parse("2019-12-19T21:38:34.00Z").toEpochMilli();
+    String mockJvmId = "someJvmId";
+    @Mock ServiceRef mockServiceRef;
+    @Mock URI mockConnectUri;
+    String mockConnectUrl = "someConnectUrl";
 
     @BeforeEach
     void setup() {
@@ -125,37 +137,72 @@ class RecordingsPostHandlerTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
+        lenient().when(mockServiceRef.getServiceUri()).thenReturn(mockConnectUri);
+        lenient().when(mockConnectUri.toString()).thenReturn(mockConnectUrl);
         this.handler =
-                new RecordingsPostHandler(
+                new RecordingsFromIdPostHandler(
                         authManager,
                         credentialsManager,
-                        cryoFs,
-                        recordingsPath,
                         gson,
+                        cryoFs,
+                        jvmIdHelper,
                         notificationFactory,
-                        () -> webServer,
                         recordingArchiveHelper,
                         recordingMetadataManager,
+                        recordingsPath,
+                        () -> webServer,
                         logger);
     }
 
-    @Test
-    void shouldBeLowerPriority() {
-        MatcherAssert.assertThat(
-                handler.getPriority(), Matchers.greaterThan(RequestHandler.DEFAULT_PRIORITY));
-    }
+    @Nested
+    class ApiSpec {
 
-    @Test
-    void shouldHaveExpectedRequiredPermissions() {
-        MatcherAssert.assertThat(
-                handler.resourceActions(),
-                Matchers.equalTo(Set.of(ResourceAction.CREATE_RECORDING)));
+        @Test
+        void shouldHandlePOSTRequest() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.POST));
+        }
+
+        @Test
+        void shouldHandleCorrectPath() {
+            MatcherAssert.assertThat(
+                    handler.path(), Matchers.equalTo("/api/beta/recordings/:jvmId"));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(),
+                    Matchers.equalTo(Set.of(ResourceAction.CREATE_RECORDING)));
+        }
+
+        @Test
+        void shouldNotBeAsyncHandler() {
+            Assertions.assertTrue(handler.isAsync());
+        }
+
+        @Test
+        void shouldBeOrderedHandler() {
+            Assertions.assertTrue(handler.isOrdered());
+        }
+
+        @Test
+        void shouldProduceJson() {
+            MatcherAssert.assertThat(
+                    handler.produces(), Matchers.equalTo(List.of(HttpMimeType.JSON)));
+        }
+
+        @Test
+        void shouldConsumeMultipartForm() {
+            MatcherAssert.assertThat(
+                    handler.consumes(), Matchers.equalTo(List.of(HttpMimeType.MULTIPART_FORM)));
+        }
     }
 
     @Test
     void shouldHandleRecordingUploadRequest() throws Exception {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
+        String subdirectoryName = "mockSubdirectory";
 
         RoutingContext ctx = mock(RoutingContext.class);
 
@@ -174,6 +221,10 @@ class RecordingsPostHandlerTest {
                 .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
+
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
+        when(jvmIdHelper.jvmIdToSubdirectoryName(mockJvmId)).thenReturn(subdirectoryName);
         when(recordingArchiveHelper.getArchivedTimeFromTimestamp(Mockito.anyString()))
                 .thenReturn(expectedArchivedTime);
 
@@ -274,7 +325,7 @@ class RecordingsPostHandlerTest {
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
-                        RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY,
+                        mockConnectUrl,
                         filename,
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
@@ -291,18 +342,14 @@ class RecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(
-                        Map.of(
-                                "recording",
-                                recordingInfo,
-                                "target",
-                                RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl)));
     }
 
     @Test
     void shouldHandleRecordingUploadRequestWithLabels() throws Exception {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
+        String subdirectoryName = "mockSubdirectory";
         Map<String, String> labels = Map.of("key", "value", "key1", "value1");
         Metadata metadata = new Metadata(labels);
 
@@ -326,9 +373,12 @@ class RecordingsPostHandlerTest {
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(upload);
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
+        when(jvmIdHelper.jvmIdToSubdirectoryName(mockJvmId)).thenReturn(subdirectoryName);
         when(recordingArchiveHelper.getArchivedTimeFromTimestamp(Mockito.anyString()))
                 .thenReturn(expectedArchivedTime);
 
@@ -421,7 +471,9 @@ class RecordingsPostHandlerTest {
                             }
                         });
 
-        Mockito.when(recordingMetadataManager.setRecordingMetadata(filename, metadata))
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadataFromPath(
+                                subdirectoryName, filename, metadata))
                 .thenReturn(CompletableFuture.completedFuture(metadata));
 
         handler.handle(ctx);
@@ -432,7 +484,7 @@ class RecordingsPostHandlerTest {
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
-                        RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY,
+                        mockConnectUrl,
                         filename,
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
@@ -446,14 +498,10 @@ class RecordingsPostHandlerTest {
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+
         MatcherAssert.assertThat(
                 messageCaptor.getValue(),
-                Matchers.equalTo(
-                        Map.of(
-                                "recording",
-                                recordingInfo,
-                                "target",
-                                RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY)));
+                Matchers.equalTo(Map.of("recording", recordingInfo, "target", mockConnectUrl)));
     }
 
     @Test
@@ -472,9 +520,10 @@ class RecordingsPostHandlerTest {
 
         when(ctx.fileUploads()).thenReturn(List.of());
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(), Matchers.equalTo("No recording submission"));
     }
 
     @Test
@@ -496,9 +545,10 @@ class RecordingsPostHandlerTest {
         when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(null);
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(), Matchers.equalTo("No recording submission"));
     }
 
     @Test
@@ -520,17 +570,19 @@ class RecordingsPostHandlerTest {
         when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(upload);
         when(upload.fileName()).thenReturn("");
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
+                ex.getFailureReason(), Matchers.equalTo("Recording name must not be empty"));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
 
     @Test
-    void shouldHandleIncorrectFileNamePattern() {
+    void shouldHandleIncorrectFileNamePattern() throws JvmIdDoesNotExistException {
         String basename = "incorrect_file_name";
         String filename = basename + ".jfr";
 
@@ -552,17 +604,19 @@ class RecordingsPostHandlerTest {
                 .thenReturn(upload);
 
         when(upload.fileName()).thenReturn(filename);
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getPayload(), Matchers.equalTo("Incorrect recording file name pattern"));
+                ex.getFailureReason(), Matchers.equalTo("Incorrect recording file name pattern"));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
 
     @Test
-    void shouldHandleInvalidLabels() {
+    void shouldHandleInvalidLabels() throws JvmIdDoesNotExistException {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
         String labels = "invalid";
@@ -584,6 +638,8 @@ class RecordingsPostHandlerTest {
         when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(upload);
         when(upload.fileName()).thenReturn(filename);
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.of(mockServiceRef));
 
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels);
@@ -593,9 +649,41 @@ class RecordingsPostHandlerTest {
                 .when(recordingMetadataManager)
                 .parseRecordingLabels(labels);
 
-        HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Invalid labels"));
+        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("Invalid labels"));
+
+        verify(recordingArchiveHelper).deleteTempFileUpload(upload);
+    }
+
+    @Test
+    void shouldHandleInvalidJvmId() throws Exception {
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateHttpHeader(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+
+        FileUpload upload = mock(FileUpload.class);
+        when(ctx.fileUploads()).thenReturn(List.of(upload));
+        when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(upload);
+        when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
+        // JvmIdDoesNotExistException jidnee = Mockito.mock(JvmIdDoesNotExistException.class);
+        // when(jidnee.getMessage()).thenReturn(mockJvmId);
+        when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.empty());
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(),
+                Matchers.equalTo(String.format("jvmId [%s] must be valid ", mockJvmId)));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }

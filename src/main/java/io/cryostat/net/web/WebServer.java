@@ -44,15 +44,20 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Named;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -71,6 +76,7 @@ import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -88,6 +94,7 @@ public class WebServer extends AbstractVerticle {
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final List<RequestHandler> requestHandlers;
+    private final Path recordingsPath;
     private final Gson gson;
     private final AuthManager auth;
     private final Logger logger;
@@ -98,11 +105,13 @@ public class WebServer extends AbstractVerticle {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
-            Logger logger) {
+            Logger logger,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
         this.server = server;
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
         Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
+        this.recordingsPath = recordingsPath;
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
@@ -112,6 +121,12 @@ public class WebServer extends AbstractVerticle {
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
         Router router =
                 Router.router(server.getVertx()); // a vertx is only available after server started
+
+        var fs = server.getVertx().fileSystem();
+        var fileUploads = recordingsPath.resolve("file-uploads").toAbsolutePath().toString();
+        if (!fs.existsBlocking(fileUploads)) {
+            fs.mkdirBlocking(fileUploads);
+        }
 
         // error page handler
         Handler<RoutingContext> failureHandler =
@@ -302,6 +317,20 @@ public class WebServer extends AbstractVerticle {
 
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
+    }
+
+    public FileUpload getTempFileUpload(
+            Collection<FileUpload> fileUploads, Path tempUploadPath, String name) {
+        FileUpload upload = null;
+        for (var fu : fileUploads) {
+            if (fu.name().equals(name)) {
+                upload = fu;
+            } else {
+                vertx.fileSystem()
+                        .deleteBlocking(tempUploadPath.resolve(fu.uploadedFileName()).toString());
+            }
+        }
+        return upload;
     }
 
     static class ApiErrorResponse extends ApiResponse<ApiErrorData> {

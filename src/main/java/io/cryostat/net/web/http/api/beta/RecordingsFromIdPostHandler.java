@@ -35,7 +35,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+
+package io.cryostat.net.web.http.api.beta;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -65,6 +66,9 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -76,54 +80,52 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 
-class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "recordings";
+    static final String PATH = "recordings/:jvmId";
+
+    private final Gson gson;
+    private final Logger logger;
 
     private final FileSystem fs;
-    private final Path savedRecordingsPath;
-    private final Gson gson;
+    private final JvmIdHelper idHelper;
     private final NotificationFactory notificationFactory;
-    private final Provider<WebServer> webServer;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
-    private final Logger logger;
+    private final Path savedRecordingsPath;
+    private final Provider<WebServer> webServer;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
     @Inject
-    RecordingsPostHandler(
+    RecordingsFromIdPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
+            FileSystem fs,
+            JvmIdHelper idHelper,
             NotificationFactory notificationFactory,
-            Provider<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            Provider<WebServer> webServer,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.fs = fs;
-        this.savedRecordingsPath = savedRecordingsPath;
-        this.gson = gson;
+        this.idHelper = idHelper;
         this.notificationFactory = notificationFactory;
-        this.webServer = webServer;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.savedRecordingsPath = savedRecordingsPath;
+        this.webServer = webServer;
+        this.gson = gson;
         this.logger = logger;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public int getPriority() {
-        return DEFAULT_PRIORITY + 10;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -163,8 +165,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
+
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpException(503, "Recording saving not available");
+            throw new ApiException(503, "Recording saving not available");
         }
 
         FileUpload upload =
@@ -176,13 +179,30 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
                                 RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
-            throw new HttpException(400, "No recording submission");
+            throw new ApiException(400, "No recording submission");
         }
+
+        String jvmId = ctx.pathParam("jvmId");
+        final String connectUrl;
+        try {
+            connectUrl =
+                    idHelper.reverseLookup(jvmId)
+                            .orElseThrow(() -> new JvmIdDoesNotExistException(jvmId))
+                            .getServiceUri()
+                            .toString();
+            if (connectUrl == null) {
+                throw new JvmIdDoesNotExistException(jvmId);
+            }
+        } catch (JvmIdDoesNotExistException e) {
+            recordingArchiveHelper.deleteTempFileUpload(upload);
+            throw new ApiException(400, String.format("jvmId [%s] must be valid ", e.getMessage()));
+        }
+        String subdirectoryName = idHelper.jvmIdToSubdirectoryName(jvmId);
 
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Recording name must not be empty");
+            throw new ApiException(400, "Recording name must not be empty");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -192,7 +212,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         Matcher m = RecordingArchiveHelper.RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Incorrect recording file name pattern");
+            throw new ApiException(400, "Incorrect recording file name pattern");
         }
 
         MultiMap attrs = ctx.request().formAttributes();
@@ -205,7 +225,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             }
         } catch (IllegalArgumentException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Invalid labels");
+            throw new ApiException(400, "Invalid labels");
         }
         Metadata metadata = new Metadata(labels);
 
@@ -221,7 +241,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         ? 0
                         : Integer.parseInt(m.group(4).substring(1));
 
-        final String subdirectoryName = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         recordingArchiveHelper.validateRecording(
@@ -231,19 +250,19 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                 subdirectoryName,
                                 basename,
                                 uploadedFileName,
-                                RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY,
+                                connectUrl,
                                 count,
                                 (res2) -> {
                                     if (res2.failed()) {
-                                        ctx.fail(res2.cause());
-                                        return;
+                                        throw new ApiException(500, res2.cause());
                                     }
 
                                     String fsName = res2.result();
                                     try {
                                         if (hasLabels) {
                                             recordingMetadataManager
-                                                    .setRecordingMetadata(fsName, metadata)
+                                                    .setRecordingMetadataFromPath(
+                                                            subdirectoryName, fsName, metadata)
                                                     .get();
                                         }
 
@@ -251,8 +270,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                             | ExecutionException
                                             | IOException e) {
                                         logger.error(e);
-                                        ctx.fail(new HttpException(500, e));
-                                        return;
+                                        throw new ApiException(500, e);
                                     }
 
                                     try {
@@ -265,31 +283,30 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                         Map.of(
                                                                 "recording",
                                                                 new ArchivedRecordingInfo(
-                                                                        subdirectoryName,
+                                                                        connectUrl,
                                                                         fsName,
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedDownloadURL(
-                                                                                        subdirectoryName,
+                                                                                        connectUrl,
                                                                                         fsName),
                                                                         webServer
                                                                                 .get()
                                                                                 .getArchivedReportURL(
-                                                                                        subdirectoryName,
+                                                                                        connectUrl,
                                                                                         fsName),
                                                                         metadata,
                                                                         size,
                                                                         archivedTime),
                                                                 "target",
-                                                                subdirectoryName))
+                                                                connectUrl))
                                                 .build()
                                                 .send();
                                     } catch (URISyntaxException
                                             | UnknownHostException
                                             | SocketException e) {
                                         logger.error(e);
-                                        ctx.fail(new HttpException(500, e));
-                                        return;
+                                        throw new ApiException(500, e);
                                     }
 
                                     ctx.response()

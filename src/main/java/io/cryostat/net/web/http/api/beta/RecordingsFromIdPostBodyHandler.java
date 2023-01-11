@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -59,12 +59,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+public class RecordingsFromIdPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     private final BodyHandler bodyHandler;
 
     @Inject
-    RecordingsPostBodyHandler(
+    RecordingsFromIdPostBodyHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
@@ -72,12 +72,19 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
             Logger logger) {
         super(auth, credentialsManager, logger);
         Path fileUploads = recordingsPath.resolve(RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY);
-        this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
+        this.bodyHandler =
+                BodyHandler.create(true)
+                        .setUploadsDirectory(fileUploads.toAbsolutePath().toString());
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.BETA;
     }
 
     @Override
@@ -92,7 +99,7 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return basePath() + RecordingsPostHandler.PATH;
+        return basePath() + RecordingsFromIdPostHandler.PATH;
     }
 
     @Override
