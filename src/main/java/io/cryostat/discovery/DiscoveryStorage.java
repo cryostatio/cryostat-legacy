@@ -162,7 +162,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                         gson.fromJson(
                                                                 plugin.getSubtree(),
                                                                 EnvironmentNode.class);
-                                                update(id, original.getChildren(), false);
+                                                update(id, original.getChildren());
                                             }
                                         } catch (JsonSyntaxException | ScriptException e) {
                                             throw new RuntimeException(e);
@@ -318,11 +318,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
-        return update(id, children, true);
-    }
-
-    public List<? extends AbstractNode> update(
-            UUID id, Collection<? extends AbstractNode> children, boolean notify) {
         var updatedChildren =
                 modifyChildrenWithJvmIds(id, Objects.requireNonNull(children, "children"));
 
@@ -333,23 +328,21 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        if (notify) {
-            Set<TargetNode> previousLeaves = findLeavesFrom(original);
-            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        Set<TargetNode> previousLeaves = findLeavesFrom(original);
+        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
 
-            Set<TargetNode> added = new HashSet<>(currentLeaves);
-            added.removeAll(previousLeaves);
+        Set<TargetNode> added = new HashSet<>(currentLeaves);
+        added.removeAll(previousLeaves);
 
-            Set<TargetNode> removed = new HashSet<>(previousLeaves);
-            removed.removeAll(currentLeaves);
+        Set<TargetNode> removed = new HashSet<>(previousLeaves);
+        removed.removeAll(currentLeaves);
 
-            removed.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-            added.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-        }
+        removed.stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        added.stream()
+                .map(TargetNode::getTarget)
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
         return currentTree.getChildren();
     }
 
