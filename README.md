@@ -134,6 +134,7 @@ Cryostat can be configured via the following environment variables:
 * `CRYOSTAT_JDP_PORT`: the JDP multicast port to send discovery packets. Defaults to `7095`.
 * `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory. Defaults to `/opt/cryostat.d/conf.d`.
 * `CRYOSTAT_DISABLE_BUILTIN_DISCOVERY`: set to `true` to disable built-in target discovery mechanisms (see `CRYOSTAT_PLATFORM`). Custom Target "discovery" remains available, but discovery via JDP, Kubernetes API, or Kubernetes environment variable is disabled and ignored. This will still allow platform detection to automatically select an `AuthManager`. This is intended for use when Cryostat Discovery Plugins are the only desired mechanism for locating target applications. See #936 and [cryostat-agent](https://github.com/cryostatio/cryostat-agent). Defaults to `false`.
+* `CRYOSTAT_K8S_NAMESPACES`: set to a comma-separated list of Namespaces that Cryostat should query to discover target JVM applications with its built-in discovey mechanism.
 
 #### Configuration for Automated Analysis Reports
 
