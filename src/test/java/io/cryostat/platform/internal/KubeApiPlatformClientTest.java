@@ -97,7 +97,8 @@ class KubeApiPlatformClientTest {
     @BeforeEach
     void setup() throws Exception {
         this.platformClient =
-                new KubeApiPlatformClient(NAMESPACE, k8sClient, () -> connectionToolkit, logger);
+                new KubeApiPlatformClient(
+                        List.of(NAMESPACE), k8sClient, () -> connectionToolkit, logger);
     }
 
     @Test

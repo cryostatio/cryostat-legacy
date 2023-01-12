@@ -37,44 +37,33 @@
  */
 package io.cryostat.platform.internal;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.openshift.OpenShiftAuthManager;
 
 import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
-    private final Logger logger;
-    private final AuthManager authMgr;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final FileSystem fs;
     private OpenShiftClient osClient;
 
     OpenShiftPlatformStrategy(
             Logger logger,
-            OpenShiftAuthManager authMgr,
+            AuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            Environment env,
             FileSystem fs) {
-        this.logger = logger;
-        this.authMgr = authMgr;
-        this.fs = fs;
+        super(logger, authMgr, connectionToolkit, env, fs);
         try {
             this.osClient = new DefaultOpenShiftClient();
         } catch (Exception e) {
             logger.info(e);
             this.osClient = null;
         }
-        this.connectionToolkit = connectionToolkit;
     }
 
     @Override
@@ -89,7 +78,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
             return false;
         }
         try {
-            String namespace = getNamespace();
+            String namespace = getOwnNamespace();
             if (namespace == null) {
                 return false;
             }
@@ -104,21 +93,11 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
+        return super.getPlatformClient();
     }
 
     @Override
     public AuthManager getAuthManager() {
         return authMgr;
-    }
-
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    private String getNamespace() {
-        try {
-            return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
-        } catch (IOException e) {
-            logger.trace(e);
-            return null;
-        }
     }
 }
