@@ -328,80 +328,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        Set<TargetNode> previousLeaves = findLeavesFrom(originalTree);
-        Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        Set<ServiceRef> previousRefs = getRefsFromLeaves(findLeavesFrom(originalTree));
+        Set<ServiceRef> currentRefs = getRefsFromLeaves(findLeavesFrom(currentTree));
 
-        Set<TargetNode> updated = getUpdatedLeaves(previousLeaves, currentLeaves);
-        updated.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
+        Set<ServiceRef> updated = ServiceRef.getUpdatedRefs(previousRefs, currentRefs);
+        updated.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
 
-        Set<TargetNode> added =
-                removeAllUpdatedLeaves(
-                        getAddedOrUpdatedLeaves(previousLeaves, currentLeaves), updated);
-        added.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+        Set<ServiceRef> added =
+                ServiceRef.removeAllUpdatedRefs(
+                        ServiceRef.getAddedOrUpdatedRefs(previousRefs, currentRefs), updated);
+        added.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
 
-        Set<TargetNode> removed =
-                removeAllUpdatedLeaves(
-                        getRemovedOrUpdatedLeaves(previousLeaves, currentLeaves), updated);
-        removed.stream()
-                .map(TargetNode::getTarget)
-                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        Set<ServiceRef> removed =
+                ServiceRef.removeAllUpdatedRefs(
+                        ServiceRef.getRemovedOrUpdatedRefs(previousRefs, currentRefs), updated);
+        removed.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
 
         return currentTree.getChildren();
-    }
-
-    public Set<TargetNode> getAddedOrUpdatedLeaves(
-            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
-        Set<TargetNode> added = new HashSet<>(currentLeaves);
-        added.removeAll(previousLeaves);
-        return added;
-    }
-
-    public Set<TargetNode> getRemovedOrUpdatedLeaves(
-            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
-        Set<TargetNode> removed = new HashSet<>(previousLeaves);
-        removed.removeAll(currentLeaves);
-        return removed;
-    }
-
-    public Set<TargetNode> getUpdatedLeaves(
-            Set<TargetNode> previousLeaves, Set<TargetNode> currentLeaves) {
-        Set<TargetNode> added = getAddedOrUpdatedLeaves(previousLeaves, currentLeaves);
-        Set<TargetNode> removed = getRemovedOrUpdatedLeaves(previousLeaves, currentLeaves);
-        Set<TargetNode> updated = new HashSet<>();
-
-        // Manual set intersection since ServiceRef also compares jvmId
-        for (TargetNode addedTNode : added) {
-            ServiceRef atServiceRef = addedTNode.getTarget();
-            for (TargetNode removedTNode : removed) {
-                if (Objects.equals(
-                        atServiceRef.getServiceUri(), removedTNode.getTarget().getServiceUri())) {
-                    updated.add(addedTNode);
-                }
-            }
-        }
-
-        return updated;
-    }
-
-    public Set<TargetNode> removeAllUpdatedLeaves(Set<TargetNode> src, Set<TargetNode> updated) {
-        Set<TargetNode> tnSet = new HashSet<>(src);
-
-        // Manual removal since ServiceRef also compares jvmId
-        for (TargetNode srcTNode : src) {
-            ServiceRef stServiceRef = srcTNode.getTarget();
-            for (TargetNode updatedTNode : updated) {
-                if (Objects.equals(
-                        stServiceRef.getServiceUri(), updatedTNode.getTarget().getServiceUri())) {
-                    tnSet.remove(srcTNode);
-                }
-            }
-        }
-
-        return tnSet;
     }
 
     public PluginInfo deregister(UUID id) {
@@ -456,6 +399,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             return targets;
         }
         throw new IllegalArgumentException(node.getClass().getCanonicalName());
+    }
+
+    public Set<ServiceRef> getRefsFromLeaves(Set<TargetNode> leaves) {
+        final Set<ServiceRef> refs = new HashSet<>();
+        leaves.stream().map(TargetNode::getTarget).forEach(r -> refs.add(r));
+        return refs;
     }
 
     public static class NotFoundException extends RuntimeException {

@@ -41,9 +41,11 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -217,5 +219,53 @@ public class ServiceRef {
         POD_NAME,
         REALM,
         ;
+    }
+
+    public static Set<ServiceRef> getAddedOrUpdatedRefs(
+            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
+        Set<ServiceRef> added = new HashSet<>(currentRefs);
+        added.removeAll(previousRefs);
+        return added;
+    }
+
+    public static Set<ServiceRef> getRemovedOrUpdatedRefs(
+            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
+        Set<ServiceRef> removed = new HashSet<>(previousRefs);
+        removed.removeAll(currentRefs);
+        return removed;
+    }
+
+    public static Set<ServiceRef> getUpdatedRefs(
+            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
+        Set<ServiceRef> added = getAddedOrUpdatedRefs(previousRefs, currentRefs);
+        Set<ServiceRef> removed = getRemovedOrUpdatedRefs(previousRefs, currentRefs);
+        Set<ServiceRef> updated = new HashSet<>();
+
+        // Manual set intersection since ServiceRef also compares jvmId
+        for (ServiceRef addedRef : added) {
+            for (ServiceRef removedRef : removed) {
+                if (Objects.equals(addedRef.getServiceUri(), removedRef.getServiceUri())) {
+                    updated.add(addedRef);
+                }
+            }
+        }
+
+        return updated;
+    }
+
+    public static Set<ServiceRef> removeAllUpdatedRefs(
+            Set<ServiceRef> src, Set<ServiceRef> updated) {
+        Set<ServiceRef> tnSet = new HashSet<>(src);
+
+        // Manual removal since ServiceRef also compares jvmId
+        for (ServiceRef srcRef : src) {
+            for (ServiceRef updatedRef : updated) {
+                if (Objects.equals(srcRef.getServiceUri(), updatedRef.getServiceUri())) {
+                    tnSet.remove(srcRef);
+                }
+            }
+        }
+
+        return tnSet;
     }
 }
