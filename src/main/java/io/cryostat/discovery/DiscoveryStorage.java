@@ -78,7 +78,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
@@ -378,11 +377,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         for (TargetNode addedTNode : added) {
             ServiceRef atServiceRef = addedTNode.getTarget();
             for (TargetNode removedTNode : removed) {
-                if (new EqualsBuilder()
-                        .append(
-                                atServiceRef.getServiceUri(),
-                                removedTNode.getTarget().getServiceUri())
-                        .isEquals()) {
+                if (Objects.equals(
+                        atServiceRef.getServiceUri(), removedTNode.getTarget().getServiceUri())) {
                     updated.add(addedTNode);
                 }
             }
@@ -398,11 +394,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         for (TargetNode srcTNode : src) {
             ServiceRef stServiceRef = srcTNode.getTarget();
             for (TargetNode updatedTNode : updated) {
-                if (new EqualsBuilder()
-                        .append(
-                                stServiceRef.getServiceUri(),
-                                updatedTNode.getTarget().getServiceUri())
-                        .isEquals()) {
+                if (Objects.equals(
+                        stServiceRef.getServiceUri(), updatedTNode.getTarget().getServiceUri())) {
                     tnSet.remove(srcTNode);
                 }
             }

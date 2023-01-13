@@ -454,10 +454,7 @@ class DiscoveryStorageTest {
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
 
             ServiceRef nextServiceRef =
-                    new ServiceRef(
-                            "id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
-                            "nextServiceRef");
+                    new ServiceRef("new_id", prevServiceRef.getServiceUri(), "nextServiceRef");
             TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
@@ -480,14 +477,12 @@ class DiscoveryStorageTest {
             List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
             MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(nextTarget)));
-            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
+            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(1));
 
-            TargetDiscoveryEvent lostEvent =
-                    new TargetDiscoveryEvent(EventKind.LOST, prevServiceRef);
-            TargetDiscoveryEvent foundEvent =
-                    new TargetDiscoveryEvent(EventKind.FOUND, nextServiceRef);
-            MatcherAssert.assertThat(
-                    discoveryEvents, Matchers.containsInRelativeOrder(lostEvent, foundEvent));
+            TargetDiscoveryEvent modifiedEvent =
+                    new TargetDiscoveryEvent(EventKind.MODIFIED, nextServiceRef);
+            System.out.println(modifiedEvent.getServiceRef());
+            MatcherAssert.assertThat(discoveryEvents, Matchers.contains(modifiedEvent));
         }
     }
 
