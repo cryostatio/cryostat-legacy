@@ -246,19 +246,9 @@ public class ServiceRef {
         }
 
         public Collection<ServiceRef> updated() {
-            Collection<ServiceRef> added = addedOrUpdatedRefs();
-            Collection<ServiceRef> removed = removedOrUpdatedRefs();
             Collection<ServiceRef> updated = new HashSet<>();
-
-            // Manual Collection intersection since ServiceRef also compares jvmId
-            for (ServiceRef addedRef : added) {
-                for (ServiceRef removedRef : removed) {
-                    if (Objects.equals(addedRef.getServiceUri(), removedRef.getServiceUri())) {
-                        updated.add(addedRef);
-                    }
-                }
-            }
-
+            intersection(removedOrUpdatedRefs(), addedOrUpdatedRefs(), false)
+                    .forEach((ref) -> updated.add(ref));
             return updated;
         }
 
@@ -277,17 +267,24 @@ public class ServiceRef {
         private Collection<ServiceRef> removeAllUpdatedRefs(
                 Collection<ServiceRef> src, Collection<ServiceRef> updated) {
             Collection<ServiceRef> tnSet = new HashSet<>(src);
+            intersection(src, updated, true).stream().forEach((ref) -> tnSet.remove(ref));
+            return tnSet;
+        }
+
+        private Collection<ServiceRef> intersection(
+                Collection<ServiceRef> src, Collection<ServiceRef> other, boolean keepOld) {
+            final Collection<ServiceRef> intersection = new HashSet<>();
 
             // Manual removal since ServiceRef also compares jvmId
             for (ServiceRef srcRef : src) {
-                for (ServiceRef updatedRef : updated) {
-                    if (Objects.equals(srcRef.getServiceUri(), updatedRef.getServiceUri())) {
-                        tnSet.remove(srcRef);
+                for (ServiceRef otherRef : other) {
+                    if (Objects.equals(srcRef.getServiceUri(), otherRef.getServiceUri())) {
+                        intersection.add(keepOld ? srcRef : otherRef);
                     }
                 }
             }
 
-            return tnSet;
+            return intersection;
         }
     }
 }
