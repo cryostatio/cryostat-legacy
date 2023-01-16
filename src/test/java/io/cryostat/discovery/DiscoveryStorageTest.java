@@ -454,10 +454,7 @@ class DiscoveryStorageTest {
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
 
             ServiceRef nextServiceRef =
-                    new ServiceRef(
-                            "id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
-                            "nextServiceRef");
+                    new ServiceRef("new_id", prevServiceRef.getServiceUri(), "nextServiceRef");
             TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
@@ -480,14 +477,12 @@ class DiscoveryStorageTest {
             List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
             MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(nextTarget)));
-            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
+            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(1));
 
-            TargetDiscoveryEvent lostEvent =
-                    new TargetDiscoveryEvent(EventKind.LOST, prevServiceRef);
-            TargetDiscoveryEvent foundEvent =
-                    new TargetDiscoveryEvent(EventKind.FOUND, nextServiceRef);
-            MatcherAssert.assertThat(
-                    discoveryEvents, Matchers.containsInRelativeOrder(lostEvent, foundEvent));
+            TargetDiscoveryEvent modifiedEvent =
+                    new TargetDiscoveryEvent(EventKind.MODIFIED, nextServiceRef);
+            System.out.println(modifiedEvent.getServiceRef());
+            MatcherAssert.assertThat(discoveryEvents, Matchers.contains(modifiedEvent));
         }
     }
 
@@ -687,21 +682,41 @@ class DiscoveryStorageTest {
                         null,
                         URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
                         "serviceRef1");
+        ServiceRef updatedServiceRef1 =
+                new ServiceRef(
+                        serviceRef1.getAlias().get(),
+                        serviceRef1.getServiceUri(),
+                        serviceRef1.getAlias().get());
         ServiceRef serviceRef2 =
                 new ServiceRef(
                         null,
                         URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
                         "serviceRef2");
+        ServiceRef updatedServiceRef2 =
+                new ServiceRef(
+                        serviceRef2.getAlias().get(),
+                        serviceRef2.getServiceUri(),
+                        serviceRef2.getAlias().get());
         ServiceRef serviceRef3 =
                 new ServiceRef(
                         null,
                         URI.create("service:jmx:rmi:///jndi/rmi://localhost:3/jmxrmi"),
                         "serviceRef3");
+        ServiceRef updatedServiceRef3 =
+                new ServiceRef(
+                        serviceRef3.getAlias().get(),
+                        serviceRef3.getServiceUri(),
+                        serviceRef3.getAlias().get());
         ServiceRef serviceRef4 =
                 new ServiceRef(
                         null,
                         URI.create("service:jmx:rmi:///jndi/rmi://localhost:4/jmxrmi"),
                         "serviceRef4");
+        ServiceRef updatedServiceRef4 =
+                new ServiceRef(
+                        serviceRef4.getAlias().get(),
+                        serviceRef4.getServiceUri(),
+                        serviceRef4.getAlias().get());
         TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
         TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
         TargetNode target3 = new TargetNode(BaseNodeType.JVM, serviceRef3);
@@ -713,7 +728,10 @@ class DiscoveryStorageTest {
                 new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target4));
         EnvironmentNode realm2 =
                 new EnvironmentNode(
-                        "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2, agent));
+                        "next",
+                        BaseNodeType.REALM,
+                        Map.of(),
+                        Set.of(target4, target1, target2, agent));
 
         PluginInfo prevPlugin =
                 new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
@@ -735,13 +753,19 @@ class DiscoveryStorageTest {
                             }
                         });
 
+        List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
+        storage.addTargetDiscoveryListener(discoveryEvents::add);
+
         var updatedSubtree = storage.update(id, List.of(realm2));
         MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
         MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
-        for (AbstractNode node : updatedSubtree) {
 
-            if (node instanceof TargetNode) {
-                TargetNode target = (TargetNode) node;
+        AbstractNode node = updatedSubtree.get(0); // realm2
+        MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
+
+        for (AbstractNode childNode : ((EnvironmentNode) node).getChildren()) {
+            if (childNode instanceof TargetNode) {
+                TargetNode target = (TargetNode) childNode;
                 MatcherAssert.assertThat(
                         target.getTarget().getAlias().isPresent(), Matchers.is(true));
                 MatcherAssert.assertThat(target.getTarget().getJvmId(), Matchers.notNullValue());
@@ -749,22 +773,28 @@ class DiscoveryStorageTest {
                         target.getTarget().getJvmId(),
                         Matchers.equalTo(target.getTarget().getAlias().get()));
             } else {
-                MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
-                EnvironmentNode env = (EnvironmentNode) node;
-                for (AbstractNode nested : env.getChildren()) {
-                    if (nested instanceof TargetNode) {
-                        TargetNode target = (TargetNode) nested;
-                        MatcherAssert.assertThat(
-                                target.getTarget().getAlias().isPresent(), Matchers.is(true));
-                        MatcherAssert.assertThat(
-                                target.getTarget().getJvmId(), Matchers.notNullValue());
-                        MatcherAssert.assertThat(
-                                target.getTarget().getJvmId(),
-                                Matchers.equalTo(target.getTarget().getAlias().get()));
-                    }
+                MatcherAssert.assertThat(childNode, Matchers.instanceOf(EnvironmentNode.class));
+                for (AbstractNode nestedNode : ((EnvironmentNode) childNode).getChildren()) {
+                    TargetNode target = (TargetNode) nestedNode;
+                    MatcherAssert.assertThat(
+                            target.getTarget().getAlias().isPresent(), Matchers.is(true));
+                    MatcherAssert.assertThat(
+                            target.getTarget().getJvmId(), Matchers.notNullValue());
+                    MatcherAssert.assertThat(
+                            target.getTarget().getJvmId(),
+                            Matchers.equalTo(target.getTarget().getAlias().get()));
                 }
             }
         }
+
+        MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(4));
+        MatcherAssert.assertThat(
+                discoveryEvents,
+                Matchers.containsInAnyOrder(
+                        new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef1),
+                        new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef2),
+                        new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef3),
+                        new TargetDiscoveryEvent(EventKind.MODIFIED, updatedServiceRef4)));
     }
 
     @Test

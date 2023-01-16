@@ -660,8 +660,8 @@ class KubeApiPlatformClientTest {
                         .endSubset()
                         .build();
 
-        CountDownLatch latch = new CountDownLatch(3);
-        Queue<TargetDiscoveryEvent> events = new ArrayDeque<>(3);
+        CountDownLatch latch = new CountDownLatch(2);
+        Queue<TargetDiscoveryEvent> events = new ArrayDeque<>(2);
         platformClient.addTargetDiscoveryListener(
                 tde -> {
                     events.add(tde);
@@ -702,7 +702,7 @@ class KubeApiPlatformClientTest {
         latch.await();
         Thread.sleep(100); // to ensure no more events are coming
 
-        MatcherAssert.assertThat(events, Matchers.hasSize(3));
+        MatcherAssert.assertThat(events, Matchers.hasSize(2));
 
         ServiceRef original =
                 new ServiceRef(
@@ -740,16 +740,13 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.POD_NAME,
                         "modifiedTarget"));
 
-        TargetDiscoveryEvent found = events.remove();
-        MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        MatcherAssert.assertThat(found.getServiceRef(), Matchers.equalTo(original));
+        TargetDiscoveryEvent foundEvent = events.remove();
+        MatcherAssert.assertThat(foundEvent.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(foundEvent.getServiceRef(), Matchers.equalTo(original));
 
-        TargetDiscoveryEvent lost = events.remove();
-        MatcherAssert.assertThat(lost.getEventKind(), Matchers.equalTo(EventKind.LOST));
-        MatcherAssert.assertThat(lost.getServiceRef(), Matchers.equalTo(original));
-
-        TargetDiscoveryEvent refound = events.remove();
-        MatcherAssert.assertThat(refound.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        MatcherAssert.assertThat(refound.getServiceRef(), Matchers.equalTo(modified));
+        TargetDiscoveryEvent modifiedEvent = events.remove();
+        MatcherAssert.assertThat(
+                modifiedEvent.getEventKind(), Matchers.equalTo(EventKind.MODIFIED));
+        MatcherAssert.assertThat(modifiedEvent.getServiceRef(), Matchers.equalTo(modified));
     }
 }

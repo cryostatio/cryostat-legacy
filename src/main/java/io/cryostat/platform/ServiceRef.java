@@ -38,9 +38,11 @@
 package io.cryostat.platform;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -217,5 +219,72 @@ public class ServiceRef {
         POD_NAME,
         REALM,
         ;
+    }
+
+    public static Compare compare(Collection<ServiceRef> src) {
+        return new Compare(src);
+    }
+
+    public static class Compare {
+        private Collection<ServiceRef> previous, current;
+
+        public Compare(Collection<ServiceRef> previous) {
+            this.previous = new HashSet<>(previous);
+        }
+
+        public Compare to(Collection<ServiceRef> current) {
+            this.current = new HashSet<>(current);
+            return this;
+        }
+
+        public Collection<ServiceRef> added() {
+            return removeAllUpdatedRefs(addedOrUpdatedRefs(), updated());
+        }
+
+        public Collection<ServiceRef> removed() {
+            return removeAllUpdatedRefs(removedOrUpdatedRefs(), updated());
+        }
+
+        public Collection<ServiceRef> updated() {
+            Collection<ServiceRef> updated = new HashSet<>();
+            intersection(removedOrUpdatedRefs(), addedOrUpdatedRefs(), false)
+                    .forEach((ref) -> updated.add(ref));
+            return updated;
+        }
+
+        private Collection<ServiceRef> addedOrUpdatedRefs() {
+            Collection<ServiceRef> added = new HashSet<>(current);
+            added.removeAll(previous);
+            return added;
+        }
+
+        private Collection<ServiceRef> removedOrUpdatedRefs() {
+            Collection<ServiceRef> removed = new HashSet<>(previous);
+            removed.removeAll(current);
+            return removed;
+        }
+
+        private Collection<ServiceRef> removeAllUpdatedRefs(
+                Collection<ServiceRef> src, Collection<ServiceRef> updated) {
+            Collection<ServiceRef> tnSet = new HashSet<>(src);
+            intersection(src, updated, true).stream().forEach((ref) -> tnSet.remove(ref));
+            return tnSet;
+        }
+
+        private Collection<ServiceRef> intersection(
+                Collection<ServiceRef> src, Collection<ServiceRef> other, boolean keepOld) {
+            final Collection<ServiceRef> intersection = new HashSet<>();
+
+            // Manual removal since ServiceRef also compares jvmId
+            for (ServiceRef srcRef : src) {
+                for (ServiceRef otherRef : other) {
+                    if (Objects.equals(srcRef.getServiceUri(), otherRef.getServiceUri())) {
+                        intersection.add(keepOld ? srcRef : otherRef);
+                    }
+                }
+            }
+
+            return intersection;
+        }
     }
 }
