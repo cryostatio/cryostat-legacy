@@ -58,8 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -120,6 +122,8 @@ public class RecordingArchiveHelper {
     private final Vertx vertx;
     private final Base32 base32;
 
+    private final Map<String, Queue<String>> prevUploadedRecordings;
+
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
     private static final long FS_TIMEOUT_SECONDS = 1;
@@ -166,6 +170,7 @@ public class RecordingArchiveHelper {
         this.jvmIdHelper = jvmIdHelper;
         this.vertx = vertx;
         this.base32 = base32;
+        this.prevUploadedRecordings = new ConcurrentHashMap<String, Queue<String>>();
     }
 
     // startup migration for archived recordings
@@ -571,25 +576,23 @@ public class RecordingArchiveHelper {
     public boolean deleteReports(String subdirectoryName, String recordingName) {
         try {
             logger.info("Invalidating archived report cache for {}", recordingName);
-            boolean deleted = true;
-            for (String reportName :
-                    fs.listDirectoryChildren(
-                            archivedRecordingsReportPath.resolve(subdirectoryName))) {
+            Path reports = archivedRecordingsReportPath.resolve(subdirectoryName);
+            if (!fs.exists(reports)) {
+                return false;
+            }
+            for (String reportName : fs.listDirectoryChildren(reports)) {
                 if (reportName.startsWith(recordingName)) {
                     Path reportPath =
                             archivedRecordingsReportPath
                                     .resolve(subdirectoryName)
                                     .resolve(reportName)
                                     .toAbsolutePath();
-                    if (!fs.deleteIfExists(reportPath)) {
-                        logger.warn("Failed to delete report {}", reportPath);
-                        deleted = false;
-                    } else {
-                        logger.trace("Deleted report {}", reportName);
+                    if (fs.exists(reportPath)) {
+                        fs.deleteIfExists(reportPath);
                     }
                 }
             }
-            return deleted;
+            return true;
         } catch (IOException e) {
             logger.warn(e);
             return false;
@@ -1042,6 +1045,16 @@ public class RecordingArchiveHelper {
         }
     }
 
+    private long getLastModifiedTime(Path path) {
+        try {
+            FileTime fileTime = (FileTime) Files.getAttribute(path, "lastModifiedTime");
+            return fileTime.toMillis();
+        } catch (IOException e) {
+            logger.error("Invalid path: {}", path);
+            return 0;
+        }
+    }
+
     // Timestamp must be in form of 20191219T213834Z (YYYYMMDDTHHMMSSZ)
     // Used on the third regex matcher group of a Cryostat archived recording name
     public long getArchivedTimeFromTimestamp(String timestamp) {
@@ -1061,6 +1074,47 @@ public class RecordingArchiveHelper {
                             dtm.group(6));
             return Instant.parse(isoString).toEpochMilli();
         }
+    }
+
+    // Preconditions:
+    // 1. The uploaded recording(s) were saved to the fs before calling this method
+    public boolean pruneTargetUploads(String subdirectoryName, int maxUploads) throws IOException {
+        Path subdirectoryPath = this.archivedRecordingsPath.resolve(subdirectoryName);
+        if (!fs.exists(subdirectoryPath)) {
+            throw new IllegalArgumentException("Invalid path: " + subdirectoryPath);
+        }
+        List<String> recordings = fs.listDirectoryChildren(subdirectoryPath);
+        recordings.remove(CONNECT_URL);
+        if (recordings.size() <= maxUploads) {
+            return false;
+        }
+
+        List<Future<ArchivedRecordingInfo>> toDelete =
+                recordings.stream()
+                        .peek(n -> logger.trace("pruneTargetUploads: Recording: {}", n))
+                        .map(subdirectoryPath::resolve)
+                        .filter(fs::isRegularFile)
+                        .filter(n -> n.getFileName().toString().endsWith(".jfr"))
+                        .sorted(
+                                (Path p1, Path p2) ->
+                                        this.getLastModifiedTime(p1) > this.getLastModifiedTime(p2)
+                                                ? -1
+                                                : 1)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .skip(maxUploads)
+                        .map((String r) -> this.deleteRecordingFromPath(subdirectoryName, r))
+                        .toList();
+        if (toDelete.isEmpty()) {
+            return false;
+        }
+        try {
+            CompletableFuture.allOf(toDelete.toArray(new CompletableFuture[toDelete.size()])).get();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Failed to delete recordings: {}", e.getMessage());
+            return false;
+        }
+        return true;
     }
 
     public void saveUploadedRecording(
@@ -1131,7 +1185,6 @@ public class RecordingArchiveHelper {
                                                             makeFailedAsyncResult(res2.cause()));
                                                     return;
                                                 }
-
                                                 handler.handle(makeAsyncResult(filename));
                                             });
                         });

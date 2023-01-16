@@ -128,9 +128,7 @@ public abstract class DiscoveryModule {
     @Provides
     @IntoSet
     static PluggableTypeAdapter<?> provideBaseNodeTypeAdapter(
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters,
-            Lazy<JvmIdHelper> jvmIdHelper,
-            Logger logger) {
-        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, jvmIdHelper, logger);
+            Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
+        return new AbstractNodeTypeAdapter(AbstractNode.class, adapters, logger);
     }
 }
