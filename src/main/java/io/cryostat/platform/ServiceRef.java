@@ -229,11 +229,11 @@ public class ServiceRef {
         private Collection<ServiceRef> previous, current;
 
         public Compare(Collection<ServiceRef> previous) {
-            this.previous = previous;
+            this.previous = new HashSet<>(previous);
         }
 
         public Compare to(Collection<ServiceRef> current) {
-            this.current = current;
+            this.current = new HashSet<>(current);
             return this;
         }
 
