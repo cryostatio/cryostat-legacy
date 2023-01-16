@@ -355,18 +355,14 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 return;
             }
 
-            Set<ServiceRef> updated = ServiceRef.getUpdatedRefs(previousRefs, currentRefs);
-            updated.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
+            ServiceRef.compare(previousRefs).to(currentRefs).updated().stream()
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
 
-            Set<ServiceRef> added =
-                    ServiceRef.removeAllUpdatedRefs(
-                            ServiceRef.getAddedOrUpdatedRefs(previousRefs, currentRefs), updated);
-            added.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+            ServiceRef.compare(previousRefs).to(currentRefs).added().stream()
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
 
-            Set<ServiceRef> removed =
-                    ServiceRef.removeAllUpdatedRefs(
-                            ServiceRef.getRemovedOrUpdatedRefs(previousRefs, currentRefs), updated);
-            removed.stream().forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+            ServiceRef.compare(previousRefs).to(currentRefs).removed().stream()
+                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
         }
 
         @Override

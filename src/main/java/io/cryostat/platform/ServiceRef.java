@@ -38,6 +38,7 @@
 package io.cryostat.platform;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -45,7 +46,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -221,51 +221,73 @@ public class ServiceRef {
         ;
     }
 
-    public static Set<ServiceRef> getAddedOrUpdatedRefs(
-            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
-        Set<ServiceRef> added = new HashSet<>(currentRefs);
-        added.removeAll(previousRefs);
-        return added;
+    public static Compare compare(Collection<ServiceRef> src) {
+        return new Compare(src);
     }
 
-    public static Set<ServiceRef> getRemovedOrUpdatedRefs(
-            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
-        Set<ServiceRef> removed = new HashSet<>(previousRefs);
-        removed.removeAll(currentRefs);
-        return removed;
-    }
+    public static class Compare {
+        private Collection<ServiceRef> previous, current;
 
-    public static Set<ServiceRef> getUpdatedRefs(
-            Set<ServiceRef> previousRefs, Set<ServiceRef> currentRefs) {
-        Set<ServiceRef> added = getAddedOrUpdatedRefs(previousRefs, currentRefs);
-        Set<ServiceRef> removed = getRemovedOrUpdatedRefs(previousRefs, currentRefs);
-        Set<ServiceRef> updated = new HashSet<>();
-
-        // Manual set intersection since ServiceRef also compares jvmId
-        for (ServiceRef addedRef : added) {
-            for (ServiceRef removedRef : removed) {
-                if (Objects.equals(addedRef.getServiceUri(), removedRef.getServiceUri())) {
-                    updated.add(addedRef);
-                }
-            }
+        public Compare(Collection<ServiceRef> previous) {
+            this.previous = previous;
         }
 
-        return updated;
-    }
-
-    public static Set<ServiceRef> removeAllUpdatedRefs(
-            Set<ServiceRef> src, Set<ServiceRef> updated) {
-        Set<ServiceRef> tnSet = new HashSet<>(src);
-
-        // Manual removal since ServiceRef also compares jvmId
-        for (ServiceRef srcRef : src) {
-            for (ServiceRef updatedRef : updated) {
-                if (Objects.equals(srcRef.getServiceUri(), updatedRef.getServiceUri())) {
-                    tnSet.remove(srcRef);
-                }
-            }
+        public Compare to(Collection<ServiceRef> current) {
+            this.current = current;
+            return this;
         }
 
-        return tnSet;
+        public Collection<ServiceRef> added() {
+            return removeAllUpdatedRefs(addedOrUpdatedRefs(), updated());
+        }
+
+        public Collection<ServiceRef> removed() {
+            return removeAllUpdatedRefs(removedOrUpdatedRefs(), updated());
+        }
+
+        public Collection<ServiceRef> updated() {
+            Collection<ServiceRef> added = addedOrUpdatedRefs();
+            Collection<ServiceRef> removed = removedOrUpdatedRefs();
+            Collection<ServiceRef> updated = new HashSet<>();
+
+            // Manual Collection intersection since ServiceRef also compares jvmId
+            for (ServiceRef addedRef : added) {
+                for (ServiceRef removedRef : removed) {
+                    if (Objects.equals(addedRef.getServiceUri(), removedRef.getServiceUri())) {
+                        updated.add(addedRef);
+                    }
+                }
+            }
+
+            return updated;
+        }
+
+        private Collection<ServiceRef> addedOrUpdatedRefs() {
+            Collection<ServiceRef> added = new HashSet<>(current);
+            added.removeAll(previous);
+            return added;
+        }
+
+        private Collection<ServiceRef> removedOrUpdatedRefs() {
+            Collection<ServiceRef> removed = new HashSet<>(previous);
+            removed.removeAll(current);
+            return removed;
+        }
+
+        private Collection<ServiceRef> removeAllUpdatedRefs(
+                Collection<ServiceRef> src, Collection<ServiceRef> updated) {
+            Collection<ServiceRef> tnSet = new HashSet<>(src);
+
+            // Manual removal since ServiceRef also compares jvmId
+            for (ServiceRef srcRef : src) {
+                for (ServiceRef updatedRef : updated) {
+                    if (Objects.equals(srcRef.getServiceUri(), updatedRef.getServiceUri())) {
+                        tnSet.remove(srcRef);
+                    }
+                }
+            }
+
+            return tnSet;
+        }
     }
 }
