@@ -109,7 +109,7 @@
   <com.github.spotbugs.plugin.version>${com.github.spotbugs.version}.0</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.9.2</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
-  <org.mockito.version>4.11.0</org.mockito.version>
+  <org.mockito.version>5.0.0</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.8</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.30.0</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.15.3</org.jsoup.version>
