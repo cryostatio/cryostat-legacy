@@ -208,7 +208,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             }
         } catch (JvmIdDoesNotExistException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, String.format("jvmId must be valid: ", e.getMessage()));
+            throw new ApiException(400, String.format("jvmId must be valid: %s", e.getMessage()));
         }
         String subdirectoryName = idHelper.jvmIdToSubdirectoryName(jvmId);
 

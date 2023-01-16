@@ -106,6 +106,7 @@ class RecordingsFromIdPostHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock FileSystem cryoFs;
     @Mock Path recordingsPath;
+    String globalMaxFiles = "10";
     @Mock WebServer webServer;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -139,6 +140,7 @@ class RecordingsFromIdPostHandlerTest {
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         lenient().when(mockServiceRef.getServiceUri()).thenReturn(mockConnectUri);
         lenient().when(mockConnectUri.toString()).thenReturn(mockConnectUrl);
+
         this.handler =
                 new RecordingsFromIdPostHandler(
                         authManager,
@@ -150,6 +152,7 @@ class RecordingsFromIdPostHandlerTest {
                         recordingArchiveHelper,
                         recordingMetadataManager,
                         recordingsPath,
+                        globalMaxFiles,
                         () -> webServer,
                         logger);
     }
@@ -172,7 +175,12 @@ class RecordingsFromIdPostHandlerTest {
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(Set.of(ResourceAction.CREATE_RECORDING)));
+                    Matchers.equalTo(
+                            Set.of(
+                                    ResourceAction.CREATE_RECORDING,
+                                    ResourceAction.READ_RECORDING,
+                                    ResourceAction.DELETE_RECORDING,
+                                    ResourceAction.DELETE_REPORT)));
         }
 
         @Test
@@ -210,10 +218,12 @@ class RecordingsFromIdPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
+        when(req.formAttributes()).thenReturn(attrs);
+
         when(ctx.request()).thenReturn(req);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -360,10 +370,10 @@ class RecordingsFromIdPostHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels.toString());
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
+        when(req.formAttributes()).thenReturn(attrs);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
-        Mockito.when(recordingMetadataManager.parseRecordingLabels(labels.toString()))
-                .thenReturn(labels);
+        when(recordingMetadataManager.parseRecordingLabels(labels.toString())).thenReturn(labels);
 
         when(ctx.request()).thenReturn(req);
 
@@ -471,9 +481,8 @@ class RecordingsFromIdPostHandlerTest {
                             }
                         });
 
-        Mockito.when(
-                        recordingMetadataManager.setRecordingMetadataFromPath(
-                                subdirectoryName, filename, metadata))
+        when(recordingMetadataManager.setRecordingMetadataFromPath(
+                        subdirectoryName, filename, metadata))
                 .thenReturn(CompletableFuture.completedFuture(metadata));
 
         handler.handle(ctx);
@@ -517,6 +526,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         when(ctx.fileUploads()).thenReturn(List.of());
 
@@ -539,6 +549,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -564,6 +575,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -597,6 +609,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -632,6 +645,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -643,7 +657,7 @@ class RecordingsFromIdPostHandlerTest {
 
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels);
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
+        when(req.formAttributes()).thenReturn(attrs);
 
         Mockito.doThrow(new IllegalArgumentException())
                 .when(recordingMetadataManager)
@@ -669,21 +683,20 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
         when(webServer.getTempFileUpload(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(upload);
         when(ctx.pathParam("jvmId")).thenReturn(mockJvmId);
-        // JvmIdDoesNotExistException jidnee = Mockito.mock(JvmIdDoesNotExistException.class);
-        // when(jidnee.getMessage()).thenReturn(mockJvmId);
         when(jvmIdHelper.reverseLookup(mockJvmId)).thenReturn(Optional.empty());
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getFailureReason(),
-                Matchers.equalTo(String.format("jvmId [%s] must be valid ", mockJvmId)));
+                Matchers.equalTo(String.format("jvmId must be valid: %s", mockJvmId)));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }

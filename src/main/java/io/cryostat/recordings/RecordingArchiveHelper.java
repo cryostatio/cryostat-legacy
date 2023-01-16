@@ -576,11 +576,9 @@ public class RecordingArchiveHelper {
     public boolean deleteReports(String subdirectoryName, String recordingName) {
         try {
             logger.info("Invalidating archived report cache for {}", recordingName);
-            Path reports = archivedRecordingsReportPath.resolve(subdirectoryName);
-            if (!fs.exists(reports)) {
-                return false;
-            }
-            for (String reportName : fs.listDirectoryChildren(reports)) {
+            for (String reportName :
+                    fs.listDirectoryChildren(
+                            archivedRecordingsReportPath.resolve(subdirectoryName))) {
                 if (reportName.startsWith(recordingName)) {
                     Path reportPath =
                             archivedRecordingsReportPath
@@ -594,7 +592,6 @@ public class RecordingArchiveHelper {
             }
             return true;
         } catch (IOException e) {
-            logger.warn(e);
             return false;
         }
     }
