@@ -95,7 +95,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Path savedRecordingsPath;
-    private final String globalMaxFiles;
+    private final int globalMaxFiles;
     private final Provider<WebServer> webServer;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
@@ -111,7 +111,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            @Named(Variables.PUSH_MAX_FILES_ENV) String globalMaxFiles,
+            @Named(Variables.PUSH_MAX_FILES_ENV) int globalMaxFiles,
             Provider<WebServer> webServer,
             Logger logger) {
         super(auth, credentialsManager, logger);
@@ -178,7 +178,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             throw new ApiException(503, "Recording saving not available");
         }
 
-        String maxFilesParam = ctx.request().getParam("maxFiles", globalMaxFiles);
+        String maxFilesParam = ctx.request().getParam("maxFiles", String.valueOf(globalMaxFiles));
         int maxFiles;
         try {
             maxFiles = Integer.parseInt(maxFilesParam);
