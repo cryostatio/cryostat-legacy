@@ -178,8 +178,14 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             throw new ApiException(503, "Recording saving not available");
         }
 
-        int maxFiles = Integer.parseInt(ctx.request().getParam("maxFiles", globalMaxFiles));
-        if (maxFiles <= 0) {
+        String maxFilesParam = ctx.request().getParam("maxFiles", globalMaxFiles);
+        int maxFiles;
+        try {
+            maxFiles = Integer.parseInt(maxFilesParam);
+            if (maxFiles <= 0) {
+                throw new ApiException(400, "maxFiles must be a positive integer");
+            }
+        } catch (NumberFormatException e) {
             throw new ApiException(400, "maxFiles must be a positive integer");
         }
 

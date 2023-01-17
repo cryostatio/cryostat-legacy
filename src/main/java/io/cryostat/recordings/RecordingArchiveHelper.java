@@ -587,6 +587,7 @@ public class RecordingArchiveHelper {
             }
             return true;
         } catch (IOException e) {
+            logger.warn("Failed to delete report cache for {}", recordingName);
             return false;
         }
     }
@@ -1083,7 +1084,6 @@ public class RecordingArchiveHelper {
 
         List<Future<ArchivedRecordingInfo>> toDelete =
                 recordings.stream()
-                        .peek(n -> logger.trace("pruneTargetUploads: Recording: {}", n))
                         .map(subdirectoryPath::resolve)
                         .filter(fs::isRegularFile)
                         .filter(n -> n.getFileName().toString().endsWith(".jfr"))
