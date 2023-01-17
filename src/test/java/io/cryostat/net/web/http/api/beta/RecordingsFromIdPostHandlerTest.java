@@ -90,6 +90,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -564,6 +566,28 @@ class RecordingsFromIdPostHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
                 ex.getFailureReason(), Matchers.equalTo("No recording submission"));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {"foo", "123max", "Integer.MAX_VALUE"})
+    void shouldHandleBadParameter(String maxFiles) throws Exception {
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateHttpHeader(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(maxFiles);
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(), Matchers.equalTo("maxFiles must be a positive integer"));
     }
 
     @Test
