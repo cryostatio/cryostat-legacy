@@ -88,6 +88,13 @@ public abstract class RecordingsModule {
     }
 
     @Provides
+    @Named(Variables.PUSH_MAX_FILES_ENV)
+    static int providePushMaxFiles(Environment env) {
+        return Integer.parseInt(
+                env.getEnv(Variables.PUSH_MAX_FILES_ENV, String.valueOf(Integer.MAX_VALUE)));
+    }
+
+    @Provides
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
             Vertx vertx,
