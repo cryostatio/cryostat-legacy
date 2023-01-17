@@ -58,10 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -122,8 +120,6 @@ public class RecordingArchiveHelper {
     private final Vertx vertx;
     private final Base32 base32;
 
-    private final Map<String, Queue<String>> prevUploadedRecordings;
-
     private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
     private static final long FS_TIMEOUT_SECONDS = 1;
@@ -170,7 +166,6 @@ public class RecordingArchiveHelper {
         this.jvmIdHelper = jvmIdHelper;
         this.vertx = vertx;
         this.base32 = base32;
-        this.prevUploadedRecordings = new ConcurrentHashMap<String, Queue<String>>();
     }
 
     // startup migration for archived recordings
