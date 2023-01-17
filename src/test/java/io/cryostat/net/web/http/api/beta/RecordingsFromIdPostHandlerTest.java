@@ -106,7 +106,7 @@ class RecordingsFromIdPostHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock FileSystem cryoFs;
     @Mock Path recordingsPath;
-    String globalMaxFiles = "10";
+    int globalMaxFiles = 10;
     @Mock WebServer webServer;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -223,7 +223,7 @@ class RecordingsFromIdPostHandlerTest {
         when(ctx.request()).thenReturn(req);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -371,7 +371,7 @@ class RecordingsFromIdPostHandlerTest {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         attrs.add("labels", labels.toString());
         when(req.formAttributes()).thenReturn(attrs);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         when(recordingMetadataManager.parseRecordingLabels(labels.toString())).thenReturn(labels);
 
@@ -526,7 +526,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         when(ctx.fileUploads()).thenReturn(List.of());
 
@@ -549,7 +549,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -575,7 +575,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -609,7 +609,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -645,7 +645,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
@@ -683,7 +683,7 @@ class RecordingsFromIdPostHandlerTest {
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
-        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(globalMaxFiles);
+        when(req.getParam(Mockito.anyString(), Mockito.anyString())).thenReturn(String.valueOf(globalMaxFiles));
 
         FileUpload upload = mock(FileUpload.class);
         when(ctx.fileUploads()).thenReturn(List.of(upload));
