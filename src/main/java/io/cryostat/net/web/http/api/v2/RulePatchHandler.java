@@ -56,9 +56,8 @@ import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingMetadataManager.SecurityContext;
-import io.cryostat.net.security.SecurityContext;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
