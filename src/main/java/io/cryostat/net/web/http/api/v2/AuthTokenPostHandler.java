@@ -139,6 +139,11 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         if (StringUtils.isBlank(targetId)) {
             throw new ApiException(401);
         }
+        // TODO should this be the case? Any uploaded file to the general uploads directory  is just
+        // generally accessible?
+        if ("uploads".equals(targetId)) {
+            return SecurityContext.DEFAULT;
+        }
         try {
             new URI(targetId);
             String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
