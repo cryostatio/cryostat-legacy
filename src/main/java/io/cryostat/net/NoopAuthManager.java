@@ -63,7 +63,7 @@ public class NoopAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+        return CompletableFuture.completedFuture(new UserInfo("anonymous"));
     }
 
     @Override
@@ -77,6 +77,15 @@ public class NoopAuthManager extends AbstractAuthManager {
             Supplier<String> tokenProvider,
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions) {
+        resourceActions.forEach(
+                action ->
+                        logger.info(
+                                "anonymous user with credentials '{}' granted [{} {}] in context"
+                                        + " '{}'",
+                                tokenProvider.get(),
+                                action.getVerb(),
+                                action.getResource(),
+                                securityContext));
         return CompletableFuture.completedFuture(true);
     }
 
@@ -85,7 +94,7 @@ public class NoopAuthManager extends AbstractAuthManager {
             Supplier<String> headerProvider,
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+        return validateToken(headerProvider, securityContext, resourceActions);
     }
 
     @Override
@@ -93,7 +102,7 @@ public class NoopAuthManager extends AbstractAuthManager {
             Supplier<String> subProtocolProvider,
             SecurityContext securityContext,
             Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+        return validateToken(subProtocolProvider, securityContext, resourceActions);
     }
 
     @Override
