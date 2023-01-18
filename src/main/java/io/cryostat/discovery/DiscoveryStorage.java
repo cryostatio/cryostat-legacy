@@ -375,7 +375,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     public List<? extends AbstractNode> update(
-            UUID id, Collection<? extends AbstractNode> children, boolean notify) {
+            UUID id, Collection<? extends AbstractNode> children) {
         // FIXME what about required SecurityContext fields on TargetNodes? We find the JVM ID here
         // and use the JMX Service URL for the source, but we assume there is a NAMESPACE annotation
         // that the AuthManager can use to reference the context. The PlatformClients through

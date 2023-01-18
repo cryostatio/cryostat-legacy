@@ -63,11 +63,13 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -172,8 +174,14 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return auth.contextFor(
+                idHelper.reverseLookup(ctx.pathParam("jvmId"))
+                        .orElseThrow(() -> new ApiException(404)));
+    }
 
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new ApiException(503, "Recording saving not available");
         }
@@ -202,13 +210,13 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         }
 
         String jvmId = ctx.pathParam("jvmId");
+        final ServiceRef serviceRef;
         final String connectUrl;
         try {
-            connectUrl =
+            serviceRef =
                     idHelper.reverseLookup(jvmId)
-                            .orElseThrow(() -> new JvmIdDoesNotExistException(jvmId))
-                            .getServiceUri()
-                            .toString();
+                            .orElseThrow(() -> new JvmIdDoesNotExistException(jvmId));
+            connectUrl = serviceRef.getServiceUri().toString();
             if (connectUrl == null) {
                 throw new JvmIdDoesNotExistException(jvmId);
             }
@@ -246,7 +254,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             recordingArchiveHelper.deleteTempFileUpload(upload);
             throw new ApiException(400, "Invalid labels");
         }
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(auth.contextFor(serviceRef), labels);
 
         String targetName = m.group(1);
         String recordingName = m.group(2);
