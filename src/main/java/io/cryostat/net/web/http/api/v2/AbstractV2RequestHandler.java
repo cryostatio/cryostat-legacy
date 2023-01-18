@@ -111,7 +111,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler<Requ
                                     .get();
                     if (!permissionGranted) {
                         // expected to go into catch clause below
-                        throw new ApiException(401, "HTTP Authorization Failure");
+                        throw new ApiException(403);
                     }
                 }
             }

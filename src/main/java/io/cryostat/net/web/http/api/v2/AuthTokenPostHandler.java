@@ -137,7 +137,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         // appear in and match the request URL and resource claims
         String targetId = params.getFormAttributes().get("targetId");
         if (StringUtils.isBlank(targetId)) {
-            throw new ApiException(401);
+            throw new ApiException(403);
         }
         // TODO should this be the case? Any uploaded file to the general uploads directory  is just
         // generally accessible?
@@ -151,7 +151,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             if (resourceClaim.contains("recording")) {
                 String recordingName = params.getFormAttributes().get("recordingName");
                 if (StringUtils.isBlank(recordingName)) {
-                    throw new ApiException(401);
+                    throw new ApiException(403);
                 }
                 Optional<ArchivedRecordingInfo> recordingInfo =
                         archiveHelper.getRecordings(targetId).get().stream()
@@ -167,7 +167,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                 // if it does then we fall through to the bottom and use the security context of the
                 // service ref
                 if (!resource.getPath().contains(targetId)) {
-                    throw new ApiException(400);
+                    throw new ApiException(403);
                 }
             }
         } catch (URISyntaxException | InterruptedException | ExecutionException e) {
@@ -176,7 +176,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         return discoveryStorage
                 .lookupServiceByTargetId(targetId)
                 .map(auth::contextFor)
-                .orElseThrow(() -> new ApiException(500));
+                .orElseThrow(() -> new ApiException(403));
     }
 
     @Override

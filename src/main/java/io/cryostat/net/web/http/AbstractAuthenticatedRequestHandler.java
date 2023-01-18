@@ -98,7 +98,7 @@ public abstract class AbstractAuthenticatedRequestHandler
                 boolean permissionGranted = validateRequestAuthorization(ctx.request(), sc).get();
                 if (!permissionGranted) {
                     // expected to go into catch clause below
-                    throw new HttpException(401, "HTTP Authorization Failure");
+                    throw new HttpException(403);
                 }
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
