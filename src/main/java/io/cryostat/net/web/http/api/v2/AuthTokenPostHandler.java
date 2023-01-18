@@ -133,13 +133,11 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        // FIXME need to verify that these additional form attributes (targetId, recordingName) also
-        // appear in and match the request URL and resource claims
         String targetId = params.getFormAttributes().get("targetId");
         if (StringUtils.isBlank(targetId)) {
             throw new ApiException(403);
         }
-        // TODO should this be the case? Any uploaded file to the general uploads directory  is just
+        // TODO should this be the case? Any uploaded file to the general uploads directory is just
         // generally accessible?
         if ("uploads".equals(targetId)) {
             return SecurityContext.DEFAULT;
@@ -148,35 +146,36 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             new URI(targetId);
             String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
             URI resource = new URI(params.getFormAttributes().get(resourceClaim));
-            if (resourceClaim.contains("recording")) {
-                String recordingName = params.getFormAttributes().get("recordingName");
-                if (StringUtils.isBlank(recordingName)) {
-                    throw new ApiException(403);
-                }
-                Optional<ArchivedRecordingInfo> recordingInfo =
-                        archiveHelper.getRecordings(targetId).get().stream()
-                                .filter(r -> r.getName().equals(recordingName))
-                                .findFirst();
-                // this is a request for an archived recording, so use the stored security context
-                // FIXME need to add a migration upgrade to the metadata manager to add the security
-                // context to stored metadata
-                if (recordingInfo.isPresent()) {
-                    return recordingInfo.get().getMetadata().getSecurityContext();
-                }
-                // this is a request for an active recording so the URL must contain the targetId.
-                // if it does then we fall through to the bottom and use the security context of the
-                // service ref
-                if (!resource.getPath().contains(targetId)) {
-                    throw new ApiException(403);
-                }
+            if (!resourceClaim.contains("recording")) {
+                throw new ApiException(403);
             }
+            String recordingName = params.getFormAttributes().get("recordingName");
+            if (StringUtils.isBlank(recordingName) || !resource.getPath().contains(recordingName)) {
+                throw new ApiException(403);
+            }
+            Optional<ArchivedRecordingInfo> recordingInfo =
+                    archiveHelper.getRecordings(targetId).get().stream()
+                            .filter(r -> r.getName().equals(recordingName))
+                            .findFirst();
+            // this is a request for an archived recording, so use the stored security context
+            // FIXME need to add a migration upgrade to the metadata manager to add the security
+            // context to stored metadata
+            if (recordingInfo.isPresent()) {
+                return recordingInfo.get().getMetadata().getSecurityContext();
+            }
+            // this is a request for an active recording so the URL must contain the targetId.
+            // if it does then we fall through to the bottom and use the security context of the
+            // service ref
+            if (!resource.getPath().contains(targetId)) {
+                throw new ApiException(403);
+            }
+            return discoveryStorage
+                    .lookupServiceByTargetId(targetId)
+                    .map(auth::contextFor)
+                    .orElseThrow(() -> new ApiException(403));
         } catch (URISyntaxException | InterruptedException | ExecutionException e) {
             throw new ApiException(500, e);
         }
-        return discoveryStorage
-                .lookupServiceByTargetId(targetId)
-                .map(auth::contextFor)
-                .orElseThrow(() -> new ApiException(403));
     }
 
     @Override
