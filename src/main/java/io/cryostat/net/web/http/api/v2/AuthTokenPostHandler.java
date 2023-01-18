@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -47,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -143,7 +141,6 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         }
         try {
             new URI(targetId);
-            new JMXServiceURL(targetId);
             String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
             URI resource = new URI(params.getFormAttributes().get(resourceClaim));
             if (resourceClaim.contains("recording")) {
@@ -168,10 +165,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                     throw new ApiException(400);
                 }
             }
-        } catch (URISyntaxException
-                | MalformedURLException
-                | InterruptedException
-                | ExecutionException e) {
+        } catch (URISyntaxException | InterruptedException | ExecutionException e) {
             throw new ApiException(500, e);
         }
         return discoveryStorage
