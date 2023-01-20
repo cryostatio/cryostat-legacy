@@ -37,6 +37,7 @@
  */
 package io.cryostat.platform.internal;
 
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,8 +47,6 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -60,12 +59,13 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
-import io.cryostat.util.URIUtil;
 
 import io.fabric8.kubernetes.api.model.EndpointAddressBuilder;
 import io.fabric8.kubernetes.api.model.EndpointPortBuilder;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.EndpointsBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
@@ -76,10 +76,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 @EnableKubernetesMockClient(https = false, crud = true)
@@ -110,6 +107,66 @@ class KubeApiPlatformClientTest {
 
     @Test
     void shouldReturnListOfMatchingEndpointRefs() throws Exception {
+        Pod targetA =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetA")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        String ipA = "127.0.0.2";
+        String transformedIpA = ipA.replaceAll("\\.", "-");
+        int portA = 80;
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetA).create();
+
+        Pod targetB =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetB")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        String ipB = "127.0.0.3";
+        String transformedIpB = ipB.replaceAll("\\.", "-");
+        int portB = 1234;
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetB).create();
+
+        Pod targetC =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetC")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        String ipC = "127.0.0.4";
+        String transformedIpC = ipC.replaceAll("\\.", "-");
+        int portC = 9091;
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetC).create();
+
+        Pod targetD =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetD")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        String ipD = "127.0.0.5";
+        String transformedIpD = ipD.replaceAll("\\.", "-");
+        int portD = 9091;
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetD).create();
+
+        Pod targetE =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetE")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        String ipE = "127.0.0.6";
+        String transformedIpE = ipE.replaceAll("\\.", "-");
+        int portE = 5678;
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetE).create();
+
         Endpoints endpoints =
                 new EndpointsBuilder()
                         .withNewMetadata()
@@ -119,111 +176,96 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.2")
-                                        .withHostname("targetA")
+                                        .withIp(ipA)
+                                        .withHostname(targetA.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetA")
-                                        .withKind("Pod")
+                                        .withName(targetA.getMetadata().getName())
+                                        .withKind(targetA.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("tcp-80")
-                                        .withPort(80)
+                                        .withPort(portA)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.3")
-                                        .withHostname("targetB")
+                                        .withIp(ipB)
+                                        .withHostname(targetB.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetB")
-                                        .withKind("Pod")
+                                        .withName(targetB.getMetadata().getName())
+                                        .withKind(targetB.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(1234)
+                                        .withPort(portB)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.4")
-                                        .withHostname("targetC")
+                                        .withIp(ipC)
+                                        .withHostname(targetC.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetC")
-                                        .withKind("Pod")
+                                        .withName(targetC.getMetadata().getName())
+                                        .withKind(targetC.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("tcp-9091")
-                                        .withPort(9091)
+                                        .withPort(portC)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.5")
-                                        .withHostname("targetD")
+                                        .withIp(ipD)
+                                        .withHostname(targetD.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetD")
-                                        .withKind("Pod")
+                                        .withName(targetD.getMetadata().getName())
+                                        .withKind(targetD.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("tcp-9091")
-                                        .withPort(9091)
+                                        .withPort(portD)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.6")
-                                        .withHostname("targetE")
+                                        .withIp(ipE)
+                                        .withHostname(targetE.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetE")
-                                        .withKind("Pod")
+                                        .withName(targetE.getMetadata().getName())
+                                        .withKind(targetE.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(5678)
+                                        .withPort(portE)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .build();
 
         k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
-
-        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
-                            }
-                        });
 
         platformClient.start();
         List<ServiceRef> result = platformClient.listDiscoverableServices();
@@ -232,92 +274,112 @@ class KubeApiPlatformClientTest {
         ServiceRef serv1 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
-                        "targetB");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpB, NAMESPACE, portB)),
+                        targetB.getMetadata().getName());
         serv1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.3",
+                        ipB,
                         AnnotationKey.PORT,
-                        "1234",
+                        Integer.toString(portB),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetB"));
+                        targetB.getMetadata().getName()));
         ServiceRef serv2 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.4", 9091)),
-                        "targetC");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpC, NAMESPACE, portC)),
+                        targetC.getMetadata().getName());
         serv2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.4",
+                        ipC,
                         AnnotationKey.PORT,
-                        "9091",
+                        Integer.toString(portC),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetC"));
+                        targetC.getMetadata().getName()));
         ServiceRef serv3 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.5", 9091)),
-                        "targetD");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpD, NAMESPACE, portD)),
+                        targetD.getMetadata().getName());
         serv3.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.5",
+                        ipD,
                         AnnotationKey.PORT,
-                        "9091",
+                        Integer.toString(portD),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetD"));
+                        targetD.getMetadata().getName()));
         ServiceRef serv4 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.6", 5678)),
-                        "targetE");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpE, NAMESPACE, portE)),
+                        targetE.getMetadata().getName());
         serv4.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.6",
+                        ipE,
                         AnnotationKey.PORT,
-                        "5678",
+                        Integer.toString(portE),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetE"));
+                        targetE.getMetadata().getName()));
         MatcherAssert.assertThat(
                 result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3, serv4)));
     }
 
     @Test
     void shouldReturnDiscoveryTree() throws Exception {
-        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
-                            }
-                        });
+        Pod targetA =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetA")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetA).create();
+        Pod targetB =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("targetB")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(targetB).create();
 
+        String ipA = "127.0.0.2";
+        String transformedIpA = ipA.replaceAll("\\.", "-");
+        int portA = 9091;
+        String ipB = "127.0.0.3";
+        String transformedIpB = ipB.replaceAll("\\.", "-");
+        int portB = 1234;
         Endpoints endpoints =
                 new EndpointsBuilder()
                         .withNewMetadata()
@@ -327,36 +389,36 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.2")
-                                        .withHostname("targetA")
+                                        .withIp(ipA)
+                                        .withHostname(targetA.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetA")
-                                        .withKind("Pod")
+                                        .withName(targetA.getMetadata().getName())
+                                        .withKind(targetA.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("tcp-9091")
-                                        .withPort(9091)
+                                        .withPort(portA)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("127.0.0.3")
-                                        .withHostname("targetB")
+                                        .withIp(ipB)
+                                        .withHostname(targetB.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("targetB")
-                                        .withKind("Pod")
+                                        .withName(targetB.getMetadata().getName())
+                                        .withKind(targetB.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(1234)
+                                        .withPort(portB)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
@@ -368,37 +430,43 @@ class KubeApiPlatformClientTest {
         ServiceRef serv1 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.2", 9091)),
-                        "targetA");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpA, NAMESPACE, portA)),
+                        targetA.getMetadata().getName());
         serv1.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.2",
+                        ipA,
                         AnnotationKey.PORT,
-                        "9091",
+                        Integer.toString(portA),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetA"));
+                        targetA.getMetadata().getName()));
         ServiceRef serv2 =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.3", 1234)),
-                        "targetB");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIpB, NAMESPACE, portB)),
+                        targetB.getMetadata().getName());
         serv2.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "127.0.0.3",
+                        ipB,
                         AnnotationKey.PORT,
-                        "1234",
+                        Integer.toString(portB),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "targetB"));
+                        targetB.getMetadata().getName()));
 
         MatcherAssert.assertThat(realmNode.getName(), Matchers.equalTo("KubernetesApi"));
         MatcherAssert.assertThat(realmNode.getNodeType(), Matchers.equalTo(BaseNodeType.REALM));
@@ -422,20 +490,24 @@ class KubeApiPlatformClientTest {
         MatcherAssert.assertThat(
                 namespaceNode.getChildren(),
                 Matchers.allOf(
-                        Matchers.hasItem(Matchers.hasProperty("name", Matchers.equalTo("targetA"))),
                         Matchers.hasItem(
-                                Matchers.hasProperty("name", Matchers.equalTo("targetB")))));
+                                Matchers.hasProperty(
+                                        "name", Matchers.equalTo(targetA.getMetadata().getName()))),
+                        Matchers.hasItem(
+                                Matchers.hasProperty(
+                                        "name",
+                                        Matchers.equalTo(targetB.getMetadata().getName())))));
 
         EnvironmentNode podA =
                 (EnvironmentNode)
                         namespaceNode.getChildren().stream()
-                                .filter(c -> c.getName().equals("targetA"))
+                                .filter(c -> c.getName().equals(targetA.getMetadata().getName()))
                                 .findFirst()
                                 .get();
         EnvironmentNode podB =
                 (EnvironmentNode)
                         namespaceNode.getChildren().stream()
-                                .filter(c -> c.getName().equals("targetB"))
+                                .filter(c -> c.getName().equals(targetB.getMetadata().getName()))
                                 .findFirst()
                                 .get();
 
@@ -463,23 +535,20 @@ class KubeApiPlatformClientTest {
         CompletableFuture<TargetDiscoveryEvent> eventFuture = new CompletableFuture<>();
         platformClient.addTargetDiscoveryListener(eventFuture::complete);
 
-        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
-                            }
-                        });
+        Pod watchedTarget =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("watchedTarget")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(watchedTarget).create();
 
         platformClient.start();
 
+        String ip = "192.168.1.10";
+        String transformedIp = ip.replaceAll("\\.", "-");
+        int port = 9876;
         Endpoints endpoints =
                 new EndpointsBuilder()
                         .withNewMetadata()
@@ -489,18 +558,18 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("192.168.1.10")
-                                        .withHostname("watchedTarget")
+                                        .withIp(ip)
+                                        .withHostname(watchedTarget.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("watchedTarget")
-                                        .withKind("Pod")
+                                        .withName(watchedTarget.getMetadata().getName())
+                                        .withKind(watchedTarget.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(9876)
+                                        .withPort(port)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
@@ -512,40 +581,40 @@ class KubeApiPlatformClientTest {
         ServiceRef serv =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
-                        "watchedTarget");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIp, NAMESPACE, port)),
+                        watchedTarget.getMetadata().getName());
         serv.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "192.168.1.10",
+                        ip,
                         AnnotationKey.PORT,
-                        "9876",
+                        Integer.toString(port),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "watchedTarget"));
+                        watchedTarget.getMetadata().getName()));
         MatcherAssert.assertThat(evt.getServiceRef(), Matchers.equalTo(serv));
     }
 
     @Test
     public void shouldNotifyOnAsyncDeleted() throws Exception {
-        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
-                            }
-                        });
+        Pod watchedTarget =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("watchedTarget")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(watchedTarget).create();
 
+        String ip = "192.168.1.10";
+        String transformedIp = ip.replaceAll("\\.", "-");
+        int port = 9876;
         Endpoints endpoints =
                 new EndpointsBuilder()
                         .withNewMetadata()
@@ -555,18 +624,18 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("192.168.1.10")
-                                        .withHostname("watchedTarget")
+                                        .withIp(ip)
+                                        .withHostname(watchedTarget.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("watchedTarget")
-                                        .withKind("Pod")
+                                        .withName(watchedTarget.getMetadata().getName())
+                                        .withKind(watchedTarget.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(9876)
+                                        .withPort(port)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
@@ -593,20 +662,23 @@ class KubeApiPlatformClientTest {
         ServiceRef serv =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIp, NAMESPACE, port)),
                         "watchedTarget");
         serv.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "192.168.1.10",
+                        ip,
                         AnnotationKey.PORT,
-                        "9876",
+                        Integer.toString(port),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "watchedTarget"));
+                        watchedTarget.getMetadata().getName()));
 
         TargetDiscoveryEvent found = events.remove();
         MatcherAssert.assertThat(found.getEventKind(), Matchers.equalTo(EventKind.FOUND));
@@ -619,20 +691,26 @@ class KubeApiPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncModified() throws Exception {
-        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
-                                String host = args.getArgument(0);
-                                int port = args.getArgument(1);
-                                return new JMXServiceURL(
-                                        "rmi",
-                                        "",
-                                        0,
-                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
-                            }
-                        });
+        Pod watchedTarget =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("watchedTarget")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(watchedTarget).create();
+        Pod modifiedTarget =
+                new PodBuilder()
+                        .withNewMetadata()
+                        .withName("modifiedTarget")
+                        .withNamespace(NAMESPACE)
+                        .endMetadata()
+                        .build();
+        k8sClient.pods().inNamespace(NAMESPACE).resource(modifiedTarget).create();
+
+        String ip = "192.168.1.10";
+        String transformedIp = ip.replaceAll("\\.", "-");
+        int port = 9876;
 
         Endpoints endpoints =
                 new EndpointsBuilder()
@@ -643,18 +721,18 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("192.168.1.10")
-                                        .withHostname("watchedTarget")
+                                        .withIp(ip)
+                                        .withHostname(watchedTarget.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("watchedTarget")
-                                        .withKind("Pod")
+                                        .withName(watchedTarget.getMetadata().getName())
+                                        .withKind(watchedTarget.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(9876)
+                                        .withPort(port)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
@@ -681,18 +759,18 @@ class KubeApiPlatformClientTest {
                         .addNewSubset()
                         .withAddresses(
                                 new EndpointAddressBuilder()
-                                        .withIp("192.168.1.10")
-                                        .withHostname("modifiedTarget")
+                                        .withIp(ip)
+                                        .withHostname(modifiedTarget.getMetadata().getName())
                                         .withNewTargetRef()
-                                        .withName("modifiedTarget")
-                                        .withKind("Pod")
+                                        .withName(modifiedTarget.getMetadata().getName())
+                                        .withKind(modifiedTarget.getKind())
                                         .withNamespace(NAMESPACE)
                                         .endTargetRef()
                                         .build())
                         .withPorts(
                                 new EndpointPortBuilder()
                                         .withName("jfr-jmx")
-                                        .withPort(9876)
+                                        .withPort(port)
                                         .withProtocol("tcp")
                                         .build())
                         .endSubset()
@@ -707,38 +785,44 @@ class KubeApiPlatformClientTest {
         ServiceRef original =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
-                        "watchedTarget");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIp, NAMESPACE, port)),
+                        watchedTarget.getMetadata().getName());
         original.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "192.168.1.10",
+                        ip,
                         AnnotationKey.PORT,
-                        "9876",
+                        Integer.toString(port),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "watchedTarget"));
+                        watchedTarget.getMetadata().getName()));
 
         ServiceRef modified =
                 new ServiceRef(
                         null,
-                        URIUtil.convert(connectionToolkit.createServiceURL("192.168.1.10", 9876)),
-                        "modifiedTarget");
+                        URI.create(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s.%s.pod:%d/jmxrmi",
+                                        transformedIp, NAMESPACE, port)),
+                        modifiedTarget.getMetadata().getName());
         modified.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.REALM,
                         "KubernetesApi",
                         AnnotationKey.HOST,
-                        "192.168.1.10",
+                        ip,
                         AnnotationKey.PORT,
-                        "9876",
+                        Integer.toString(port),
                         AnnotationKey.NAMESPACE,
                         NAMESPACE,
                         AnnotationKey.POD_NAME,
-                        "modifiedTarget"));
+                        modifiedTarget.getMetadata().getName()));
 
         TargetDiscoveryEvent foundEvent = events.remove();
         MatcherAssert.assertThat(foundEvent.getEventKind(), Matchers.equalTo(EventKind.FOUND));
