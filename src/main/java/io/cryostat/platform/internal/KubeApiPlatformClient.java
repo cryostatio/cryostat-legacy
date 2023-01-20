@@ -215,7 +215,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     targetTuple.addr.getIp() != null
                             ? targetTuple.addr.getIp()
                             : targetTuple.addr.getHostname(),
-                    targetTuple.objRef.getName());
+                    targetTuple.addr.getTargetRef().getName());
             return;
         }
         String targetKind = target.getKind();
@@ -326,7 +326,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     continue;
                 }
                 for (EndpointAddress addr : subset.getAddresses()) {
-                    tts.add(new TargetTuple(addr.getTargetRef(), addr, port));
+                    tts.add(new TargetTuple(addr, port));
                 }
             }
         }
@@ -378,12 +378,10 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private class TargetTuple {
-        ObjectReference objRef;
         EndpointAddress addr;
         EndpointPort port;
 
-        TargetTuple(ObjectReference objRef, EndpointAddress addr, EndpointPort port) {
-            this.objRef = objRef;
+        TargetTuple(EndpointAddress addr, EndpointPort port) {
             this.addr = addr;
             this.port = port;
         }
@@ -391,7 +389,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         ServiceRef toServiceRef() {
             Pair<HasMetadata, EnvironmentNode> node =
                     discoveryNodeCache.computeIfAbsent(
-                            cacheKey(objRef.getNamespace(), objRef),
+                            cacheKey(addr.getTargetRef().getNamespace(), addr.getTargetRef()),
                             KubeApiPlatformClient.this::queryForNode);
             HasMetadata podRef = node.getLeft();
             if (node.getRight().getNodeType() != KubernetesNodeType.POD) {
@@ -401,7 +399,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 throw new IllegalStateException();
             }
             try {
-                String targetName = objRef.getName();
+                String targetName = addr.getTargetRef().getName();
 
                 String ip = addr.getIp().replaceAll("\\.", "-");
                 String namespace = podRef.getMetadata().getNamespace();
