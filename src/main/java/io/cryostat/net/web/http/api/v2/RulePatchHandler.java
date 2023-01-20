@@ -135,7 +135,18 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        return SecurityContext.DEFAULT;
+        // FIXME cleanup and remove this, all handlers should use the list form below
+        return null;
+    }
+
+    @Override
+    public List<SecurityContext> securityContexts(RequestParameters params) {
+        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
+        Rule rule = ruleRegistry.getRule(name).get();
+        return (List<SecurityContext>)
+                auth.getSecurityContexts().stream()
+                        .filter(sc -> rule.getContexts().contains(sc.getName()))
+                        .toList();
     }
 
     @Override

@@ -156,7 +156,7 @@ public class Rule {
         this.enabled = enabled;
     }
 
-    public List<String> getContext() {
+    public List<String> getContexts() {
         return new ArrayList<>(contexts);
     }
 

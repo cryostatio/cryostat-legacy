@@ -40,8 +40,6 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -146,17 +144,12 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public List<SecurityContext> securityContexts(RequestParameters params) {
-        // FIXME Rules should have a field of list of contexts
-        Rule rule = getRuleFromParams(params);
         // TODO apply this same concept to credentials
-        Optional<? extends SecurityContext> scopedSc =
+        Rule rule = getRuleFromParams(params);
+        return (List<SecurityContext>)
                 auth.getSecurityContexts().stream()
-                        .filter(sc -> Objects.equals(sc.getName(), rule.getContext()))
-                        .findFirst();
-        if (scopedSc.isPresent()) {
-            return List.of(scopedSc.get());
-        }
-        return List.of(SecurityContext.DEFAULT);
+                        .filter(sc -> rule.getContexts().contains(sc.getName()))
+                        .toList();
     }
 
     @Override
