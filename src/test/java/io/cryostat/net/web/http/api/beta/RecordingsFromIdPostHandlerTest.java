@@ -62,6 +62,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -216,7 +217,7 @@ class RecordingsFromIdPostHandlerTest {
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
@@ -334,7 +335,14 @@ class RecordingsFromIdPostHandlerTest {
 
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        inOrder.verify(rep).end(gson.toJson(Map.of("name", filename, "metadata", new Metadata())));
+        inOrder.verify(rep)
+                .end(
+                        gson.toJson(
+                                Map.of(
+                                        "name",
+                                        filename,
+                                        "metadata",
+                                        new Metadata(SecurityContext.DEFAULT, Map.of()))));
 
         ArchivedRecordingInfo recordingInfo =
                 new ArchivedRecordingInfo(
@@ -342,7 +350,7 @@ class RecordingsFromIdPostHandlerTest {
                         filename,
                         "/some/download/path/" + filename,
                         "/some/report/path/" + filename,
-                        new Metadata(),
+                        new Metadata(SecurityContext.DEFAULT, Map.of()),
                         0,
                         expectedArchivedTime);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
@@ -364,11 +372,11 @@ class RecordingsFromIdPostHandlerTest {
         String filename = basename + ".jfr";
         String subdirectoryName = "mockSubdirectory";
         Map<String, String> labels = Map.of("key", "value", "key1", "value1");
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
@@ -521,7 +529,7 @@ class RecordingsFromIdPostHandlerTest {
     void shouldHandleNoRecordingSubmission() throws Exception {
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -545,7 +553,7 @@ class RecordingsFromIdPostHandlerTest {
     void shouldHandleIncorrectFormField() throws Exception {
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -573,7 +581,7 @@ class RecordingsFromIdPostHandlerTest {
     void shouldHandleBadParameter(String maxFiles) throws Exception {
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -594,7 +602,7 @@ class RecordingsFromIdPostHandlerTest {
     void shouldHandleEmptyRecordingName() throws Exception {
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -629,7 +637,7 @@ class RecordingsFromIdPostHandlerTest {
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -666,7 +674,7 @@ class RecordingsFromIdPostHandlerTest {
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -705,7 +713,7 @@ class RecordingsFromIdPostHandlerTest {
     void shouldHandleInvalidJvmId() throws Exception {
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any(), any()))
+        when(authManager.validateHttpHeader(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
