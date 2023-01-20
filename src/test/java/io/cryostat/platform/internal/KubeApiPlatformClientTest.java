@@ -208,7 +208,7 @@ class KubeApiPlatformClientTest {
                         .endSubset()
                         .build();
 
-        k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
 
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
@@ -361,7 +361,7 @@ class KubeApiPlatformClientTest {
                                         .build())
                         .endSubset()
                         .build();
-        k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
 
         platformClient.start();
         EnvironmentNode realmNode = platformClient.getDiscoveryTree();
@@ -505,7 +505,7 @@ class KubeApiPlatformClientTest {
                                         .build())
                         .endSubset()
                         .build();
-        k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
 
         TargetDiscoveryEvent evt = eventFuture.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(evt.getEventKind(), Matchers.equalTo(EventKind.FOUND));
@@ -582,8 +582,8 @@ class KubeApiPlatformClientTest {
 
         platformClient.start();
 
-        k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
-        k8sClient.endpoints().inNamespace(NAMESPACE).delete(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).delete();
 
         latch.await();
         Thread.sleep(100); // to ensure no more events are coming
@@ -670,7 +670,7 @@ class KubeApiPlatformClientTest {
 
         platformClient.start();
 
-        k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).create();
 
         endpoints =
                 new EndpointsBuilder()
@@ -697,7 +697,7 @@ class KubeApiPlatformClientTest {
                                         .build())
                         .endSubset()
                         .build();
-        k8sClient.endpoints().inNamespace(NAMESPACE).replace(endpoints);
+        k8sClient.endpoints().inNamespace(NAMESPACE).resource(endpoints).replace();
 
         latch.await();
         Thread.sleep(100); // to ensure no more events are coming
