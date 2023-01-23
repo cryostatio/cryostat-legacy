@@ -146,6 +146,8 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             new URI(targetId);
             String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
             URI resource = new URI(params.getFormAttributes().get(resourceClaim));
+            // TODO what if this is a request for a resource that is not an active or archived
+            // recording? It could be an event template XML document.
             if (!resourceClaim.contains("recording")) {
                 throw new ApiException(403);
             }
