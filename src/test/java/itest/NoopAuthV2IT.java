@@ -77,7 +77,7 @@ public class NoopAuthV2IT extends StandardSelfTest {
                                         Map.of(
                                                 "status", "OK",
                                                 "type", "application/json"),
-                                "data", Map.of("result", Map.of("username", ""))));
+                                "data", Map.of("result", Map.of("username", "anonymous"))));
         MatcherAssert.assertThat(
                 future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(expected));
     }
