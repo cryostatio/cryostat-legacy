@@ -47,6 +47,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Provider;
 
@@ -65,6 +66,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.StoredRecordingMetadata;
 
@@ -170,6 +172,11 @@ public class RecordingMetadataManagerTest {
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
@@ -224,6 +231,11 @@ public class RecordingMetadataManagerTest {
         when(fs.readFile(mockPath))
                 .thenReturn(new BufferedReader(new StringReader("{\"labels\":{}}")));
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
@@ -253,6 +265,10 @@ public class RecordingMetadataManagerTest {
         Path mockPath = Mockito.mock(Path.class);
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, labels)
@@ -294,6 +310,10 @@ public class RecordingMetadataManagerTest {
         Path mockPath = Mockito.mock(Path.class);
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
+
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
 
         recordingMetadataManager
                 .setRecordingMetadata(connectionDescriptor, recordingName, labels)

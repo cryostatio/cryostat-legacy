@@ -433,6 +433,7 @@ class RuleTest {
                 form.set("maxSizeBytes", String.valueOf(maxSizeBytes));
                 form.set("archivalPeriodSeconds", String.valueOf(archivalPeriodSeconds));
                 form.set("preservedArchives", String.valueOf(preservedArchives));
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -460,6 +461,7 @@ class RuleTest {
                 form.set("name", name);
                 form.set("matchExpression", matchExpression);
                 form.set("eventSpecifier", eventSpecifier);
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -478,6 +480,7 @@ class RuleTest {
                 MultiMap form = MultiMap.caseInsensitiveMultiMap();
                 form.set("matchExpression", matchExpression);
                 form.set("eventSpecifier", eventSpecifier);
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(

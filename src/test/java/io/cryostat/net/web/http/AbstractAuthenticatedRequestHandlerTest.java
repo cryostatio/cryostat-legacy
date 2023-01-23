@@ -127,7 +127,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                                         "namespace", "resourc.group", "verb", "reason")));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test
@@ -136,7 +136,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test
@@ -150,7 +150,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                                                 "namespace", "resource.group", "verb", "reason"))));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test
@@ -164,7 +164,7 @@ class AbstractAuthenticatedRequestHandlerTest {
                                                 "test", new Exception("test2")))));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test

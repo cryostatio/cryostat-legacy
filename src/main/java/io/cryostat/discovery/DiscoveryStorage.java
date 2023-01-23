@@ -141,6 +141,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         case LOST:
                             serviceRefReverseLookup.remove(sr.getServiceUri().toString());
                             break;
+                        case MODIFIED:
+                            break;
                         default:
                             throw new IllegalStateException(tde.getEventKind().name());
                     }
