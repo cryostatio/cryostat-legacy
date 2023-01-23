@@ -149,7 +149,8 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        return SecurityContext.DEFAULT;
+        return auth.contextFor(
+                new ServiceRef(null, URI.create(params.getFormAttributes().get("connectUrl")), ""));
     }
 
     @Override

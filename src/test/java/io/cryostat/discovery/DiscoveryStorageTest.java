@@ -58,6 +58,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.discovery.DiscoveryStorage.NotFoundException;
+import io.cryostat.net.AuthManager;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -102,6 +103,7 @@ class DiscoveryStorageTest {
 
     @Mock VerticleDeployer deployer;
     @Mock BuiltInDiscovery builtin;
+    @Mock AuthManager auth;
     @Mock PluginInfoDao dao;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock CredentialsManager credentialsManager;
@@ -133,6 +135,7 @@ class DiscoveryStorageTest {
                         deployer,
                         Duration.ofMinutes(5),
                         () -> builtin,
+                        () -> auth,
                         dao,
                         () -> jvmIdHelper,
                         () -> credentialsManager,

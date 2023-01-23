@@ -528,7 +528,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                 discoveryStorage
                         .lookupServiceByTargetId(connectUrl)
                         .map(auth::contextFor)
-                        .orElse(SecurityContext.DEFAULT);
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Could not determine source target"));
 
         Metadata contextualMetadata = new Metadata(securityContext, metadata.getLabels());
 
@@ -575,7 +578,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                 discoveryStorage
                         .lookupServiceByTargetId(connectionDescriptor.getTargetId())
                         .map(auth::contextFor)
-                        .orElse(SecurityContext.DEFAULT);
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Could not determine source target"));
 
         Metadata contextualMetadata = new Metadata(securityContext, labels);
 
@@ -651,7 +657,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                     discoveryStorage
                             .lookupServiceByTargetId(connectionDescriptor.getTargetId())
                             .map(auth::contextFor)
-                            .orElse(SecurityContext.DEFAULT);
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Could not determine source target"));
 
             metadata = new Metadata(securityContext, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
@@ -672,7 +681,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                     jvmIdHelper
                             .reverseLookup(jvmId)
                             .map(auth::contextFor)
-                            .orElse(SecurityContext.DEFAULT);
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Could not determine source target"));
             Metadata metadata = new Metadata(sc, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
             return metadata;

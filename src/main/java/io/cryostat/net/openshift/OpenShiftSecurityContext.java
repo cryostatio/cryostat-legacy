@@ -37,18 +37,19 @@
  */
 package io.cryostat.net.openshift;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import io.cryostat.net.security.InvalidConnectionURLException;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
-
-import dagger.Lazy;
 
 class OpenShiftSecurityContext extends SecurityContext {
 
@@ -56,54 +57,57 @@ class OpenShiftSecurityContext extends SecurityContext {
         super(namespace);
     }
 
-    OpenShiftSecurityContext(Lazy<String> defaultNamespace, AbstractNode node) {
-        super(namespaceForNode(defaultNamespace, node));
+    OpenShiftSecurityContext(AbstractNode node) {
+        super(namespaceForNode(node));
     }
 
-    OpenShiftSecurityContext(Lazy<String> defaultNamespace, ServiceRef serviceRef) {
-        super(namespaceForServiceRef(defaultNamespace, serviceRef));
+    OpenShiftSecurityContext(ServiceRef serviceRef) {
+        super(namespaceForServiceRef(serviceRef));
     }
 
     String getNamespace() {
         return name;
     }
 
-    private static String namespaceForNode(Lazy<String> defaultNamespace, AbstractNode node) {
-        String ns;
-        ServiceRef serviceRef = findServiceRef(node);
-        if (serviceRef != null) {
-            ns = serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE);
-            if (ns == null) {
-                // FIXME log properly
-                System.err.println(
-                        String.format(
-                                "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE"
-                                        + " value",
-                                serviceRef.getServiceUri()));
-                ns = defaultNamespace.get();
-            }
-        } else {
-            // FIXME
-            // throw new IllegalStateException(
-            //         String.format(
-            //                 "Could not find TargetNode/ServiceRef descendant of %s (%s)",
-            //                 node.getName(), node.getNodeType().getKind()));
-            ns = defaultNamespace.get();
-        }
-        return ns;
+    private static String namespaceForNode(AbstractNode node) {
+        return namespaceForServiceRef(findServiceRef(node));
     }
 
-    private static String namespaceForServiceRef(
-            Lazy<String> defaultNamespace, ServiceRef serviceRef) {
-        String ns = serviceRef.getCryostatAnnotations().get(AnnotationKey.NAMESPACE);
-        if (ns == null) {
-            System.err.println(
-                    String.format(
-                            "ServiceRef [%s] did not have an annotations.cryostat.NAMESPACE value",
-                            serviceRef.getServiceUri()));
-            ns = defaultNamespace.get();
+    private static String namespaceForServiceRef(ServiceRef serviceRef) {
+        // TODO extract regexes to constants
+        URI connectionUri = serviceRef.getServiceUri();
+        String host;
+        if (connectionUri.toString().startsWith("service:jmx")) {
+            Pattern hostPortCapture =
+                    Pattern.compile(
+                            "service:jmx:rmi:///jndi/rmi://([a-z-A-Z0-9-_\\.]+)(?::([0-9]+))?/jmxrmi");
+            Matcher m1 = hostPortCapture.matcher(connectionUri.toString());
+            if (!m1.find()) {
+                throw new InvalidConnectionURLException(connectionUri);
+            }
+            host = m1.group(1);
+            // int port = Integer.valueOf(m1.group(2));
+        } else if (connectionUri.toString().startsWith("http:")) {
+            host = connectionUri.getHost();
+        } else {
+            throw new InvalidConnectionURLException(connectionUri);
         }
-        return ns;
+
+        String ipDashedPattern = "((?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)-?\b){4})";
+        String hostPattern = "([a-zA-Z0-9-_]+)";
+        Pattern subdomainCapture =
+                Pattern.compile(
+                        String.format("%s\\.%s\\.(?:pod|svc)", ipDashedPattern, hostPattern));
+
+        Matcher m2 = subdomainCapture.matcher(host);
+        if (!m2.find()) {
+            throw new InvalidConnectionURLException(connectionUri);
+        }
+
+        // String ipDashed = m2.group(1);
+        String namespace = m2.group(2);
+
+        return namespace;
     }
 
     // find the first ServiceRef descendant from this node, depth-first search. If this is a

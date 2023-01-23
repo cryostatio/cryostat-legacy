@@ -52,6 +52,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.net.AuthManager;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
@@ -95,6 +97,7 @@ public abstract class DiscoveryModule {
             @Named(DISCOVERY_PING_DURATION) Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
+            Lazy<AuthManager> auth,
             Lazy<JvmIdHelper> jvmIdHelper,
             Lazy<CredentialsManager> credentialsManager,
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
@@ -105,6 +108,7 @@ public abstract class DiscoveryModule {
                 deployer,
                 pingPeriod,
                 builtin,
+                auth,
                 dao,
                 jvmIdHelper,
                 credentialsManager,

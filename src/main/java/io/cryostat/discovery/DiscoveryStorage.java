@@ -58,6 +58,8 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.InvalidConnectionURLException;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
@@ -91,6 +93,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final VerticleDeployer deployer;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
+    private final Lazy<AuthManager> auth;
     private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Lazy<CredentialsManager> credentialsManager;
     private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
@@ -108,6 +111,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             VerticleDeployer deployer,
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
+            Lazy<AuthManager> auth,
             PluginInfoDao dao,
             Lazy<JvmIdHelper> jvmIdHelper,
             Lazy<CredentialsManager> credentialsManager,
@@ -118,6 +122,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.deployer = deployer;
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
+        this.auth = auth;
         this.dao = dao;
         this.jvmIdHelper = jvmIdHelper;
         this.credentialsManager = credentialsManager;
@@ -339,19 +344,29 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return merged;
     }
 
-    private List<AbstractNode> modifyChildrenWithJvmIds(
+    private List<AbstractNode> validateChildren(
             UUID id, Collection<? extends AbstractNode> children) {
         List<AbstractNode> modifiedChildren = new ArrayList<>();
         for (AbstractNode child : children) {
             if (child instanceof TargetNode) {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
+                    auth.get().contextFor(ref);
+                } catch (InvalidConnectionURLException icue) {
+                    logger.info(
+                            "Ignoring target node [{}] - invalid connection URL", child.getName());
+                    logger.warn(icue);
+                    continue;
+                }
+                try {
                     ref = jvmIdHelper.get().resolveId(ref);
                 } catch (Exception e) {
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
-                        logger.info("Ignoring target node [{}]", child.getName());
+                        logger.info(
+                                "Ignoring target node [{}] - unable to retrieve JVM ID",
+                                child.getName());
                         continue;
                     }
                     logger.info("Update node [{}] with null jvmId", child.getName());
@@ -365,8 +380,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 child.getName(),
                                 child.getNodeType(),
                                 child.getLabels(),
-                                modifyChildrenWithJvmIds(
-                                        id, ((EnvironmentNode) child).getChildren())));
+                                validateChildren(id, ((EnvironmentNode) child).getChildren())));
             } else {
                 throw new IllegalArgumentException(child.getClass().getCanonicalName());
             }
@@ -381,8 +395,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         // that the AuthManager can use to reference the context. The PlatformClients through
         // built-in discovery can be made to always supply this but what if some external plugin
         // does not?
-        var updatedChildren =
-                modifyChildrenWithJvmIds(id, Objects.requireNonNull(children, "children"));
+        var updatedChildren = validateChildren(id, Objects.requireNonNull(children, "children"));
 
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 

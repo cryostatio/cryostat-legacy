@@ -115,7 +115,11 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        return SecurityContext.DEFAULT;
+        String targetId = params.getPathParams().get("targetId");
+        return auth.contextFor(
+                customTargetPlatformClient
+                        .getByUri(URI.create(targetId))
+                        .orElseThrow(() -> new ApiException(404)));
     }
 
     @Override

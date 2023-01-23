@@ -325,12 +325,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public SecurityContext contextFor(AbstractNode node) {
-        return new OpenShiftSecurityContext(namespace, node);
+        return new OpenShiftSecurityContext(node);
     }
 
     @Override
     public SecurityContext contextFor(ServiceRef serviceRef) {
-        return new OpenShiftSecurityContext(namespace, serviceRef);
+        return new OpenShiftSecurityContext(serviceRef);
     }
 
     Future<Boolean> reviewToken(String token) {
