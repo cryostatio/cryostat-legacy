@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
 public class TemplateJwtDownloadIT extends JwtAssetsSelfTest {
 
     @Test
-    void testDownloadRecordingUsingJwt() throws Exception {
+    void testDownloadTemplateUsingJwt() throws Exception {
         URL resource = null;
         Path assetDownload = null;
         try {
