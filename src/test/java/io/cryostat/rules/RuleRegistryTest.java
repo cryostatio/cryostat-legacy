@@ -92,6 +92,7 @@ class RuleRegistryTest {
                         .matchExpression("target.alias == 'com.example.App'")
                         .description("a simple test rule")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .preservedArchives(5)
                         .archivalPeriodSeconds(1234)
                         .maxSizeBytes(56)
@@ -197,6 +198,7 @@ class RuleRegistryTest {
                         .matchExpression(testRule.getMatchExpression())
                         .description(testRule.getDescription())
                         .eventSpecifier("archive")
+                        .context("__DEFAULT__")
                         .build();
 
         CompletableFuture<Event<RuleEvent, Rule>> eventListener = new CompletableFuture<>();
@@ -252,6 +254,7 @@ class RuleRegistryTest {
                         .matchExpression(testRule.getMatchExpression())
                         .description(testRule.getDescription())
                         .eventSpecifier("archive")
+                        .context("__DEFAULT__")
                         .build();
 
         registry.addRule(archiverRule);
@@ -331,6 +334,7 @@ class RuleRegistryTest {
                         .matchExpression("target.alias == 'com.example.App'")
                         .description("a simple test rule")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .preservedArchives(5)
                         .archivalPeriodSeconds(1234)
                         .maxSizeBytes(56)

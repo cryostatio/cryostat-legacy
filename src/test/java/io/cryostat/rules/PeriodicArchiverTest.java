@@ -85,6 +85,7 @@ class PeriodicArchiverTest {
                         .description("Automated unit test rule")
                         .matchExpression("target.alias=='com.example.App'")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .maxAgeSeconds(30)
                         .maxSizeBytes(1234)
                         .preservedArchives(2)

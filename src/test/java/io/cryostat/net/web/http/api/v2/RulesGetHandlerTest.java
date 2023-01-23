@@ -135,6 +135,7 @@ class RulesGetHandlerTest {
                             .name("Rule A")
                             .eventSpecifier("template=Profiling")
                             .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'fooTarget'")
+                            .context("__DEFAULT__")
                             .build();
 
             Rule ruleB =
@@ -142,6 +143,7 @@ class RulesGetHandlerTest {
                             .name("Rule B")
                             .eventSpecifier("template=Continuous")
                             .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'barTarget'")
+                            .context("__DEFAULT__")
                             .build();
 
             testRules = Set.of(ruleA, ruleB);

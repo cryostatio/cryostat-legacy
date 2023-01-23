@@ -185,6 +185,7 @@ class RuleProcessorTest {
                         .description("Automated unit test rule")
                         .matchExpression("target.alias == 'com.example.App'")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .maxAgeSeconds(30)
                         .maxSizeBytes(1234)
                         .preservedArchives(5)
@@ -299,6 +300,7 @@ class RuleProcessorTest {
                         .description("Automated unit test rule")
                         .matchExpression("target.alias == 'com.example.App'")
                         .eventSpecifier("archive")
+                        .context("__DEFAULT__")
                         .build();
 
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
@@ -347,6 +349,7 @@ class RuleProcessorTest {
                         .description("Automated unit test rule")
                         .matchExpression("target.alias == 'com.example.App'")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .maxAgeSeconds(30)
                         .maxSizeBytes(1234)
                         .preservedArchives(5)
@@ -431,6 +434,7 @@ class RuleProcessorTest {
                         .description("Automated unit test rule")
                         .matchExpression(matchExpression)
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .maxAgeSeconds(30)
                         .maxSizeBytes(1234)
                         .preservedArchives(5)
@@ -517,6 +521,7 @@ class RuleProcessorTest {
                         .description("Automated unit test rule")
                         .matchExpression("target.alias == 'com.example.App'")
                         .eventSpecifier("template=Continuous")
+                        .context("__DEFAULT__")
                         .maxAgeSeconds(30)
                         .maxSizeBytes(1234)
                         .preservedArchives(5)

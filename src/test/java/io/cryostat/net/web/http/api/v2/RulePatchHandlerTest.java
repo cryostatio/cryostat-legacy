@@ -182,6 +182,7 @@ class RulePatchHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .enabled(false)
                             .build();
 
@@ -216,6 +217,7 @@ class RulePatchHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .enabled(true)
                             .build();
 

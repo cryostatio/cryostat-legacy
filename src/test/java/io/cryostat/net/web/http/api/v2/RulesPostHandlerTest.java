@@ -380,7 +380,9 @@ class RulesPostHandlerTest {
                                     "maxSizeBytes",
                                     8192,
                                     "enabled",
-                                    true));
+                                    true,
+                                    "contexts",
+                                    List.of("__DEFAULT__")));
             Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
@@ -407,6 +409,7 @@ class RulesPostHandlerTest {
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
                                     .enabled(true)
+                                    .context("__DEFAULT__")
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();

@@ -139,6 +139,7 @@ class RuleGetHandlerTest {
                                     "target.annotations.cryostat.HOST=='localhost' &&"
                                             + " target.annotations.cryostat.PORT==0")
                             .eventSpecifier("template=Profiling")
+                            .context("__DEFAULT__")
                             .build();
         }
 

@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -177,13 +178,13 @@ public class Rule {
             requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
-            // requireNonBlank(this.context, Attribute.CONTEXT.getSerialKey());
+            requireNonEmpty(this.contexts, Attribute.CONTEXTS);
         } else {
             requireNonBlank(this.name, Attribute.NAME.getSerialKey());
             requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
             requireNonNegative(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
-            // requireNonBlank(this.context, Attribute.CONTEXT.getSerialKey());
+            requireNonEmpty(this.contexts, Attribute.CONTEXTS);
         }
     }
 
@@ -206,6 +207,13 @@ public class Rule {
                     String.format("\"%s\" cannot be positive, was \"%d\"", attr, i));
         }
         return i;
+    }
+
+    private static <T> Collection<T> requireNonEmpty(Collection<T> collection, Attribute attr) {
+        if (collection.isEmpty()) {
+            throw new IllegalArgumentException(String.format("\"%s\" cannot be empty", attr));
+        }
+        return collection;
     }
 
     private static String validateEventSpecifier(String eventSpecifier)
@@ -323,8 +331,11 @@ public class Rule {
                                                     Rule.Attribute.ENABLED.getSerialKey())))
                             .contexts(
                                     Arrays.asList(
-                                            formAttributes
-                                                    .get(Rule.Attribute.CONTEXTS.getSerialKey())
+                                            Optional.ofNullable(
+                                                            formAttributes.get(
+                                                                    Rule.Attribute.CONTEXTS
+                                                                            .getSerialKey()))
+                                                    .orElse("")
                                                     .split(",")));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);

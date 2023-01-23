@@ -147,6 +147,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
         form.add("preservedArchives", "0");
         form.add("maxAgeSeconds", "0");
         form.add("maxSizeBytes", "0");
+        form.add("contexts", ("__DEFAULT__"));
         webClient
                 .post("/api/v2/rules")
                 .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
@@ -186,29 +187,22 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                 rules.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        JsonObject expectedRule =
-                new JsonObject(
-                        Map.of(
-                                "name",
-                                ruleName,
-                                "description",
-                                "",
-                                "eventSpecifier",
-                                "template=Continuous,type=TARGET",
-                                "matchExpression",
-                                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
-                                "archivalPeriodSeconds",
-                                0,
-                                "initialDelaySeconds",
-                                0,
-                                "preservedArchives",
-                                0,
-                                "maxAgeSeconds",
-                                0,
-                                "maxSizeBytes",
-                                0,
-                                "enabled",
-                                true));
+        Map<String, Object> expectedRule = new HashMap<>();
+        expectedRule.put("name", ruleName);
+        expectedRule.put("description", "");
+
+        expectedRule.put("eventSpecifier", "template=Continuous,type=TARGET");
+
+        expectedRule.put(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        expectedRule.put("archivalPeriodSeconds", 0);
+        expectedRule.put("initialDelaySeconds", 0);
+        expectedRule.put("preservedArchives", 0);
+        expectedRule.put("maxAgeSeconds", 0);
+        expectedRule.put("maxSizeBytes", 0);
+        expectedRule.put("enabled", true);
+        expectedRule.put("contexts", List.of("__DEFAULT__"));
         JsonObject expectedRules =
                 new JsonObject(
                         Map.of(
