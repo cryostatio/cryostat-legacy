@@ -201,7 +201,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                     if (rule == null) {
                         throw new IllegalArgumentException("POST body was null");
                     }
-                } catch (IllegalArgumentException | JsonSyntaxException e) {
+                    rule.validate();
+                } catch (MatchExpressionValidationException
+                        | IllegalArgumentException
+                        | JsonSyntaxException e) {
                     throw new ApiException(400, e);
                 }
                 break;

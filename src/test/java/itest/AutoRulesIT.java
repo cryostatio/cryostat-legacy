@@ -131,6 +131,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("archivalPeriodSeconds", "60");
         form.add("initialDelaySeconds", "55");
         form.add("preservedArchives", "3");
+        form.add("contexts", "__DEFAULT__");
         webClient
                 .post("/api/v2/rules")
                 .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
@@ -170,29 +171,20 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 rules.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        JsonObject expectedRule =
-                new JsonObject(
-                        Map.of(
-                                "name",
-                                "Auto_Rule",
-                                "description",
-                                "AutoRulesIT automated rule",
-                                "eventSpecifier",
-                                "template=Continuous,type=TARGET",
-                                "matchExpression",
-                                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
-                                "archivalPeriodSeconds",
-                                60,
-                                "initialDelaySeconds",
-                                55,
-                                "preservedArchives",
-                                3,
-                                "maxAgeSeconds",
-                                60,
-                                "maxSizeBytes",
-                                -1,
-                                "enabled",
-                                true));
+        Map<String, Object> expectedRule = new HashMap<>();
+        expectedRule.put("name", "Auto_Rule");
+        expectedRule.put("description", "AutoRulesIT automated rule");
+        expectedRule.put("eventSpecifier", "template=Continuous,type=TARGET");
+        expectedRule.put(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        expectedRule.put("archivalPeriodSeconds", 60);
+        expectedRule.put("initialDelaySeconds", 55);
+        expectedRule.put("preservedArchives", 3);
+        expectedRule.put("maxAgeSeconds", 60);
+        expectedRule.put("maxSizeBytes", -1);
+        expectedRule.put("enabled", true);
+        expectedRule.put("contexts", List.of("__DEFAULT__"));
         JsonObject expectedRules =
                 new JsonObject(
                         Map.of(
@@ -233,6 +225,9 @@ class AutoRulesIT extends ExternalTargetsTest {
         invalidRule.put("matchExpression", "System.exit(1)");
         invalidRule.put("archivalPeriodSeconds", -60);
         invalidRule.put("preservedArchives", -3);
+        JsonArray contexts = new JsonArray();
+        contexts.add("__DEFAULT__");
+        invalidRule.put("contexts", contexts);
 
         webClient
                 .post("/api/v2/rules")
@@ -346,6 +341,9 @@ class AutoRulesIT extends ExternalTargetsTest {
         regexRule.put("description", "AutoRulesIT automated rule");
         regexRule.put("eventSpecifier", "template=Continuous,type=TARGET");
         regexRule.put("matchExpression", "/[a-zA-Z0-9.]+/.test(target.alias)");
+        JsonArray contexts = new JsonArray();
+        contexts.add("__DEFAULT__");
+        regexRule.put("contexts", contexts);
         final String expectedRecordingName = "auto_Regex_Rule";
 
         try {
@@ -571,6 +569,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         form.add("matchExpression", "target.annotations.cryostat.PORT == 9096");
         form.add("description", "AutoRulesIT automated rule created disabled");
         form.add("eventSpecifier", "template=Continuous,type=TARGET");
+        form.add("contexts", "__DEFAULT__");
         form.add("enabled", "false");
 
         String containerId = "";
