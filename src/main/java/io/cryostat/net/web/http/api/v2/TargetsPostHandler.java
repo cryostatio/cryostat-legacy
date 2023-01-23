@@ -56,6 +56,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.InvalidConnectionURLException;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -149,8 +150,18 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        return auth.contextFor(
-                new ServiceRef(null, URI.create(params.getFormAttributes().get("connectUrl")), ""));
+        String connectUrl = params.getFormAttributes().get("connectUrl");
+        if (StringUtils.isBlank(connectUrl)) {
+            throw new ApiException(400);
+        }
+        try {
+            URI uri = new URI(connectUrl);
+            return auth.contextFor(new ServiceRef(null, uri, ""));
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        } catch (InvalidConnectionURLException e) {
+            throw new ApiException(404, e);
+        }
     }
 
     @Override

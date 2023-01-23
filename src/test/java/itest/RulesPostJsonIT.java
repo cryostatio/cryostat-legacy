@@ -38,6 +38,7 @@
 package itest;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -45,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
@@ -74,6 +76,7 @@ class RulesPostJsonIT extends StandardSelfTest {
         testRule.put("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
         testRule.put("description", "AutoRulesIT automated rule");
         testRule.put("eventSpecifier", "template=Continuous,type=TARGET");
+        testRule.put("contexts", new JsonArray(List.of("__DEFAULT__")));
     }
 
     @Test
