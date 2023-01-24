@@ -37,6 +37,7 @@
  */
 package itest;
 
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,13 +58,13 @@ public class TemplateJwtDownloadIT extends JwtAssetsSelfTest {
         URL resource = null;
         Path assetDownload = null;
         try {
-            resource =
-                    new URL(
-                            String.format(
-                                    "http://%s:%d/api/v2.1/targets/%s/templates/Profiling/type/TARGET",
-                                    Utils.WEB_HOST, Utils.WEB_PORT, SELF_REFERENCE_TARGET_ID));
-            String downloadUrl =
-                    getTokenDownloadUrl(resource, Map.of("targetId", SELF_REFERENCE_TARGET_ID_RAW));
+            String base = String.format("http://%s:%d/", Utils.WEB_HOST, Utils.WEB_PORT);
+            String path =
+                    String.format(
+                            "api/v2.1/targets/%s/templates/Profiling/type/TARGET",
+                            SELF_REFERENCE_TARGET_ID);
+            resource = new URI(base).resolve(path).normalize().toURL();
+            String downloadUrl = getTokenDownloadUrl(resource, Map.of());
             assetDownload =
                     downloadFileAbs(downloadUrl, "Profiling", ".jfc")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

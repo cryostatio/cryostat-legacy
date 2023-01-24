@@ -141,7 +141,13 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                     webServer
                             .get()
                             .getRoute(HttpMethod.GET, rawPath)
-                            .orElseThrow(() -> new ApiException(403));
+                            .orElseThrow(
+                                    () -> {
+                                        logger.warn(
+                                                "Could not determine an API handler for {}",
+                                                rawPath);
+                                        return new ApiException(403);
+                                    });
             RequestHandler<RequestParameters> handler =
                     (RequestHandler<RequestParameters>) webServer.get().getHandler(pair.getLeft());
 
