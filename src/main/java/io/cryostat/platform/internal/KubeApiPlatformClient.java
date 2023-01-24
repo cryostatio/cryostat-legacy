@@ -52,6 +52,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.management.remote.JMXServiceURL;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -62,7 +64,6 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
 import io.fabric8.kubernetes.api.model.EndpointAddress;
@@ -388,25 +389,34 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         }
 
         ServiceRef toServiceRef() {
+            Pair<HasMetadata, EnvironmentNode> node =
+                    discoveryNodeCache.computeIfAbsent(
+                            cacheKey(objRef.getNamespace(), objRef),
+                            KubeApiPlatformClient.this::queryForNode);
+            HasMetadata podRef = node.getLeft();
+            if (node.getRight().getNodeType() != KubernetesNodeType.POD) {
+                throw new IllegalStateException();
+            }
+            if (podRef == null) {
+                throw new IllegalStateException();
+            }
             try {
-                Pair<HasMetadata, EnvironmentNode> node =
-                        discoveryNodeCache.computeIfAbsent(
-                                cacheKey(objRef.getNamespace(), objRef),
-                                KubeApiPlatformClient.this::queryForNode);
                 String targetName = objRef.getName();
-                URI uri =
-                        URIUtil.convert(
-                                connectionToolkit
-                                        .get()
-                                        .createServiceURL(addr.getIp(), port.getPort()));
-                ServiceRef serviceRef = new ServiceRef(null, uri, targetName);
-                if (node.getRight().getNodeType() == KubernetesNodeType.POD) {
-                    HasMetadata podRef = node.getLeft();
-                    if (podRef != null) {
-                        serviceRef.setLabels(podRef.getMetadata().getLabels());
-                        serviceRef.setPlatformAnnotations(podRef.getMetadata().getAnnotations());
-                    }
-                }
+
+                String ip = addr.getIp().replaceAll("\\.", "-");
+                String namespace = podRef.getMetadata().getNamespace();
+                String host = String.format("%s.%s.pod", ip, namespace);
+
+                JMXServiceURL jmxUrl =
+                        new JMXServiceURL(
+                                "rmi",
+                                "",
+                                0,
+                                "/jndi/rmi://" + host + ':' + port.getPort() + "/jmxrmi");
+                ServiceRef serviceRef =
+                        new ServiceRef(null, URI.create(jmxUrl.toString()), targetName);
+                serviceRef.setLabels(podRef.getMetadata().getLabels());
+                serviceRef.setPlatformAnnotations(podRef.getMetadata().getAnnotations());
                 serviceRef.setCryostatAnnotations(
                         Map.of(
                                 AnnotationKey.REALM,
