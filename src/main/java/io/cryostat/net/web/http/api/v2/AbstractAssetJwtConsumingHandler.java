@@ -57,7 +57,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -70,7 +69,8 @@ import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler<RoutingContext> {
+public abstract class AbstractAssetJwtConsumingHandler
+        implements RequestHandler<RequestParameters> {
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
@@ -92,11 +92,6 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
     }
 
     public abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
-
-    @Override
-    public final SecurityContext securityContext(RoutingContext ctx) {
-        return SecurityContext.DEFAULT;
-    }
 
     @Override
     public final void handle(RoutingContext ctx) {
@@ -159,7 +154,10 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
 
         try {
             String subject = parsed.getJWTClaimsSet().getSubject();
-            if (!auth.validateHttpHeader(() -> subject, securityContext(ctx), resourceActions())
+            if (!auth.validateHttpHeader(
+                            () -> subject,
+                            securityContext(RequestParameters.from(ctx)),
+                            resourceActions())
                     .get()) {
                 throw new ApiException(401, "Token subject has insufficient permissions");
             }
@@ -168,6 +166,12 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
         }
 
         return parsed;
+    }
+
+    protected ConnectionDescriptor getUnauthenticatedConnectionDescriptor(RequestParameters params)
+            throws ParseException {
+        String targetId = params.getPathParams().get("targetId");
+        return new ConnectionDescriptor(targetId, null);
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(RoutingContext ctx, JWT jwt)

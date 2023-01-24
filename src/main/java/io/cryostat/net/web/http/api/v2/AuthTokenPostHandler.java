@@ -41,9 +41,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -57,15 +55,18 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
+import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.Route;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URIBuilder;
 
 class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
@@ -133,50 +134,37 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     @Override
     public SecurityContext securityContext(RequestParameters params) {
-        String targetId = params.getFormAttributes().get("targetId");
-        if (StringUtils.isBlank(targetId)) {
-            throw new ApiException(403);
-        }
-        // TODO should this be the case? Any uploaded file to the general uploads directory is just
-        // generally accessible?
-        if ("uploads".equals(targetId)) {
-            return SecurityContext.DEFAULT;
-        }
         try {
-            new URI(targetId);
-            String resourceClaim = AssetJwtHelper.RESOURCE_CLAIM;
-            URI resource = new URI(params.getFormAttributes().get(resourceClaim));
-            // TODO what if this is a request for a resource that is not an active or archived
-            // recording? It could be an event template XML document.
-            if (!resourceClaim.contains("recording")) {
-                throw new ApiException(403);
-            }
-            String recordingName = params.getFormAttributes().get("recordingName");
-            if (StringUtils.isBlank(recordingName) || !resource.getPath().contains(recordingName)) {
-                throw new ApiException(403);
-            }
-            Optional<ArchivedRecordingInfo> recordingInfo =
-                    archiveHelper.getRecordings(targetId).get().stream()
-                            .filter(r -> r.getName().equals(recordingName))
-                            .findFirst();
-            // this is a request for an archived recording, so use the stored security context
-            // FIXME need to add a migration upgrade to the metadata manager to add the security
-            // context to stored metadata
-            if (recordingInfo.isPresent()) {
-                return recordingInfo.get().getMetadata().getSecurityContext();
-            }
-            // this is a request for an active recording so the URL must contain the targetId.
-            // if it does then we fall through to the bottom and use the security context of the
-            // service ref
-            if (!resource.getPath().contains(targetId)) {
-                throw new ApiException(403);
-            }
-            return discoveryStorage
-                    .lookupServiceByTargetId(targetId)
-                    .map(auth::contextFor)
-                    .orElseThrow(() -> new ApiException(403));
-        } catch (URISyntaxException | InterruptedException | ExecutionException e) {
-            throw new ApiException(500, e);
+            String claim = params.getFormAttributes().get(AssetJwtHelper.RESOURCE_CLAIM);
+            String rawPath = new URI(claim).getRawPath();
+            Pair<Route, Map<String, String>> pair =
+                    webServer
+                            .get()
+                            .getRoute(HttpMethod.GET, rawPath)
+                            .orElseThrow(() -> new ApiException(403));
+            RequestHandler<RequestParameters> handler =
+                    (RequestHandler<RequestParameters>) webServer.get().getHandler(pair.getLeft());
+
+            String acceptableContentType = "*";
+            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            MultiMap formAttributes = MultiMap.caseInsensitiveMultiMap();
+            Set<FileUpload> fileUploads = Set.of();
+            String body = null;
+            RequestParameters subParams =
+                    new RequestParameters(
+                            params.getRoutingContext(),
+                            acceptableContentType,
+                            params.getAddress(),
+                            pair.getRight(),
+                            queryParams,
+                            headers,
+                            formAttributes,
+                            fileUploads,
+                            body);
+            return handler.securityContext(subParams);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
         }
     }
 

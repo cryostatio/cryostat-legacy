@@ -46,7 +46,7 @@ import dagger.multibindings.IntoSet;
 @Module
 public abstract class HttpGenericModule {
 
-    static final String NON_API_PATH = "^(?!/api/).*";
+    public static final String NON_API_PATH = "^(?!/api/).*";
 
     @Binds
     @IntoSet

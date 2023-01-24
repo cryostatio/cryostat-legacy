@@ -56,6 +56,7 @@ import org.apache.commons.lang3.StringUtils;
 public class RequestParameters {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
+    private final RoutingContext ctx;
     private final String acceptableContentType;
     private final InetAddress addr;
     private final Map<String, String> pathParams;
@@ -70,6 +71,7 @@ public class RequestParameters {
             justification =
                     "InetAddress is mutable but there is no immutable form or copy constructor")
     public RequestParameters(
+            RoutingContext ctx,
             String acceptableContentType,
             InetAddress addr,
             Map<String, String> pathParams,
@@ -78,6 +80,7 @@ public class RequestParameters {
             MultiMap formAttributes,
             Set<FileUpload> fileUploads,
             String body) {
+        this.ctx = ctx;
         this.acceptableContentType = acceptableContentType;
         this.addr = addr;
         this.pathParams = new HashMap<>(pathParams);
@@ -131,6 +134,7 @@ public class RequestParameters {
         String body = ctx.getBodyAsString();
 
         return new RequestParameters(
+                ctx,
                 acceptableContentType,
                 addr,
                 pathParams,
@@ -153,8 +157,12 @@ public class RequestParameters {
         return addr;
     }
 
+    public RoutingContext getRoutingContext() {
+        return this.ctx;
+    }
+
     public String getAcceptableContentType() {
-        return acceptableContentType;
+        return this.acceptableContentType;
     }
 
     @SuppressFBWarnings(

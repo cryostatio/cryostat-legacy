@@ -38,6 +38,8 @@
 package io.cryostat.net.web;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URI;
@@ -49,9 +51,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Named;
 
@@ -71,19 +78,24 @@ import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.generic.HttpGenericModule;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.net.impl.URIDecoder;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.impl.BlockingHandlerDecorator;
+import io.vertx.ext.web.impl.RouteImpl;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
 
@@ -94,7 +106,9 @@ public class WebServer extends AbstractVerticle {
     public static final String DATASOURCE_FILENAME = "cryostat-analysis.jfr";
 
     private final HttpServer server;
+    private Router router;
     private final NetworkConfiguration netConf;
+    private final Map<Route, RequestHandler<?>> routeHandlers;
     private final List<RequestHandler<?>> requestHandlers;
     private final Path recordingsPath;
     private final Gson gson;
@@ -111,6 +125,7 @@ public class WebServer extends AbstractVerticle {
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
         this.server = server;
         this.netConf = netConf;
+        this.routeHandlers = new HashMap<>(requestHandlers.size());
         this.requestHandlers = new ArrayList<>(requestHandlers);
         Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
         this.recordingsPath = recordingsPath;
@@ -121,7 +136,10 @@ public class WebServer extends AbstractVerticle {
 
     @Override
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        Router router =
+        if (this.router != null) {
+            return;
+        }
+        this.router =
                 Router.router(server.getVertx()); // a vertx is only available after server started
 
         var fs = server.getVertx().fileSystem();
@@ -221,6 +239,7 @@ public class WebServer extends AbstractVerticle {
                     } else {
                         route = router.route(handler.httpMethod(), handler.path());
                     }
+                    route.putMetadata("handler", handler);
                     route = route.order(handler.getPriority());
                     for (HttpMimeType mime : handler.produces()) {
                         route = route.produces(mime.mime());
@@ -249,6 +268,7 @@ public class WebServer extends AbstractVerticle {
                         logger.trace("{} handler disabled", handler.getClass().getSimpleName());
                         route = route.disable();
                     }
+                    routeHandlers.put(route, handler);
                 });
 
         this.server.requestHandler(router::handle);
@@ -257,6 +277,105 @@ public class WebServer extends AbstractVerticle {
     @Override
     public void stop() {
         this.server.requestHandler(null);
+        this.router = null;
+    }
+
+    public Router getRouter() {
+        return this.router;
+    }
+
+    public Optional<Pair<Route, Map<String, String>>> getRoute(HttpMethod httpMethod, String path) {
+        // FIXME this is disgusting, find a way to do this without resorting to reflection. This
+        // should just use Vertx's existing internal Router plumbing that figures out how to select
+        // a Route for a given request, but we don't have a real request to process and don't want
+        // to actually process sending a response.
+        logger.debug("Finding handler for {} {} ...", httpMethod, path);
+        return getRouter().getRoutes().stream()
+                .filter(r -> Optional.ofNullable(r.methods()).orElse(Set.of()).contains(httpMethod))
+                .filter(r -> getHandler(r).isAvailable())
+                .filter(r -> !getHandler(r).path().equals(HttpGenericModule.NON_API_PATH))
+                .filter(r -> !getHandler(r).path().equals(RequestHandler.ALL_PATHS))
+                .filter(r -> !getHandler(r).apiVersion().equals(ApiVersion.GENERIC))
+                .sorted(
+                        (r1, r2) ->
+                                Integer.compare(
+                                        getHandler(r1).getPriority(), getHandler(r2).getPriority()))
+                .map(
+                        r -> {
+                            try {
+                                RouteImpl route = (RouteImpl) r;
+                                Method stateMtd = RouteImpl.class.getDeclaredMethod("state");
+                                stateMtd.setAccessible(true);
+                                Object state = stateMtd.invoke(route);
+                                Method patternMtd =
+                                        Class.forName("io.vertx.ext.web.impl.RouteState")
+                                                .getMethod("getPattern");
+                                patternMtd.setAccessible(true);
+                                Pattern p = (Pattern) patternMtd.invoke(state);
+                                if (p == null) {
+                                    return null;
+                                }
+                                logger.debug(
+                                        "Testing {} from {}",
+                                        p,
+                                        getHandler(r).getClass().getSimpleName());
+                                Matcher m = p.matcher(path);
+                                boolean match = m.matches();
+                                if (!match) {
+                                    return null;
+                                }
+                                Method groupsMtd =
+                                        Class.forName("io.vertx.ext.web.impl.RouteState")
+                                                .getMethod("getGroups");
+                                groupsMtd.setAccessible(true);
+                                List<String> groups = (List<String>) groupsMtd.invoke(state);
+                                if (groups == null || groups.isEmpty()) {
+                                    return null;
+                                }
+
+                                Map<String, String> pathParams = new HashMap<>();
+                                // ripped from Vertx RouteState
+                                final int len = Math.min(groups.size(), m.groupCount());
+                                for (int i = 0; i < len; i++) {
+                                    final String k = groups.get(i);
+                                    String undecodedValue;
+                                    try {
+                                        undecodedValue = m.group("p" + i);
+                                    } catch (IllegalArgumentException e) {
+                                        try {
+                                            undecodedValue = m.group(k);
+                                        } catch (IllegalArgumentException e1) {
+                                            undecodedValue = m.group(i + 1);
+                                        }
+                                    }
+                                    if (undecodedValue != null) {
+                                        String decodedValue =
+                                                URIDecoder.decodeURIComponent(
+                                                        undecodedValue, false);
+                                        pathParams.put(k, decodedValue);
+                                    }
+                                }
+                                logger.info(
+                                        "Selected {} with {} for {}",
+                                        getHandler(r).getClass().getSimpleName(),
+                                        pathParams,
+                                        path);
+
+                                return Pair.of(r, pathParams);
+                            } catch (ClassNotFoundException
+                                    | NoSuchMethodException
+                                    | InvocationTargetException
+                                    | IllegalAccessException e) {
+                                logger.error(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .findFirst();
+    }
+
+    public RequestHandler<?> getHandler(Route route) {
+        return routeHandlers.get(route);
     }
 
     public URL getHostUrl()
@@ -266,9 +385,7 @@ public class WebServer extends AbstractVerticle {
     }
 
     URI getHostUri() throws SocketException, UnknownHostException, URISyntaxException {
-        // FIXME replace URIBuilder with another implementation. This is the only
-        // remaining use
-        // of the Apache HttpComponents dependency
+        // FIXME replace URIBuilder with another implementation
         return new URIBuilder()
                 .setScheme(server.isSsl() ? "https" : "http")
                 .setHost(netConf.getWebServerHost())

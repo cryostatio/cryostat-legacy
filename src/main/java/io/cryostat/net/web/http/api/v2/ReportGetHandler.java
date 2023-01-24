@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -50,10 +51,13 @@ import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
@@ -72,12 +76,14 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
         alternateLocation = "/api/beta/reports/:sourceTarget/:recordingName")
 class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
+    private final DiscoveryStorage discoveryStorage;
     private final ReportService reportService;
     private final long reportGenerationTimeoutSeconds;
 
     @Inject
     ReportGetHandler(
             AuthManager auth,
+            DiscoveryStorage discoveryStorage,
             CredentialsManager credentialsManager,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
@@ -86,6 +92,7 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
                     long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.discoveryStorage = discoveryStorage;
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
@@ -121,6 +128,20 @@ class ReportGetHandler extends AbstractAssetJwtConsumingHandler {
     @Override
     public boolean isOrdered() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        try {
+            ConnectionDescriptor connectionDescriptor =
+                    getUnauthenticatedConnectionDescriptor(params);
+            return discoveryStorage
+                    .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                    .map(auth::contextFor)
+                    .orElseThrow(() -> new ApiException(404));
+        } catch (ParseException pe) {
+            throw new ApiException(400, pe);
+        }
     }
 
     @Override

@@ -48,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.WebServer;
@@ -104,6 +105,18 @@ class RecordingGetHandler extends AbstractAssetJwtConsumingHandler {
     @Override
     public boolean isAsync() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        // FIXME
+        String subdirectoryName = "?";
+        String recordingName = params.getPathParams().get("recordingName");
+        return recordingArchiveHelper
+                .getRecordingFromPath(subdirectoryName, recordingName)
+                .orElseThrow(() -> new ApiException(404))
+                .getMetadata()
+                .getSecurityContext();
     }
 
     @Override

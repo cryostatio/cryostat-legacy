@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.text.ParseException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -49,11 +50,14 @@ import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -69,6 +73,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
 
+    protected final DiscoveryStorage discoveryStorage;
     protected final ReportService reportService;
     protected final long reportGenerationTimeoutSeconds;
 
@@ -78,11 +83,13 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
             CredentialsManager credentialsManager,
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
+            DiscoveryStorage discoveryStorage,
             ReportService reportService,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.discoveryStorage = discoveryStorage;
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
@@ -124,6 +131,20 @@ class TargetReportGetHandler extends AbstractAssetJwtConsumingHandler {
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        try {
+            ConnectionDescriptor connectionDescriptor =
+                    getUnauthenticatedConnectionDescriptor(params);
+            return discoveryStorage
+                    .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                    .map(auth::contextFor)
+                    .orElseThrow(() -> new ApiException(404));
+        } catch (ParseException pe) {
+            throw new ApiException(400, pe);
+        }
     }
 
     @Override

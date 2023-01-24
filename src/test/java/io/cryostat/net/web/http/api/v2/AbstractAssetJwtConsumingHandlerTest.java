@@ -52,6 +52,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -575,6 +576,11 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Override
         public Set<ResourceAction> resourceActions() {
             return ResourceAction.NONE;
+        }
+
+        @Override
+        public SecurityContext securityContext(RequestParameters params) {
+            return SecurityContext.DEFAULT;
         }
 
         @Override

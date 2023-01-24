@@ -65,6 +65,7 @@ public abstract class WebModule {
     public static final String VERTX_EXECUTOR = "VERTX_EXECUTOR";
 
     @Provides
+    @Singleton
     static WebServer provideWebServer(
             HttpServer httpServer,
             NetworkConfiguration netConf,

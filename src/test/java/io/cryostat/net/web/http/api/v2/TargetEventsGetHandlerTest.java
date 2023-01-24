@@ -65,6 +65,7 @@ import io.cryostat.net.security.ResourceAction;
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,6 +126,7 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        Mockito.mock(RoutingContext.class),
                         "application/json",
                         InetAddress.getByName("127.0.01"),
                         Map.of("targetId", "foo:9091"),
@@ -195,6 +197,7 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
+                        Mockito.mock(RoutingContext.class),
                         "application/json",
                         InetAddress.getByName("127.0.0.1"),
                         Map.of("targetId", "foo:9091"),

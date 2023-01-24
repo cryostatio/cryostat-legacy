@@ -44,6 +44,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -80,6 +81,7 @@ class TargetTemplateGetHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
 
@@ -91,6 +93,7 @@ class TargetTemplateGetHandlerTest {
                         credentialsManager,
                         jwt,
                         () -> webServer,
+                        storage,
                         targetConnectionManager,
                         logger);
     }
