@@ -41,7 +41,6 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import itest.bases.JwtAssetsSelfTest;
@@ -64,7 +63,7 @@ public class TemplateJwtDownloadIT extends JwtAssetsSelfTest {
                             "api/v2.1/targets/%s/templates/Profiling/type/TARGET",
                             SELF_REFERENCE_TARGET_ID);
             resource = new URI(base).resolve(path).normalize().toURL();
-            String downloadUrl = getTokenDownloadUrl(resource, Map.of());
+            String downloadUrl = getTokenDownloadUrl(resource);
             assetDownload =
                     downloadFileAbs(downloadUrl, "Profiling", ".jfc")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

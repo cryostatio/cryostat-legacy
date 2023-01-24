@@ -43,7 +43,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -84,12 +83,7 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
                                                     "api/beta/recordings/%s/%s",
                                                     SELF_REFERENCE_TARGET_ID, recordingName))
                                     .normalize()
-                                    .toURL(),
-                            Map.of(
-                                    "targetId",
-                                    SELF_REFERENCE_TARGET_ID_RAW,
-                                    "recordingName",
-                                    recordingName));
+                                    .toURL());
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

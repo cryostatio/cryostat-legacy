@@ -40,7 +40,6 @@ package itest;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -69,12 +68,7 @@ public class ReportJwtDownloadIT extends JwtAssetsSelfTest {
                     getTokenDownloadUrl(
                             new URL(
                                     resource.getString("reportUrl")
-                                            .replace("/api/v1/", "/api/v2.1/")),
-                            Map.of(
-                                    "targetId",
-                                    SELF_REFERENCE_TARGET_ID_RAW,
-                                    "recordingName",
-                                    TEST_RECORDING_NAME));
+                                            .replace("/api/v1/", "/api/v2.1/")));
             Thread.sleep(10_000L);
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());

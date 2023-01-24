@@ -170,13 +170,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
                     ExecutionException.class,
                     () ->
                             downloadFileAbs(
-                                            getTokenDownloadUrl(
-                                                    badReportUrl,
-                                                    Map.of(
-                                                            "targetId",
-                                                            SELF_REFERENCE_TARGET_ID_RAW,
-                                                            "recordingName",
-                                                            TEST_RECORDING_NAME)),
+                                            getTokenDownloadUrl(badReportUrl),
                                             TEST_RECORDING_NAME,
                                             ".html")
                                     .get());
@@ -185,14 +179,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.add(HttpHeaders.ACCEPT, HttpMimeType.HTML.mime());
             URL reportUrl = new URL(updatedArchivedRecording.getString("reportUrl"));
-            String downloadUrl =
-                    getTokenDownloadUrl(
-                            new URL(reportUrl.toString()),
-                            Map.of(
-                                    "targetId",
-                                    SELF_REFERENCE_TARGET_ID_RAW,
-                                    "recordingName",
-                                    TEST_RECORDING_NAME));
+            String downloadUrl = getTokenDownloadUrl(new URL(reportUrl.toString()));
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html", headers)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

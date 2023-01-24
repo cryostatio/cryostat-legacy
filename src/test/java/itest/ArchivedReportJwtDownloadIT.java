@@ -42,7 +42,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -76,12 +75,7 @@ public class ArchivedReportJwtDownloadIT extends JwtAssetsSelfTest {
             URL reportUrl = new URL(creationResponse.getString("reportUrl"));
             String downloadUrl =
                     getTokenDownloadUrl(
-                            new URL(reportUrl.toString().replace("/api/v1/", "/api/v2.1/")),
-                            Map.of(
-                                    "targetId",
-                                    SELF_REFERENCE_TARGET_ID_RAW,
-                                    "recordingName",
-                                    TEST_RECORDING_NAME));
+                            new URL(reportUrl.toString().replace("/api/v1/", "/api/v2.1/")));
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.add(HttpHeaders.ACCEPT.toString(), HttpMimeType.HTML.mime());
             assetDownload =
