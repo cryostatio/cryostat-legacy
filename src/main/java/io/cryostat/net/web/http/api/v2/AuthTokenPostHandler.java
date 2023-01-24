@@ -47,7 +47,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
@@ -57,7 +56,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingArchiveHelper;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -74,8 +72,6 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     static final String PATH = "auth/token";
 
     private final AssetJwtHelper jwt;
-    private final DiscoveryStorage discoveryStorage;
-    private final RecordingArchiveHelper archiveHelper;
     private final Lazy<WebServer> webServer;
     private final Logger logger;
 
@@ -83,16 +79,12 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     AuthTokenPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            DiscoveryStorage discoveryStorage,
-            RecordingArchiveHelper archiveHelper,
             Gson gson,
             AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
             Logger logger) {
         super(auth, credentialsManager, gson);
         this.jwt = jwt;
-        this.discoveryStorage = discoveryStorage;
-        this.archiveHelper = archiveHelper;
         this.webServer = webServer;
         this.logger = logger;
     }
@@ -159,7 +151,6 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
             String body = null;
             RequestParameters subParams =
                     new RequestParameters(
-                            params.getRoutingContext(),
                             acceptableContentType,
                             params.getAddress(),
                             pair.getRight(),

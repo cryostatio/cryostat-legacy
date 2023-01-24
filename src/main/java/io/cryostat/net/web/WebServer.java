@@ -280,17 +280,13 @@ public class WebServer extends AbstractVerticle {
         this.router = null;
     }
 
-    public Router getRouter() {
-        return this.router;
-    }
-
     public Optional<Pair<Route, Map<String, String>>> getRoute(HttpMethod httpMethod, String path) {
         // FIXME this is disgusting, find a way to do this without resorting to reflection. This
         // should just use Vertx's existing internal Router plumbing that figures out how to select
         // a Route for a given request, but we don't have a real request to process and don't want
         // to actually process sending a response.
         logger.debug("Finding handler for {} {} ...", httpMethod, path);
-        return getRouter().getRoutes().stream()
+        return this.router.getRoutes().stream()
                 .filter(r -> Optional.ofNullable(r.methods()).orElse(Set.of()).contains(httpMethod))
                 .filter(r -> getHandler(r).isAvailable())
                 .filter(r -> !getHandler(r).path().equals(HttpGenericModule.NON_API_PATH))
