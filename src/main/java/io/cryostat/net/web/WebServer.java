@@ -351,7 +351,7 @@ public class WebServer extends AbstractVerticle {
                                         pathParams.put(k, decodedValue);
                                     }
                                 }
-                                logger.debug(
+                                logger.info(
                                         "Selected {} with {} for {}",
                                         getHandler(r).getClass().getSimpleName(),
                                         pathParams,

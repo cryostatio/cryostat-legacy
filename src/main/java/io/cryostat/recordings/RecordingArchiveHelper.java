@@ -542,7 +542,7 @@ public class RecordingArchiveHelper {
                             recordingName,
                             webServerProvider.get().getArchivedDownloadURL(targetId, filename),
                             webServerProvider.get().getArchivedReportURL(targetId, filename),
-                            recordingMetadataManager.deleteRecordingMetadataIfExists(
+                            recordingMetadataManager.getMetadataFromPathIfExists(
                                     jvmId, recordingName),
                             getFileSize(filename),
                             getArchivedTime(filename));

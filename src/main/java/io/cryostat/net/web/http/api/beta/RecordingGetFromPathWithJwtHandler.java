@@ -115,7 +115,7 @@ public class RecordingGetFromPathWithJwtHandler extends AbstractAssetJwtConsumin
         String recordingName = params.getPathParams().get("recordingName");
         return recordingArchiveHelper
                 .getRecordingFromPath(subdirectoryName, recordingName)
-                .orElseThrow(() -> new ApiException(404))
+                .orElseThrow(() -> new ApiException(403))
                 .getMetadata()
                 .getSecurityContext();
     }

@@ -52,6 +52,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -60,6 +61,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -81,13 +83,21 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
+    @Mock JvmIdHelper jvmId;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth,
+                        credentialsManager,
+                        jwt,
+                        () -> webServer,
+                        archive,
+                        jvmId,
+                        new Base32(),
+                        logger);
     }
 
     @Nested

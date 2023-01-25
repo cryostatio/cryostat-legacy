@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
@@ -56,6 +57,8 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
@@ -65,12 +68,15 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.codec.binary.Base32;
 
 class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     static final String PATH = "recordings/:sourceTarget/:recordingName/jwt";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final JvmIdHelper jvmId;
+    private final Base32 base32;
 
     @Inject
     RecordingGetWithJwtHandler(
@@ -79,9 +85,13 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
+            JvmIdHelper jvmId,
+            Base32 base32,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.jvmId = jvmId;
+        this.base32 = base32;
     }
 
     @Override
@@ -113,11 +123,17 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     public SecurityContext securityContext(RequestParameters params) {
         String sourceTarget = params.getPathParams().get("sourceTarget");
         String recordingName = params.getPathParams().get("recordingName");
-        return recordingArchiveHelper
-                .getRecordingFromPath(sourceTarget, recordingName)
-                .orElseThrow(() -> new ApiException(404))
-                .getMetadata()
-                .getSecurityContext();
+        try {
+            String id = jvmId.getJvmId(sourceTarget);
+            String encoded = base32.encodeToString(id.getBytes(StandardCharsets.UTF_8));
+            return recordingArchiveHelper
+                    .getRecordingFromPath(encoded, recordingName)
+                    .orElseThrow(() -> new ApiException(403))
+                    .getMetadata()
+                    .getSecurityContext();
+        } catch (JvmIdGetException jige) {
+            throw new ApiException(404, jige);
+        }
     }
 
     @Override
