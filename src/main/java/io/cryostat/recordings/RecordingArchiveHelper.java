@@ -596,14 +596,18 @@ public class RecordingArchiveHelper {
             String subdirectoryName, String recordingName, String filter, boolean formatted) {
         CompletableFuture<Path> future = new CompletableFuture<>();
         try {
+            System.out.println(archivedRecordingsPath);
             Path tempSubdirectory = archivedRecordingsReportPath.resolve(subdirectoryName);
             if (!fs.exists(tempSubdirectory)) {
+                System.out.println("Creating temp subdirectory");
                 tempSubdirectory = fs.createDirectory(tempSubdirectory);
             }
             String fileName =
                     String.format(
                             "%s-%s.report%s",
                             recordingName, filter.hashCode(), formatted ? ".html" : ".json");
+            System.out.println("fileName: " + fileName);
+            System.out.println("tempSubdirectory: " + tempSubdirectory);
             future.complete(tempSubdirectory.resolve(fileName).toAbsolutePath());
         } catch (IOException e) {
             future.completeExceptionally(e);
@@ -815,6 +819,7 @@ public class RecordingArchiveHelper {
         try {
             boolean checkConnectUrl = !jvmIdHelper.isSpecialDirectory(subdirectoryName);
             Path path = archivedRecordingsPath.resolve(subdirectoryName).resolve(recordingName);
+            System.out.println(path);
             validateRecordingPath(Optional.of(path), recordingName, checkConnectUrl);
             return CompletableFuture.completedFuture(path);
         } catch (RecordingNotFoundException | ArchivePathException e) {
