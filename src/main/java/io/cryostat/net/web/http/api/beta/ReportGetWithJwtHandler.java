@@ -125,7 +125,7 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     @Override
     public boolean isAsync() {
-        return true;
+        return false;
     }
 
     @Override
