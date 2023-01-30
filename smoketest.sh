@@ -119,6 +119,8 @@ runDemoApps() {
         local protocol="http"
     fi
 
+    # this config is broken on purpose (missing required env vars) to test the agent's behaviour
+    # when not properly set up
     podman run \
         --name quarkus-test-agent-0 \
         --pod cryostat-pod \
