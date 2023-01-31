@@ -143,7 +143,8 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                     case ADDED:
                         vertx.<List<ServiceRef>>executeBlocking(
                                 promise ->
-                                        promise.complete(platformClient.listDiscoverableServices()),
+                                        promise.complete(
+                                                platformClient.listUniqueReachableServices()),
                                 false,
                                 result ->
                                         result.result().stream()
@@ -169,7 +170,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                             vertx.<List<ServiceRef>>executeBlocking(
                                     promise ->
                                             promise.complete(
-                                                    platformClient.listDiscoverableServices()),
+                                                    platformClient.listUniqueReachableServices()),
                                     false,
                                     result ->
                                             result.result().stream()

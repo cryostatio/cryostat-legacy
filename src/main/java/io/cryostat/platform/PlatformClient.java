@@ -37,8 +37,12 @@
  */
 package io.cryostat.platform;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -54,6 +58,19 @@ public interface PlatformClient {
     void stop() throws Exception;
 
     List<ServiceRef> listDiscoverableServices();
+
+    default List<ServiceRef> listUniqueReachableServices() {
+        return listDiscoverableServices().stream()
+                .filter((ref) -> ref.getJvmId() != null)
+                .collect(
+                        Collectors.collectingAndThen(
+                                Collectors.toCollection(
+                                        () ->
+                                                new TreeSet<>(
+                                                        Comparator.comparing(
+                                                                ServiceRef::getJvmId))),
+                                ArrayList::new));
+    }
 
     void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
 
