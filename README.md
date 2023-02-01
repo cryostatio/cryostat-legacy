@@ -48,6 +48,7 @@ Build Requirements:
 - JDK17+
 - Maven 3+
 - Podman 2.0+
+- `qemu-user-static` to build container images for other archs
 
 Run Requirements:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
