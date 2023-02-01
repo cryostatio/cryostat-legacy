@@ -103,7 +103,7 @@
   <org.hibernate.hibernate.version>5.6.12.Final</org.hibernate.hibernate.version>
   <com.vladmihalcea.hibernate.types.version>2.21.1</com.vladmihalcea.hibernate.types.version>
   <com.h2database.h2.version>2.1.214</com.h2database.h2.version>
-  <org.postgresql.postgresql.version>42.5.0</org.postgresql.postgresql.version>
+  <org.postgresql.postgresql.version>42.5.2</org.postgresql.postgresql.version>
 
   <com.github.spotbugs.version>4.7.3</com.github.spotbugs.version>
   <com.github.spotbugs.plugin.version>${com.github.spotbugs.version}.0</com.github.spotbugs.plugin.version>
