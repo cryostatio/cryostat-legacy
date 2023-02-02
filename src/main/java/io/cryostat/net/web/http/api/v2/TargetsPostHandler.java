@@ -217,7 +217,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             } else {
-                if (storage.containsDuplicateTarget(serviceRef)) {
+                if (storage.contains(serviceRef)) {
                     return new IntermediateResponse<ServiceRef>().statusCode(202).body(serviceRef);
                 }
             }

@@ -389,7 +389,7 @@ class TargetsPostHandlerTest {
 
         queries.set("dryrun", dryRunStr);
 
-        Mockito.when(storage.containsDuplicateTarget(Mockito.any())).thenReturn(true);
+        Mockito.when(storage.contains(Mockito.any())).thenReturn(true);
 
         IntermediateResponse<ServiceRef> response = handler.handle(params);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(202));
@@ -470,7 +470,7 @@ class TargetsPostHandlerTest {
 
         queries.set("dryrun", "true");
 
-        Mockito.when(storage.containsDuplicateTarget(Mockito.any())).thenReturn(true);
+        Mockito.when(storage.contains(Mockito.any())).thenReturn(true);
 
         IntermediateResponse<ServiceRef> response = handler.handle(params);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(202));
