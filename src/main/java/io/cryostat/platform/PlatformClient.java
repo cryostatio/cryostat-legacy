@@ -37,12 +37,10 @@
  */
 package io.cryostat.platform;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.TreeSet;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -60,16 +58,18 @@ public interface PlatformClient {
     List<ServiceRef> listDiscoverableServices();
 
     default List<ServiceRef> listUniqueReachableServices() {
+        Set<String> uniqueIds = new HashSet<>();
         return listDiscoverableServices().stream()
-                .filter((ref) -> ref.getJvmId() != null)
-                .collect(
-                        Collectors.collectingAndThen(
-                                Collectors.toCollection(
-                                        () ->
-                                                new TreeSet<>(
-                                                        Comparator.comparing(
-                                                                ServiceRef::getJvmId))),
-                                ArrayList::new));
+                .filter((ref) -> ref.getJvmId() != null && uniqueIds.add(ref.getJvmId()))
+                .toList();
+    }
+
+    default boolean hasDuplicateTarget(ServiceRef ref) {
+        var existingRef =
+                listUniqueReachableServices().stream()
+                        .filter(sr -> !sr.equals(ref) && sr.getJvmId().equals(ref.getJvmId()))
+                        .findAny();
+        return existingRef.isPresent();
     }
 
     void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);

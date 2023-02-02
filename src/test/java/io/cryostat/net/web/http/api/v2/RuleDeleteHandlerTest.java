@@ -233,7 +233,7 @@ class RuleDeleteHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
 
             FlightRecorderException exception =
                     new FlightRecorderException(new Exception("test message"));
@@ -267,7 +267,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
 
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
+            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of());
 
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -301,7 +301,7 @@ class RuleDeleteHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
 
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));

@@ -214,28 +214,9 @@ public class CredentialsManager
         return dao.get(id).map(StoredCredentials::getMatchExpression);
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(int id) {
-        Optional<String> matchExpression = get(id);
-        if (matchExpression.isEmpty()) {
-            return Set.of();
-        }
+    private Set<ServiceRef> getMatchedTargets(String matchExpression, List<ServiceRef> services) {
         Set<ServiceRef> matchedTargets = new HashSet<>();
-        for (ServiceRef target : platformClient.listDiscoverableServices()) {
-            try {
-                if (matchExpressionEvaluator.get().applies(matchExpression.get(), target)) {
-                    matchedTargets.add(target);
-                }
-            } catch (ScriptException e) {
-                logger.error(e);
-                break;
-            }
-        }
-        return matchedTargets;
-    }
-
-    public Set<ServiceRef> resolveMatchingTargets(String matchExpression) {
-        Set<ServiceRef> matchedTargets = new HashSet<>();
-        for (ServiceRef target : platformClient.listDiscoverableServices()) {
+        for (ServiceRef target : services) {
             try {
                 if (matchExpressionEvaluator.get().applies(matchExpression, target)) {
                     matchedTargets.add(target);
@@ -246,6 +227,22 @@ public class CredentialsManager
             }
         }
         return matchedTargets;
+    }
+
+    public Set<ServiceRef> resolveMatchingTargets(int id) {
+        Optional<String> matchExpression = get(id);
+        if (matchExpression.isEmpty()) {
+            return Set.of();
+        }
+        return getMatchedTargets(matchExpression.get(), platformClient.listDiscoverableServices());
+    }
+
+    public Set<ServiceRef> resolveMatchingTargets(String matchExpression) {
+        return getMatchedTargets(matchExpression, platformClient.listDiscoverableServices());
+    }
+
+    public Set<ServiceRef> resolveMatchingUniqueTargets(String matchExpression) {
+        return getMatchedTargets(matchExpression, platformClient.listUniqueReachableServices());
     }
 
     public boolean delete(int id) {

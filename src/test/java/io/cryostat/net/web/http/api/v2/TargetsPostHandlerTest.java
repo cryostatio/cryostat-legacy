@@ -389,8 +389,10 @@ class TargetsPostHandlerTest {
 
         queries.set("dryrun", dryRunStr);
 
+        Mockito.when(storage.hasDuplicateTarget(Mockito.any())).thenReturn(true);
+
         IntermediateResponse<ServiceRef> response = handler.handle(params);
-        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(204));
 
         ServiceRef respRef = response.getBody();
         MatcherAssert.assertThat(respRef.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));

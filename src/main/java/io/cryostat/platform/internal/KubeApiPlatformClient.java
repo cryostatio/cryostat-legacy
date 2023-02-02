@@ -85,7 +85,7 @@ import org.apache.commons.lang3.tuple.Triple;
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
     private static final long ENDPOINTS_INFORMER_RESYNC_PERIOD = Duration.ofSeconds(30).toMillis();
-    private static final String REALM = "KubernetesApi";
+    public static final String REALM = "KubernetesApi";
 
     private final KubernetesClient k8sClient;
     private final Set<String> namespaces;

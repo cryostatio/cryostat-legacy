@@ -176,7 +176,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     }
 
     private void cleanup(RequestParameters params, Rule rule) {
-        storage.listUniqueReachableServices().stream()
+        storage.listUniqueReachableServices().parallelStream()
                 .forEach(
                         (ServiceRef ref) -> {
                             vertx.executeBlocking(
