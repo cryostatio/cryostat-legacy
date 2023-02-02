@@ -222,7 +222,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     public synchronized void accept(TargetDiscoveryEvent tde) {
         switch (tde.getEventKind()) {
             case FOUND:
-                if (!platformClient.hasDuplicateTarget(tde.getServiceRef())) {
+                if (!platformClient.containsDuplicateTarget(tde.getServiceRef())) {
                     registry.getRules(tde.getServiceRef())
                             .forEach(
                                     rule -> {

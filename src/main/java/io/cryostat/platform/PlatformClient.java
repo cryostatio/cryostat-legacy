@@ -64,7 +64,7 @@ public interface PlatformClient {
                 .toList();
     }
 
-    default boolean hasDuplicateTarget(ServiceRef ref) {
+    default boolean containsDuplicateTarget(ServiceRef ref) {
         var existingRef =
                 listUniqueReachableServices().stream()
                         .filter(sr -> !sr.equals(ref) && sr.getJvmId().equals(ref.getJvmId()))

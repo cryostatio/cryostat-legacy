@@ -162,7 +162,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     }
 
     private void cleanup(RequestParameters params, Rule rule) {
-        storage.listUniqueReachableServices().parallelStream()
+        storage.listUniqueReachableServices().stream()
                 .forEach(
                         (ServiceRef ref) -> {
                             vertx.executeBlocking(
