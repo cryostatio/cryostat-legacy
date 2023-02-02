@@ -81,6 +81,7 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
 
     private final Environment env;
     private final long httpTimeoutSeconds;
+    private final String datasourceFilename;
     private final WebClient webClient;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
@@ -90,6 +91,7 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
             CredentialsManager credentialsManager,
             Environment env,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
+            @Named(HttpModule.DATASOURCE_FILENAME) String datasourceFilename,
             WebClient webClient,
             RecordingArchiveHelper recordingArchiveHelper,
             Gson gson) {
@@ -98,6 +100,7 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.datasourceFilename = datasourceFilename;
     }
 
     @Override
@@ -188,13 +191,14 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
                 MultipartForm.create()
                         .binaryFileUpload(
                                 "file",
-                                recordingName,
+                                datasourceFilename,
                                 recordingPath.toString(),
                                 HttpMimeType.OCTET_STREAM.toString());
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         webClient
                 .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
+                .addQueryParam("overwrite", "true")
                 .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                 .sendMultipartForm(
                         form,

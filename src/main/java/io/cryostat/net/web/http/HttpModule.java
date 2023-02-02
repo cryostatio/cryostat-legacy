@@ -59,10 +59,17 @@ import dagger.Provides;
 public abstract class HttpModule {
 
     public static final String HTTP_REQUEST_TIMEOUT_SECONDS = "HTTP_REQUEST_TIMEOUT_SECONDS";
+    public static final String DATASOURCE_FILENAME = "DATASOURCE_FILENAME";
 
     @Provides
     @Named(HTTP_REQUEST_TIMEOUT_SECONDS)
     static long provideReportGenerationTimeoutSeconds(Environment env) {
         return Long.parseLong(env.getEnv(Variables.HTTP_REQUEST_TIMEOUT, "29"));
+    }
+
+    @Provides
+    @Named(DATASOURCE_FILENAME)
+    static String provideDatasourceFilename(Environment env) {
+        return "cryostat-analysis.jfr";
     }
 }

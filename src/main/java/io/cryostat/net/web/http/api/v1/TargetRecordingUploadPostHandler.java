@@ -82,6 +82,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     private final Environment env;
     private final TargetConnectionManager targetConnectionManager;
     private final long httpTimeoutSeconds;
+    private final String datasourceFilename;
     private final WebClient webClient;
     private final FileSystem fs;
 
@@ -92,6 +93,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             Environment env,
             TargetConnectionManager targetConnectionManager,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
+            @Named(HttpModule.DATASOURCE_FILENAME) String datasourceFilename,
             WebClient webClient,
             FileSystem fs,
             Logger logger) {
@@ -101,6 +103,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.fs = fs;
+        this.datasourceFilename = datasourceFilename;
     }
 
     @Override
@@ -185,7 +188,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 MultipartForm.create()
                         .binaryFileUpload(
                                 "file",
-                                recordingName,
+                                datasourceFilename,
                                 recordingPath.toString(),
                                 HttpMimeType.OCTET_STREAM.toString());
 
@@ -193,6 +196,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         try {
             webClient
                     .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
+                    .addQueryParam("overwrite", "true")
                     .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                     .sendMultipartForm(
                             form,
