@@ -8,6 +8,14 @@ datasource_container="cryostat-devserver-jfr-datasource"
 grafana_container="cryostat-devserver-grafana-dashboard"
 podname="cryostat-devserver"
 
+getPomProperty() {
+    if command -v xpath > /dev/null 2>&1 ; then
+        xpath -q -e "project/properties/$1/text()" pom.xml
+    else
+        ${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+    fi
+}
+
 cleanup() {
     podman pod stop "${podname}"
     podman pod rm "${podname}"
@@ -61,9 +69,9 @@ createPod() {
 
 runReportGenerator() {
     local stream; local tag; local port;
-    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.imageStream -q -DforceStdout)"
-    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.version -q -DforceStdout)"
-    port="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.reports.port -q -DforceStdout)"
+    stream="$(getPomProperty cryostat.itest.reports.imageStream)"
+    tag="$(getPomProperty cryostat.itest.reports.version)"
+    port="$(getPomProperty cryostat.itest.reports.port)"
     podman run \
         --name "${reports_container}" \
         --pod "${podname}" \
@@ -74,8 +82,8 @@ runReportGenerator() {
 
 runJfrDatasource() {
     local stream; local tag;
-    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.jfr-datasource.imageStream -q -DforceStdout)"
-    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.jfr-datasource.version -q -DforceStdout)"
+    stream="$(getPomProperty cryostat.itest.jfr-datasource.imageStream)"
+    tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
     podman run \
         --name "${datasource_container}" \
         --pod "${podname}" \
@@ -84,8 +92,8 @@ runJfrDatasource() {
 
 runGrafana() {
     local stream; local tag;
-    stream="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.grafana.imageStream -q -DforceStdout)"
-    tag="$(${MVN} -o -B -q help:evaluate -Dexpression=cryostat.itest.grafana.version -q -DforceStdout)"
+    stream="$(getPomProperty cryostat.itest.grafana.imageStream)"
+    tag="$(getPomProperty cryostat.itest.grafana.version)"
     podman run \
         --name "${grafana_container}" \
         --pod "${podname}" \
