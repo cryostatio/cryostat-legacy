@@ -61,6 +61,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
@@ -82,7 +83,6 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     private final Environment env;
     private final TargetConnectionManager targetConnectionManager;
     private final long httpTimeoutSeconds;
-    private final String datasourceFilename;
     private final WebClient webClient;
     private final FileSystem fs;
 
@@ -93,7 +93,6 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             Environment env,
             TargetConnectionManager targetConnectionManager,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
-            @Named(HttpModule.DATASOURCE_FILENAME) String datasourceFilename,
             WebClient webClient,
             FileSystem fs,
             Logger logger) {
@@ -103,7 +102,6 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.fs = fs;
-        this.datasourceFilename = datasourceFilename;
     }
 
     @Override
@@ -188,7 +186,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 MultipartForm.create()
                         .binaryFileUpload(
                                 "file",
-                                datasourceFilename,
+                                WebServer.DATASOURCE_FILENAME,
                                 recordingPath.toString(),
                                 HttpMimeType.OCTET_STREAM.toString());
 
