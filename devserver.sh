@@ -9,7 +9,7 @@ grafana_container="cryostat-devserver-grafana-dashboard"
 podname="cryostat-devserver"
 
 getPomProperty() {
-    if command -v xpaths > /dev/null 2>&1 ; then
+    if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/properties/$1/text()" pom.xml
     elif command -v mvnd > /dev/null 2>&1 ; then
         mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
