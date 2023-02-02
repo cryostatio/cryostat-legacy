@@ -130,6 +130,9 @@ public class CustomTargetsIT extends StandardSelfTest {
                         form,
                         ar -> {
                             assertRequestStatus(ar, response);
+                            // Assert 202 since localhost:0 jvm already exists
+                            MatcherAssert.assertThat(
+                                    ar.result().statusCode(), Matchers.equalTo(202));
                             response.complete(ar.result().bodyAsJsonObject());
                         });
         JsonObject body = response.get().getJsonObject("data").getJsonObject("result");

@@ -60,9 +60,9 @@ import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
 
-class KubeEnvPlatformClient extends AbstractPlatformClient {
+public class KubeEnvPlatformClient extends AbstractPlatformClient {
 
-    private static final String REALM = "KubernetesEnv";
+    public static final String REALM = "KubernetesEnv";
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final String namespace;
