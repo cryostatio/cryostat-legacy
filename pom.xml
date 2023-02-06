@@ -99,7 +99,7 @@
   <org.jasypt-hibernate5.version>1.9.3</org.jasypt-hibernate5.version>
   <org.slf4j.version>1.7.36</org.slf4j.version>
   <com.google.code.gson.version>2.10.1</com.google.code.gson.version>
-  <com.github.ben-manes.caffeine.version>3.1.1</com.github.ben-manes.caffeine.version>
+  <com.github.ben-manes.caffeine.version>3.1.2</com.github.ben-manes.caffeine.version>
   <org.hibernate.hibernate.version>5.6.12.Final</org.hibernate.hibernate.version>
   <com.vladmihalcea.hibernate.types.version>2.21.1</com.vladmihalcea.hibernate.types.version>
   <com.h2database.h2.version>2.1.214</com.h2database.h2.version>
