@@ -206,41 +206,6 @@ public class RecordingTargetHelper {
                 });
     }
 
-    public IRecordingDescriptor startRecording(
-            ConnectionDescriptor connectionDescriptor,
-            IConstrainedMap<String> recordingOptions,
-            String templateName,
-            TemplateType templateType,
-            Metadata metadata)
-            throws Exception {
-        return startRecording(
-                false,
-                connectionDescriptor,
-                recordingOptions,
-                templateName,
-                templateType,
-                metadata,
-                false);
-    }
-
-    public IRecordingDescriptor startRecording(
-            ConnectionDescriptor connectionDescriptor,
-            IConstrainedMap<String> recordingOptions,
-            String templateName,
-            TemplateType templateType,
-            Metadata metadata,
-            boolean archiveOnStop)
-            throws Exception {
-        return startRecording(
-                false,
-                connectionDescriptor,
-                recordingOptions,
-                templateName,
-                templateType,
-                metadata,
-                archiveOnStop);
-    }
-
     /**
      * The returned {@link InputStream}, if any, is only readable while the remote connection
      * remains open. And so, {@link
