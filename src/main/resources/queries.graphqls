@@ -3,4 +3,5 @@ type Query {
     environmentNodes(filter: EnvironmentNodeFilterInput): [EnvironmentNode!]!
     targetNodes(filter: TargetNodesFilterInput): [TargetNode!]!
     archivedRecordings(filter: ArchivedRecordingFilterInput): Archived!
+    jvmDetails(targetId: String, runtimeAttrs: [String], memoryAttrs: [String], threadAttrs: [String], osAttrs: [String]): JVMDetails!
 }

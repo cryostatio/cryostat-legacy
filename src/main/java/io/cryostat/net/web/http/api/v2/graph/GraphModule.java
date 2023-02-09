@@ -419,4 +419,14 @@ public abstract class GraphModule {
     @IntoSet
     abstract AbstractPermissionedDataFetcher<?> bindDeleteArchivedRecordingMutator(
             DeleteArchivedRecordingMutator apdf);
+
+
+        @Provides
+        static JvmDetailsFetcher provideJvmDetailsFetcher(AuthManager auth, TargetConnectionManager tcm, Logger logger) {
+            return new JvmDetailsFetcher(auth, tcm, logger);
+        }
+
+        @Binds
+        @IntoSet
+        abstract AbstractPermissionedDataFetcher<?> bindJvmDetailsFetcher(JvmDetailsFetcher apdf);
 }
