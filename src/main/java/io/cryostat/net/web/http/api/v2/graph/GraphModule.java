@@ -422,7 +422,10 @@ public abstract class GraphModule {
 
     @Provides
     static JMXMetricsFetcher provideJMXMetricsFetcher(
-            AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager, Logger logger) {
+            AuthManager auth,
+            TargetConnectionManager tcm,
+            CredentialsManager credentialsManager,
+            Logger logger) {
         return new JMXMetricsFetcher(auth, tcm, credentialsManager, logger);
     }
 

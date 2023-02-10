@@ -51,6 +51,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
+
 import graphql.schema.DataFetchingEnvironment;
 
 public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetrics> {
@@ -60,7 +61,11 @@ public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetric
     private final Logger logger;
 
     @Inject
-    JMXMetricsFetcher(AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager, Logger logger) {
+    JMXMetricsFetcher(
+            AuthManager auth,
+            TargetConnectionManager tcm,
+            CredentialsManager credentialsManager,
+            Logger logger) {
         super(auth);
         this.tcm = tcm;
         this.credentialsManager = credentialsManager;
@@ -88,7 +93,7 @@ public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetric
         ServiceRef target = source.getTarget();
         String targetId = target.getServiceUri().toString();
         ConnectionDescriptor cd =
-            new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
         try {
             return tcm.executeConnectedTask(
                     cd,
