@@ -169,10 +169,10 @@ input RecordingSettings {
 }
 
 type JMXMetrics {
-    runtimeDetails: RuntimeDetails!
-    memoryDetails: MemoryDetails!
-    threadDetails: ThreadDetails!
-    operatingSystemDetails: OperatingSystemDetails!
+    runtime: RuntimeDetails!
+    memory: MemoryDetails!
+    thread: ThreadDetails!
+    os: OperatingSystemDetails!
 }
 
 # Currently all the relevant MXBean readable attributes in the Cryostat jvm 
