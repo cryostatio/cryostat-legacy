@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.beta;
 
 import io.cryostat.net.web.http.RequestHandler;
+
 import dagger.Binds;
 import dagger.Module;
 import dagger.multibindings.IntoSet;

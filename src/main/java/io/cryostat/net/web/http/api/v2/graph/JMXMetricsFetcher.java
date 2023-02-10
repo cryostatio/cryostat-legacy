@@ -38,64 +38,63 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JVMDetails;
+import io.cryostat.core.net.JMXMetrics;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-
-
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.TargetNode;
 import graphql.schema.DataFetchingEnvironment;
 
-public class JvmDetailsFetcher extends AbstractPermissionedDataFetcher<JVMDetails> {
+public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetrics> {
 
     private final TargetConnectionManager tcm;
+    private final CredentialsManager credentialsManager;
     private final Logger logger;
 
     @Inject
-    JvmDetailsFetcher(
-            AuthManager auth,
-            TargetConnectionManager tcm,
-            Logger logger) {
+    JMXMetricsFetcher(AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager, Logger logger) {
         super(auth);
         this.tcm = tcm;
+        this.credentialsManager = credentialsManager;
         this.logger = logger;
     }
 
     @Override
     Set<String> applicableContexts() {
-        return Set.of("Query");
+        return Set.of("TargetNode");
     }
 
     @Override
     String name() {
-        return "jvmDetails";
+        return "jmxMetrics";
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TARGET);
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_CREDENTIALS);
     }
 
-
     @Override
-    JVMDetails getAuthenticated(DataFetchingEnvironment environment)
-            throws Exception {
-        ConnectionDescriptor cd = new ConnectionDescriptor(environment.getArgument("targetId").toString());
-        List<String> runtimeAttrs = environment.getArgument("runtimeAttrs");
-        List<String> memoryAttrs = environment.getArgument("memoryAttrs");
-        List<String> threadAttrs = environment.getArgument("threadAttrs");
-        List<String> osAttrs = environment.getArgument("osAttrs");
+    public JMXMetrics getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+        TargetNode source = (TargetNode) environment.getSource();
+        ServiceRef target = source.getTarget();
+        String targetId = target.getServiceUri().toString();
+        ConnectionDescriptor cd =
+            new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
         try {
-            return tcm.executeConnectedTask(cd, conn -> {
-                return conn.getJvmDetails(runtimeAttrs, memoryAttrs, threadAttrs, osAttrs);
-            });
+            return tcm.executeConnectedTask(
+                    cd,
+                    conn -> {
+                        return conn.getJMXMetrics();
+                    });
         } catch (Exception e) {
             logger.warn(e);
             return null;

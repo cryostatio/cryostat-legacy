@@ -40,17 +40,10 @@ package io.cryostat.net;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
-<<<<<<< HEAD
-=======
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.ObjectName;
->>>>>>> 42b3f72a (add details fetcher method)
 import javax.management.ReflectionException;
 import javax.management.remote.JMXServiceURL;
 
@@ -64,11 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
-<<<<<<< HEAD
 import io.cryostat.core.net.MBeanMetrics;
-=======
-import io.cryostat.core.net.JVMDetails;
->>>>>>> 42b3f72a (add details fetcher method)
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;

@@ -420,13 +420,13 @@ public abstract class GraphModule {
     abstract AbstractPermissionedDataFetcher<?> bindDeleteArchivedRecordingMutator(
             DeleteArchivedRecordingMutator apdf);
 
+    @Provides
+    static JMXMetricsFetcher provideJMXMetricsFetcher(
+            AuthManager auth, TargetConnectionManager tcm, CredentialsManager credentialsManager, Logger logger) {
+        return new JMXMetricsFetcher(auth, tcm, credentialsManager, logger);
+    }
 
-        @Provides
-        static JvmDetailsFetcher provideJvmDetailsFetcher(AuthManager auth, TargetConnectionManager tcm, Logger logger) {
-            return new JvmDetailsFetcher(auth, tcm, logger);
-        }
-
-        @Binds
-        @IntoSet
-        abstract AbstractPermissionedDataFetcher<?> bindJvmDetailsFetcher(JvmDetailsFetcher apdf);
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindJMXMetricsFetcher(JMXMetricsFetcher apdf);
 }

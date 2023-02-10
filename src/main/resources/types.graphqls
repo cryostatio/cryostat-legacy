@@ -63,6 +63,7 @@ type Annotations {
 type TargetNode implements Node {
     target: ServiceRef!
     recordings: Recordings!
+    jmxMetrics: JMXMetrics!
 
     name: String!
     nodeType: NodeType!
@@ -167,88 +168,78 @@ input RecordingSettings {
     metadata: Object
 }
 
-# based on java SE 8
-type JVMDetails {
-    runtimeDetails: MXBeanDetails!
-    memoryDetails: MXBeanDetails!
-    threadDetails: MXBeanDetails!
-    operatingSystemDetails: MXBeanDetails!
+type JMXMetrics {
+    runtimeDetails: RuntimeDetails!
+    memoryDetails: MemoryDetails!
+    threadDetails: ThreadDetails!
+    operatingSystemDetails: OperatingSystemDetails!
 }
 
-type MXBeanDetails {
-    description: String!
-    attributes: Object!
+# Currently all the relevant MXBean readable attributes in the Cryostat jvm 
+type RuntimeDetails {
+    bootClassPath: String
+    classPath: String
+    inputArguments: [String]
+    libraryPath: String
+    managementSpecVersion: String
+    name: String
+    specName: String
+    specVendor: String
+    specVersion: String
+    startTime: Long
+    systemProperties: Object
+    uptime: Long
+    vmName: String
+    vmVendor: String
+    vmVersion: String
+    bootClassPathSupported: Boolean
 }
 
-# Currently all the MXBean readable attributes in the Cryostat jvm 
-# type RuntimeDetails {
-#     objectName: String!
-#     bootClassPath: String
-#     classPath: String
-#     inputArguments: [String]
-#     libraryPath: String
-#     managementSpecVersion: String
-#     name: String
-#     specName: String
-#     specVendor: String
-#     specVersion: String
-#     startTime: Long
-#     systemProperties: Object
-#     uptime: Long
-#     vmName: String
-#     vmVendor: String
-#     vmVersion: String
-#     isBootClassPathSupported: Boolean
-# }
+type MemoryDetails {
+    heapMemoryUsage: MemoryUsage
+    nonHeapMemoryUsage: MemoryUsage
+    objectPendingFinalizationCount: Long
+    freeHeapMemory: Long
+    freeNonHeapMemory: Long
+    heapMemoryUsagePercent: Float
+}
 
-# type MemoryDetails {
-#     objectName: String!
-#     heapMemoryUsage: MemoryUsage
-#     nonHeapMemoryUsage: MemoryUsage
-#     objectPendingFinalizationCount: Long
-#     freeHeapMemory: Long
-#     freeNonHeapMemory: Long
-#     heapMemoryUsagePercent: Float
-# }
+type MemoryUsage {
+    init: Long
+    used: Long
+    committed: Long
+    max: Long
+}
 
-# type MemoryUsage {
-#     init: Long
-#     used: Long
-#     committed: Long
-#     max: Long
-# }
+type ThreadDetails {
+    allThreadIds: [Long]
+    currentThreadCpuTime: Long
+    currentThreadUserTime: Long
+    daemonThreadCount: Int
+    peakThreadCount: Int
+    threadCount: Int
+    totalStartedThreadCount: Long
+    currentThreadCpuTimeSupported: Boolean
+    objectMonitorUsageSupported: Boolean
+    synchronizerUsageSupported: Boolean
+    threadContentionMonitoringEnabled: Boolean
+    threadContentionMonitoringSupported: Boolean
+    threadCpuTimeEnabled: Boolean
+    threadCpuTimeSupported: Boolean
+}
 
-# type ThreadDetails {
-#     objectName: String
-#     allThreadIds: [Long]
-#     currentThreadCpuTime: Long
-#     currentThreadUserTime: Long
-#     daemonThreadCount: Int
-#     peakThreadCount: Int
-#     threadCount: Int
-#     totalStartedThreadCount: Long
-#     currentThreadCpuTimeSupported: Boolean
-#     objectMonitorUsageSupported: Boolean
-#     synchronizerUsageSupported: Boolean
-#     threadContentionMonitoringEnabled: Boolean
-#     threadContentionMonitoringSupported: Boolean
-#     threadCpuTimeEnabled: Boolean
-#     threadCpuTimeSupported: Boolean
-# }
-
-# type OperatingSystemDetails {
-#     objectName: String!
-#     arch: String
-#     availableProcessors: Long
-#     name: String
-#     systemLoadAverage: Float
-#     version: String
-#     committedVirtualMemorySize: Long
-#     freePhysicalMemorySize: Long
-#     freeSwapSpaceSize: Long
-#     processCpuLoad: Float
-#     processCpuTime: Long
-#     systemCpuLoad: Float
-#     totalPhysicalMemorySize: Long
-#     totalSwapSpaceSize: Long
-# }
+type OperatingSystemDetails {
+    arch: String
+    availableProcessors: Long
+    name: String
+    systemLoadAverage: Float
+    version: String
+    committedVirtualMemorySize: Long
+    freePhysicalMemorySize: Long
+    freeSwapSpaceSize: Long
+    processCpuLoad: Float
+    processCpuTime: Long
+    systemCpuLoad: Float
+    totalPhysicalMemorySize: Long
+    totalSwapSpaceSize: Long
+}
