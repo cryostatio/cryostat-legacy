@@ -107,8 +107,8 @@ public class MBeanMetricsGetHandler extends AbstractV2RequestHandler<MBeanMetric
         return tcm.executeConnectedTask(
                 getConnectionDescriptorFromParams(params),
                 conn -> {
-                    MBeanMetrics result = conn.getMBeanMetrics();
-                    return new IntermediateResponse<MBeanMetrics>().body(result);
+                    MBeanMetrics metrics = conn.getMBeanMetrics();
+                    return new IntermediateResponse<MBeanMetrics>().body(metrics);
                 });
     }
 }
