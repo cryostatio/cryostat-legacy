@@ -63,7 +63,7 @@ type Annotations {
 type TargetNode implements Node {
     target: ServiceRef!
     recordings: Recordings!
-    jmxMetrics: JMXMetrics!
+    mbeanMetrics: MBeanMetrics!
 
     name: String!
     nodeType: NodeType!
@@ -168,15 +168,15 @@ input RecordingSettings {
     metadata: Object
 }
 
-type JMXMetrics {
-    runtime: RuntimeDetails!
-    memory: MemoryDetails!
-    thread: ThreadDetails!
-    os: OperatingSystemDetails!
+type MBeanMetrics {
+    runtime: RuntimeMetrics!
+    memory: MemoryMetrics!
+    thread: ThreadMetrics!
+    os: OperatingSystemMetrics!
 }
 
 # Currently all the relevant MXBean readable attributes in the Cryostat jvm 
-type RuntimeDetails {
+type RuntimeMetrics {
     bootClassPath: String
     classPath: String
     inputArguments: [String]
@@ -195,23 +195,24 @@ type RuntimeDetails {
     bootClassPathSupported: Boolean
 }
 
-type MemoryDetails {
-    heapMemoryUsage: MemoryUsage
-    nonHeapMemoryUsage: MemoryUsage
+type MemoryMetrics {
+    heapMemoryUsage: CustomMemoryUsage
+    nonHeapMemoryUsage: CustomMemoryUsage
     objectPendingFinalizationCount: Long
     freeHeapMemory: Long
     freeNonHeapMemory: Long
     heapMemoryUsagePercent: Float
+    verbose: Boolean
 }
 
-type MemoryUsage {
+type CustomMemoryUsage {
     init: Long
     used: Long
     committed: Long
     max: Long
 }
 
-type ThreadDetails {
+type ThreadMetrics {
     allThreadIds: [Long]
     currentThreadCpuTime: Long
     currentThreadUserTime: Long
@@ -228,7 +229,7 @@ type ThreadDetails {
     threadCpuTimeSupported: Boolean
 }
 
-type OperatingSystemDetails {
+type OperatingSystemMetrics {
     arch: String
     availableProcessors: Long
     name: String

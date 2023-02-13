@@ -43,6 +43,7 @@ public enum ApiVersion {
     V2("v2"),
     V2_1("v2.1"),
     V2_2("v2.2"),
+    V2_3("v2.3"),
     BETA("beta"),
     ;
 

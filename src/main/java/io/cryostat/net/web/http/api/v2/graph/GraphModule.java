@@ -421,15 +421,15 @@ public abstract class GraphModule {
             DeleteArchivedRecordingMutator apdf);
 
     @Provides
-    static JMXMetricsFetcher provideJMXMetricsFetcher(
+    static MBeanMetricsFetcher provideMBeanMetricsFetcher(
             AuthManager auth,
             TargetConnectionManager tcm,
             CredentialsManager credentialsManager,
             Logger logger) {
-        return new JMXMetricsFetcher(auth, tcm, credentialsManager, logger);
+        return new MBeanMetricsFetcher(auth, tcm, credentialsManager, logger);
     }
 
     @Binds
     @IntoSet
-    abstract AbstractPermissionedDataFetcher<?> bindJMXMetricsFetcher(JMXMetricsFetcher apdf);
+    abstract AbstractPermissionedDataFetcher<?> bindMBeanMetricsFetcher(MBeanMetricsFetcher apdf);
 }

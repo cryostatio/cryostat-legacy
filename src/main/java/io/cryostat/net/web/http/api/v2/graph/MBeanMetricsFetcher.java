@@ -44,7 +44,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JMXMetrics;
+import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -54,14 +54,14 @@ import io.cryostat.platform.discovery.TargetNode;
 
 import graphql.schema.DataFetchingEnvironment;
 
-public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetrics> {
+public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
     private final CredentialsManager credentialsManager;
     private final Logger logger;
 
     @Inject
-    JMXMetricsFetcher(
+    MBeanMetricsFetcher(
             AuthManager auth,
             TargetConnectionManager tcm,
             CredentialsManager credentialsManager,
@@ -79,7 +79,7 @@ public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetric
 
     @Override
     String name() {
-        return "jmxMetrics";
+        return "mbeanMetrics";
     }
 
     @Override
@@ -88,18 +88,14 @@ public class JMXMetricsFetcher extends AbstractPermissionedDataFetcher<JMXMetric
     }
 
     @Override
-    public JMXMetrics getAuthenticated(DataFetchingEnvironment environment) throws Exception {
+    public MBeanMetrics getAuthenticated(DataFetchingEnvironment environment) throws Exception {
         TargetNode source = (TargetNode) environment.getSource();
         ServiceRef target = source.getTarget();
         String targetId = target.getServiceUri().toString();
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
         try {
-            return tcm.executeConnectedTask(
-                    cd,
-                    conn -> {
-                        return conn.getJMXMetrics();
-                    });
+            return tcm.executeConnectedTask(cd, conn -> conn.getMBeanMetrics());
         } catch (Exception e) {
             logger.warn(e);
             return null;

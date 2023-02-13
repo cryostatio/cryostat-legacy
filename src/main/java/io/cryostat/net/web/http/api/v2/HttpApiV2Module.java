@@ -263,4 +263,8 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindCredentialsPostBodyHandler(CredentialsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMBeanMetricsGetHandler(MBeanMetricsGetHandler handler);
 }
