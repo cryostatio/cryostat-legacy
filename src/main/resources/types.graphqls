@@ -152,6 +152,7 @@ type RecordingMetadata {
 }
 
 input RecordingSettings {
+    restart: Boolean
     name: String!
     template: String!
     templateType: String!

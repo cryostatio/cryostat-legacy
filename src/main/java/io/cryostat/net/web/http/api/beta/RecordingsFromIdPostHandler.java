@@ -57,6 +57,7 @@ import javax.inject.Provider;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -94,6 +95,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Path savedRecordingsPath;
+    private final int globalMaxFiles;
     private final Provider<WebServer> webServer;
 
     private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
@@ -109,6 +111,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingMetadataManager recordingMetadataManager,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            @Named(Variables.PUSH_MAX_FILES_ENV) int globalMaxFiles,
             Provider<WebServer> webServer,
             Logger logger) {
         super(auth, credentialsManager, logger);
@@ -118,6 +121,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
         this.savedRecordingsPath = savedRecordingsPath;
+        this.globalMaxFiles = globalMaxFiles;
         this.webServer = webServer;
         this.gson = gson;
         this.logger = logger;
@@ -135,7 +139,11 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_RECORDING);
+        return EnumSet.of(
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.DELETE_RECORDING,
+                ResourceAction.DELETE_REPORT);
     }
 
     @Override
@@ -170,6 +178,17 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             throw new ApiException(503, "Recording saving not available");
         }
 
+        String maxFilesParam = ctx.request().getParam("maxFiles", String.valueOf(globalMaxFiles));
+        int maxFiles;
+        try {
+            maxFiles = Integer.parseInt(maxFilesParam);
+            if (maxFiles <= 0) {
+                throw new ApiException(400, "maxFiles must be a positive integer");
+            }
+        } catch (NumberFormatException e) {
+            throw new ApiException(400, "maxFiles must be a positive integer");
+        }
+
         FileUpload upload =
                 webServer
                         .get()
@@ -195,7 +214,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             }
         } catch (JvmIdDoesNotExistException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, String.format("jvmId [%s] must be valid ", e.getMessage()));
+            throw new ApiException(400, String.format("jvmId must be valid: %s", e.getMessage()));
         }
         String subdirectoryName = idHelper.jvmIdToSubdirectoryName(jvmId);
 
@@ -258,14 +277,16 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                     }
 
                                     String fsName = res2.result();
+
                                     try {
+                                        recordingArchiveHelper.pruneTargetUploads(
+                                                subdirectoryName, maxFiles);
                                         if (hasLabels) {
                                             recordingMetadataManager
                                                     .setRecordingMetadataFromPath(
                                                             subdirectoryName, fsName, metadata)
                                                     .get();
                                         }
-
                                     } catch (InterruptedException
                                             | ExecutionException
                                             | IOException e) {

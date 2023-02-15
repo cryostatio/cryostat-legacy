@@ -229,7 +229,7 @@ class RulePatchHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
 
             IntermediateResponse<Void> response = handler.handle(params);
 

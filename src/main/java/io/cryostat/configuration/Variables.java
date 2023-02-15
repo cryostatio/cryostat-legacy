@@ -54,6 +54,9 @@ public final class Variables {
     public static final String ACTIVE_REPORTS_CACHE_REFRESH_ENV =
             "CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS";
 
+    // agent configuration
+    public static final String PUSH_MAX_FILES_ENV = "CRYOSTAT_PUSH_MAX_FILES";
+
     // SSL configuration
     public static final String DISABLE_SSL = "CRYOSTAT_DISABLE_SSL";
     public static final String KEYSTORE_PATH_ENV = "KEYSTORE_PATH";

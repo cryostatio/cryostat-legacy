@@ -65,7 +65,7 @@ import io.cryostat.util.URIUtil;
 public class DefaultPlatformClient extends AbstractPlatformClient
         implements Consumer<JvmDiscoveryEvent> {
 
-    private static final String REALM = "JDP";
+    public static final String REALM = "JDP";
 
     public static final NodeType NODE_TYPE = BaseNodeType.JVM;
 

@@ -90,6 +90,7 @@ public class WebServer extends AbstractVerticle {
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
     public static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
+    public static final String DATASOURCE_FILENAME = "cryostat-analysis.jfr";
 
     private final HttpServer server;
     private final NetworkConfiguration netConf;
