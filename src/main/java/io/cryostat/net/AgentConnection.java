@@ -39,6 +39,7 @@ package io.cryostat.net;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,12 +59,15 @@ import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
+import io.cryostat.core.net.MemoryMetrics;
+import io.cryostat.core.net.OperatingSystemMetrics;
+import io.cryostat.core.net.RuntimeMetrics;
+import io.cryostat.core.net.ThreadMetrics;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.recordings.JvmIdHelper;
-
 import io.vertx.ext.web.client.WebClient;
 import org.jsoup.nodes.Document;
 
@@ -172,7 +176,16 @@ class AgentConnection implements JFRConnection {
     public MBeanMetrics getMBeanMetrics()
             throws ConnectionException, IOException, InstanceNotFoundException,
                     IntrospectionException, ReflectionException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMBeanMetrics'");
+        if (!isConnected()) {
+            connect();
+        }
+
+        // TODO: implement http requests to agent to get metrics
+        RuntimeMetrics runtime = new RuntimeMetrics(Collections.emptyMap());
+        MemoryMetrics memory = new MemoryMetrics(Collections.emptyMap());
+        ThreadMetrics threads = new ThreadMetrics(Collections.emptyMap());
+        OperatingSystemMetrics os = new OperatingSystemMetrics(Collections.emptyMap());
+
+        return new MBeanMetrics(runtime, memory, threads, os);
     }
 }
