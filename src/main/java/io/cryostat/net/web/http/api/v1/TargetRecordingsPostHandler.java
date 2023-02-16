@@ -173,6 +173,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
                                                 .name(recordingName);
+                                boolean restart = false;
+                                if (attrs.contains("restart")) {
+                                    restart = Boolean.parseBoolean(attrs.get("restart"));
+                                }
                                 if (attrs.contains("duration")) {
                                     builder =
                                             builder.duration(
@@ -217,6 +221,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
+                                                restart,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),
