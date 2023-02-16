@@ -141,8 +141,8 @@ class ReportGetWithJwtHandlerTest {
         }
 
         @Test
-        void shouldBeAsync() {
-            Assertions.assertTrue(handler.isAsync());
+        void shouldNotBeAsync() {
+            Assertions.assertFalse(handler.isAsync());
         }
 
         @Test

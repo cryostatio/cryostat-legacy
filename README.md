@@ -165,6 +165,7 @@ overridden with `1`.
 #### Configuration for Archiving
 
 * `CRYOSTAT_ARCHIVE_PATH`: the storage path for archived recordings
+* `CRYOSTAT_PUSH_MAX_FILES`: the maximum number of archived recordings stored in a FIFO manner per target JVM when pushing JFR files using the RecordingsFromIdPostHandler. Mainly used with the [cryostat-agent](https://github.com/cryostatio/cryostat-agent) as a global default configuration for the maximum number of archived JFR recordings to keep on disk per-agent-attached-target, which can be overridden by the agent itself. Defaults to `Integer.MAX_VALUE`, minimum `1`. Any values less than `1` will be overridden with `1`.
 
 #### Configuration for database
 

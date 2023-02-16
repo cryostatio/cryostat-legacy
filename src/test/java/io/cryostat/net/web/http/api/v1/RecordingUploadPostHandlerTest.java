@@ -195,6 +195,8 @@ class RecordingUploadPostHandlerTest {
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
         Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(httpReq);
+        Mockito.when(httpReq.addQueryParam(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(httpReq);
         Mockito.when(httpReq.timeout(Mockito.anyLong())).thenReturn(httpReq);
         Mockito.doAnswer(
                         new Answer<Void>() {
@@ -251,6 +253,8 @@ class RecordingUploadPostHandlerTest {
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
         Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(httpReq);
+        Mockito.when(httpReq.addQueryParam(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(httpReq);
         Mockito.when(httpReq.timeout(Mockito.anyLong())).thenReturn(httpReq);
         Mockito.doAnswer(
                         new Answer<Void>() {
@@ -316,6 +320,8 @@ class RecordingUploadPostHandlerTest {
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
         Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(httpReq);
+        Mockito.when(httpReq.addQueryParam(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(httpReq);
         Mockito.when(httpReq.timeout(Mockito.anyLong())).thenReturn(httpReq);
         Mockito.doAnswer(
                         new Answer<Void>() {
@@ -374,6 +380,8 @@ class RecordingUploadPostHandlerTest {
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
         Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(httpReq);
+        Mockito.when(httpReq.addQueryParam(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(httpReq);
         Mockito.when(httpReq.timeout(Mockito.anyLong())).thenReturn(httpReq);
         Mockito.doAnswer(
                         new Answer<Void>() {

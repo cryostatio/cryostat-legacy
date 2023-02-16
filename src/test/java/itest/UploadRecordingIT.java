@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -131,7 +132,9 @@ public class UploadRecordingIT extends StandardSelfTest {
                         });
 
         final String expectedUploadResponse =
-                String.format("Uploaded: %s\nSet: %s", RECORDING_NAME, RECORDING_NAME);
+                String.format(
+                        "Uploaded: %s\nSet: %s",
+                        WebServer.DATASOURCE_FILENAME, WebServer.DATASOURCE_FILENAME);
 
         MatcherAssert.assertThat(
                 uploadRespFuture.get().trim(), Matchers.equalTo(expectedUploadResponse));
@@ -154,7 +157,7 @@ public class UploadRecordingIT extends StandardSelfTest {
 
         MatcherAssert.assertThat(
                 getRespFuture.get().trim(),
-                Matchers.equalTo(String.format("**%s**", RECORDING_NAME)));
+                Matchers.equalTo(String.format("**%s**", WebServer.DATASOURCE_FILENAME)));
 
         // Query Data Source for recording metrics
         final CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();

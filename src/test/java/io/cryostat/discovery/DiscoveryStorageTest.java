@@ -64,6 +64,9 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.DefaultPlatformClient;
+import io.cryostat.platform.internal.KubeApiPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionEvaluator;
@@ -454,10 +457,7 @@ class DiscoveryStorageTest {
                     new EnvironmentNode("prev", BaseNodeType.REALM, Map.of(), Set.of(prevTarget));
 
             ServiceRef nextServiceRef =
-                    new ServiceRef(
-                            "id",
-                            URI.create("service:jmx:rmi:///jndi/rmi://localhost/jmxrmi"),
-                            "nextServiceRef");
+                    new ServiceRef("new_id", prevServiceRef.getServiceUri(), "nextServiceRef");
             TargetNode nextTarget = new TargetNode(BaseNodeType.JVM, nextServiceRef);
             EnvironmentNode next =
                     new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(nextTarget));
@@ -480,14 +480,12 @@ class DiscoveryStorageTest {
             List<? extends AbstractNode> updatedChildren = storage.update(id, List.of(nextTarget));
 
             MatcherAssert.assertThat(updatedChildren, Matchers.equalTo(List.of(nextTarget)));
-            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(2));
+            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(1));
 
-            TargetDiscoveryEvent lostEvent =
-                    new TargetDiscoveryEvent(EventKind.LOST, prevServiceRef);
-            TargetDiscoveryEvent foundEvent =
-                    new TargetDiscoveryEvent(EventKind.FOUND, nextServiceRef);
-            MatcherAssert.assertThat(
-                    discoveryEvents, Matchers.containsInRelativeOrder(lostEvent, foundEvent));
+            TargetDiscoveryEvent modifiedEvent =
+                    new TargetDiscoveryEvent(EventKind.MODIFIED, nextServiceRef);
+            System.out.println(modifiedEvent.getServiceRef());
+            MatcherAssert.assertThat(discoveryEvents, Matchers.contains(modifiedEvent));
         }
     }
 
@@ -609,7 +607,67 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
             MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
             MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
-            MatcherAssert.assertThat(tree.getChildren(), Matchers.equalTo(List.of(realm1, realm2)));
+            MatcherAssert.assertThat(
+                    tree.getChildren(), Matchers.containsInRelativeOrder(realm1, realm2));
+        }
+
+        @Test
+        void returnsExpectedOrderedSubtree() {
+            PluginInfo plugin1 = new PluginInfo();
+            TargetNode leaf1 =
+                    new TargetNode(
+                            BaseNodeType.JVM,
+                            new ServiceRef(
+                                    "id",
+                                    URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"),
+                                    "leaf1"));
+
+            EnvironmentNode realm1 =
+                    new EnvironmentNode(
+                            CustomTargetPlatformClient.REALM,
+                            BaseNodeType.REALM,
+                            Map.of(),
+                            Set.of(leaf1));
+            plugin1.setSubtree(gson.toJson(realm1));
+
+            PluginInfo plugin2 = new PluginInfo();
+            TargetNode leaf2 =
+                    new TargetNode(
+                            BaseNodeType.JVM,
+                            new ServiceRef(
+                                    "id",
+                                    URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
+                                    "leaf2"));
+
+            EnvironmentNode realm2 =
+                    new EnvironmentNode(
+                            DefaultPlatformClient.REALM,
+                            BaseNodeType.REALM,
+                            Map.of(),
+                            Set.of(leaf2));
+            plugin2.setSubtree(gson.toJson(realm2));
+
+            PluginInfo plugin3 = new PluginInfo();
+            EnvironmentNode realm3 =
+                    new EnvironmentNode(
+                            KubeApiPlatformClient.REALM, BaseNodeType.REALM, Map.of(), Set.of());
+            plugin3.setSubtree(gson.toJson(realm3));
+
+            PluginInfo plugin4 = new PluginInfo();
+            EnvironmentNode realm4 =
+                    new EnvironmentNode(
+                            "some-agent-plugin-realm", BaseNodeType.REALM, Map.of(), Set.of());
+            plugin4.setSubtree(gson.toJson(realm4));
+            Mockito.when(dao.getAll()).thenReturn(List.of(plugin1, plugin2, plugin3, plugin4));
+
+            EnvironmentNode tree = storage.getDiscoveryTree();
+
+            MatcherAssert.assertThat(tree.getName(), Matchers.equalTo("Universe"));
+            MatcherAssert.assertThat(tree.getNodeType(), Matchers.equalTo(BaseNodeType.UNIVERSE));
+            MatcherAssert.assertThat(tree.getLabels(), Matchers.equalTo(Map.of()));
+            MatcherAssert.assertThat(
+                    tree.getChildren(),
+                    Matchers.containsInRelativeOrder(realm2, realm3, realm4, realm1));
         }
     }
 
@@ -662,98 +720,183 @@ class DiscoveryStorageTest {
             MatcherAssert.assertThat(servicesList, Matchers.hasSize(4));
             MatcherAssert.assertThat(servicesList, Matchers.containsInAnyOrder(sr1, sr2, sr3, sr4));
         }
+
+        @Test
+        void listsUniqueNonNullTreeLeaves() throws Exception {
+            ServiceRef sr1 =
+                    new ServiceRef(
+                            null, URI.create("service:jmx:rmi:///jndi/rmi://leaf:1/jmxrmi"), "sr1");
+            TargetNode leaf1 = new TargetNode(BaseNodeType.JVM, sr1);
+            ServiceRef sr2 =
+                    new ServiceRef(
+                            "same-id",
+                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:2/jmxrmi"),
+                            "sr2");
+            TargetNode leaf2 = new TargetNode(BaseNodeType.JVM, sr2);
+            EnvironmentNode realm1 =
+                    new EnvironmentNode(
+                            DefaultPlatformClient.REALM,
+                            BaseNodeType.REALM,
+                            Map.of(),
+                            Set.of(leaf1, leaf2));
+            PluginInfo plugin1 = new PluginInfo();
+            plugin1.setSubtree(gson.toJson(realm1));
+
+            ServiceRef sr3 =
+                    new ServiceRef(
+                            "same-id",
+                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:3/jmxrmi"),
+                            "sr3");
+            TargetNode leaf3 = new TargetNode(BaseNodeType.JVM, sr3);
+            ServiceRef sr4 =
+                    new ServiceRef(
+                            "other-id",
+                            URI.create("service:jmx:rmi:///jndi/rmi://leaf:4/jmxrmi"),
+                            "sr4");
+            TargetNode leaf4 = new TargetNode(BaseNodeType.JVM, sr4);
+            EnvironmentNode realm2 =
+                    new EnvironmentNode(
+                            CustomTargetPlatformClient.REALM,
+                            BaseNodeType.REALM,
+                            Map.of(),
+                            Set.of(leaf3, leaf4));
+            PluginInfo plugin2 = new PluginInfo();
+            plugin2.setSubtree(gson.toJson(realm2));
+
+            Mockito.when(dao.getAll()).thenReturn(List.of(plugin1, plugin2));
+
+            List<ServiceRef> servicesList = storage.listUniqueReachableServices();
+
+            MatcherAssert.assertThat(servicesList, Matchers.hasSize(2));
+            MatcherAssert.assertThat(servicesList, Matchers.containsInRelativeOrder(sr2, sr4));
+            // sr2 over sr3 because RealmOrder of "JDP" has higher priority than "Custom Targets"
+        }
     }
 
-    @Test
-    void updatesDaoWithModifiedJvmIds() throws Exception {
-        UUID id = UUID.randomUUID();
+    @Nested
+    class JvmIdResolution {
 
-        Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
-                .thenAnswer(
-                        new Answer<ServiceRef>() {
-                            @Override
-                            public ServiceRef answer(InvocationOnMock invocation) throws Throwable {
-                                ServiceRef ref = invocation.getArgument(0);
-                                // use alias as jvmId in test
-                                return new ServiceRef(
-                                        ref.getAlias().get(),
-                                        ref.getServiceUri(),
-                                        ref.getAlias().orElse(null));
-                            }
-                        });
+        @Test
+        void updatesDaoWithModifiedJvmIds() throws Exception {
+            UUID id = UUID.randomUUID();
 
-        ServiceRef serviceRef1 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
-                        "serviceRef1");
-        ServiceRef serviceRef2 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
-                        "serviceRef2");
-        ServiceRef serviceRef3 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:3/jmxrmi"),
-                        "serviceRef3");
-        ServiceRef serviceRef4 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:4/jmxrmi"),
-                        "serviceRef4");
-        TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
-        TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
-        TargetNode target3 = new TargetNode(BaseNodeType.JVM, serviceRef3);
-        TargetNode target4 = new TargetNode(BaseNodeType.JVM, serviceRef4);
+            Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
+                    .thenAnswer(
+                            new Answer<ServiceRef>() {
+                                @Override
+                                public ServiceRef answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    ServiceRef ref = invocation.getArgument(0);
+                                    // use alias as jvmId in test
+                                    return new ServiceRef(
+                                            ref.getAlias().get(),
+                                            ref.getServiceUri(),
+                                            ref.getAlias().orElse(null));
+                                }
+                            });
 
-        EnvironmentNode agent =
-                new EnvironmentNode("agent-47", BaseNodeType.AGENT, Map.of(), Set.of(target3));
-        EnvironmentNode realm1 =
-                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target4));
-        EnvironmentNode realm2 =
-                new EnvironmentNode(
-                        "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2, agent));
+            ServiceRef serviceRef1 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
+                            "serviceRef1");
+            ServiceRef updatedServiceRef1 =
+                    new ServiceRef(
+                            serviceRef1.getAlias().get(),
+                            serviceRef1.getServiceUri(),
+                            serviceRef1.getAlias().get());
+            ServiceRef serviceRef2 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
+                            "serviceRef2");
+            ServiceRef updatedServiceRef2 =
+                    new ServiceRef(
+                            serviceRef2.getAlias().get(),
+                            serviceRef2.getServiceUri(),
+                            serviceRef2.getAlias().get());
+            ServiceRef serviceRef3 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:3/jmxrmi"),
+                            "serviceRef3");
+            ServiceRef updatedServiceRef3 =
+                    new ServiceRef(
+                            serviceRef3.getAlias().get(),
+                            serviceRef3.getServiceUri(),
+                            serviceRef3.getAlias().get());
+            ServiceRef serviceRef4 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:4/jmxrmi"),
+                            "serviceRef4");
+            ServiceRef updatedServiceRef4 =
+                    new ServiceRef(
+                            serviceRef4.getAlias().get(),
+                            serviceRef4.getServiceUri(),
+                            serviceRef4.getAlias().get());
+            TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
+            TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
+            TargetNode target3 = new TargetNode(BaseNodeType.JVM, serviceRef3);
+            TargetNode target4 = new TargetNode(BaseNodeType.JVM, serviceRef4);
 
-        PluginInfo prevPlugin =
-                new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
+            EnvironmentNode agent =
+                    new EnvironmentNode("agent-47", BaseNodeType.AGENT, Map.of(), Set.of(target3));
+            EnvironmentNode realm1 =
+                    new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target4));
+            EnvironmentNode realm2 =
+                    new EnvironmentNode(
+                            "next",
+                            BaseNodeType.REALM,
+                            Map.of(),
+                            Set.of(target4, target1, target2, agent));
 
-        Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-        Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
-                .thenAnswer(
-                        new Answer<PluginInfo>() {
-                            @Override
-                            public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
-                                List<AbstractNode> subtree = invocation.getArgument(1);
-                                EnvironmentNode next =
-                                        new EnvironmentNode(
-                                                "next", BaseNodeType.REALM, Map.of(), subtree);
-                                return new PluginInfo(
-                                        "test-realm",
-                                        URI.create("http://example.com"),
-                                        gson.toJson(next));
-                            }
-                        });
+            PluginInfo prevPlugin =
+                    new PluginInfo(
+                            "test-realm", URI.create("http://example.com"), gson.toJson(realm1));
 
-        var updatedSubtree = storage.update(id, List.of(realm2));
-        MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
-        MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
-        for (AbstractNode node : updatedSubtree) {
+            Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
+            Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
+                    .thenAnswer(
+                            new Answer<PluginInfo>() {
+                                @Override
+                                public PluginInfo answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    List<AbstractNode> subtree = invocation.getArgument(1);
+                                    EnvironmentNode next =
+                                            new EnvironmentNode(
+                                                    "next", BaseNodeType.REALM, Map.of(), subtree);
+                                    return new PluginInfo(
+                                            "test-realm",
+                                            URI.create("http://example.com"),
+                                            gson.toJson(next));
+                                }
+                            });
 
-            if (node instanceof TargetNode) {
-                TargetNode target = (TargetNode) node;
-                MatcherAssert.assertThat(
-                        target.getTarget().getAlias().isPresent(), Matchers.is(true));
-                MatcherAssert.assertThat(target.getTarget().getJvmId(), Matchers.notNullValue());
-                MatcherAssert.assertThat(
-                        target.getTarget().getJvmId(),
-                        Matchers.equalTo(target.getTarget().getAlias().get()));
-            } else {
-                MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
-                EnvironmentNode env = (EnvironmentNode) node;
-                for (AbstractNode nested : env.getChildren()) {
-                    if (nested instanceof TargetNode) {
-                        TargetNode target = (TargetNode) nested;
+            List<TargetDiscoveryEvent> discoveryEvents = new ArrayList<>();
+            storage.addTargetDiscoveryListener(discoveryEvents::add);
+
+            var updatedSubtree = storage.update(id, List.of(realm2));
+            MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
+            MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
+
+            AbstractNode node = updatedSubtree.get(0); // realm2
+            MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
+
+            for (AbstractNode childNode : ((EnvironmentNode) node).getChildren()) {
+                if (childNode instanceof TargetNode) {
+                    TargetNode target = (TargetNode) childNode;
+                    MatcherAssert.assertThat(
+                            target.getTarget().getAlias().isPresent(), Matchers.is(true));
+                    MatcherAssert.assertThat(
+                            target.getTarget().getJvmId(), Matchers.notNullValue());
+                    MatcherAssert.assertThat(
+                            target.getTarget().getJvmId(),
+                            Matchers.equalTo(target.getTarget().getAlias().get()));
+                } else {
+                    MatcherAssert.assertThat(childNode, Matchers.instanceOf(EnvironmentNode.class));
+                    for (AbstractNode nestedNode : ((EnvironmentNode) childNode).getChildren()) {
+                        TargetNode target = (TargetNode) nestedNode;
                         MatcherAssert.assertThat(
                                 target.getTarget().getAlias().isPresent(), Matchers.is(true));
                         MatcherAssert.assertThat(
@@ -764,79 +907,92 @@ class DiscoveryStorageTest {
                     }
                 }
             }
+
+            MatcherAssert.assertThat(discoveryEvents, Matchers.hasSize(4));
+            MatcherAssert.assertThat(
+                    discoveryEvents,
+                    Matchers.containsInAnyOrder(
+                            new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef1),
+                            new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef2),
+                            new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef3),
+                            new TargetDiscoveryEvent(EventKind.MODIFIED, updatedServiceRef4)));
         }
-    }
 
-    @Test
-    void testIgnoreNodesIfNonSSLAuthExceptions() throws Exception {
-        UUID id = UUID.randomUUID();
+        @Test
+        void testIgnoreNodesIfNonSSLAuthExceptions() throws Exception {
+            UUID id = UUID.randomUUID();
 
-        ServiceRef serviceRef1 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
-                        "serviceRef1");
-        ServiceRef serviceRef2 =
-                new ServiceRef(
-                        null,
-                        URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
-                        "serviceRef2");
-        TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
-        TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
+            ServiceRef serviceRef1 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
+                            "serviceRef1");
+            ServiceRef serviceRef2 =
+                    new ServiceRef(
+                            null,
+                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
+                            "serviceRef2");
+            TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
+            TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
 
-        EnvironmentNode realm1 =
-                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1));
-        EnvironmentNode realm2 =
-                new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
+            EnvironmentNode realm1 =
+                    new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1));
+            EnvironmentNode realm2 =
+                    new EnvironmentNode(
+                            "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
 
-        PluginInfo prevPlugin =
-                new PluginInfo("test-realm", URI.create("http://example.com"), gson.toJson(realm1));
+            PluginInfo prevPlugin =
+                    new PluginInfo(
+                            "test-realm", URI.create("http://example.com"), gson.toJson(realm1));
 
-        Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-        Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
-                .thenAnswer(
-                        new Answer<PluginInfo>() {
-                            @Override
-                            public PluginInfo answer(InvocationOnMock invocation) throws Throwable {
-                                List<AbstractNode> subtree = invocation.getArgument(1);
-                                EnvironmentNode next =
-                                        new EnvironmentNode(
-                                                "next", BaseNodeType.REALM, Map.of(), subtree);
-                                return new PluginInfo(
-                                        "test-realm",
-                                        URI.create("http://example.com"),
-                                        gson.toJson(next));
-                            }
-                        });
-        JvmIdGetException jige = Mockito.mock(JvmIdGetException.class);
-        ExecutionException ex = Mockito.mock(ExecutionException.class);
-        Mockito.when(jige.getCause()).thenReturn(ex);
-        Mockito.when(ex.getCause()).thenReturn(new SecurityException("test"));
+            Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
+            Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
+                    .thenAnswer(
+                            new Answer<PluginInfo>() {
+                                @Override
+                                public PluginInfo answer(InvocationOnMock invocation)
+                                        throws Throwable {
+                                    List<AbstractNode> subtree = invocation.getArgument(1);
+                                    EnvironmentNode next =
+                                            new EnvironmentNode(
+                                                    "next", BaseNodeType.REALM, Map.of(), subtree);
+                                    return new PluginInfo(
+                                            "test-realm",
+                                            URI.create("http://example.com"),
+                                            gson.toJson(next));
+                                }
+                            });
+            JvmIdGetException jige = Mockito.mock(JvmIdGetException.class);
+            ExecutionException ex = Mockito.mock(ExecutionException.class);
+            Mockito.when(jige.getCause()).thenReturn(ex);
+            Mockito.when(ex.getCause()).thenReturn(new SecurityException("test"));
 
-        Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
-                .thenThrow(jige)
-                .thenReturn(
-                        new ServiceRef("serviceRef2", serviceRef2.getServiceUri(), "serviceRef2"));
+            Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
+                    .thenThrow(jige)
+                    .thenReturn(
+                            new ServiceRef(
+                                    "serviceRef2", serviceRef2.getServiceUri(), "serviceRef2"));
 
-        var updatedSubtree = storage.update(id, List.of(realm2));
-        MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
-        MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
-        for (AbstractNode node : updatedSubtree) {
-            MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
-            EnvironmentNode env = (EnvironmentNode) node;
-            MatcherAssert.assertThat(env.getChildren(), Matchers.hasSize(2));
-            for (AbstractNode nested : env.getChildren()) {
-                if (nested instanceof TargetNode) {
-                    TargetNode target = (TargetNode) nested;
-                    MatcherAssert.assertThat(target, Matchers.instanceOf(TargetNode.class));
-                    if (target.getTarget().getAlias().get().equals("serviceRef1")) {
-                        MatcherAssert.assertThat(
-                                target.getTarget().getJvmId(), Matchers.nullValue());
-                    } else if (target.getTarget().getAlias().get().equals("serviceRef2")) {
-                        MatcherAssert.assertThat(
-                                target.getTarget().getJvmId(), Matchers.equalTo("serviceRef2"));
-                    } else {
-                        throw new IllegalStateException("Unexpected alias");
+            var updatedSubtree = storage.update(id, List.of(realm2));
+            MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
+            MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
+            for (AbstractNode node : updatedSubtree) {
+                MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
+                EnvironmentNode env = (EnvironmentNode) node;
+                MatcherAssert.assertThat(env.getChildren(), Matchers.hasSize(2));
+                for (AbstractNode nested : env.getChildren()) {
+                    if (nested instanceof TargetNode) {
+                        TargetNode target = (TargetNode) nested;
+                        MatcherAssert.assertThat(target, Matchers.instanceOf(TargetNode.class));
+                        if (target.getTarget().getAlias().get().equals("serviceRef1")) {
+                            MatcherAssert.assertThat(
+                                    target.getTarget().getJvmId(), Matchers.nullValue());
+                        } else if (target.getTarget().getAlias().get().equals("serviceRef2")) {
+                            MatcherAssert.assertThat(
+                                    target.getTarget().getJvmId(), Matchers.equalTo("serviceRef2"));
+                        } else {
+                            throw new IllegalStateException("Unexpected alias");
+                        }
                     }
                 }
             }

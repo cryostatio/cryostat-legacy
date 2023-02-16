@@ -4,16 +4,22 @@
 set -x
 set -e
 
-if [ -z "${MVN}" ]; then
-    MVN="$(which mvn)"
-fi
+getPomProperty() {
+    if command -v xpath > /dev/null 2>&1 ; then
+        xpath -q -e "project/properties/$1/text()" pom.xml
+    elif command -v mvnd > /dev/null 2>&1 ; then
+        mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+    else
+        mvn help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+    fi
+}
 
 runCryostat() {
     local DIR; local host; local datasourcePort; local grafanaPort;
     DIR="$(dirname "$(readlink -f "$0")")"
-    host="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
-    datasourcePort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
-    grafanaPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.port)"
+    host="$(getPomProperty cryostat.itest.webHost)"
+    datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
+    grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
 
@@ -67,8 +73,8 @@ runPostgres() {
         mkdir "$(dirname "$0")/conf/postgres"
     fi
     local image; local version;
-    image="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=postgres.image)"
-    version="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=postgres.version)"
+    image="$(getPomProperty postgres.image)"
+    version="$(getPomProperty postgres.version)"
     podman run \
         --name postgres \
         --pod cryostat-pod \
@@ -109,7 +115,7 @@ runDemoApps() {
 
     local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-        webPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
+        webPort="$(getPomProperty cryostat.itest.webPort)"
     else
         webPort="${CRYOSTAT_WEB_PORT}"
     fi
@@ -119,6 +125,18 @@ runDemoApps() {
         local protocol="http"
     fi
 
+    # this config is broken on purpose (missing required env vars) to test the agent's behaviour
+    # when not properly set up
+    podman run \
+        --name quarkus-test-agent-0 \
+        --pod cryostat-pod \
+        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
+        --env QUARKUS_HTTP_PORT=10009 \
+        --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --rm -d quay.io/andrewazores/quarkus-test:latest
+
     podman run \
         --name quarkus-test-agent-1 \
         --pod cryostat-pod \
@@ -126,28 +144,34 @@ runDemoApps() {
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
         --env CRYOSTAT_AGENT_WEBSERVER_PORT="9977" \
         --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --rm -d quay.io/andrewazores/quarkus-test:0.0.10
+        --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
+        --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
+        --rm -d quay.io/andrewazores/quarkus-test:latest
 
     podman run \
         --name quarkus-test-agent-2 \
         --pod cryostat-pod \
-        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9098 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
+        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
         --env CRYOSTAT_AGENT_WEBSERVER_PORT="9988" \
         --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9988/" \
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --rm -d quay.io/andrewazores/quarkus-test:0.0.10
+        --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
@@ -159,8 +183,8 @@ runDemoApps() {
 
 runJfrDatasource() {
     local stream; local tag;
-    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.imageStream)"
-    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.version)"
+     stream="$(getPomProperty cryostat.itest.jfr-datasource.imageStream)"
+    tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
     podman run \
         --name jfr-datasource \
         --pull always \
@@ -170,10 +194,10 @@ runJfrDatasource() {
 
 runGrafana() {
     local stream; local tag; local host; local port;
-    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.imageStream)"
-    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.version)"
-    host="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
-    port="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
+    stream="$(getPomProperty cryostat.itest.grafana.imageStream)"
+    tag="$(getPomProperty cryostat.itest.grafana.version)"
+    host="$(getPomProperty cryostat.itest.webHost)"
+    port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     podman run \
         --name grafana \
         --pull always \
@@ -186,9 +210,9 @@ runGrafana() {
 
 runReportGenerator() {
     local RJMX_PORT=10000
-    stream="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.imageStream)"
-    tag="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.version)"
-    port="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.reports.port)"
+    stream="$(getPomProperty cryostat.itest.reports.imageStream)"
+    tag="$(getPomProperty cryostat.itest.reports.version)"
+    port="$(getPomProperty cryostat.itest.reports.port)"
     podman run \
         --name reports \
         --pull always \
@@ -203,10 +227,10 @@ runReportGenerator() {
 
 createPod() {
     local jmxPort; local webPort; local datasourcePort; local grafanaPort;
-    jmxPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
-    webPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.webPort)"
-    datasourcePort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.jfr-datasource.port)"
-    grafanaPort="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.grafana.port)"
+    jmxPort="$(getPomProperty cryostat.rjmxPort)"
+    webPort="$(getPomProperty cryostat.webPort)"
+    datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
+    grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
     podman pod create \
         --replace \
         --hostname cryostat \

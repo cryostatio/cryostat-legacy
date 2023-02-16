@@ -54,7 +54,6 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
-import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.util.PluggableTypeAdapter;
 
 import com.google.gson.JsonSyntaxException;
@@ -66,17 +65,12 @@ import dagger.Lazy;
 public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> {
 
     private final Lazy<Set<PluggableTypeAdapter<?>>> adapters;
-    private final Lazy<JvmIdHelper> jvmIdHelper;
     private final Logger logger;
 
     public AbstractNodeTypeAdapter(
-            Class<AbstractNode> klazz,
-            Lazy<Set<PluggableTypeAdapter<?>>> adapters,
-            Lazy<JvmIdHelper> jvmIdHelper,
-            Logger logger) {
+            Class<AbstractNode> klazz, Lazy<Set<PluggableTypeAdapter<?>>> adapters, Logger logger) {
         super(klazz);
         this.adapters = adapters;
-        this.jvmIdHelper = jvmIdHelper;
         this.logger = logger;
     }
 

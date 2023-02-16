@@ -389,8 +389,10 @@ class TargetsPostHandlerTest {
 
         queries.set("dryrun", dryRunStr);
 
+        Mockito.when(storage.contains(Mockito.any())).thenReturn(true);
+
         IntermediateResponse<ServiceRef> response = handler.handle(params);
-        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(202));
 
         ServiceRef respRef = response.getBody();
         MatcherAssert.assertThat(respRef.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
@@ -468,8 +470,10 @@ class TargetsPostHandlerTest {
 
         queries.set("dryrun", "true");
 
+        Mockito.when(storage.contains(Mockito.any())).thenReturn(true);
+
         IntermediateResponse<ServiceRef> response = handler.handle(params);
-        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(202));
 
         ServiceRef respRef = response.getBody();
         MatcherAssert.assertThat(respRef.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));

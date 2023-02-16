@@ -43,12 +43,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -162,7 +160,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                         gson.fromJson(
                                                                 plugin.getSubtree(),
                                                                 EnvironmentNode.class);
-                                                update(id, original.getChildren(), false);
+                                                update(id, original.getChildren());
                                             }
                                         } catch (JsonSyntaxException | ScriptException e) {
                                             throw new RuntimeException(e);
@@ -318,38 +316,29 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public List<? extends AbstractNode> update(
             UUID id, Collection<? extends AbstractNode> children) {
-        return update(id, children, true);
-    }
-
-    public List<? extends AbstractNode> update(
-            UUID id, Collection<? extends AbstractNode> children, boolean notify) {
         var updatedChildren =
                 modifyChildrenWithJvmIds(id, Objects.requireNonNull(children, "children"));
 
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
 
-        EnvironmentNode original = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+        EnvironmentNode originalTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
         plugin = dao.update(id, updatedChildren);
         logger.trace("Discovery Update {} ({}): {}", id, plugin.getRealm(), updatedChildren);
         EnvironmentNode currentTree = gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
 
-        if (notify) {
-            Set<TargetNode> previousLeaves = findLeavesFrom(original);
-            Set<TargetNode> currentLeaves = findLeavesFrom(currentTree);
+        List<ServiceRef> previousRefs = getRefsFromLeaves(findLeavesFrom(originalTree));
+        List<ServiceRef> currentRefs = getRefsFromLeaves(findLeavesFrom(currentTree));
 
-            Set<TargetNode> added = new HashSet<>(currentLeaves);
-            added.removeAll(previousLeaves);
+        ServiceRef.compare(previousRefs).to(currentRefs).updated().stream()
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
 
-            Set<TargetNode> removed = new HashSet<>(previousLeaves);
-            removed.removeAll(currentLeaves);
+        ServiceRef.compare(previousRefs).to(currentRefs).added().stream()
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
 
-            removed.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
-            added.stream()
-                    .map(TargetNode::getTarget)
-                    .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
-        }
+        ServiceRef.compare(previousRefs).to(currentRefs).removed().stream()
+                .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+        ;
+
         return currentTree.getChildren();
     }
 
@@ -367,12 +356,13 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 dao.getAll().stream()
                         .map(PluginInfo::getSubtree)
                         .map(s -> gson.fromJson(s, EnvironmentNode.class))
+                        .sorted((s1, s2) -> s1.compareTo(s2))
                         .toList();
         return new EnvironmentNode(
                 "Universe", BaseNodeType.UNIVERSE, Collections.emptyMap(), realms);
     }
 
-    private Set<TargetNode> getLeafNodes() {
+    private List<TargetNode> getLeafNodes() {
         return findLeavesFrom(getDiscoveryTree());
     }
 
@@ -394,17 +384,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .toList();
     }
 
-    private Set<TargetNode> findLeavesFrom(AbstractNode node) {
+    private List<TargetNode> findLeavesFrom(AbstractNode node) {
         if (node instanceof TargetNode) {
-            return Set.of((TargetNode) node);
+            return List.of((TargetNode) node);
         }
         if (node instanceof EnvironmentNode) {
             EnvironmentNode environment = (EnvironmentNode) node;
-            Set<TargetNode> targets = new HashSet<>();
+            List<TargetNode> targets = new ArrayList<>();
             environment.getChildren().stream().map(this::findLeavesFrom).forEach(targets::addAll);
             return targets;
         }
         throw new IllegalArgumentException(node.getClass().getCanonicalName());
+    }
+
+    public List<ServiceRef> getRefsFromLeaves(List<TargetNode> leaves) {
+        final List<ServiceRef> refs = new ArrayList<>();
+        leaves.stream().map(TargetNode::getTarget).forEach(r -> refs.add(r));
+        return refs;
     }
 
     public static class NotFoundException extends RuntimeException {

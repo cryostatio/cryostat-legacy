@@ -41,6 +41,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.DefaultPlatformClient;
+import io.cryostat.platform.internal.KubeApiPlatformClient;
+import io.cryostat.platform.internal.KubeEnvPlatformClient;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -76,11 +81,30 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
 
     @Override
     public int compareTo(AbstractNode other) {
-        int type = nodeType.ordinal() - other.nodeType.ordinal();
-        if (type != 0) {
-            return type;
+        RealmOrder ro1 = getRealmOrder();
+        RealmOrder ro2 = other.getRealmOrder();
+        if (ro1 != null && ro2 != null) {
+            return ro1.compareTo(ro2);
+        } else {
+            return name.compareTo(other.name);
         }
-        return name.compareTo(other.name);
+    }
+
+    public RealmOrder getRealmOrder() {
+        if (nodeType.getKind().equals(BaseNodeType.REALM.getKind())) {
+            if (name.equalsIgnoreCase(DefaultPlatformClient.REALM)) {
+                return RealmOrder.JDP;
+            } else if (name.equalsIgnoreCase(KubeApiPlatformClient.REALM)
+                    || name.equalsIgnoreCase(KubeEnvPlatformClient.REALM)) {
+                return RealmOrder.KUBE;
+            } else if (name.equalsIgnoreCase(CustomTargetPlatformClient.REALM)) {
+                return RealmOrder.CUSTOM;
+            } else {
+                return RealmOrder.AGENT;
+            }
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -105,5 +129,12 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
                 .append(nodeType, other.nodeType)
                 .append(labels, other.labels)
                 .isEquals();
+    }
+
+    public enum RealmOrder {
+        JDP,
+        KUBE,
+        AGENT,
+        CUSTOM,
     }
 }

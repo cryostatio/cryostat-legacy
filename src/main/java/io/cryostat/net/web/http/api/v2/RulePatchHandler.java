@@ -176,24 +176,29 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     }
 
     private void cleanup(RequestParameters params, Rule rule) {
-        for (ServiceRef ref : storage.listDiscoverableServices()) {
-            vertx.executeBlocking(
-                    promise -> {
-                        try {
-                            if (ruleRegistry.applies(rule, ref)) {
-                                String targetId = ref.getServiceUri().toString();
-                                Credentials credentials =
-                                        credentialsManager.getCredentialsByTargetId(targetId);
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(targetId, credentials);
-                                recordings.stopRecording(cd, rule.getRecordingName());
-                            }
-                            promise.complete();
-                        } catch (Exception e) {
-                            logger.error(e);
-                            promise.fail(e);
-                        }
-                    });
-        }
+        storage.listUniqueReachableServices().stream()
+                .forEach(
+                        (ServiceRef ref) -> {
+                            vertx.executeBlocking(
+                                    promise -> {
+                                        try {
+                                            if (ruleRegistry.applies(rule, ref)) {
+                                                String targetId = ref.getServiceUri().toString();
+                                                Credentials credentials =
+                                                        credentialsManager.getCredentialsByTargetId(
+                                                                targetId);
+                                                ConnectionDescriptor cd =
+                                                        new ConnectionDescriptor(
+                                                                targetId, credentials);
+                                                recordings.stopRecording(
+                                                        cd, rule.getRecordingName());
+                                            }
+                                            promise.complete();
+                                        } catch (Exception e) {
+                                            logger.error(e);
+                                            promise.fail(e);
+                                        }
+                                    });
+                        });
     }
 }

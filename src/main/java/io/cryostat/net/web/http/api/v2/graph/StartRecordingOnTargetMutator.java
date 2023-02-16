@@ -129,10 +129,14 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
+                    boolean restart = false;
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
+                    if (settings.containsKey("restart")) {
+                        restart = Boolean.parseBoolean((String) settings.get("restart"));
+                    }
                     if (settings.containsKey("duration")) {
                         builder =
                                 builder.duration(
@@ -162,6 +166,7 @@ class StartRecordingOnTargetMutator
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
+                                    restart,
                                     cd,
                                     builder.build(),
                                     (String) settings.get("template"),
