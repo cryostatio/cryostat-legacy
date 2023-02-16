@@ -55,6 +55,7 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -188,13 +189,14 @@ class RecordingUploadPostFromPathHandler extends AbstractV2RequestHandler<String
                 MultipartForm.create()
                         .binaryFileUpload(
                                 "file",
-                                recordingName,
+                                WebServer.DATASOURCE_FILENAME,
                                 recordingPath.toString(),
                                 HttpMimeType.OCTET_STREAM.toString());
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         webClient
                 .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
+                .addQueryParam("overwrite", "true")
                 .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                 .sendMultipartForm(
                         form,

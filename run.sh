@@ -8,6 +8,16 @@ if [ -z "${MVN}" ]; then
     MVN="$(which mvn)"
 fi
 
+getPomProperty() {
+    if command -v xpath > /dev/null 2>&1 ; then
+        xpath -q -e "project/properties/$1/text()" pom.xml
+    elif command -v mvnd > /dev/null 2>&1 ; then
+        mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+    else
+        mvn help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+    fi
+}
+
 cleanup() {
     podman pod stop cryostat-pod
     podman pod rm cryostat-pod
@@ -21,7 +31,7 @@ fi
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
-    CRYOSTAT_RJMX_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.rjmxPort)"
+    CRYOSTAT_RJMX_PORT="$(getPomProperty cryostat.rjmxPort)"
 fi
 
 if [ -z "$CRYOSTAT_RMI_PORT" ]; then
@@ -29,11 +39,11 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
 fi
 
 if [ -z "$CRYOSTAT_WEB_HOST" ]; then
-    CRYOSTAT_WEB_HOST="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webHost)"
+    CRYOSTAT_WEB_HOST="$(getPomProperty cryostat.itest.webHost)"
 fi
 
 if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-    CRYOSTAT_WEB_PORT="$(${MVN} help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.itest.webPort)"
+    CRYOSTAT_WEB_PORT="$(getPomProperty cryostat.itest.webPort)"
 fi
 
 if [ -z "$CRYOSTAT_EXT_WEB_PORT" ]; then

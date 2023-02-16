@@ -219,18 +219,7 @@ public class CredentialsManager
         if (matchExpression.isEmpty()) {
             return Set.of();
         }
-        Set<ServiceRef> matchedTargets = new HashSet<>();
-        for (ServiceRef target : platformClient.listDiscoverableServices()) {
-            try {
-                if (matchExpressionEvaluator.get().applies(matchExpression.get(), target)) {
-                    matchedTargets.add(target);
-                }
-            } catch (ScriptException e) {
-                logger.error(e);
-                break;
-            }
-        }
-        return matchedTargets;
+        return resolveMatchingTargets(matchExpression.get());
     }
 
     public Set<ServiceRef> resolveMatchingTargets(String matchExpression) {

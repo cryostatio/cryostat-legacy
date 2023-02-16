@@ -77,7 +77,7 @@ public class MessagingServerIT extends StandardSelfTest {
                 Assertions.assertThrows(
                         ExecutionException.class,
                         () -> sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        String errorMessage = "WebSocket upgrade failure: 410 (Gone)";
+        String errorMessage = "WebSocket upgrade failure: 410";
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo(errorMessage));
     }
 }

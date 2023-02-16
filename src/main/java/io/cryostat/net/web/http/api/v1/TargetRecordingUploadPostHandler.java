@@ -61,6 +61,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
@@ -185,7 +186,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 MultipartForm.create()
                         .binaryFileUpload(
                                 "file",
-                                recordingName,
+                                WebServer.DATASOURCE_FILENAME,
                                 recordingPath.toString(),
                                 HttpMimeType.OCTET_STREAM.toString());
 
@@ -193,6 +194,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         try {
             webClient
                     .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
+                    .addQueryParam("overwrite", "true")
                     .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                     .sendMultipartForm(
                             form,
