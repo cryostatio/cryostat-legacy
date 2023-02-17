@@ -127,34 +127,34 @@ runDemoApps() {
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
-    podman run \
-        --name quarkus-test-agent-0 \
-        --pod cryostat-pod \
-        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
-        --env QUARKUS_HTTP_PORT=10009 \
-        --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --rm -d quay.io/andrewazores/quarkus-test:latest
+    # podman run \
+    #     --name quarkus-test-agent-0 \
+    #     --pod cryostat-pod \
+    #     --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
+    #     --env QUARKUS_HTTP_PORT=10009 \
+    #     --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
+    #     --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+    #     --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+    #     --rm -d quay.io/andrewazores/quarkus-test:latest
 
-    podman run \
-        --name quarkus-test-agent-1 \
-        --pod cryostat-pod \
-        --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
-        --env QUARKUS_HTTP_PORT=10010 \
-        --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="9977" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
-        --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
-        --rm -d quay.io/andrewazores/quarkus-test:latest
+    # podman run \
+    #     --name quarkus-test-agent-1 \
+    #     --pod cryostat-pod \
+    #     --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
+    #     --env QUARKUS_HTTP_PORT=10010 \
+    #     --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
+    #     --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+    #     --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+    #     --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+    #     --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
+    #     --env CRYOSTAT_AGENT_WEBSERVER_PORT="9977" \
+    #     --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
+    #     --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
+    #     --env CRYOSTAT_AGENT_TRUST_ALL="true" \
+    #     --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+    #     --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
+    #     --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
+    #     --rm -d quay.io/andrewazores/quarkus-test:latest
 
     podman run \
         --name quarkus-test-agent-2 \

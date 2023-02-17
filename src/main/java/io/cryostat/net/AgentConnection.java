@@ -68,6 +68,7 @@ import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.recordings.JvmIdHelper;
+
 import io.vertx.ext.web.client.WebClient;
 import org.jsoup.nodes.Document;
 
@@ -186,6 +187,6 @@ class AgentConnection implements JFRConnection {
         ThreadMetrics threads = new ThreadMetrics(Collections.emptyMap());
         OperatingSystemMetrics os = new OperatingSystemMetrics(Collections.emptyMap());
 
-        return new MBeanMetrics(runtime, memory, threads, os);
+        return new MBeanMetrics(runtime, memory, threads, os, null);
     }
 }

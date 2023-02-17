@@ -198,7 +198,7 @@ type RuntimeMetrics {
 type MemoryMetrics {
     heapMemoryUsage: CustomMemoryUsage
     nonHeapMemoryUsage: CustomMemoryUsage
-    objectPendingFinalizationCount: Long
+    objectPendingFinalizationCount: Int
     freeHeapMemory: Long
     freeNonHeapMemory: Long
     heapMemoryUsagePercent: Float
@@ -231,7 +231,7 @@ type ThreadMetrics {
 
 type OperatingSystemMetrics {
     arch: String
-    availableProcessors: Long
+    availableProcessors: Int
     name: String
     systemLoadAverage: Float
     version: String
