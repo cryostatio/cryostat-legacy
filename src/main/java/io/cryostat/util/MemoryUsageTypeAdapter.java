@@ -48,15 +48,30 @@ public class MemoryUsageTypeAdapter extends TypeAdapter<MemoryUsage> {
 
     @Override
     public MemoryUsage read(JsonReader reader) throws IOException {
+        long init = -1;
+        long used = 0;
+        long committed = 0;
+        long max = -1;
         reader.beginObject();
-        reader.nextName();
-        long init = reader.nextLong();
-        reader.nextName();
-        long used = reader.nextLong();
-        reader.nextName();
-        long committed = reader.nextLong();
-        reader.nextName();
-        long max = reader.nextLong();
+        while (reader.hasNext()) {
+            String nextName = reader.nextName();
+            switch (nextName) {
+                case "init":
+                    init = reader.nextLong();
+                    break;
+                case "used":
+                    used = reader.nextLong();
+                    break;
+                case "committed":
+                    committed = reader.nextLong();
+                    break;
+                case "max":
+                    max = reader.nextLong();
+                    break;
+                default:
+                    throw new IOException("Unexpected memory usage field: " + nextName);
+            }
+        }
         reader.endObject();
         return new MemoryUsage(init, used, committed, max);
     }
