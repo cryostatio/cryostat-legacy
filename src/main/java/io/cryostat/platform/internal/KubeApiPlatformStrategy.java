@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.BiFunction;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -61,15 +62,14 @@ import org.apache.commons.lang3.StringUtils;
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     protected final Logger logger;
-    protected final AuthManager authMgr;
+    protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
     protected final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private KubernetesClient k8sClient;
 
     KubeApiPlatformStrategy(
             Logger logger,
-            AuthManager authMgr,
+            Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
@@ -78,15 +78,6 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.fs = fs;
-        try {
-            this.k8sClient =
-                    new KubernetesClientBuilder()
-                            .withTaskExecutor(ForkJoinPool.commonPool())
-                            .build();
-        } catch (Exception e) {
-            logger.info(e);
-            this.k8sClient = null;
-        }
     }
 
     @Override
@@ -96,33 +87,38 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
 
     @Override
     public boolean isAvailable() {
-        logger.trace("Testing KubeApi Platform Availability");
-        if (k8sClient == null) {
-            return false;
-        }
-        try {
+        logger.trace("Testing {} Availability", getClass().getSimpleName());
+        try (KubernetesClient client = createClient()) {
             String namespace = getOwnNamespace();
-            if (namespace == null) {
-                return false;
+            if (namespace != null) {
+                testAvailability();
+                return true;
             }
-            // ServiceAccount should have sufficient permissions on its own to do this
-            k8sClient.endpoints().inNamespace(namespace).list();
-            return true;
         } catch (Exception e) {
             logger.info(e);
-            return false;
         }
+        return false;
     }
 
     @Override
     public KubeApiPlatformClient getPlatformClient() {
-        logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(getNamespaces(), k8sClient, connectionToolkit, logger);
+        logger.info("Selected {} Strategy", getClass().getSimpleName());
+        return new KubeApiPlatformClient(
+                getNamespaces(), createClient(), connectionToolkit, logger);
     }
 
     @Override
     public AuthManager getAuthManager() {
-        return authMgr;
+        return authMgr.get();
+    }
+
+    protected KubernetesClient createClient() {
+        return new KubernetesClientBuilder().withTaskExecutor(ForkJoinPool.commonPool()).build();
+    }
+
+    protected BiFunction<? extends KubernetesClient, String, ?> testAvailability() {
+        // ServiceAccount should have sufficient permissions on its own to do this
+        return (client, ns) -> client.endpoints().inNamespace(ns).list();
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")

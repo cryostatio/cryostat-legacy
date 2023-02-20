@@ -55,13 +55,13 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final FileSystem fs;
-    private final AuthManager authMgr;
+    private final Lazy<? extends AuthManager> authMgr;
     private final Environment env;
 
     KubeEnvPlatformStrategy(
             Logger logger,
             FileSystem fs,
-            AuthManager authMgr,
+            Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env) {
         this.logger = logger;
@@ -90,7 +90,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
 
     @Override
     public AuthManager getAuthManager() {
-        return authMgr;
+        return authMgr.get();
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
