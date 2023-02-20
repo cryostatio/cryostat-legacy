@@ -125,18 +125,6 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         return authMgr;
     }
 
-    protected List<String> getNamespaces() {
-        // TODO should the own-namespace always be implied or should it be required for the user to
-        // explicitly specify?
-        List<String> list = new ArrayList<>();
-        list.add(getOwnNamespace());
-        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
-        if (StringUtils.isNotBlank(cfg)) {
-            list.addAll(Arrays.asList(cfg.split(",")));
-        }
-        return list;
-    }
-
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     protected String getOwnNamespace() {
         try {
@@ -145,5 +133,14 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
             logger.trace(e);
             return null;
         }
+    }
+
+    protected List<String> getNamespaces() {
+        List<String> list = new ArrayList<>();
+        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
+        if (StringUtils.isNotBlank(cfg)) {
+            list.addAll(Arrays.asList(cfg.split(",")));
+        }
+        return list;
     }
 }
