@@ -73,9 +73,13 @@ import dagger.Lazy;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
@@ -205,11 +209,17 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         if (Objects.equals(uri, NO_CALLBACK)) {
             return Future.succeededFuture(true);
         }
-        return http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
-                .ssl("https".equals(uri.getScheme()))
-                .timeout(1_000)
-                .followRedirects(true)
-                .send()
+        HttpRequest<Buffer> req =
+                http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
+                        .ssl("https".equals(uri.getScheme()))
+                        .timeout(1_000)
+                        .followRedirects(true);
+        String userInfo = uri.getUserInfo();
+        if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
+            String[] parts = userInfo.split(":");
+            req = req.authentication(new UsernamePasswordCredentials(parts[0], parts[1]));
+        }
+        return req.send()
                 .onComplete(
                         ar -> {
                             if (ar.failed()) {
