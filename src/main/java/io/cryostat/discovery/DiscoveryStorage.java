@@ -431,6 +431,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         return plugin;
     }
 
+    // TODO add an override (or just update this method) with a Function<AbstractNode, Boolean> that
+    // callers can use to pass an ex. auth.validateHttpHeader() function call to filter nodes by so
+    // that nodes where the requesting user has no privileges are not included in the tree. This
+    // function can just be applied on the leaf level since the tree is constructed from the leaf
+    // and then chased up to the root.
     public EnvironmentNode getDiscoveryTree() {
         List<EnvironmentNode> realms =
                 dao.getAll().stream()

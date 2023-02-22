@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -52,6 +53,7 @@ import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
@@ -107,17 +109,24 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public SecurityContext securityContext(RoutingContext ctx) {
-        // FIXME what to do here? all users should be allowed to make this request, but should only
-        // see recordings in the result where they have permissions to that specific target.
-        // Maybe we need to use the default context here, but within handleAuthenticated call the
-        // authManager directly to validate the token against each specific recording and its stored
-        // context, and filter out the ones that fail
         return SecurityContext.DEFAULT;
     }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response().end(gson.toJson(this.storage.listDiscoverableServices()));
+        List<ServiceRef> result = new ArrayList<>();
+        for (var target : this.storage.listDiscoverableServices()) {
+            boolean authorized =
+                    auth.validateHttpHeader(
+                                    () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                    auth.contextFor(target),
+                                    resourceActions())
+                            .get();
+            if (authorized) {
+                result.add(target);
+            }
+        }
+        ctx.response().end(gson.toJson(result));
     }
 }

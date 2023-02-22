@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -57,6 +58,7 @@ import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
@@ -116,7 +118,18 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
-            List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
+            List<ArchivedRecordingInfo> result = new ArrayList<>();
+            for (var info : recordingArchiveHelper.getRecordings().get()) {
+                boolean authorized =
+                        auth.validateHttpHeader(
+                                        () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                        info.getMetadata().getSecurityContext(),
+                                        resourceActions())
+                                .get();
+                if (authorized) {
+                    result.add(info);
+                }
+            }
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {

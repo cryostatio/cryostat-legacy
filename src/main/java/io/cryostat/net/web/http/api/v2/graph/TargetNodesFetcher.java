@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,12 +54,14 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.SecurityContext;
-import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.TargetNode;
 
+import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.ext.web.RoutingContext;
 
 class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
@@ -91,18 +94,7 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
 
     @Override
     SecurityContext securityContext(DataFetchingEnvironment environment) {
-        try {
-            // all nodes here came from the same parent and must be in the same namespace, so all
-            // have the same security context
-            List<TargetNode> nodes = getAuthenticated(environment);
-            if (nodes.isEmpty()) {
-                return SecurityContext.DEFAULT;
-            }
-            return auth.contextFor(nodes.get(0));
-        } catch (Exception e) {
-            logger.warn(e);
-            throw new ApiException(500, e);
-        }
+        return SecurityContext.DEFAULT;
     }
 
     @Override
@@ -127,6 +119,29 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
             int id = filter.get(FilterInput.Key.ID);
             result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toList());
         }
+        result =
+                result.stream()
+                        .filter(
+                                target -> {
+                                    SecurityContext sc = auth.contextFor(target);
+                                    GraphQLContext graphCtx = environment.getGraphQlContext();
+                                    RoutingContext ctx = graphCtx.get(RoutingContext.class);
+                                    try {
+                                        return auth.validateHttpHeader(
+                                                        () ->
+                                                                ctx.request()
+                                                                        .getHeader(
+                                                                                HttpHeaders
+                                                                                        .AUTHORIZATION),
+                                                        sc,
+                                                        resourceActions())
+                                                .get();
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        logger.error(e);
+                                        return false;
+                                    }
+                                })
+                        .toList();
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             result =
