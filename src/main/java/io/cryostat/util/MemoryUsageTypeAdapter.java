@@ -35,30 +35,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api;
+package io.cryostat.util;
 
-public enum ApiVersion {
-    GENERIC(""),
-    V1("v1"),
-    V2("v2"),
-    V2_1("v2.1"),
-    V2_2("v2.2"),
-    V2_3("v2.3"),
-    BETA("beta"),
-    ;
+import java.io.IOException;
+import java.lang.management.MemoryUsage;
 
-    private final String version;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
-    ApiVersion(String version) {
-        this.version = version;
-    }
+public class MemoryUsageTypeAdapter extends TypeAdapter<MemoryUsage> {
 
-    public String getVersionString() {
-        return version;
+    @Override
+    public MemoryUsage read(JsonReader reader) throws IOException {
+        long init = -1;
+        long used = 0;
+        long committed = 0;
+        long max = -1;
+        reader.beginObject();
+        while (reader.hasNext()) {
+            String nextName = reader.nextName();
+            switch (nextName) {
+                case "init":
+                    init = reader.nextLong();
+                    break;
+                case "used":
+                    used = reader.nextLong();
+                    break;
+                case "committed":
+                    committed = reader.nextLong();
+                    break;
+                case "max":
+                    max = reader.nextLong();
+                    break;
+                default:
+                    throw new IOException("Unexpected memory usage field: " + nextName);
+            }
+        }
+        reader.endObject();
+        return new MemoryUsage(init, used, committed, max);
     }
 
     @Override
-    public String toString() {
-        return getVersionString();
+    public void write(JsonWriter writer, MemoryUsage mu) throws IOException {
+        writer.beginObject();
+        writer.name("init").value(mu.getInit());
+        writer.name("used").value(mu.getUsed());
+        writer.name("committed").value(mu.getCommitted());
+        writer.name("max").value(mu.getMax());
+        writer.endObject();
     }
 }

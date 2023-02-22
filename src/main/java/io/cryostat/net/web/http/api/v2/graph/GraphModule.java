@@ -419,4 +419,17 @@ public abstract class GraphModule {
     @IntoSet
     abstract AbstractPermissionedDataFetcher<?> bindDeleteArchivedRecordingMutator(
             DeleteArchivedRecordingMutator apdf);
+
+    @Provides
+    static MBeanMetricsFetcher provideMBeanMetricsFetcher(
+            AuthManager auth,
+            TargetConnectionManager tcm,
+            CredentialsManager credentialsManager,
+            Logger logger) {
+        return new MBeanMetricsFetcher(auth, tcm, credentialsManager, logger);
+    }
+
+    @Binds
+    @IntoSet
+    abstract AbstractPermissionedDataFetcher<?> bindMBeanMetricsFetcher(MBeanMetricsFetcher apdf);
 }

@@ -37,6 +37,7 @@
  */
 package io.cryostat;
 
+import java.lang.management.MemoryUsage;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
@@ -68,6 +69,7 @@ import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
+import io.cryostat.util.MemoryUsageTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
@@ -157,7 +159,8 @@ public abstract class MainModule {
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                         .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(Rule.class, new RuleDeserializer())
-                        .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter());
+                        .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter())
+                        .registerTypeAdapter(MemoryUsage.class, new MemoryUsageTypeAdapter());
         for (PluggableTypeAdapter<?> pta : extraAdapters) {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }

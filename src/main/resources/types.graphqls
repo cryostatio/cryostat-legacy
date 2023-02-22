@@ -4,6 +4,8 @@ scalar NodeType
 scalar Url
 scalar Boolean
 scalar Long
+scalar Int
+scalar Float
 
 input EnvironmentNodeFilterInput {
     name: String
@@ -61,6 +63,7 @@ type Annotations {
 type TargetNode implements Node {
     target: ServiceRef!
     recordings: Recordings!
+    mbeanMetrics: MBeanMetrics!
 
     name: String!
     nodeType: NodeType!
@@ -163,4 +166,82 @@ input RecordingSettings {
     maxAge: Long
     archiveOnStop: Boolean
     metadata: Object
+}
+
+type MBeanMetrics {
+    runtime: RuntimeMetrics!
+    memory: MemoryMetrics!
+    thread: ThreadMetrics!
+    os: OperatingSystemMetrics!
+    jvmId: String!
+}
+
+# Currently all the relevant MXBean readable attributes in the Cryostat jvm 
+type RuntimeMetrics {
+    bootClassPath: String
+    classPath: String
+    inputArguments: [String]
+    libraryPath: String
+    managementSpecVersion: String
+    name: String
+    specName: String
+    specVendor: String
+    specVersion: String
+    startTime: Long
+    systemProperties: Object
+    uptime: Long
+    vmName: String
+    vmVendor: String
+    vmVersion: String
+    bootClassPathSupported: Boolean
+}
+
+type MemoryMetrics {
+    heapMemoryUsage: CustomMemoryUsage
+    nonHeapMemoryUsage: CustomMemoryUsage
+    objectPendingFinalizationCount: Int
+    freeHeapMemory: Long
+    freeNonHeapMemory: Long
+    heapMemoryUsagePercent: Float
+    verbose: Boolean
+}
+
+type CustomMemoryUsage {
+    init: Long
+    used: Long
+    committed: Long
+    max: Long
+}
+
+type ThreadMetrics {
+    allThreadIds: [Long]
+    currentThreadCpuTime: Long
+    currentThreadUserTime: Long
+    daemonThreadCount: Int
+    peakThreadCount: Int
+    threadCount: Int
+    totalStartedThreadCount: Long
+    currentThreadCpuTimeSupported: Boolean
+    objectMonitorUsageSupported: Boolean
+    synchronizerUsageSupported: Boolean
+    threadContentionMonitoringEnabled: Boolean
+    threadContentionMonitoringSupported: Boolean
+    threadCpuTimeEnabled: Boolean
+    threadCpuTimeSupported: Boolean
+}
+
+type OperatingSystemMetrics {
+    arch: String
+    availableProcessors: Int
+    name: String
+    systemLoadAverage: Float
+    version: String
+    committedVirtualMemorySize: Long
+    freePhysicalMemorySize: Long
+    freeSwapSpaceSize: Long
+    processCpuLoad: Float
+    processCpuTime: Long
+    systemCpuLoad: Float
+    totalPhysicalMemorySize: Long
+    totalSwapSpaceSize: Long
 }
