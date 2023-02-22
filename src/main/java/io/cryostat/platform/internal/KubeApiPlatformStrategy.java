@@ -38,12 +38,12 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.BiFunction;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -89,11 +89,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     public boolean isAvailable() {
         logger.trace("Testing {} Availability", getClass().getSimpleName());
         try (KubernetesClient client = createClient()) {
-            String namespace = getOwnNamespace();
-            if (namespace != null) {
-                testAvailability();
-                return true;
-            }
+            return testAvailability(client);
         } catch (Exception e) {
             logger.info(e);
         }
@@ -116,9 +112,12 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         return new KubernetesClientBuilder().withTaskExecutor(ForkJoinPool.commonPool()).build();
     }
 
-    protected BiFunction<? extends KubernetesClient, String, ?> testAvailability() {
-        // ServiceAccount should have sufficient permissions on its own to do this
-        return (client, ns) -> client.endpoints().inNamespace(ns).list();
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    protected boolean testAvailability(KubernetesClient client) {
+        boolean hasNamespace = StringUtils.isNotBlank(getOwnNamespace());
+        boolean hasSecrets = fs.isDirectory(Path.of("/var/run/secrets/kubernetes.io"));
+        boolean hasServiceHost = env.hasEnv("KUBERNETES_SERVICE_HOST");
+        return hasNamespace || hasSecrets || hasServiceHost;
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")

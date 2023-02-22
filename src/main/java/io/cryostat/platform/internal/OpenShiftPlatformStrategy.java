@@ -37,8 +37,6 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.function.BiFunction;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -46,6 +44,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
@@ -65,8 +64,8 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     }
 
     @Override
-    protected BiFunction<OpenShiftClient, String, ?> testAvailability() {
-        return (client, ns) -> client.routes().inNamespace(ns).list();
+    protected boolean testAvailability(KubernetesClient client) {
+        return super.testAvailability(client) && (((OpenShiftClient) client).isSupported());
     }
 
     @Override
