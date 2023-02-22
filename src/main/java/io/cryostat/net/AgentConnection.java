@@ -42,6 +42,9 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
+import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
+import javax.management.ReflectionException;
 import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -54,6 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;
@@ -162,5 +166,13 @@ class AgentConnection implements JFRConnection {
     public boolean isConnected() {
         // TODO Auto-generated method stub
         return true;
+    }
+
+    @Override
+    public MBeanMetrics getMBeanMetrics()
+            throws ConnectionException, IOException, InstanceNotFoundException,
+                    IntrospectionException, ReflectionException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getMBeanMetrics'");
     }
 }
