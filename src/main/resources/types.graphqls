@@ -173,6 +173,7 @@ type MBeanMetrics {
     memory: MemoryMetrics!
     thread: ThreadMetrics!
     os: OperatingSystemMetrics!
+    jvmId: String!
 }
 
 # Currently all the relevant MXBean readable attributes in the Cryostat jvm 
