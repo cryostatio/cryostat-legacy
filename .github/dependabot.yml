@@ -1,4 +1,10 @@
 version: 2
+registries:
+  maven-github:
+    type: maven-repository
+    url: https://maven.pkg.github.com/cryostatio/cryostat-core
+    username: dummy
+    password: ${{secrets.DEPENDABOT_READ_GHCR}}
 updates:
   - package-ecosystem: "maven"
     directory: "/"
@@ -11,6 +17,8 @@ updates:
       - "chore"
       - "safe-to-test"
     open-pull-requests-limit: 10
+    registries:
+      - "maven-github"
 
   - package-ecosystem: "docker"
     directory: "/src/container"
