@@ -60,13 +60,13 @@ public abstract class PlatformStrategyModule {
     @ElementsIntoSet
     static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
             Logger logger,
-            OpenShiftAuthManager openShiftAuthManager,
-            NoopAuthManager noopAuthManager,
+            Lazy<OpenShiftAuthManager> openShiftAuthManager,
+            Lazy<NoopAuthManager> noopAuthManager,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
-            JvmDiscoveryClient discoveryClient) {
+            Lazy<JvmDiscoveryClient> discoveryClient) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, env, fs),

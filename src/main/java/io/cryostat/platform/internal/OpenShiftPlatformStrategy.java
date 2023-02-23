@@ -44,26 +44,18 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
-    private OpenShiftClient osClient;
-
     OpenShiftPlatformStrategy(
             Logger logger,
-            AuthManager authMgr,
+            Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
         super(logger, authMgr, connectionToolkit, env, fs);
-        try {
-            this.osClient = new DefaultOpenShiftClient();
-        } catch (Exception e) {
-            logger.info(e);
-            this.osClient = null;
-        }
     }
 
     @Override
@@ -72,32 +64,12 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     }
 
     @Override
-    public boolean isAvailable() {
-        logger.trace("Testing OpenShift Platform Availability");
-        if (osClient == null) {
-            return false;
-        }
-        try {
-            String namespace = getOwnNamespace();
-            if (namespace == null) {
-                return false;
-            }
-            osClient.routes().inNamespace(namespace).list();
-            return true;
-        } catch (Exception e) {
-            logger.info(e);
-            return false;
-        }
+    protected boolean testAvailability(KubernetesClient client) {
+        return super.testAvailability(client) && (((OpenShiftClient) client).isSupported());
     }
 
     @Override
-    public KubeApiPlatformClient getPlatformClient() {
-        logger.info("Selected OpenShift Platform Strategy");
-        return super.getPlatformClient();
-    }
-
-    @Override
-    public AuthManager getAuthManager() {
-        return authMgr;
+    protected OpenShiftClient createClient() {
+        return super.createClient().adapt(OpenShiftClient.class);
     }
 }

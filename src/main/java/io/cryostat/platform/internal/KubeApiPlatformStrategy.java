@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,15 +62,14 @@ import org.apache.commons.lang3.StringUtils;
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     protected final Logger logger;
-    protected final AuthManager authMgr;
+    protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
     protected final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private KubernetesClient k8sClient;
 
     KubeApiPlatformStrategy(
             Logger logger,
-            AuthManager authMgr,
+            Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
@@ -78,15 +78,6 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.fs = fs;
-        try {
-            this.k8sClient =
-                    new KubernetesClientBuilder()
-                            .withTaskExecutor(ForkJoinPool.commonPool())
-                            .build();
-        } catch (Exception e) {
-            logger.info(e);
-            this.k8sClient = null;
-        }
     }
 
     @Override
@@ -96,45 +87,37 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
 
     @Override
     public boolean isAvailable() {
-        logger.trace("Testing KubeApi Platform Availability");
-        if (k8sClient == null) {
-            return false;
-        }
-        try {
-            String namespace = getOwnNamespace();
-            if (namespace == null) {
-                return false;
-            }
-            // ServiceAccount should have sufficient permissions on its own to do this
-            k8sClient.endpoints().inNamespace(namespace).list();
-            return true;
+        logger.trace("Testing {} Availability", getClass().getSimpleName());
+        try (KubernetesClient client = createClient()) {
+            return testAvailability(client);
         } catch (Exception e) {
             logger.info(e);
-            return false;
         }
+        return false;
     }
 
     @Override
     public KubeApiPlatformClient getPlatformClient() {
-        logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(getNamespaces(), k8sClient, connectionToolkit, logger);
+        logger.info("Selected {} Strategy", getClass().getSimpleName());
+        return new KubeApiPlatformClient(
+                getNamespaces(), createClient(), connectionToolkit, logger);
     }
 
     @Override
     public AuthManager getAuthManager() {
-        return authMgr;
+        return authMgr.get();
     }
 
-    protected List<String> getNamespaces() {
-        // TODO should the own-namespace always be implied or should it be required for the user to
-        // explicitly specify?
-        List<String> list = new ArrayList<>();
-        list.add(getOwnNamespace());
-        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
-        if (StringUtils.isNotBlank(cfg)) {
-            list.addAll(Arrays.asList(cfg.split(",")));
-        }
-        return list;
+    protected KubernetesClient createClient() {
+        return new KubernetesClientBuilder().withTaskExecutor(ForkJoinPool.commonPool()).build();
+    }
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    protected boolean testAvailability(KubernetesClient client) {
+        boolean hasNamespace = StringUtils.isNotBlank(getOwnNamespace());
+        boolean hasSecrets = fs.isDirectory(Path.of("/var/run/secrets/kubernetes.io"));
+        boolean hasServiceHost = env.hasEnv("KUBERNETES_SERVICE_HOST");
+        return hasNamespace || hasSecrets || hasServiceHost;
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
@@ -145,5 +128,14 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
             logger.trace(e);
             return null;
         }
+    }
+
+    protected List<String> getNamespaces() {
+        List<String> list = new ArrayList<>();
+        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
+        if (StringUtils.isNotBlank(cfg)) {
+            list.addAll(Arrays.asList(cfg.split(",")));
+        }
+        return list;
     }
 }
