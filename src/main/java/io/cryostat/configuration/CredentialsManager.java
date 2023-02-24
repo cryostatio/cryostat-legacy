@@ -214,6 +214,10 @@ public class CredentialsManager
         return dao.get(id).map(StoredCredentials::getMatchExpression);
     }
 
+    public Optional<StoredCredentials> getById(int id) {
+        return dao.get(id);
+    }
+
     public Set<ServiceRef> resolveMatchingTargets(int id) {
         Optional<String> matchExpression = get(id);
         if (matchExpression.isEmpty()) {

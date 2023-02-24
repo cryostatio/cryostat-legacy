@@ -54,6 +54,7 @@ import javax.script.ScriptException;
 
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -217,7 +218,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         String userInfo = uri.getUserInfo();
         if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
             String[] parts = userInfo.split(":");
-            req = req.authentication(new UsernamePasswordCredentials(parts[0], parts[1]));
+            if ("storedcredentials".equals(parts[0])) {
+                logger.info(
+                        "Using stored credentials id:{} referenced in ping callback userinfo",
+                        parts[1]);
+                Optional<StoredCredentials> opt =
+                        credentialsManager.get().getById(Integer.valueOf(parts[1]));
+                if (opt.isEmpty()) {
+                    logger.warn("Could not find such credentials!");
+                    return Future.succeededFuture(false);
+                }
+                StoredCredentials credentials = opt.get();
+                req =
+                        req.authentication(
+                                new UsernamePasswordCredentials(
+                                        credentials.getCredentials().getUsername(),
+                                        credentials.getCredentials().getPassword()));
+            }
         }
         return req.send()
                 .onComplete(

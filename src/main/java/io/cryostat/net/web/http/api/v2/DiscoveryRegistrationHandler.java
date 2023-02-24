@@ -76,7 +76,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 
 class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
@@ -174,14 +173,9 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
             if (!Objects.equals(plugin.getRealm(), realm)) {
                 throw new ApiException(400);
             }
-            // userinfo is allowed to change, otherwise the callback should be the same
-            URI prevCallback = new URIBuilder(plugin.getCallback()).setUserInfo(null).build();
-            URI newCallback = new URIBuilder(callbackUri).setUserInfo(null).build();
-            if (!Objects.equals(prevCallback, newCallback)) {
+            if (!Objects.equals(plugin.getCallback(), callbackUri)) {
                 throw new ApiException(400);
             }
-
-            storage.refresh(plugin.getId(), callbackUri);
 
             try {
                 jwtFactory.parseDiscoveryPluginJwt(
