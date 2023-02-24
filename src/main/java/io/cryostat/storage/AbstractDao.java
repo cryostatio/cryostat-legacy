@@ -82,6 +82,26 @@ public abstract class AbstractDao<I, T> {
         }
     }
 
+    public final T update(T t) {
+        synchronized (entityManager) {
+            Objects.requireNonNull(t);
+            EntityTransaction transaction = entityManager.getTransaction();
+            try {
+                transaction.begin();
+                entityManager.merge(t);
+                transaction.commit();
+                entityManager.detach(t);
+                return t;
+            } catch (Exception e) {
+                if (transaction != null) {
+                    transaction.rollback();
+                }
+                logger.error(e);
+                throw e;
+            }
+        }
+    }
+
     public final boolean delete(I id) {
         synchronized (entityManager) {
             Objects.requireNonNull(id);
