@@ -300,14 +300,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         }
     }
 
-    public void refresh(UUID id, URI callback) throws RegistrationException {
-        Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(callback, "callback");
-        PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
-        plugin.setCallback(callback);
-        dao.update(plugin);
-    }
-
     private Map<String, String> mergeLabels(
             Map<String, String> original, Map<String, String> toAdd) {
         Map<String, String> merged = new HashMap<>(original);
