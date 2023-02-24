@@ -256,7 +256,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         Objects.requireNonNull(realm, "realm");
         try {
             CompletableFuture<Boolean> cf = new CompletableFuture<>();
-            ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
+            ping(HttpMethod.GET, callback)
+                    .onComplete(ar -> cf.complete(ar.succeeded() && ar.result()));
             if (!cf.get()) {
                 throw new Exception("callback ping failure");
             }
