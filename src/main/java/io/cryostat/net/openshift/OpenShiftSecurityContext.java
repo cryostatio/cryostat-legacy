@@ -93,7 +93,7 @@ class OpenShiftSecurityContext extends SecurityContext {
             throw new InvalidConnectionURLException(connectionUri);
         }
 
-        String ipDashedPattern = "((?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)-?\b){4})";
+        String ipDashedPattern = "((?:(?:25[0-5]|(?:2[0-4]|1\\d|[1-9]|)\\d)-?){4})";
         String hostPattern = "([a-zA-Z0-9-_]+)";
         Pattern subdomainCapture =
                 Pattern.compile(
