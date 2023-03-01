@@ -50,6 +50,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 
@@ -84,6 +85,12 @@ public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMe
     @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        TargetNode source = environment.getSource();
+        return auth.contextFor(source);
     }
 
     @Override

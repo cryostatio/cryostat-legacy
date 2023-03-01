@@ -47,6 +47,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -74,13 +75,19 @@ public class MBeanMetricsGetHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage discoveryStorage;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new MBeanMetricsGetHandler(
-                        authManager, credentialsManager, gson, targetConnectionManager, logger);
+                        authManager,
+                        credentialsManager,
+                        gson,
+                        targetConnectionManager,
+                        discoveryStorage,
+                        logger);
     }
 
     @Nested

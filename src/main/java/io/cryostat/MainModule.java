@@ -47,26 +47,30 @@ import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.management.remote.JMXServiceURL;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.discovery.DiscoveryModule;
 import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.HttpMimeTypeAdapter;
-import io.cryostat.util.MemoryUsageTypeAdapter;
 import io.cryostat.util.JmxServiceUrlAdapter;
+import io.cryostat.util.MemoryUsageTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.PluggableTypeAdapter;
@@ -201,19 +205,14 @@ public abstract class MainModule {
                 new GsonBuilder()
                         .serializeNulls()
                         .disableHtmlEscaping()
-<<<<<<< HEAD
-                        .registerTypeAdapter(
-                                JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                        .registerTypeAdapter(JMXServiceURL.class, new JmxServiceUrlAdapter(logger))
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                         .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(Rule.class, new RuleDeserializer())
                         .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter())
+                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(MemoryUsage.class, new MemoryUsageTypeAdapter());
-        for (PluggableTypeAdapter<?> pta : extraAdapters) {
-=======
-                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter());
         for (PluggableTypeAdapter<?> pta : typeAdapters) {
->>>>>>> f99f5a1b (gson adapter refactor)
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }
         for (PluggableJsonDeserializer<?> pjd : deserializers) {
