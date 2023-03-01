@@ -52,12 +52,12 @@ import dagger.Lazy;
 class OpenShiftSecurityContextDeserializer extends PluggableJsonDeserializer<SecurityContext> {
 
     private final Lazy<AuthManager> auth;
-    private final Lazy<String> namespace;
+    private final Lazy<String> installNamespace;
 
-    OpenShiftSecurityContextDeserializer(Lazy<AuthManager> auth, Lazy<String> namespace) {
+    OpenShiftSecurityContextDeserializer(Lazy<AuthManager> auth, Lazy<String> installNamespace) {
         super(SecurityContext.class);
         this.auth = auth;
-        this.namespace = namespace;
+        this.installNamespace = installNamespace;
     }
 
     @Override
@@ -75,7 +75,7 @@ class OpenShiftSecurityContextDeserializer extends PluggableJsonDeserializer<Sec
         } else {
             // FIXME don't override with a default like this, the namespace should always be
             // specified somewhere before it was serialized
-            name = namespace.get();
+            name = installNamespace.get();
         }
         return new OpenShiftSecurityContext(name);
     }

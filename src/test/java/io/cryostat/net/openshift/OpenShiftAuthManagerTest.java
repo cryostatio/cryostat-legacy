@@ -166,6 +166,7 @@ class OpenShiftAuthManagerTest {
                 new OpenShiftAuthManager(
                         env,
                         () -> NAMESPACE,
+                        () -> List.of(NAMESPACE),
                         () -> client,
                         tokenProvider,
                         classPropertiesLoader,

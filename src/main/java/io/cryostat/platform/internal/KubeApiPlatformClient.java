@@ -86,7 +86,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     public static final String REALM = "KubernetesApi";
 
     private final KubernetesClient k8sClient;
-    private final Set<String> namespaces;
+    private final Set<String> targetNamespaces;
     private final LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>> nsInformers =
             new LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>>() {
                 @Override
@@ -98,7 +98,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     // namespaces
                     // within the discovery tree are mapped.
                     var result = new HashMap<String, SharedIndexInformer<Endpoints>>();
-                    namespaces.forEach(
+                    targetNamespaces.forEach(
                             ns -> {
                                 result.put(
                                         ns,
@@ -124,8 +124,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
-            Collection<String> namespaces, KubernetesClient k8sClient, Logger logger) {
-        this.namespaces = new HashSet<>(namespaces);
+            Collection<String> targetNamespaces, KubernetesClient k8sClient, Logger logger) {
+        this.targetNamespaces = new HashSet<>(targetNamespaces);
         this.k8sClient = k8sClient;
         this.logger = logger;
     }

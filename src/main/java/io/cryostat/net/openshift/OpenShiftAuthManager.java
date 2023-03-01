@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -123,7 +124,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 
     private final Environment env;
-    private final Lazy<String> namespace;
+    private final Lazy<String> installNamespace;
+    private final Lazy<List<String>> targetNamespaces;
     private final Lazy<OpenShiftClient> serviceAccountClient;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
@@ -134,7 +136,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     OpenShiftAuthManager(
             Environment env,
-            Lazy<String> namespace,
+            Lazy<String> installNamespace,
+            Lazy<List<String>> targetNamespaces,
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
@@ -144,7 +147,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Logger logger) {
         super(logger);
         this.env = env;
-        this.namespace = namespace;
+        this.installNamespace = installNamespace;
+        this.targetNamespaces = targetNamespaces;
         this.serviceAccountClient = serviceAccountClient;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
@@ -280,7 +284,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             // considered to be operations within the namespace that Cryostat is deployed within.
             // This means that the requesting client must have some permissions to access Cryostat
             // itself.
-            ns = namespace.get();
+            ns = installNamespace.get();
         } else {
             ns = ((OpenShiftSecurityContext) securityContext).getNamespace();
         }
@@ -593,7 +597,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Optional<String> clientId = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
         return String.format(
                 "system:serviceaccount:%s:%s",
-                namespace.get(),
+                installNamespace.get(),
                 clientId.orElseThrow(
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_CLIENT_ID)));
     }
@@ -604,25 +608,30 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Optional<String> customOAuthRole =
                 Optional.ofNullable(env.getEnv(CRYOSTAT_CUSTOM_OAUTH_ROLE));
 
-        String tokenScope =
-                String.format(
-                        "user:check-access role:%s:%s",
-                        baseOAuthRole.orElseThrow(
-                                () ->
-                                        new MissingEnvironmentVariableException(
-                                                CRYOSTAT_BASE_OAUTH_ROLE)),
-                        namespace.get());
+        List<String> tokenScopes = new ArrayList<>();
+        tokenScopes.add("user:check-access");
 
+        baseOAuthRole.orElseThrow(
+                () -> new MissingEnvironmentVariableException(CRYOSTAT_BASE_OAUTH_ROLE));
+
+        List<String> roles = new ArrayList<>();
+        roles.add(baseOAuthRole.get());
         if (customOAuthRole.isPresent()) {
             if (customOAuthRole.get().isBlank()) {
                 throw new IllegalArgumentException(
                         CRYOSTAT_CUSTOM_OAUTH_ROLE + " must not be blank.");
             }
-            tokenScope =
-                    String.format(
-                            "%s role:%s:%s", tokenScope, customOAuthRole.get(), namespace.get());
+            roles.add(customOAuthRole.get());
         }
-        return tokenScope;
+
+        for (String role : roles) {
+            for (String namespace : targetNamespaces.get()) {
+                tokenScopes.add(String.format("role:%s:%s", role, namespace));
+            }
+        }
+        String scope = String.join(" ", tokenScopes);
+        logger.info("Requesting final OAuth token scope: {}", scope);
+        return scope;
     }
 
     private String getOauthAccessTokenName(String token) {

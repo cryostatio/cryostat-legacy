@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.util.concurrent.Executor;
+import java.util.List;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -55,8 +56,10 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
             Executor executor,
             Lazy<? extends AuthManager> authMgr,
             Environment env,
-            FileSystem fs) {
-        super(logger, executor, authMgr, env, fs);
+            FileSystem fs,
+            Lazy<String> installNamespace,
+            Lazy<List<String>> targetNamespaces) {
+        super(logger, executor, authMgr, env, fs, installNamespace, targetNamespaces);
     }
 
     @Override
