@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
@@ -65,7 +64,6 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
-import dagger.Lazy;
 import io.fabric8.kubernetes.api.model.EndpointAddress;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
@@ -119,7 +117,6 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             };
     private Integer memoHash;
     private EnvironmentNode memoTree;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final Map<Triple<String, String, String>, Pair<HasMetadata, EnvironmentNode>>
             discoveryNodeCache = new ConcurrentHashMap<>();
@@ -127,13 +124,9 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
-            Collection<String> namespaces,
-            KubernetesClient k8sClient,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Logger logger) {
+            Collection<String> namespaces, KubernetesClient k8sClient, Logger logger) {
         this.namespaces = new HashSet<>(namespaces);
         this.k8sClient = k8sClient;
-        this.connectionToolkit = connectionToolkit;
         this.logger = logger;
     }
 

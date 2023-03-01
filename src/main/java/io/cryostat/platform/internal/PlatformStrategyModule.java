@@ -76,10 +76,8 @@ public abstract class PlatformStrategyModule {
             Environment env,
             FileSystem fs) {
         return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(
-                        logger, executor, noopAuthManager, connectionToolkit, env, fs),
+                new OpenShiftPlatformStrategy(logger, executor, openShiftAuthManager, env, fs),
+                new KubeApiPlatformStrategy(logger, executor, noopAuthManager, env, fs),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
                 new DefaultPlatformStrategy(
