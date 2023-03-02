@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -57,8 +56,10 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
@@ -66,7 +67,6 @@ import itest.util.http.JvmIdWebRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -189,8 +189,6 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     @Test
     @Order(2)
     public void testInterleavedRequests() throws Exception {
-        /* FIXME: Fix front-end credentials handling with JMX auth and jvmIds so test can be re-enabled */
-        /* See https://github.com/cryostatio/cryostat-web/issues/656 */
         long start = System.nanoTime();
 
         createInMemoryRecordings(false);
@@ -201,17 +199,36 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
         verifyInMemoryRecordingsDeleted(false);
 
-        Assertions.assertThrows(
-                ExecutionException.class,
-                () -> {
-                    createInMemoryRecordings(true);
+        // Assertions.assertThrows(
+        //         ExecutionException.class,
+        //         () -> {
+        createInMemoryRecordings(true);
 
-                    verifyInMemoryRecordingsCreated(true);
+        verifyInMemoryRecordingsCreated(true);
 
-                    deleteInMemoryRecordings(true);
+        deleteInMemoryRecordings(true);
 
-                    verifyInMemoryRecordingsDeleted(true);
-                });
+        verifyInMemoryRecordingsDeleted(true);
+        // });
+
+        long stop = System.nanoTime();
+        long elapsed = stop - start;
+        System.out.println(
+                String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
+    }
+
+    @Test
+    @Order(2)
+    public void testInterleavedRequestsWithAuth() throws Exception {
+        long start = System.nanoTime();
+
+        createInMemoryRecordings(true);
+
+        verifyInMemoryRecordingsCreated(true);
+
+        deleteInMemoryRecordings(true);
+
+        verifyInMemoryRecordingsDeleted(true);
 
         long stop = System.nanoTime();
         long elapsed = stop - start;
@@ -231,26 +248,30 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                         MultiMap form = MultiMap.caseInsensitiveMultiMap();
                         form.add("recordingName", "interleaved-" + fi);
                         form.add("events", "template=Continuous");
-                        webClient
-                                .post(
+                        HttpRequest<Buffer> req =
+                                webClient.post(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings",
                                                 Podman.POD_NAME
                                                         + ":"
-                                                        + (TARGET_PORT_NUMBER_START + fi)))
-                                .putHeader(
-                                        "X-JMX-Authorization",
-                                        "Basic "
-                                                + Base64.getUrlEncoder()
-                                                        .encodeToString(
-                                                                "admin:adminpass123".getBytes()))
-                                .sendForm(
-                                        form,
-                                        ar -> {
-                                            if (assertRequestStatus(ar, cf)) {
-                                                cf.complete(null);
-                                            }
-                                        });
+                                                        + (TARGET_PORT_NUMBER_START + fi)));
+                        if (useAuth) {
+                            req =
+                                    req.putHeader(
+                                            "X-JMX-Authorization",
+                                            "Basic "
+                                                    + Base64.getUrlEncoder()
+                                                            .encodeToString(
+                                                                    "admin:adminpass123"
+                                                                            .getBytes()));
+                        }
+                        req.sendForm(
+                                form,
+                                ar -> {
+                                    if (assertRequestStatus(ar, cf)) {
+                                        cf.complete(null);
+                                    }
+                                });
                     });
         }
         CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
@@ -264,35 +285,37 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
-            webClient
-                    .get(
+            HttpRequest<Buffer> req =
+                    webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getUrlEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, cf)) {
-                                    JsonArray listResp = ar.result().bodyAsJsonArray();
-                                    MatcherAssert.assertThat(
-                                            "list should have size 1 after recording creation",
-                                            listResp.size(),
-                                            Matchers.equalTo(1));
-                                    JsonObject recordingInfo = listResp.getJsonObject(0);
-                                    MatcherAssert.assertThat(
-                                            recordingInfo.getString("name"),
-                                            Matchers.equalTo("interleaved-" + fi));
-                                    MatcherAssert.assertThat(
-                                            recordingInfo.getString("state"),
-                                            Matchers.equalTo("RUNNING"));
+                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)));
+            if (useAuth) {
+                req =
+                        req.putHeader(
+                                "X-JMX-Authorization",
+                                "Basic "
+                                        + Base64.getUrlEncoder()
+                                                .encodeToString("admin:adminpass123".getBytes()));
+            }
+            req.send(
+                    ar -> {
+                        if (assertRequestStatus(ar, cf)) {
+                            JsonArray listResp = ar.result().bodyAsJsonArray();
+                            MatcherAssert.assertThat(
+                                    "list should have size 1 after recording creation",
+                                    listResp.size(),
+                                    Matchers.equalTo(1));
+                            JsonObject recordingInfo = listResp.getJsonObject(0);
+                            MatcherAssert.assertThat(
+                                    recordingInfo.getString("name"),
+                                    Matchers.equalTo("interleaved-" + fi));
+                            MatcherAssert.assertThat(
+                                    recordingInfo.getString("state"), Matchers.equalTo("RUNNING"));
 
-                                    cf.complete(null);
-                                }
-                            });
+                            cf.complete(null);
+                        }
+                    });
         }
         CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -308,27 +331,31 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
             Podman.POOL.submit(
                     () -> {
                         MultiMap form = MultiMap.caseInsensitiveMultiMap();
-                        webClient
-                                .delete(
+                        HttpRequest<Buffer> req =
+                                webClient.delete(
                                         String.format(
                                                 "/api/v1/targets/%s/recordings/%s",
                                                 Podman.POD_NAME
                                                         + ":"
                                                         + (TARGET_PORT_NUMBER_START + fi),
-                                                "interleaved-" + fi))
-                                .putHeader(
-                                        "X-JMX-Authorization",
-                                        "Basic "
-                                                + Base64.getUrlEncoder()
-                                                        .encodeToString(
-                                                                "admin:adminpass123".getBytes()))
-                                .sendForm(
-                                        form,
-                                        ar -> {
-                                            if (assertRequestStatus(ar, cf)) {
-                                                cf.complete(null);
-                                            }
-                                        });
+                                                "interleaved-" + fi));
+                        if (useAuth) {
+                            req =
+                                    req.putHeader(
+                                            "X-JMX-Authorization",
+                                            "Basic "
+                                                    + Base64.getUrlEncoder()
+                                                            .encodeToString(
+                                                                    "admin:adminpass123"
+                                                                            .getBytes()));
+                        }
+                        req.sendForm(
+                                form,
+                                ar -> {
+                                    if (assertRequestStatus(ar, cf)) {
+                                        cf.complete(null);
+                                    }
+                                });
                     });
         }
         CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
@@ -342,27 +369,30 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
             cfs.add(cf);
-            webClient
-                    .get(
+            HttpRequest<Buffer> req =
+                    webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)))
-                    .putHeader(
-                            "X-JMX-Authorization",
-                            "Basic "
-                                    + Base64.getUrlEncoder()
-                                            .encodeToString("admin:adminpass123".getBytes()))
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, cf)) {
-                                    JsonArray listResp = ar.result().bodyAsJsonArray();
-                                    MatcherAssert.assertThat(
-                                            "list should have size 0 after recording deletion",
-                                            listResp.size(),
-                                            Matchers.equalTo(0));
-                                    cf.complete(null);
-                                }
-                            });
+                                    Podman.POD_NAME + ":" + (TARGET_PORT_NUMBER_START + fi)));
+            if (useAuth) {
+                req =
+                        req.putHeader(
+                                "X-JMX-Authorization",
+                                "Basic "
+                                        + Base64.getUrlEncoder()
+                                                .encodeToString("admin:adminpass123".getBytes()));
+            }
+            req.send(
+                    ar -> {
+                        if (assertRequestStatus(ar, cf)) {
+                            JsonArray listResp = ar.result().bodyAsJsonArray();
+                            MatcherAssert.assertThat(
+                                    "list should have size 0 after recording deletion",
+                                    listResp.size(),
+                                    Matchers.equalTo(0));
+                            cf.complete(null);
+                        }
+                    });
         }
         CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
                 .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

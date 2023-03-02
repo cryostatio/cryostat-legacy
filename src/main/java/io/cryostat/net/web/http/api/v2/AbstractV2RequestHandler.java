@@ -94,6 +94,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     @Override
     public final void handle(RoutingContext ctx) {
         RequestParameters requestParams = RequestParameters.from(ctx);
+        String targetId = requestParams.getPathParams().get("targetId");
+        if (targetId != null) {
+            ctx.addEndHandler(
+                    unused -> CredentialsManager.SESSION_JMX_CREDENTIALS.get().remove(targetId));
+        }
         try {
             if (requiresAuthentication()) {
                 boolean permissionGranted =
@@ -164,6 +169,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                                             + " credential format");
                         }
                         credentials = new Credentials(parts[0], parts[1]);
+                        CredentialsManager.SESSION_JMX_CREDENTIALS.get().put(targetId, credentials);
                     }
                 }
             } else {

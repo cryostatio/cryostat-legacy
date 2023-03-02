@@ -383,12 +383,13 @@ public abstract class GraphModule {
     @Provides
     static PutArchivedRecordingMetadataMutator providePutArchivedRecordingMetadataMutator(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
         return new PutArchivedRecordingMetadataMutator(
-                auth, metadataManager, webServer, gson, base32);
+                auth, credentialsManager, metadataManager, webServer, gson, base32);
     }
 
     @Binds

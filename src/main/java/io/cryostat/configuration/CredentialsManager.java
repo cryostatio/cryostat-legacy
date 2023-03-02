@@ -80,6 +80,9 @@ public class CredentialsManager
     private final Gson gson;
     private final Logger logger;
 
+    public static final ThreadLocal<Map<String, Credentials>> SESSION_JMX_CREDENTIALS =
+            ThreadLocal.withInitial(() -> new HashMap<>());
+
     CredentialsManager(
             Path credentialsDir,
             MatchExpressionValidator matchExpressionValidator,
@@ -182,6 +185,10 @@ public class CredentialsManager
     }
 
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
+        Credentials sessionCredentials = SESSION_JMX_CREDENTIALS.get().get(targetId);
+        if (sessionCredentials != null) {
+            return sessionCredentials;
+        }
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
                 return getCredentials(service);
@@ -191,6 +198,11 @@ public class CredentialsManager
     }
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
+        Credentials sessionCredentials =
+                SESSION_JMX_CREDENTIALS.get().get(serviceRef.getServiceUri().toString());
+        if (sessionCredentials != null) {
+            return sessionCredentials;
+        }
         for (StoredCredentials sc : dao.getAll()) {
             if (matchExpressionEvaluator.get().applies(sc.getMatchExpression(), serviceRef)) {
                 return sc.getCredentials();

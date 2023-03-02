@@ -37,14 +37,20 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -54,6 +60,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
 class GraphQLPostHandler implements RequestHandler {
@@ -107,6 +114,78 @@ class GraphQLPostHandler implements RequestHandler {
                     .get()) {
                 throw new ApiException(401);
             }
+
+            String targetId = ctx.pathParam("targetId");
+            Credentials credentials;
+            if (ctx.request()
+                    .headers()
+                    .contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)) {
+                String proxyAuth =
+                        ctx.request()
+                                .getHeader(
+                                        AbstractAuthenticatedRequestHandler
+                                                .JMX_AUTHORIZATION_HEADER);
+                Matcher m =
+                        AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(proxyAuth);
+                if (!m.find()) {
+                    ctx.response()
+                            .putHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
+                                    "Basic");
+                    throw new HttpException(
+                            427,
+                            "Invalid "
+                                    + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                                    + " format");
+                }
+                String t = m.group("type");
+                if (!"basic".equals(t.toLowerCase())) {
+                    ctx.response()
+                            .putHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
+                                    "Basic");
+                    throw new HttpException(
+                            427,
+                            "Unacceptable "
+                                    + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                                    + " type");
+                }
+                String c;
+                try {
+                    c =
+                            new String(
+                                    Base64.getUrlDecoder().decode(m.group("credentials")),
+                                    StandardCharsets.UTF_8);
+                } catch (IllegalArgumentException iae) {
+                    ctx.response()
+                            .putHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
+                                    "Basic");
+                    throw new HttpException(
+                            427,
+                            AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                                    + " credentials do not appear to be Base64-encoded",
+                            iae);
+                }
+                String[] parts = c.split(":");
+                if (parts.length != 2) {
+                    ctx.response()
+                            .putHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
+                                    "Basic");
+                    throw new HttpException(
+                            427,
+                            "Unrecognized "
+                                    + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                                    + " credential format");
+                }
+                credentials = new Credentials(parts[0], parts[1]);
+                CredentialsManager.SESSION_JMX_CREDENTIALS.get().put(targetId, credentials);
+                ctx.addEndHandler(
+                        unused ->
+                                CredentialsManager.SESSION_JMX_CREDENTIALS.get().remove(targetId));
+            }
+
         } catch (InterruptedException | ExecutionException e) {
             throw new ApiException(500, e);
         }

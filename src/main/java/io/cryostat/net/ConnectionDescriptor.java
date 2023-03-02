@@ -39,6 +39,7 @@ package io.cryostat.net;
 
 import java.util.Optional;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
 
@@ -55,11 +56,19 @@ public class ConnectionDescriptor {
     }
 
     public ConnectionDescriptor(String targetId) {
-        this(targetId, null);
+        // TODO remove this direct access to the ThreadLocal, it is a hack. This should just be done
+        // by the CredentialsManager and the non-credentialed constructors here should be removed.
+        this(targetId, CredentialsManager.SESSION_JMX_CREDENTIALS.get().get(targetId));
     }
 
     public ConnectionDescriptor(ServiceRef serviceRef, Credentials credentials) {
-        this(serviceRef.getServiceUri().toString(), credentials);
+        this(
+                serviceRef.getServiceUri().toString(),
+                Optional.ofNullable(
+                                CredentialsManager.SESSION_JMX_CREDENTIALS
+                                        .get()
+                                        .get(serviceRef.getServiceUri().toString()))
+                        .orElse(credentials));
     }
 
     public ConnectionDescriptor(String targetId, Credentials credentials) {
