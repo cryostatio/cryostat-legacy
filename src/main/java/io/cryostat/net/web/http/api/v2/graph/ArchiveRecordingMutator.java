@@ -43,6 +43,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -92,8 +93,11 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+
+        Credentials credentials =
+                getSessionCredentials(environment, uri.toString())
+                        .orElse(credentialsManager.getCredentials(target));
+        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
 
         return recordingArchiveHelper.saveRecording(cd, source.getName()).get();
     }

@@ -66,6 +66,8 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.SelectedField;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -160,6 +162,10 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnNoneWithRequestedFields() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -194,6 +200,10 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnActiveRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -265,6 +275,10 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnAllRecordings() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 

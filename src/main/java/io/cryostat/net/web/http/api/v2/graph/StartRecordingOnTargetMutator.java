@@ -49,6 +49,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
@@ -56,6 +57,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -121,11 +123,14 @@ class StartRecordingOnTargetMutator
     public HyperlinkedSerializableRecordingDescriptor getAuthenticated(
             DataFetchingEnvironment environment) throws Exception {
         TargetNode node = environment.getSource();
+        ServiceRef target = node.getTarget();
         Map<String, Object> settings = environment.getArgument("recording");
 
-        String uri = node.getTarget().getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+        String uri = target.getServiceUri().toString();
+        Credentials credentials =
+                getSessionCredentials(environment, uri.toString())
+                        .orElse(credentialsManager.getCredentials(target));
+        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {

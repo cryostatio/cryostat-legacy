@@ -53,6 +53,7 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -132,8 +133,11 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                         .collect(Collectors.toList());
 
         if (requestedFields.contains("active")) {
-            ConnectionDescriptor cd =
-                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+
+            Credentials credentials =
+                    getSessionCredentials(environment, targetId)
+                            .orElse(credentialsManager.getCredentials(target));
+            ConnectionDescriptor cd = new ConnectionDescriptor(targetId, credentials);
             // FIXME populating these two struct members are each async tasks. we should do them in
             // parallel
             recordings.active =

@@ -54,6 +54,8 @@ import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -100,6 +102,10 @@ class DeleteActiveRecordingMutatorTest {
     @Test
     void shouldDeleteAndReturnSource() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 

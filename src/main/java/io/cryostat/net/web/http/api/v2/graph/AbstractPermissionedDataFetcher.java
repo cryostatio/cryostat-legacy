@@ -37,17 +37,26 @@
  */
 package io.cryostat.net.web.http.api.v2.graph;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
 
 import graphql.GraphQLContext;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
 abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, PermissionedAction {
 
@@ -81,4 +90,74 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     }
 
     abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
+
+    // FIXME targetId should not be supplied, this method should either figure it out from context,
+    // or the X-JMX-Authorization header should actually have a value that encodes a map from
+    // targetId to credentials
+    protected Optional<Credentials> getSessionCredentials(
+            DataFetchingEnvironment environment, String targetId) {
+        RoutingContext ctx = GraphQLHandler.getRoutingContext(environment.getGraphQlContext());
+        if (!ctx.request()
+                .headers()
+                .contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)) {
+            return Optional.empty();
+        }
+        String proxyAuth =
+                ctx.request()
+                        .getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER);
+        Matcher m = AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(proxyAuth);
+        if (!m.find()) {
+            ctx.response()
+                    .putHeader(
+                            AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new ApiException(
+                    427,
+                    "Invalid "
+                            + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                            + " format");
+        }
+        String t = m.group("type");
+        if (!"basic".equals(t.toLowerCase())) {
+            ctx.response()
+                    .putHeader(
+                            AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new ApiException(
+                    427,
+                    "Unacceptable "
+                            + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                            + " type");
+        }
+        String c;
+        try {
+            c =
+                    new String(
+                            Base64.getUrlDecoder().decode(m.group("credentials")),
+                            StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException iae) {
+            ctx.response()
+                    .putHeader(
+                            AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new ApiException(
+                    427,
+                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                            + " credentials do not appear to be Base64-encoded",
+                    iae);
+        }
+        String[] parts = c.split(":");
+        if (parts.length != 2) {
+            ctx.response()
+                    .putHeader(
+                            AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new ApiException(
+                    427,
+                    "Unrecognized "
+                            + AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER
+                            + " credential format");
+        }
+        Credentials credentials = new Credentials(parts[0], parts[1]);
+        CredentialsManager.SESSION_JMX_CREDENTIALS.get().put(targetId, credentials);
+        ctx.addEndHandler(
+                unused -> CredentialsManager.SESSION_JMX_CREDENTIALS.get().remove(targetId));
+        return Optional.of(credentials);
+    }
 }
