@@ -45,6 +45,7 @@ import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.persistence.EntityManager;
 import javax.script.ScriptEngine;
 
 import io.cryostat.configuration.ConfigurationModule;
@@ -95,6 +96,25 @@ public abstract class RulesModule {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static MatchExpressionDao provideMatchExpressionDao(EntityManager em, Logger logger) {
+        return new MatchExpressionDao(em, logger);
+    }
+
+    @Provides
+    @Singleton
+    static MatchExpressionManager provideMatchExpressionManager(
+            MatchExpressionValidator matchExpressionValidator,
+            Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
+            DiscoveryStorage discovery,
+            MatchExpressionDao dao,
+            Gson gson,
+            Logger logger) {
+        return new MatchExpressionManager(
+                matchExpressionValidator, matchExpressionEvaluator, discovery, dao, gson, logger);
     }
 
     @Provides

@@ -35,16 +35,61 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.security;
 
-public enum ResourceType {
-    TARGET,
-    RECORDING,
-    TEMPLATE,
-    REPORT,
-    MATCH_EXPRESSION,
-    CREDENTIALS,
-    RULE,
-    CERTIFICATE,
-    ;
+package io.cryostat.net.web.http.api.beta;
+
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
+
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+
+public class MatchExpressionsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
+
+    @Inject
+    MatchExpressionsPostBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + MatchExpressionsPostHandler.PATH;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
+    }
 }

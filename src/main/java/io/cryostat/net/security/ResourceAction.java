@@ -39,6 +39,7 @@ package io.cryostat.net.security;
 
 import static io.cryostat.net.security.ResourceType.CERTIFICATE;
 import static io.cryostat.net.security.ResourceType.CREDENTIALS;
+import static io.cryostat.net.security.ResourceType.MATCH_EXPRESSION;
 import static io.cryostat.net.security.ResourceType.RECORDING;
 import static io.cryostat.net.security.ResourceType.REPORT;
 import static io.cryostat.net.security.ResourceType.RULE;
@@ -80,6 +81,11 @@ public enum ResourceAction {
     READ_REPORT(READ, REPORT),
     UPDATE_REPORT(UPDATE, REPORT),
     DELETE_REPORT(DELETE, REPORT),
+
+    CREATE_MATCH_EXPRESSION(CREATE, MATCH_EXPRESSION),
+    READ_MATCH_EXPRESSION(READ, MATCH_EXPRESSION),
+    UPDATE_MATCH_EXPRESSION(UPDATE, MATCH_EXPRESSION),
+    DELETE_MATCH_EXPRESSION(DELETE, MATCH_EXPRESSION),
 
     CREATE_CREDENTIALS(CREATE, CREDENTIALS),
     READ_CREDENTIALS(READ, CREDENTIALS),

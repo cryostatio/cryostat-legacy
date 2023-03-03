@@ -35,16 +35,64 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.security;
 
-public enum ResourceType {
-    TARGET,
-    RECORDING,
-    TEMPLATE,
-    REPORT,
-    MATCH_EXPRESSION,
-    CREDENTIALS,
-    RULE,
-    CERTIFICATE,
-    ;
+package io.cryostat.rules;
+
+import java.util.Objects;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class MatchExpression {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(updatable = false)
+    private int id;
+
+    @Column(unique = true, nullable = false)
+    private String matchExpression;
+
+    MatchExpression() {}
+
+    MatchExpression(int id, String matchExpression) {
+        this.id = id;
+        this.matchExpression = matchExpression;
+    }
+
+    MatchExpression(String matchExpression) {
+        this(0, matchExpression);
+    }
+
+    public String getMatchExpression() {
+        return this.matchExpression;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(matchExpression);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        MatchExpression other = (MatchExpression) obj;
+        return Objects.equals(matchExpression, other.matchExpression);
+    }
 }
