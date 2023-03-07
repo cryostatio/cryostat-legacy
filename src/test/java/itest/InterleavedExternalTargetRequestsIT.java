@@ -78,6 +78,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
+    static final int BASE_PORT = 9093;
     static final int NUM_EXT_CONTAINERS = 4;
     static final int NUM_AUTH_EXT_CONTAINERS = 4;
     static final int NUM_EXT_CONTAINERS_TOTAL = NUM_EXT_CONTAINERS + NUM_AUTH_EXT_CONTAINERS;
@@ -89,7 +90,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             specs.add(
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(BASE_PORT + i))));
         }
         for (int i = 0; i < NUM_AUTH_EXT_CONTAINERS; i++) {
             specs.add(
@@ -97,7 +98,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             FIB_DEMO_IMAGESPEC,
                             Map.of(
                                     "JMX_PORT",
-                                    String.valueOf(9093 + NUM_EXT_CONTAINERS + i),
+                                    String.valueOf(BASE_PORT + NUM_EXT_CONTAINERS + i),
                                     "USE_AUTH",
                                     "true")));
         }
@@ -168,7 +169,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     new URI(
                             String.format(
                                     "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
-                                    Podman.POD_NAME, 9093 + i));
+                                    Podman.POD_NAME, BASE_PORT + i));
             String jvmId = JvmIdWebRequest.jvmIdRequest(uri, VERTX_FIB_CREDENTIALS);
             ServiceRef ext = new ServiceRef(jvmId, uri, "es.andrewazor.demo.Main");
             ext.setCryostatAnnotations(
@@ -180,7 +181,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                             AnnotationKey.HOST,
                             Podman.POD_NAME,
                             AnnotationKey.PORT,
-                            Integer.toString(9093 + i)));
+                            Integer.toString(BASE_PORT + i)));
             expected.add(ext);
         }
         MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
@@ -238,7 +239,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private void createInMemoryRecordings(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        int TARGET_PORT_NUMBER_START = useAuth ? (BASE_PORT + NUM_EXT_CONTAINERS) : BASE_PORT;
         for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
@@ -280,7 +281,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private void verifyInMemoryRecordingsCreated(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        int TARGET_PORT_NUMBER_START = useAuth ? (BASE_PORT + NUM_EXT_CONTAINERS) : BASE_PORT;
         for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
@@ -323,7 +324,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private void deleteInMemoryRecordings(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        int TARGET_PORT_NUMBER_START = useAuth ? (BASE_PORT + NUM_EXT_CONTAINERS) : BASE_PORT;
         for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
@@ -364,7 +365,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     private void verifyInMemoryRecordingsDeleted(boolean useAuth) throws Exception {
         List<CompletableFuture<Void>> cfs = new ArrayList<>();
-        int TARGET_PORT_NUMBER_START = useAuth ? (9093 + NUM_EXT_CONTAINERS) : 9093;
+        int TARGET_PORT_NUMBER_START = useAuth ? (BASE_PORT + NUM_EXT_CONTAINERS) : BASE_PORT;
         for (int i = 0; i < (useAuth ? NUM_AUTH_EXT_CONTAINERS : NUM_EXT_CONTAINERS); i++) {
             final int fi = i;
             CompletableFuture<Void> cf = new CompletableFuture<>();
