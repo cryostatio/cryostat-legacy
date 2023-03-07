@@ -1,13 +1,11 @@
 query {
     targetNodes(filter: { annotations: ["PORT in (9093, 9094)"] }) {
         name
-        target {
-            jvmId
-        }
         mbeanMetrics {
             runtime {
                 uptime
             }
+            jvmId
         }
     }
 }

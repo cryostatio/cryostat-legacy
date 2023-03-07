@@ -48,7 +48,6 @@ input ArchivedRecordingFilterInput {
 }
 
 type ServiceRef {
-    jvmId: String
     serviceUri: ServiceURI!
     alias: String
     labels: Object!
@@ -176,7 +175,7 @@ type MBeanMetrics {
     jvmId: String!
 }
 
-# Currently all the relevant MXBean readable attributes in the Cryostat jvm 
+# Currently all the relevant MXBean readable attributes in the Cryostat jvm
 type RuntimeMetrics {
     bootClassPath: String
     classPath: String

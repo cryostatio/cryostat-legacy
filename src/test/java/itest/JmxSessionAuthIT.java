@@ -57,6 +57,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -211,12 +212,13 @@ public class JmxSessionAuthIT extends ExternalTargetsTest {
                                 .getLong("uptime");
                 MatcherAssert.assertThat(uptime, Matchers.greaterThan(0L));
 
-                String jvmId = result.getJsonObject("data")
+                String mbeanJvmId =
+                        result.getJsonObject("data")
                                 .getJsonArray("targetNodes")
                                 .getJsonObject(i)
-                                .getJsonObject("target")
+                                .getJsonObject("mbeanMetrics")
                                 .getString("jvmId");
-                MatcherAssert.assertThat(jvmId, Matchers.not(Matchers.emptyOrNullString()));
+                MatcherAssert.assertThat(mbeanJvmId, Matchers.not(Matchers.emptyOrNullString()));
             }
         }
     }
