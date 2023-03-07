@@ -122,15 +122,16 @@ public class MatchExpressionManager {
         return matchedTargets;
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(MatchExpression expr, List<String> targets) {
+    public Set<ServiceRef> resolveMatchingTargets(
+            MatchExpression expr, Collection<ServiceRef> targets) {
         return resolveMatchingTargets(expr.getMatchExpression(), targets);
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(String expr, List<String> targets) {
+    public Set<ServiceRef> resolveMatchingTargets(String expr, Collection<ServiceRef> targets) {
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target :
                 platformClient.listDiscoverableServices().stream()
-                        .filter(t -> targets.contains(t.getServiceUri().toString()))
+                        .filter(t -> targets.contains(t))
                         .toList()) {
             try {
                 if (matchExpressionEvaluator.get().applies(expr, target)) {
@@ -144,12 +145,12 @@ public class MatchExpressionManager {
         return matchedTargets;
     }
 
-    public List<String> parseTargets(String targets) throws IllegalArgumentException {
+    public List<ServiceRef> parseTargets(String targets) throws IllegalArgumentException {
         Objects.requireNonNull(targets, "Targets must not be null");
 
         try {
-            Type mapType = new TypeToken<List<String>>() {}.getType();
-            List<String> parsedTargets = gson.fromJson(targets, mapType);
+            Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
+            List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
             if (parsedTargets == null) {
                 throw new IllegalArgumentException(targets);
             }

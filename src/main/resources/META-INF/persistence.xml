@@ -7,6 +7,7 @@
     <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
     <class>io.cryostat.discovery.PluginInfo</class>
     <class>io.cryostat.configuration.StoredCredentials</class>
+    <class>io.cryostat.rules.MatchExpression</class>
     <exclude-unlisted-classes>false</exclude-unlisted-classes>
 </persistence-unit>
 </persistence>

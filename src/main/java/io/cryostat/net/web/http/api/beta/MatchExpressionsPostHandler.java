@@ -144,7 +144,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
         try {
             if (StringUtils.isNotBlank(targets)) {
                 Set<ServiceRef> matched;
-                List<String> parsedTargets = this.expressionManager.parseTargets(targets);
+                List<ServiceRef> parsedTargets = this.expressionManager.parseTargets(targets);
                 matched =
                         this.expressionManager.resolveMatchingTargets(
                                 matchExpression, parsedTargets);
