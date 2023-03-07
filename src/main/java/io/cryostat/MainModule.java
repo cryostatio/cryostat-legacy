@@ -207,7 +207,6 @@ public abstract class MainModule {
                         .disableHtmlEscaping()
                         .registerTypeAdapter(JMXServiceURL.class, new JmxServiceUrlAdapter(logger))
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
-                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(Rule.class, new RuleDeserializer())
                         .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter())
                         .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
