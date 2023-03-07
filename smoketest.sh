@@ -152,6 +152,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
         --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
@@ -171,6 +172,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first

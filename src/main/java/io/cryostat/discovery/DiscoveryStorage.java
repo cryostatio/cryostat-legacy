@@ -54,6 +54,7 @@ import javax.script.ScriptException;
 
 import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -73,9 +74,13 @@ import dagger.Lazy;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
@@ -205,11 +210,33 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         if (Objects.equals(uri, NO_CALLBACK)) {
             return Future.succeededFuture(true);
         }
-        return http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
-                .ssl("https".equals(uri.getScheme()))
-                .timeout(1_000)
-                .followRedirects(true)
-                .send()
+        HttpRequest<Buffer> req =
+                http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
+                        .ssl("https".equals(uri.getScheme()))
+                        .timeout(1_000)
+                        .followRedirects(true);
+        String userInfo = uri.getUserInfo();
+        if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
+            String[] parts = userInfo.split(":");
+            if ("storedcredentials".equals(parts[0])) {
+                logger.info(
+                        "Using stored credentials id:{} referenced in ping callback userinfo",
+                        parts[1]);
+                Optional<StoredCredentials> opt =
+                        credentialsManager.get().getById(Integer.parseInt(parts[1]));
+                if (opt.isEmpty()) {
+                    logger.warn("Could not find such credentials!");
+                    return Future.succeededFuture(false);
+                }
+                StoredCredentials credentials = opt.get();
+                req =
+                        req.authentication(
+                                new UsernamePasswordCredentials(
+                                        credentials.getCredentials().getUsername(),
+                                        credentials.getCredentials().getPassword()));
+            }
+        }
+        return req.send()
                 .onComplete(
                         ar -> {
                             if (ar.failed()) {
@@ -246,7 +273,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         Objects.requireNonNull(realm, "realm");
         try {
             CompletableFuture<Boolean> cf = new CompletableFuture<>();
-            ping(HttpMethod.GET, callback).onComplete(ar -> cf.complete(ar.succeeded()));
+            ping(HttpMethod.GET, callback)
+                    .onComplete(ar -> cf.complete(ar.succeeded() && ar.result()));
             if (!cf.get()) {
                 throw new Exception("callback ping failure");
             }

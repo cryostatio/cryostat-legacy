@@ -89,7 +89,7 @@ public class StoredCredentials {
         this(0, matchExpression, credentials);
     }
 
-    String getMatchExpression() {
+    public String getMatchExpression() {
         return this.matchExpression;
     }
 
@@ -97,7 +97,7 @@ public class StoredCredentials {
         return id;
     }
 
-    Credentials getCredentials() {
+    public Credentials getCredentials() {
         return new Credentials(username, password);
     }
 
