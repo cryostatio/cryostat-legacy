@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
@@ -62,8 +63,8 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<TargetNode>> {
 
     @Inject
-    TargetNodeRecurseFetcher(AuthManager auth) {
-        super(auth);
+    TargetNodeRecurseFetcher(AuthManager auth, CredentialsManager credentialsManager) {
+        super(auth, credentialsManager);
     }
 
     @Override

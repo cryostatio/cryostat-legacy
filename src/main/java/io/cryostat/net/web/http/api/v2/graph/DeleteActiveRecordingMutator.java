@@ -56,16 +56,14 @@ class DeleteActiveRecordingMutator
         extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final RecordingTargetHelper recordingTargetHelper;
-    private final CredentialsManager credentialsManager;
 
     @Inject
     DeleteActiveRecordingMutator(
             AuthManager auth,
-            RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager) {
-        super(auth);
+            CredentialsManager credentialsManager,
+            RecordingTargetHelper recordingTargetHelper) {
+        super(auth, credentialsManager);
         this.recordingTargetHelper = recordingTargetHelper;
-        this.credentialsManager = credentialsManager;
     }
 
     @Override

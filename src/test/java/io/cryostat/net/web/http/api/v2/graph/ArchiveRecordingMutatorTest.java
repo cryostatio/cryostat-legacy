@@ -72,8 +72,8 @@ class ArchiveRecordingMutatorTest {
     ArchiveRecordingMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -85,7 +85,7 @@ class ArchiveRecordingMutatorTest {
     @BeforeEach
     void setup() {
         this.mutator =
-                new ArchiveRecordingMutator(auth, recordingArchiveHelper, credentialsManager);
+                new ArchiveRecordingMutator(auth, credentialsManager, recordingArchiveHelper);
     }
 
     @Test

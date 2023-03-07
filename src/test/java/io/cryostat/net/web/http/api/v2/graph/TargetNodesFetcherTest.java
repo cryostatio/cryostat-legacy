@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
@@ -71,6 +72,7 @@ class TargetNodesFetcherTest {
     TargetNodesFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RootNodeFetcher rootNodeFetcher;
     @Mock TargetNodeRecurseFetcher recurseFetcher;
 
@@ -84,7 +86,8 @@ class TargetNodesFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new TargetNodesFetcher(auth, rootNodeFetcher, recurseFetcher);
+        this.fetcher =
+                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
     }
 
     @Test

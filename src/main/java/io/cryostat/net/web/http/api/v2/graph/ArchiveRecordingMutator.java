@@ -56,16 +56,14 @@ import graphql.schema.DataFetchingEnvironment;
 class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
-    private final CredentialsManager credentialsManager;
 
     @Inject
     ArchiveRecordingMutator(
             AuthManager auth,
-            RecordingArchiveHelper recordingArchiveHelper,
-            CredentialsManager credentialsManager) {
-        super(auth);
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, credentialsManager);
         this.recordingArchiveHelper = recordingArchiveHelper;
-        this.credentialsManager = credentialsManager;
     }
 
     @Override

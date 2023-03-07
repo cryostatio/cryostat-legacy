@@ -73,8 +73,8 @@ class SnapshotOnTargetMutatorTest {
     SnapshotOnTargetMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -85,7 +85,7 @@ class SnapshotOnTargetMutatorTest {
 
     @BeforeEach
     void setup() {
-        this.mutator = new SnapshotOnTargetMutator(auth, recordingTargetHelper, credentialsManager);
+        this.mutator = new SnapshotOnTargetMutator(auth, credentialsManager, recordingTargetHelper);
     }
 
     @Test

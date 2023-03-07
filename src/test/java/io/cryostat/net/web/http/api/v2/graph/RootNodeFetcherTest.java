@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -66,6 +67,7 @@ class RootNodeFetcherTest {
     RootNodeFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
 
     @Mock DataFetchingEnvironment env;
@@ -74,7 +76,7 @@ class RootNodeFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new RootNodeFetcher(auth, storage);
+        this.fetcher = new RootNodeFetcher(auth, credentialsManager, storage);
     }
 
     @Test

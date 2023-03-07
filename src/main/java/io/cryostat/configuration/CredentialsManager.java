@@ -80,7 +80,7 @@ public class CredentialsManager
     private final Gson gson;
     private final Logger logger;
 
-    public static final ThreadLocal<Map<String, Credentials>> SESSION_JMX_CREDENTIALS =
+    public static final ThreadLocal<Map<String, Credentials>> SESSION_CREDENTIALS =
             ThreadLocal.withInitial(() -> new HashMap<>());
 
     CredentialsManager(
@@ -184,8 +184,20 @@ public class CredentialsManager
         return -1;
     }
 
+    public void setSessionCredentials(String targetId, Credentials credentials) {
+        if (credentials == null) {
+            SESSION_CREDENTIALS.get().remove(targetId);
+        } else {
+            SESSION_CREDENTIALS.get().put(targetId, credentials);
+        }
+    }
+
+    public Credentials getSessionCredentials(String targetId) {
+        return SESSION_CREDENTIALS.get().get(targetId);
+    }
+
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
-        Credentials sessionCredentials = SESSION_JMX_CREDENTIALS.get().get(targetId);
+        Credentials sessionCredentials = getSessionCredentials(targetId);
         if (sessionCredentials != null) {
             return sessionCredentials;
         }
@@ -199,7 +211,7 @@ public class CredentialsManager
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
         Credentials sessionCredentials =
-                SESSION_JMX_CREDENTIALS.get().get(serviceRef.getServiceUri().toString());
+                getSessionCredentials(serviceRef.getServiceUri().toString());
         if (sessionCredentials != null) {
             return sessionCredentials;
         }

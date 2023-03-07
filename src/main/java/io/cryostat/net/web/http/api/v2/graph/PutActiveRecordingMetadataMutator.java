@@ -67,7 +67,6 @@ import graphql.schema.DataFetchingEnvironment;
 class PutActiveRecordingMetadataMutator
         extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
-    private final CredentialsManager credentialsManager;
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingMetadataManager metadataManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -83,8 +82,7 @@ class PutActiveRecordingMetadataMutator
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
-        super(auth);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.metadataManager = metadataManager;

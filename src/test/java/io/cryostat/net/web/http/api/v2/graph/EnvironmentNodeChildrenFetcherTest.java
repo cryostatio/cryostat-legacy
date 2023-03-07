@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -67,6 +68,7 @@ class EnvironmentNodeChildrenFetcherTest {
     EnvironmentNodeChildrenFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -74,7 +76,7 @@ class EnvironmentNodeChildrenFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new EnvironmentNodeChildrenFetcher(auth);
+        this.fetcher = new EnvironmentNodeChildrenFetcher(auth, credentialsManager);
     }
 
     @Test

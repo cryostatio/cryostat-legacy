@@ -80,10 +80,10 @@ class StartRecordingOnTargetMutatorTest {
     StartRecordingOnTargetMutator mutator;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
     @Mock Gson gson;
@@ -99,10 +99,10 @@ class StartRecordingOnTargetMutatorTest {
         this.mutator =
                 new StartRecordingOnTargetMutator(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
-                        credentialsManager,
                         metadataManager,
                         webServer,
                         gson);

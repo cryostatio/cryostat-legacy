@@ -58,18 +58,16 @@ import graphql.schema.DataFetchingEnvironment;
 public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
-    private final CredentialsManager credentialsManager;
     private final Logger logger;
 
     @Inject
     MBeanMetricsFetcher(
             AuthManager auth,
-            TargetConnectionManager tcm,
             CredentialsManager credentialsManager,
+            TargetConnectionManager tcm,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager);
         this.tcm = tcm;
-        this.credentialsManager = credentialsManager;
         this.logger = logger;
     }
 

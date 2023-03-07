@@ -71,8 +71,8 @@ class DeleteActiveRecordingMutatorTest {
     DeleteActiveRecordingMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -84,7 +84,7 @@ class DeleteActiveRecordingMutatorTest {
     @BeforeEach
     void setup() {
         this.mutator =
-                new DeleteActiveRecordingMutator(auth, recordingTargetHelper, credentialsManager);
+                new DeleteActiveRecordingMutator(auth, credentialsManager, recordingTargetHelper);
     }
 
     @Test

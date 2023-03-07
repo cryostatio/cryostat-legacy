@@ -90,9 +90,9 @@ class RecordingsFetcherTest {
     RecordingsFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingArchiveHelper archiveHelper;
-    @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
     @Mock Logger logger;
@@ -114,9 +114,9 @@ class RecordingsFetcherTest {
         this.fetcher =
                 new RecordingsFetcher(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         archiveHelper,
-                        credentialsManager,
                         metadataManager,
                         webServer,
                         logger);

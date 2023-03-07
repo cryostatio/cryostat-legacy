@@ -76,9 +76,9 @@ class StopRecordingMutatorTest {
     StopRecordingMutator mutator;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
-    @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
 
@@ -93,9 +93,9 @@ class StopRecordingMutatorTest {
         this.mutator =
                 new StopRecordingMutator(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         recordingTargetHelper,
-                        credentialsManager,
                         metadataManager,
                         webServer);
     }

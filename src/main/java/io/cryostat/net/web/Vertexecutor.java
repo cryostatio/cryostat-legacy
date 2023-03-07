@@ -1,3 +1,4 @@
+package io.cryostat.net.web;
 /*
  * Copyright The Cryostat Authors
  *
@@ -35,69 +36,64 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.NetworkConfiguration;
-import io.cryostat.net.web.http.HttpModule;
-import io.cryostat.net.web.http.RequestHandler;
 
-import com.google.gson.Gson;
-import dagger.Module;
-import dagger.Provides;
 import io.vertx.core.Vertx;
 
-@Module(includes = {HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
-    public static final String VERTX_EXECUTOR = "VERTX_EXECUTOR";
+public class Vertexecutor extends AbstractExecutorService {
 
-    @Provides
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger,
-            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath) {
-        return new WebServer(
-                httpServer,
-                netConf,
-                requestHandlers,
-                gson,
-                authManager,
-                logger,
-                archivedRecordingsPath);
+    private final Vertx vertx;
+    private final Logger logger;
+
+    Vertexecutor(Vertx vertx, Logger logger) {
+        this.vertx = vertx;
+        this.logger = logger;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return fs.createTempDirectory("cryostat").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+    @Override
+    public void execute(Runnable command) {
+        vertx.executeBlocking(
+                promise -> {
+                    try {
+                        command.run();
+                        promise.complete();
+                    } catch (Exception e) {
+                        promise.fail(e);
+                    }
+                },
+                false,
+                ar -> {
+                    if (ar.failed()) {
+                        logger.warn("Async task failure", ar.cause());
+                    }
+                });
     }
 
-    @Provides
-    @Singleton
-    @Named(VERTX_EXECUTOR)
-    static ExecutorService provideVertexecutor(Vertx vertx, Logger logger) {
-        return new Vertexecutor(vertx, logger);
+    @Override
+    public void shutdown() {}
+
+    @Override
+    public List<Runnable> shutdownNow() {
+        return List.of();
+    }
+
+    @Override
+    public boolean isShutdown() {
+        return false;
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return false;
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        return false;
     }
 }

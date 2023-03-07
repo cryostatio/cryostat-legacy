@@ -55,17 +55,16 @@ public class ConnectionDescriptor {
         this(serviceRef.getServiceUri().toString());
     }
 
+    // TODO remove this constructor, all descriptors should explicitly specify any credentials
     public ConnectionDescriptor(String targetId) {
-        // TODO remove this direct access to the ThreadLocal, it is a hack. This should just be done
-        // by the CredentialsManager and the non-credentialed constructors here should be removed.
-        this(targetId, CredentialsManager.SESSION_JMX_CREDENTIALS.get().get(targetId));
+        this(targetId, CredentialsManager.SESSION_CREDENTIALS.get().get(targetId));
     }
 
     public ConnectionDescriptor(ServiceRef serviceRef, Credentials credentials) {
         this(
                 serviceRef.getServiceUri().toString(),
                 Optional.ofNullable(
-                                CredentialsManager.SESSION_JMX_CREDENTIALS
+                                CredentialsManager.SESSION_CREDENTIALS
                                         .get()
                                         .get(serviceRef.getServiceUri().toString()))
                         .orElse(credentials));

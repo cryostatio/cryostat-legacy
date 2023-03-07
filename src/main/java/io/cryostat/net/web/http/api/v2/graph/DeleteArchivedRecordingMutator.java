@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -56,8 +57,10 @@ class DeleteArchivedRecordingMutator
 
     @Inject
     DeleteArchivedRecordingMutator(
-            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RecordingArchiveHelper recordingArchiveHelper) {
+        super(auth, credentialsManager);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 

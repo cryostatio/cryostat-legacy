@@ -74,7 +74,6 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper archiveHelper;
-    private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
     private final Logger logger;
@@ -82,16 +81,15 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Inject
     RecordingsFetcher(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper archiveHelper,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.archiveHelper = archiveHelper;
-        this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.logger = logger;

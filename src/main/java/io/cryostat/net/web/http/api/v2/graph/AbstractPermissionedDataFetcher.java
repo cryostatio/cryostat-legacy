@@ -61,9 +61,11 @@ import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, PermissionedAction {
 
     protected final AuthManager auth;
+    protected final CredentialsManager credentialsManager;
 
-    AbstractPermissionedDataFetcher(AuthManager auth) {
+    AbstractPermissionedDataFetcher(AuthManager auth, CredentialsManager credentialsManager) {
         this.auth = auth;
+        this.credentialsManager = credentialsManager;
     }
 
     abstract Set<String> applicableContexts();
@@ -155,9 +157,8 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
                             + " credential format");
         }
         Credentials credentials = new Credentials(parts[0], parts[1]);
-        CredentialsManager.SESSION_JMX_CREDENTIALS.get().put(targetId, credentials);
-        ctx.addEndHandler(
-                unused -> CredentialsManager.SESSION_JMX_CREDENTIALS.get().remove(targetId));
+        credentialsManager.setSessionCredentials(targetId, credentials);
+        ctx.addEndHandler(unused -> credentialsManager.setSessionCredentials(targetId, null));
         return Optional.of(credentials);
     }
 }

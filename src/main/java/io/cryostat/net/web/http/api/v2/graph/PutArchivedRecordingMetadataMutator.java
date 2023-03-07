@@ -64,7 +64,6 @@ class PutArchivedRecordingMetadataMutator
         extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingMetadataManager metadataManager;
-    private final CredentialsManager credentialsManager;
     private final Provider<WebServer> webServer;
     private final Gson gson;
     private final Base32 base32;
@@ -77,8 +76,7 @@ class PutArchivedRecordingMetadataMutator
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
-        super(auth);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager);
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.gson = gson;
