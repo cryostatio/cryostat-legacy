@@ -223,6 +223,9 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
     @Order(2)
     void testAddRuleTriggersRecordingCreation()
             throws TimeoutException, InterruptedException, ExecutionException {
+        // give time for the rule creation in the last test to trigger and execute. TODO listen for
+        // the corresponding WebSocket notification instead of sleeping
+        Thread.sleep(1_000);
         CompletableFuture<JsonArray> future = new CompletableFuture<>();
         webClient
                 .get(String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded))

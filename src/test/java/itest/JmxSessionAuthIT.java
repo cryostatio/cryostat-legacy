@@ -60,7 +60,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class JmxAuthIT extends ExternalTargetsTest {
+public class JmxSessionAuthIT extends ExternalTargetsTest {
 
     private static final String TARGET_BASIC_CREDENTIALS =
             "Basic " + Base64.getEncoder().encodeToString("admin:adminpass123".getBytes());
@@ -82,7 +82,12 @@ public class JmxAuthIT extends ExternalTargetsTest {
                         new Podman.ImageSpec(
                                 FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
-        waitForDiscovery(1);
+        CONTAINERS.add(
+                Podman.run(
+                        new Podman.ImageSpec(
+                                FIB_DEMO_IMAGESPEC,
+                                Map.of("JMX_PORT", "9094", "USE_AUTH", "true"))));
+        waitForDiscovery(2);
     }
 
     @AfterAll
@@ -177,7 +182,7 @@ public class JmxAuthIT extends ExternalTargetsTest {
     void checkStatusForGraphqlQueryWithCredentials() throws Exception {
         CompletableFuture<Pair<Integer, String>> response = new CompletableFuture<>();
         try (InputStream is =
-                getClass().getClassLoader().getResourceAsStream("JmxAuthIT.query.graphql")) {
+                getClass().getClassLoader().getResourceAsStream("JmxSessionAuthIT.query.graphql")) {
             String query = IOUtils.toString(is, StandardCharsets.UTF_8);
             webClient
                     .post("/api/v2.2/graphql")
@@ -192,14 +197,27 @@ public class JmxAuthIT extends ExternalTargetsTest {
             Pair<Integer, String> pair = response.get();
             MatcherAssert.assertThat(pair.getLeft(), SC_OK_RANGE);
             JsonObject result = new JsonObject(pair.getRight());
-            long uptime =
-                    result.getJsonObject("data")
-                            .getJsonArray("targetNodes")
-                            .getJsonObject(0)
-                            .getJsonObject("mbeanMetrics")
-                            .getJsonObject("runtime")
-                            .getLong("uptime");
-            MatcherAssert.assertThat(uptime, Matchers.greaterThan(0L));
+            MatcherAssert.assertThat(
+                    pair.getRight(),
+                    Matchers.not(
+                            Matchers.containsString(" org.openjdk.jmc.rjmx.ConnectionException")));
+            for (int i = 0; i < CONTAINERS.size(); i++) {
+                long uptime =
+                        result.getJsonObject("data")
+                                .getJsonArray("targetNodes")
+                                .getJsonObject(i)
+                                .getJsonObject("mbeanMetrics")
+                                .getJsonObject("runtime")
+                                .getLong("uptime");
+                MatcherAssert.assertThat(uptime, Matchers.greaterThan(0L));
+
+                String jvmId = result.getJsonObject("data")
+                                .getJsonArray("targetNodes")
+                                .getJsonObject(i)
+                                .getJsonObject("target")
+                                .getString("jvmId");
+                MatcherAssert.assertThat(jvmId, Matchers.not(Matchers.emptyOrNullString()));
+            }
         }
     }
 
@@ -207,7 +225,7 @@ public class JmxAuthIT extends ExternalTargetsTest {
     void checkStatusForGraphqlQueryWithoutCredentials() throws Exception {
         CompletableFuture<Pair<Integer, String>> response = new CompletableFuture<>();
         try (InputStream is =
-                getClass().getClassLoader().getResourceAsStream("JmxAuthIT.query.graphql")) {
+                getClass().getClassLoader().getResourceAsStream("JmxSessionAuthIT.query.graphql")) {
             String query = IOUtils.toString(is, StandardCharsets.UTF_8);
             webClient
                     .post("/api/v2.2/graphql")

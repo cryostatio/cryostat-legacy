@@ -1,9 +1,0 @@
-query {
-    targetNodes(filter: { annotations: ["PORT==9093"] }) {
-        mbeanMetrics {
-            runtime {
-                uptime
-            }
-        }
-    }
-}
