@@ -94,7 +94,7 @@ class MatchExpressionsGetHandler extends AbstractV2RequestHandler<List<MatchExpr
 
     @Override
     public String path() {
-        return basePath() + "matchExpressions";
+        return basePath() + MatchExpressionsPostHandler.PATH;
     }
 
     @Override

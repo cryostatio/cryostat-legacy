@@ -100,7 +100,7 @@ public class MatchExpressionDeleteHandler extends AbstractV2RequestHandler<Void>
 
     @Override
     public String path() {
-        return basePath() + "matchExpressions/:id";
+        return basePath() + MatchExpressionGetHandler.PATH;
     }
 
     @Override

@@ -60,9 +60,10 @@ import io.cryostat.rules.MatchExpressionManager.MatchedMatchExpression;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 
 class MatchExpressionGetHandler extends AbstractV2RequestHandler<MatchedMatchExpression> {
+
+    static final String PATH = "matchExpressions/:id";
 
     private final MatchExpressionManager expressionManager;
 
@@ -98,7 +99,7 @@ class MatchExpressionGetHandler extends AbstractV2RequestHandler<MatchedMatchExp
 
     @Override
     public String path() {
-        return basePath() + "matchExpressions/:id";
+        return basePath() + PATH;
     }
 
     @Override
@@ -121,9 +122,8 @@ class MatchExpressionGetHandler extends AbstractV2RequestHandler<MatchedMatchExp
             return new IntermediateResponse<MatchedMatchExpression>().statusCode(404);
         }
         MatchExpression expr = opt.get();
-        if (StringUtils.isNotBlank(matches)) {
-            Set<ServiceRef> matched =
-                    expressionManager.resolveMatchingTargets(expr.getMatchExpression());
+        if (Boolean.parseBoolean(matches)) {
+            Set<ServiceRef> matched = expressionManager.resolveMatchingTargets(expr);
             return new IntermediateResponse<MatchedMatchExpression>()
                     .body(new MatchedMatchExpression(expr, matched));
         }

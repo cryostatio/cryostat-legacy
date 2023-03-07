@@ -104,14 +104,14 @@ public class MatchExpressionManager {
         if (matchExpression.isEmpty()) {
             return Set.of();
         }
-        return resolveMatchingTargets(matchExpression.get().getMatchExpression());
+        return resolveMatchingTargets(matchExpression.get());
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(String matchExpression) {
+    public Set<ServiceRef> resolveMatchingTargets(MatchExpression expr) {
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target : platformClient.listDiscoverableServices()) {
             try {
-                if (matchExpressionEvaluator.get().applies(matchExpression, target)) {
+                if (matchExpressionEvaluator.get().applies(expr.getMatchExpression(), target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
@@ -122,14 +122,18 @@ public class MatchExpressionManager {
         return matchedTargets;
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(String matchExpression, List<String> targets) {
+    public Set<ServiceRef> resolveMatchingTargets(MatchExpression expr, List<String> targets) {
+        return resolveMatchingTargets(expr.getMatchExpression(), targets);
+    }
+
+    public Set<ServiceRef> resolveMatchingTargets(String expr, List<String> targets) {
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target :
                 platformClient.listDiscoverableServices().stream()
                         .filter(t -> targets.contains(t.getServiceUri().toString()))
                         .toList()) {
             try {
-                if (matchExpressionEvaluator.get().applies(matchExpression, target)) {
+                if (matchExpressionEvaluator.get().applies(expr, target)) {
                     matchedTargets.add(target);
                 }
             } catch (ScriptException e) {
