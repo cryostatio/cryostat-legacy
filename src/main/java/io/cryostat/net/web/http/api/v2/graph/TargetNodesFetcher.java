@@ -138,6 +138,9 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
                                 .collect(Collectors.toList());
             }
         }
+
+        result.forEach(
+                t -> getSessionCredentials(environment, t.getTarget().getServiceUri().toString()));
         return result;
     }
 }

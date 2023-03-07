@@ -41,10 +41,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -53,13 +52,13 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.sys.ThreadLocalPropagatingPoolExecutorService;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -105,9 +104,12 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     static GraphQL provideGraphQL(
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
-            Set<AbstractPermissionedDataFetcher<?>> fetchers,
-            Set<AbstractTypeResolver> resolvers) {
+            Set<AbstractPermissionedDataFetcher<?>> fetchers, Set<AbstractTypeResolver> resolvers) {
+        Executor executor =
+                new ThreadLocalPropagatingPoolExecutorService<>(
+                        CredentialsManager.SESSION_CREDENTIALS::get,
+                        CredentialsManager.SESSION_CREDENTIALS::set,
+                        CredentialsManager.SESSION_CREDENTIALS::remove);
         RuntimeWiring.Builder wiringBuilder =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)

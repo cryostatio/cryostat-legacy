@@ -142,6 +142,8 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
                                 .collect(Collectors.toList());
             }
         }
+        result.forEach(
+                t -> getSessionCredentials(environment, t.getTarget().getServiceUri().toString()));
         return result;
     }
 }
