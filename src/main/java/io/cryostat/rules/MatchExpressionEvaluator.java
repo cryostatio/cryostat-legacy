@@ -162,21 +162,19 @@ public class MatchExpressionEvaluator {
                     serviceRef.getCryostatAnnotations().entrySet()) {
                 cryostatAnnotations.put(entry.getKey().name(), entry.getValue());
             }
-            bindings.put(
-                    "target",
+            Map<String, Object> target = new HashMap<>();
+            target.put("connectUrl", serviceRef.getServiceUri().toString());
+            target.put("jvmId", serviceRef.getJvmId());
+            target.put("alias", serviceRef.getAlias().orElse(null));
+            target.put("labels", serviceRef.getLabels());
+            target.put(
+                    "annotations",
                     Map.of(
-                            "connectUrl",
-                            serviceRef.getServiceUri(),
-                            "alias",
-                            serviceRef.getAlias().orElse(null),
-                            "labels",
-                            serviceRef.getLabels(),
-                            "annotations",
-                            Map.of(
-                                    "platform",
-                                    serviceRef.getPlatformAnnotations(),
-                                    "cryostat",
-                                    cryostatAnnotations)));
+                            "platform",
+                            serviceRef.getPlatformAnnotations(),
+                            "cryostat",
+                            cryostatAnnotations));
+            bindings.put("target", target);
             return bindings;
         } finally {
             evt.end();
