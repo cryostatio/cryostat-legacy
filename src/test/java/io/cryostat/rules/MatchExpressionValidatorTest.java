@@ -68,6 +68,8 @@ class MatchExpressionValidatorTest {
                 "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN =="
                         + " 'io.cryostat.Cryostat'",
                 "target.connectUrl != '' && target.labels.SOMETHING == 'other'",
+                "taret.jvmId == \"abcd1234\"",
+                "taret.jvmId != \"hello world\"",
                 "/^[a-z]+$/.test(target.alias)",
                 "/^[a-z]+$/.test(target.noSuchProperty)",
                 "/^[a-z]+$/.test([].length)",

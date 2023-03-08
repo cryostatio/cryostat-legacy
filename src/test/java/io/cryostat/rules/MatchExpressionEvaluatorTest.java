@@ -142,6 +142,13 @@ class MatchExpressionEvaluatorTest {
         }
 
         @Test
+        void targetShouldHaveJvmIdAsString() {
+            String jvmId = (String) (((Map<String, Object>) bindings.get("target")).get("jvmId"));
+            MatcherAssert.assertThat(
+                    jvmId, Matchers.equalTo(MatchExpressionEvaluatorTest.this.jvmId));
+        }
+
+        @Test
         void targetShouldHaveLabels() {
             Map<String, String> labels =
                     (Map<String, String>)
@@ -208,6 +215,19 @@ class MatchExpressionEvaluatorTest {
             String expr =
                     String.format("target.alias == '%s'", MatchExpressionEvaluatorTest.this.alias);
             Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
+        }
+
+        @Test
+        void shouldMatchOnJvmId() throws Exception {
+            String expr =
+                    String.format("target.jvmId == '%s'", MatchExpressionEvaluatorTest.this.jvmId);
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
+        }
+
+        @Test
+        void shouldNotMatchOnWrongJvmId() throws Exception {
+            String expr = "target.jvmId == \"hello-world\"";
+            Assertions.assertFalse(ruleMatcher.applies(expr, serviceRef));
         }
 
         @ParameterizedTest
