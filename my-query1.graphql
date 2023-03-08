@@ -1,0 +1,14 @@
+query {
+    targetNodes(filter: { annotations: ["PORT in (9094, 9095)"] }) {
+        name
+        target {
+            jvmId
+            annotations {
+                cryostat
+            }
+        }
+        mbeanMetrics {
+            jvmId
+        }
+    }
+}
