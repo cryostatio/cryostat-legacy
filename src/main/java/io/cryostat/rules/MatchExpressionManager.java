@@ -55,6 +55,8 @@ import io.cryostat.platform.ServiceRef;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import dagger.Lazy;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class MatchExpressionManager {
     private final MatchExpressionValidator matchExpressionValidator;
@@ -184,16 +186,26 @@ public class MatchExpressionManager {
         }
 
         @Override
-        // override equals to allow for comparison of MatchedMatchExpression objects
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
+        public boolean equals(Object other) {
+            if (other == null) {
                 return false;
             }
-            MatchedMatchExpression that = (MatchedMatchExpression) o;
-            return expression.equals(that.expression) && targets.equals(that.targets);
+            if (other == this) {
+                return true;
+            }
+            if (!(other instanceof MatchedMatchExpression)) {
+                return false;
+            }
+            MatchedMatchExpression mme = (MatchedMatchExpression) other;
+            return new EqualsBuilder()
+                    .append(expression, mme.expression)
+                    .append(targets, mme.targets)
+                    .build();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(expression).append(targets).toHashCode();
         }
     }
 }
