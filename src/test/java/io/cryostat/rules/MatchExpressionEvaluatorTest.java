@@ -76,6 +76,7 @@ class MatchExpressionEvaluatorTest {
     @Mock RuleRegistry rules;
 
     URI serviceUri;
+    String jvmId;
     String alias;
     Map<String, String> labels;
     Map<String, String> platformAnnotations;
@@ -88,12 +89,14 @@ class MatchExpressionEvaluatorTest {
                         MainModule.provideScriptEngine(), credentials, rules, logger);
 
         this.serviceUri = new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
+        this.jvmId = "-some1234HashId=";
         this.alias = "someAlias";
         this.labels = Map.of("label1", "someLabel");
         this.platformAnnotations = Map.of("annotation1", "someAnnotation");
         this.cryostatAnnotations = Map.of(AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat");
 
         Mockito.when(serviceRef.getServiceUri()).thenReturn(this.serviceUri);
+        Mockito.when(serviceRef.getJvmId()).thenReturn(this.jvmId);
         Mockito.when(serviceRef.getAlias()).thenReturn(Optional.of(this.alias));
         Mockito.when(serviceRef.getLabels()).thenReturn(this.labels);
         Mockito.when(serviceRef.getPlatformAnnotations()).thenReturn(this.platformAnnotations);
@@ -119,14 +122,16 @@ class MatchExpressionEvaluatorTest {
         void targetShouldHaveExpectedKeys() {
             Set<String> keys = ((Map<String, Object>) bindings.get("target")).keySet();
             MatcherAssert.assertThat(
-                    keys, Matchers.equalTo(Set.of("connectUrl", "alias", "labels", "annotations")));
+                    keys,
+                    Matchers.equalTo(
+                            Set.of("connectUrl", "jvmId", "alias", "labels", "annotations")));
         }
 
         @Test
         void targetShouldHaveServiceUriAsUri() {
-            URI uri = (URI) ((Map<String, Object>) bindings.get("target")).get("connectUrl");
+            String uri = (String) ((Map<String, Object>) bindings.get("target")).get("connectUrl");
             MatcherAssert.assertThat(
-                    uri, Matchers.equalTo(MatchExpressionEvaluatorTest.this.serviceUri));
+                    uri, Matchers.equalTo(MatchExpressionEvaluatorTest.this.serviceUri.toString()));
         }
 
         @Test
@@ -134,6 +139,13 @@ class MatchExpressionEvaluatorTest {
             String alias = (String) (((Map<String, Object>) bindings.get("target")).get("alias"));
             MatcherAssert.assertThat(
                     alias, Matchers.equalTo(MatchExpressionEvaluatorTest.this.alias));
+        }
+
+        @Test
+        void targetShouldHaveJvmIdAsString() {
+            String jvmId = (String) (((Map<String, Object>) bindings.get("target")).get("jvmId"));
+            MatcherAssert.assertThat(
+                    jvmId, Matchers.equalTo(MatchExpressionEvaluatorTest.this.jvmId));
         }
 
         @Test
@@ -203,6 +215,19 @@ class MatchExpressionEvaluatorTest {
             String expr =
                     String.format("target.alias == '%s'", MatchExpressionEvaluatorTest.this.alias);
             Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
+        }
+
+        @Test
+        void shouldMatchOnJvmId() throws Exception {
+            String expr =
+                    String.format("target.jvmId == '%s'", MatchExpressionEvaluatorTest.this.jvmId);
+            Assertions.assertTrue(ruleMatcher.applies(expr, serviceRef));
+        }
+
+        @Test
+        void shouldNotMatchOnWrongJvmId() throws Exception {
+            String expr = "target.jvmId == \"hello-world\"";
+            Assertions.assertFalse(ruleMatcher.applies(expr, serviceRef));
         }
 
         @ParameterizedTest
