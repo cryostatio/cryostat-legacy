@@ -63,6 +63,7 @@ import io.cryostat.rules.MatchExpressionManager.MatchedMatchExpression;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -171,6 +172,8 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
                         .addHeader(HttpHeaders.LOCATION, String.format("%s/%d", path(), id))
                         .body(new MatchedMatchExpression(expr));
             }
+        } catch (JsonParseException e) {
+            throw new ApiException(400, "JSON formatting error", e);
         } catch (RollbackException e) {
             if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
                 throw new ApiException(400, "Duplicate matchExpression", e);

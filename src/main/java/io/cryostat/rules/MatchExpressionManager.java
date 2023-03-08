@@ -53,7 +53,6 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import dagger.Lazy;
 
@@ -145,19 +144,11 @@ public class MatchExpressionManager {
         return matchedTargets;
     }
 
-    public List<ServiceRef> parseTargets(String targets) throws IllegalArgumentException {
+    public List<ServiceRef> parseTargets(String targets) {
         Objects.requireNonNull(targets, "Targets must not be null");
-
-        try {
-            Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
-            List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
-            if (parsedTargets == null) {
-                throw new IllegalArgumentException(targets);
-            }
-            return parsedTargets;
-        } catch (JsonSyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
+        Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
+        List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
+        return parsedTargets;
     }
 
     public static class MatchedMatchExpression {
@@ -190,6 +181,19 @@ public class MatchExpressionManager {
 
         public Collection<ServiceRef> getTargets() {
             return Collections.unmodifiableCollection(targets);
+        }
+
+        @Override
+        // override equals to allow for comparison of MatchedMatchExpression objects
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            MatchedMatchExpression that = (MatchedMatchExpression) o;
+            return expression.equals(that.expression) && targets.equals(that.targets);
         }
     }
 }

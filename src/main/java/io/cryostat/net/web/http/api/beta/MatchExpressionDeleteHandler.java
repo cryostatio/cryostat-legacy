@@ -63,7 +63,7 @@ import io.vertx.core.http.HttpMethod;
 
 public class MatchExpressionDeleteHandler extends AbstractV2RequestHandler<Void> {
 
-    private final MatchExpressionManager matchExpressionManager;
+    private final MatchExpressionManager expressionManager;
     private final NotificationFactory notificationFactory;
 
     @Inject
@@ -74,7 +74,7 @@ public class MatchExpressionDeleteHandler extends AbstractV2RequestHandler<Void>
             NotificationFactory notificationFactory,
             Gson gson) {
         super(auth, credentialsManager, gson);
-        this.matchExpressionManager = matchExpressionManager;
+        this.expressionManager = matchExpressionManager;
         this.notificationFactory = notificationFactory;
     }
 
@@ -111,16 +111,16 @@ public class MatchExpressionDeleteHandler extends AbstractV2RequestHandler<Void>
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         int id = Integer.parseInt(params.getPathParams().get("id"));
-        Optional<MatchExpression> matchExpression = matchExpressionManager.get(id);
+        Optional<MatchExpression> matchExpression = expressionManager.get(id);
         if (matchExpression.isEmpty()) {
             return new IntermediateResponse<Void>().statusCode(404);
         }
 
         MatchExpression expr = matchExpression.get();
-        if (this.matchExpressionManager.delete(id)) {
+        if (expressionManager.delete(id)) {
             notificationFactory
                     .createBuilder()
-                    .metaCategory("CredentialsDeleted")
+                    .metaCategory("MatchExpressionDeleted")
                     .metaType(HttpMimeType.JSON)
                     .message(Map.of("id", id, "matchExpression", expr.getMatchExpression()))
                     .build()
