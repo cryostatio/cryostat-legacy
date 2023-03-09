@@ -144,17 +144,13 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                     // does anything ever get modified in this scheme?
                     // notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr);
 
+                    containers.removeAll(removed);
                     removed.forEach(
-                            spec -> {
-                                containers.remove(spec);
-                                notifyAsyncTargetDiscovery(EventKind.LOST, convert(spec));
-                            });
+                            spec -> notifyAsyncTargetDiscovery(EventKind.LOST, convert(spec)));
 
+                    containers.addAll(added);
                     added.forEach(
-                            spec -> {
-                                containers.add(spec);
-                                notifyAsyncTargetDiscovery(EventKind.FOUND, convert(spec));
-                            });
+                            spec -> notifyAsyncTargetDiscovery(EventKind.FOUND, convert(spec)));
                 });
     }
 
@@ -172,6 +168,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                 .addQueryParam(
                                         "filters",
                                         gson.toJson(Map.of("label", List.of(CRYOSTAT_LABEL))))
+                                // TODO make this configurable?
                                 .timeout(5_000L)
                                 .as(BodyCodec.string())
                                 .send(
