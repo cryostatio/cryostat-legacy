@@ -61,7 +61,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -90,14 +89,7 @@ class RecordingGetWithJwtHandlerTest {
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth,
-                        credentialsManager,
-                        jwt,
-                        () -> webServer,
-                        archive,
-                        jvmId,
-                        new Base32(),
-                        logger);
+                        auth, credentialsManager, jwt, () -> webServer, archive, jvmId, logger);
     }
 
     @Nested

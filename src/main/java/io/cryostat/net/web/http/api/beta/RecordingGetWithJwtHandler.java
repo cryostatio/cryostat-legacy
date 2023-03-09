@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
@@ -68,7 +67,6 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.codec.binary.Base32;
 
 class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
@@ -76,7 +74,6 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final JvmIdHelper jvmId;
-    private final Base32 base32;
 
     @Inject
     RecordingGetWithJwtHandler(
@@ -86,12 +83,10 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             Lazy<WebServer> webServer,
             RecordingArchiveHelper recordingArchiveHelper,
             JvmIdHelper jvmId,
-            Base32 base32,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.jvmId = jvmId;
-        this.base32 = base32;
     }
 
     @Override
@@ -125,7 +120,7 @@ class RecordingGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
         String recordingName = params.getPathParams().get("recordingName");
         try {
             String id = jvmId.getJvmId(sourceTarget);
-            String encoded = base32.encodeToString(id.getBytes(StandardCharsets.UTF_8));
+            String encoded = jvmId.jvmIdToSubdirectoryName(id);
             return recordingArchiveHelper
                     .getRecordingFromPath(encoded, recordingName)
                     .orElseThrow(() -> new ApiException(403))
