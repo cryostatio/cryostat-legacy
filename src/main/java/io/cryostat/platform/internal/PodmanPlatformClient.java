@@ -100,46 +100,11 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     @Override
     public void start() throws Exception {
         super.start();
+        queryContainers();
         this.timerId =
                 vertx.setPeriodic(
-                        5000,
-                        unused ->
-                                doPodmanRequest(
-                                        l -> {
-                                            List<ServiceRef> previousRefs = convert(containers);
-                                            List<ServiceRef> currentRefs = convert(l);
-
-                                            ServiceRef.compare(previousRefs)
-                                                    .to(currentRefs)
-                                                    .updated()
-                                                    .stream()
-                                                    .forEach(
-                                                            sr ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.MODIFIED,
-                                                                            sr));
-
-                                            ServiceRef.compare(previousRefs)
-                                                    .to(currentRefs)
-                                                    .added()
-                                                    .stream()
-                                                    .forEach(
-                                                            sr ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.FOUND, sr));
-
-                                            ServiceRef.compare(previousRefs)
-                                                    .to(currentRefs)
-                                                    .removed()
-                                                    .stream()
-                                                    .forEach(
-                                                            sr ->
-                                                                    notifyAsyncTargetDiscovery(
-                                                                            EventKind.LOST, sr));
-
-                                            containers.clear();
-                                            containers.addAll(l);
-                                        }));
+                        // TODO make this configurable
+                        10_000, unused -> queryContainers());
     }
 
     @Override
@@ -159,6 +124,26 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
         return convert(result.values());
     }
 
+    private void queryContainers() {
+        doPodmanRequest(
+                l -> {
+                    List<ServiceRef> previousRefs = convert(containers);
+                    List<ServiceRef> currentRefs = convert(l);
+
+                    ServiceRef.compare(previousRefs).to(currentRefs).updated().stream()
+                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
+
+                    ServiceRef.compare(previousRefs).to(currentRefs).added().stream()
+                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+
+                    ServiceRef.compare(previousRefs).to(currentRefs).removed().stream()
+                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+
+                    containers.clear();
+                    containers.addAll(l);
+                });
+    }
+
     private void doPodmanRequest(Consumer<List<ContainerSpec>> successHandler) {
         URI requestPath = URI.create("http://d/v3.0.0/libpod/containers/json");
         vertx.executeBlocking(
@@ -170,6 +155,9 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                         80,
                                         "localhost",
                                         requestPath.toString())
+                                .addQueryParam(
+                                        "filters",
+                                        gson.toJson(Map.of("label", List.of(CRYOSTAT_LABEL))))
                                 .timeout(5_000L)
                                 .as(BodyCodec.string())
                                 .send(
@@ -192,9 +180,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private ServiceRef convert(ContainerSpec desc) {
         String connectUrl = desc.Labels.get(CRYOSTAT_LABEL);
-        if (StringUtils.isBlank(connectUrl)) {
-            return null;
-        }
         URI serviceUrl;
         try {
             serviceUrl = new URI(connectUrl);
