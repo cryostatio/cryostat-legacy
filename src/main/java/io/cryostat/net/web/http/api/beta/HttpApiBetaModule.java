@@ -140,4 +140,25 @@ public abstract class HttpApiBetaModule {
     @IntoSet
     abstract RequestHandler bindRecordingsFromIdPostBodyHandler(
             RecordingsFromIdPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMatchExpressionGetHandler(MatchExpressionGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMatchExpressionsGetHandler(MatchExpressionsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMatchExpressionsPostHandler(MatchExpressionsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMatchExpressionsPostBodyHandler(
+            MatchExpressionsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindMatchExpressionDeleteHandler(MatchExpressionDeleteHandler handler);
 }

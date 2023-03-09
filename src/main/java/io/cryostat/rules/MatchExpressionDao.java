@@ -35,16 +35,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.security;
+package io.cryostat.rules;
 
-public enum ResourceType {
-    TARGET,
-    RECORDING,
-    TEMPLATE,
-    REPORT,
-    MATCH_EXPRESSION,
-    CREDENTIALS,
-    RULE,
-    CERTIFICATE,
-    ;
+import javax.persistence.EntityManager;
+
+import io.cryostat.core.log.Logger;
+import io.cryostat.storage.AbstractDao;
+
+class MatchExpressionDao extends AbstractDao<Integer, MatchExpression> {
+    MatchExpressionDao(EntityManager em, Logger logger) {
+        super(MatchExpression.class, em, logger);
+    }
 }
