@@ -41,6 +41,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -55,8 +57,9 @@ class PodmanApiPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     static final BodyHandler BODY_HANDLER = BodyHandler.create();
 
     @Inject
-    PodmanApiPostBodyHandler(AuthManager auth) {
-        super(auth);
+    PodmanApiPostBodyHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Logger logger) {
+        super(auth, credentialsManager, logger);
     }
 
     @Override
@@ -66,7 +69,7 @@ class PodmanApiPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2;
+        return ApiVersion.V2_3;
     }
 
     @Override

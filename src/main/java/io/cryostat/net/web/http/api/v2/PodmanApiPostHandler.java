@@ -38,27 +38,29 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
+import com.sun.security.auth.module.UnixSystem;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.codec.BodyCodec;
+import org.apache.commons.lang3.StringUtils;
 
 class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
 
@@ -66,16 +68,25 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
     private final Logger logger;
 
     @Inject
-    PodmanApiPostHandler(AuthManager auth, Gson gson, Vertx vertx, Logger logger) {
-        super(auth, gson);
-        this.webClient =
-                WebClient.create(
-                        vertx,
-                        new WebClientOptions()
-                                .setTcpFastOpen(true)
-                                .setTcpNoDelay(true)
-                                .setTcpQuickAck(true));
+    PodmanApiPostHandler(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            Gson gson,
+            Vertx vertx,
+            Logger logger) {
+        super(auth, credentialsManager, gson);
         this.logger = logger;
+        this.webClient = WebClient.create(vertx);
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_3;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
     }
 
     @Override
@@ -89,8 +100,8 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -106,25 +117,24 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
         String podmanPath = requestParams.getFormAttributes().get("podmanPath");
-        if (podmanPath == null) {
+        if (StringUtils.isBlank(podmanPath)) {
             podmanPath = "/libpod/info";
         }
         String requestPath = String.format("http://d/v3.0.0/%s", podmanPath);
         requestPath = URI.create(requestPath).normalize().toString();
-        logger.info("requestPath: {}", requestPath);
+        long uid = new UnixSystem().getUid();
+        String socketPath = String.format("/run/user/%d/podman/podman.sock", uid);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
                 .request(
                         HttpMethod.GET,
-                        // FIXME replace 0 with lookup for actual user ID
-                        SocketAddress.domainSocketAddress("/run/user/1000/podman/podman.sock"),
+                        SocketAddress.domainSocketAddress(socketPath),
                         80,
                         "localhost",
                         requestPath)
                 .timeout(5_000L)
-                .expect(ResponsePredicate.SC_ACCEPTED)
-                .as(BodyCodec.jsonObject())
+                .as(BodyCodec.string())
                 .send(
                         ar -> {
                             if (ar.failed()) {
@@ -133,8 +143,8 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
                                 future.completeExceptionally(t);
                                 return;
                             }
-                            HttpResponse<JsonObject> response = ar.result();
-                            future.complete(response.body().encodePrettily());
+                            HttpResponse<String> response = ar.result();
+                            future.complete(response.body());
                         });
 
         return new IntermediateResponse<String>().body(future.get(5_000, TimeUnit.MILLISECONDS));
