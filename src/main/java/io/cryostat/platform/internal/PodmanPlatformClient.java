@@ -208,19 +208,31 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
         Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
         cryostatAnnotations.put(AnnotationKey.REALM, REALM);
+
+        String host = serviceUrl.getHost();
+        int port = serviceUrl.getPort();
         if ("service".equals(serviceUrl.getScheme())) {
             try {
                 JMXServiceURL jmx = new JMXServiceURL(serviceUrl.toString());
-                serviceUrl = URIUtil.getRmiTarget(jmx);
+                if (URIUtil.isRmiUrl(jmx)) {
+                    serviceUrl = URIUtil.getRmiTarget(jmx);
+                    host = serviceUrl.getHost();
+                    port = serviceUrl.getPort();
+                } else {
+                    host = jmx.getHost();
+                    port = jmx.getPort();
+                }
             } catch (URISyntaxException | MalformedURLException e) {
                 logger.warn(e);
+                return null;
             }
         }
-        cryostatAnnotations.put(AnnotationKey.HOST, serviceUrl.getHost());
-        cryostatAnnotations.put(AnnotationKey.PORT, Integer.toString(serviceUrl.getPort()));
+        cryostatAnnotations.put(AnnotationKey.HOST, host);
+        cryostatAnnotations.put(AnnotationKey.PORT, Integer.toString(port));
 
         serviceRef.setCryostatAnnotations(cryostatAnnotations);
-
+        // TODO perform podman inspection query to populate annotations
+        // serviceRef.setPlatformAnnotations();
         serviceRef.setLabels(desc.Labels);
 
         return serviceRef;
