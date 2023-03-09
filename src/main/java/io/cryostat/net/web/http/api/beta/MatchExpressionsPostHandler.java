@@ -37,9 +37,11 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.lang.reflect.Type;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -64,6 +66,7 @@ import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -145,17 +148,17 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
         try {
             if (StringUtils.isNotBlank(targets)) {
                 Set<ServiceRef> matched;
-                List<ServiceRef> parsedTargets = this.expressionManager.parseTargets(targets);
+                List<ServiceRef> parsedTargets = parseTargets(targets);
                 matched =
-                        this.expressionManager.resolveMatchingTargets(
-                                matchExpression, parsedTargets);
+                        expressionManager.resolveMatchingTargets(
+                                matchExpression, (t) -> parsedTargets.contains(t));
 
                 return new IntermediateResponse<MatchedMatchExpression>()
                         .statusCode(200)
                         .body(new MatchedMatchExpression(matchExpression, matched));
             } else {
-                int id = this.expressionManager.addMatchExpression(matchExpression);
-                Optional<MatchExpression> opt = this.expressionManager.get(id);
+                int id = expressionManager.addMatchExpression(matchExpression);
+                Optional<MatchExpression> opt = expressionManager.get(id);
                 if (opt.isEmpty()) {
                     throw new ApiException(500, "Failed to add match expression");
                 }
@@ -182,5 +185,12 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
         } catch (MatchExpressionValidationException e) {
             throw new ApiException(400, e);
         }
+    }
+
+    public List<ServiceRef> parseTargets(String targets) {
+        Objects.requireNonNull(targets, "Targets must not be null");
+        Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
+        List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
+        return parsedTargets;
     }
 }

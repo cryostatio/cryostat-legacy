@@ -192,10 +192,11 @@ class MatchExpressionsPostHandlerTest {
             form.set("matchExpression", matchExpression);
             form.set("targets", stringifiedTargets);
             ServiceRef target = Mockito.mock(ServiceRef.class);
-            List<ServiceRef> targets = List.of(target);
+
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
-            Mockito.when(expressionManager.parseTargets(stringifiedTargets)).thenReturn(targets);
-            Mockito.when(expressionManager.resolveMatchingTargets(matchExpression, targets))
+            Mockito.when(
+                            expressionManager.resolveMatchingTargets(
+                                    Mockito.anyString(), Mockito.any()))
                     .thenReturn(Set.of(target));
 
             IntermediateResponse<MatchedMatchExpression> response = handler.handle(requestParams);

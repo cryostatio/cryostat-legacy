@@ -37,14 +37,13 @@
  */
 package io.cryostat.rules;
 
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.script.ScriptException;
 
@@ -53,7 +52,6 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import dagger.Lazy;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -109,31 +107,13 @@ public class MatchExpressionManager {
     }
 
     public Set<ServiceRef> resolveMatchingTargets(MatchExpression expr) {
-        Set<ServiceRef> matchedTargets = new HashSet<>();
-        for (ServiceRef target : platformClient.listDiscoverableServices()) {
-            try {
-                if (matchExpressionEvaluator.get().applies(expr.getMatchExpression(), target)) {
-                    matchedTargets.add(target);
-                }
-            } catch (ScriptException e) {
-                logger.error(e);
-                break;
-            }
-        }
-        return matchedTargets;
+        return resolveMatchingTargets(expr.getMatchExpression(), s -> true);
     }
 
-    public Set<ServiceRef> resolveMatchingTargets(
-            MatchExpression expr, Collection<ServiceRef> targets) {
-        return resolveMatchingTargets(expr.getMatchExpression(), targets);
-    }
-
-    public Set<ServiceRef> resolveMatchingTargets(String expr, Collection<ServiceRef> targets) {
+    public Set<ServiceRef> resolveMatchingTargets(String expr, Predicate<ServiceRef> targetFilter) {
         Set<ServiceRef> matchedTargets = new HashSet<>();
         for (ServiceRef target :
-                platformClient.listDiscoverableServices().stream()
-                        .filter(t -> targets.contains(t))
-                        .toList()) {
+                platformClient.listDiscoverableServices().stream().filter(targetFilter).toList()) {
             try {
                 if (matchExpressionEvaluator.get().applies(expr, target)) {
                     matchedTargets.add(target);
@@ -144,13 +124,6 @@ public class MatchExpressionManager {
             }
         }
         return matchedTargets;
-    }
-
-    public List<ServiceRef> parseTargets(String targets) {
-        Objects.requireNonNull(targets, "Targets must not be null");
-        Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
-        List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
-        return parsedTargets;
     }
 
     public static class MatchedMatchExpression {
