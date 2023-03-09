@@ -68,6 +68,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.JvmIdHelper.JvmIdDoesNotExistException;
@@ -82,7 +83,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.HttpException;
 
 public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -177,13 +177,13 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     public SecurityContext securityContext(RoutingContext ctx) {
         return auth.contextFor(
                 idHelper.reverseLookup(ctx.pathParam("jvmId"))
-                        .orElseThrow(() -> new HttpException(404)));
+                        .orElseThrow(() -> new ApiException(404)));
     }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpException(503, "Recording saving not available");
+            throw new ApiException(503, "Recording saving not available");
         }
 
         String maxFilesParam = ctx.request().getParam("maxFiles", String.valueOf(globalMaxFiles));
@@ -191,10 +191,10 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         try {
             maxFiles = Integer.parseInt(maxFilesParam);
             if (maxFiles <= 0) {
-                throw new HttpException(400, "maxFiles must be a positive integer");
+                throw new ApiException(400, "maxFiles must be a positive integer");
             }
         } catch (NumberFormatException e) {
-            throw new HttpException(400, "maxFiles must be a positive integer");
+            throw new ApiException(400, "maxFiles must be a positive integer");
         }
 
         FileUpload upload =
@@ -206,7 +206,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                         RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
                                 RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
-            throw new HttpException(400, "No recording submission");
+            throw new ApiException(400, "No recording submission");
         }
 
         String jvmId = ctx.pathParam("jvmId");
@@ -219,7 +219,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Recording name must not be empty");
+            throw new ApiException(400, "Recording name must not be empty");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -229,7 +229,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         Matcher m = RecordingArchiveHelper.RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Incorrect recording file name pattern");
+            throw new ApiException(400, "Incorrect recording file name pattern");
         }
 
         MultiMap attrs = ctx.request().formAttributes();
@@ -242,7 +242,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             }
         } catch (IllegalArgumentException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Invalid labels");
+            throw new ApiException(400, "Invalid labels");
         }
         Metadata metadata = new Metadata(auth.contextFor(serviceRef), labels);
 
@@ -271,7 +271,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                 count,
                                 (res2) -> {
                                     if (res2.failed()) {
-                                        throw new HttpException(500, res2.cause());
+                                        throw new ApiException(500, res2.cause());
                                     }
 
                                     String fsName = res2.result();
@@ -289,7 +289,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                             | ExecutionException
                                             | IOException e) {
                                         logger.error(e);
-                                        throw new HttpException(500, e);
+                                        throw new ApiException(500, e);
                                     }
 
                                     try {
@@ -325,7 +325,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                             | UnknownHostException
                                             | SocketException e) {
                                         logger.error(e);
-                                        throw new HttpException(500, e);
+                                        throw new ApiException(500, e);
                                     }
 
                                     ctx.response()
