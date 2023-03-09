@@ -118,27 +118,17 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         this.reverse = new HashMap<>();
     }
 
-    private boolean observe(ServiceRef sr) {
-        logger.info("Observing new target: {}", sr);
-        if (StringUtils.isBlank(sr.getJvmId())) {
-            return false;
-        }
-        reverse.put(sr.getJvmId(), sr);
-        ids.put(sr.getServiceUri().toString(), CompletableFuture.completedFuture(sr.getJvmId()));
-        return true;
-    }
-
     // Use dao directly since refs resolve before listDiscoverableServices is populated
     public ServiceRef resolveId(ServiceRef sr) throws JvmIdGetException {
-        if (observe(sr)) {
+        logger.info("Observing new target: {}", sr);
+        String jvmId = sr.getJvmId();
+        if (StringUtils.isNotBlank(jvmId)) {
             return sr;
         }
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
-        if (sr.getJvmId() != null) {
-            reverse.put(sr.getJvmId(), sr);
-            return sr;
-        }
+        ids.put(uriStr, CompletableFuture.completedFuture(jvmId));
+        reverse.put(jvmId, sr);
         try {
             CompletableFuture<String> future =
                     this.targetConnectionManager.executeConnectedTaskAsync(
