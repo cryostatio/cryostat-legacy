@@ -37,52 +37,68 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
-import javax.inject.Named;
-
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.net.discovery.JvmDiscoveryClient;
-import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.NetworkResolver;
-import io.cryostat.net.NoopAuthManager;
-import io.cryostat.net.openshift.OpenShiftAuthManager;
-import io.cryostat.net.web.WebModule;
+import io.cryostat.net.AuthManager;
 
 import com.google.gson.Gson;
+import com.sun.security.auth.module.UnixSystem;
 import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.ElementsIntoSet;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.SocketAddress;
 
-@Module
-public abstract class PlatformStrategyModule {
+class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
 
-    @Provides
-    @ElementsIntoSet
-    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
+    private final Logger logger;
+    private final Lazy<? extends AuthManager> authMgr;
+    private final Vertx vertx;
+    private final Gson gson;
+    private final FileSystem fs;
+
+    PodmanPlatformStrategy(
             Logger logger,
-            Lazy<OpenShiftAuthManager> openShiftAuthManager,
-            Lazy<NoopAuthManager> noopAuthManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
+            Lazy<? extends AuthManager> authMgr,
             Vertx vertx,
             Gson gson,
-            NetworkResolver resolver,
-            Environment env,
-            FileSystem fs,
-            Lazy<JvmDiscoveryClient> discoveryClient) {
-        return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(
-                        logger, executor, noopAuthManager, connectionToolkit, env, fs),
-                new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
-                new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
-                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
+            FileSystem fs) {
+        this.logger = logger;
+        this.authMgr = authMgr;
+        this.vertx = vertx;
+        this.gson = gson;
+        this.fs = fs;
+    }
+
+    @Override
+    public int getPriority() {
+        return PRIORITY_PLATFORM + 5;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        String socketPath = getSocketPath();
+        logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);
+        // TODO check that the service is actually available on the socket using an HTTP request
+        boolean available = fs.isReadable(fs.pathOf(socketPath));
+        logger.info("{} available? {}", getClass().getSimpleName(), available);
+        return available;
+    }
+
+    @Override
+    public PodmanPlatformClient getPlatformClient() {
+        logger.info("Selected {} Strategy", getClass().getSimpleName());
+        String socketPath = getSocketPath();
+        SocketAddress podmanPath = SocketAddress.domainSocketAddress(socketPath);
+        return new PodmanPlatformClient(vertx, podmanPath, gson, logger);
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return authMgr.get();
+    }
+
+    private static String getSocketPath() {
+        long uid = new UnixSystem().getUid();
+        String socketPath = String.format("/run/user/%d/podman/podman.sock", uid);
+        return socketPath;
     }
 }
