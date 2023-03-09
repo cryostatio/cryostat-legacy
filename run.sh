@@ -131,6 +131,7 @@ podman run \
     --mount type=bind,source="$(dirname "$0")/truststore",destination=/truststore,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/probes",destination=/opt/cryostat.d/conf.d/probes.d,relabel=shared \
     -v "$XDG_RUNTIME_DIR"/podman/podman.sock:/run/user/0/podman/podman.sock:Z \
+    --security-opt label=disable \
     -e CRYOSTAT_ENABLE_JDP_BROADCAST="true" \
     -e CRYOSTAT_REPORT_GENERATOR="$CRYOSTAT_REPORT_GENERATOR" \
     -e CRYOSTAT_PLATFORM="$CRYOSTAT_PLATFORM" \
