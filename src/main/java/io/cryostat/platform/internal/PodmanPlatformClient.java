@@ -44,10 +44,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -126,21 +128,33 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private void queryContainers() {
         doPodmanRequest(
-                l -> {
-                    List<ServiceRef> previousRefs = convert(containers);
-                    List<ServiceRef> currentRefs = convert(l);
+                current -> {
+                    Set<ContainerSpec> previous = new HashSet<>(containers);
+                    Set<ContainerSpec> updated = new HashSet<>(current);
 
-                    ServiceRef.compare(previousRefs).to(currentRefs).updated().stream()
-                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr));
+                    Set<ContainerSpec> intersection = new HashSet<>(containers);
+                    intersection.retainAll(updated);
 
-                    ServiceRef.compare(previousRefs).to(currentRefs).added().stream()
-                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.FOUND, sr));
+                    Set<ContainerSpec> removed = new HashSet<>(previous);
+                    removed.removeAll(intersection);
 
-                    ServiceRef.compare(previousRefs).to(currentRefs).removed().stream()
-                            .forEach(sr -> notifyAsyncTargetDiscovery(EventKind.LOST, sr));
+                    Set<ContainerSpec> added = new HashSet<>(updated);
+                    added.removeAll(intersection);
 
-                    containers.clear();
-                    containers.addAll(l);
+                    // does anything ever get modified in this scheme?
+                    // notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr);
+
+                    removed.forEach(
+                            spec -> {
+                                containers.remove(spec);
+                                notifyAsyncTargetDiscovery(EventKind.LOST, convert(spec));
+                            });
+
+                    added.forEach(
+                            spec -> {
+                                containers.add(spec);
+                                notifyAsyncTargetDiscovery(EventKind.FOUND, convert(spec));
+                            });
                 });
     }
 
@@ -253,13 +267,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             List<PortSpec> Ports,
             long StartedAt,
             String State) {}
-
-    // static record PodSpec(
-    //         String Id,
-    //         List<ContainerSpec> Containers,
-    //         Map<String, String> Labels,
-    //         String Name,
-    //         String Status) {}
 
     public enum PodmanNodeType implements NodeType {
         POD("Pod"),
