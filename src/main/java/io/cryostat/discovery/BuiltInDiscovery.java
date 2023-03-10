@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -62,7 +63,8 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
     private final DiscoveryStorage storage;
-    private final Set<PlatformDetectionStrategy<?>> platformStrategies;
+    private final Set<PlatformDetectionStrategy<?>> selectedStrategies;
+    private final Set<PlatformDetectionStrategy<?>> unselectedStrategies;
     private final Lazy<CustomTargetPlatformClient> customTargets;
     private final Set<PlatformClient> enabledClients = new HashSet<>();
     private final NotificationFactory notificationFactory;
@@ -70,12 +72,14 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     BuiltInDiscovery(
             DiscoveryStorage storage,
-            Set<PlatformDetectionStrategy<?>> platformStrategies,
+            SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
             Lazy<CustomTargetPlatformClient> customTargets,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.storage = storage;
-        this.platformStrategies = platformStrategies;
+        this.selectedStrategies = selectedStrategies;
+        this.unselectedStrategies = unselectedStrategies;
         this.customTargets = customTargets;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -84,11 +88,21 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     @Override
     public void start(Promise<Void> start) {
         storage.addTargetDiscoveryListener(this);
+
+        unselectedStrategies.stream()
+                .map(PlatformDetectionStrategy::getPlatformClient)
+                .forEach(
+                        platform ->
+                                storage.getBuiltInPluginByRealm(
+                                                platform.getDiscoveryTree().getName())
+                                        .map(PluginInfo::getId)
+                                        .ifPresent(storage::deregister));
+
         Stream.concat(
                         // ensure custom targets is always available regardless of other
                         // configurations
                         Stream.of(customTargets.get()),
-                        platformStrategies.stream()
+                        selectedStrategies.stream()
                                 .map(PlatformDetectionStrategy::getPlatformClient))
                 .distinct()
                 .forEach(

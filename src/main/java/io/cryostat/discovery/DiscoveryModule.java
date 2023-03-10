@@ -119,12 +119,19 @@ public abstract class DiscoveryModule {
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
             @Named(PlatformModule.SELECTED_PLATFORMS)
-                    SortedSet<PlatformDetectionStrategy<?>> platformStrategies,
+                    SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            @Named(PlatformModule.UNSELECTED_PLATFORMS)
+                    SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
             Lazy<CustomTargetPlatformClient> customTargets,
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(
-                storage, platformStrategies, customTargets, notificationFactory, logger);
+                storage,
+                selectedStrategies,
+                unselectedStrategies,
+                customTargets,
+                notificationFactory,
+                logger);
     }
 
     @Provides

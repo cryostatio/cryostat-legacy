@@ -64,6 +64,7 @@ import dagger.Provides;
 public abstract class PlatformModule {
 
     public static final String SELECTED_PLATFORMS = "SELECTED_PLATFORMS";
+    public static final String UNSELECTED_PLATFORMS = "UNSELECTED_PLATFORMS";
 
     @Provides
     @Singleton
@@ -127,6 +128,19 @@ public abstract class PlatformModule {
             }
         }
         return selectedStrategies;
+    }
+
+    @Provides
+    @Singleton
+    @Named(UNSELECTED_PLATFORMS)
+    static SortedSet<PlatformDetectionStrategy<?>> provideUnselectedPlatformStrategies(
+            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            Set<PlatformDetectionStrategy<?>> platformStrategies) {
+        SortedSet<PlatformDetectionStrategy<?>> unselected =
+                new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+        unselected.addAll(platformStrategies);
+        unselected.removeAll(selectedStrategies);
+        return unselected;
     }
 
     @Provides
