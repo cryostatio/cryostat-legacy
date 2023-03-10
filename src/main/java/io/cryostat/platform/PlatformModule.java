@@ -39,14 +39,16 @@ package io.cryostat.platform;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.function.Predicate;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
@@ -54,14 +56,14 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
-import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
 @Module(includes = {PlatformStrategyModule.class, PlatformDiscoveryModule.class})
 public abstract class PlatformModule {
+
+    public static final String SELECTED_PLATFORMS = "SELECTED_PLATFORMS";
 
     @Provides
     @Singleton
@@ -70,78 +72,67 @@ public abstract class PlatformModule {
         return new CustomTargetPlatformClient(storage);
     }
 
-    @Binds
-    @IntoSet
-    abstract PlatformClient bindCustomTargetPlatformClient(CustomTargetPlatformClient client);
-
     @Provides
     @Singleton
     static AuthManager provideAuthManager(
             PlatformDetectionStrategy<?> platformStrategy,
             Environment env,
-            FileSystem fs,
             Set<AuthManager> authManagers,
             Logger logger) {
         final String authManagerClass;
         if (env.hasEnv(Variables.AUTH_MANAGER_ENV_VAR)) {
             authManagerClass = env.getEnv(Variables.AUTH_MANAGER_ENV_VAR);
             logger.info("Selecting configured AuthManager \"{}\"", authManagerClass);
+            return authManagers.stream()
+                    .filter(
+                            mgr ->
+                                    Objects.equals(
+                                            mgr.getClass().getCanonicalName(), authManagerClass))
+                    .findFirst()
+                    .orElseThrow(
+                            () ->
+                                    new RuntimeException(
+                                            String.format(
+                                                    "Selected AuthManager \"%s\" is not available",
+                                                    authManagerClass)));
         } else {
-            authManagerClass = platformStrategy.getAuthManager().getClass().getCanonicalName();
-            logger.info("Selecting platform default AuthManager \"{}\"", authManagerClass);
+            AuthManager auth = platformStrategy.getAuthManager();
+            logger.info(
+                    "Selecting platform default AuthManager \"{}\"",
+                    auth.getClass().getCanonicalName());
+            return auth;
         }
-        return authManagers.stream()
-                .filter(mgr -> Objects.equals(mgr.getClass().getCanonicalName(), authManagerClass))
-                .findFirst()
-                .orElseThrow(
-                        () ->
-                                new RuntimeException(
-                                        String.format(
-                                                "Selected AuthManager \"%s\" is not available",
-                                                authManagerClass)));
+    }
+
+    @Provides
+    @Singleton
+    @Named(SELECTED_PLATFORMS)
+    static SortedSet<PlatformDetectionStrategy<?>> provideSelectedPlatformStrategies(
+            Set<PlatformDetectionStrategy<?>> platformStrategies, Environment env) {
+        // reverse sort, higher priorities should be earlier in the stream
+        SortedSet<PlatformDetectionStrategy<?>> selectedStrategies =
+                new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+        Predicate<PlatformDetectionStrategy<?>> fn;
+        if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
+            String platform = env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR);
+            fn = s -> Objects.equals(platform, s.getClass().getCanonicalName());
+        } else if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
+            fn = s -> false;
+        } else {
+            fn = PlatformDetectionStrategy::isAvailable;
+        }
+        for (PlatformDetectionStrategy<?> s : platformStrategies) {
+            if (fn.test(s)) {
+                selectedStrategies.add(s);
+            }
+        }
+        return selectedStrategies;
     }
 
     @Provides
     @Singleton
     static PlatformDetectionStrategy<?> providePlatformStrategy(
-            Logger logger, Set<PlatformDetectionStrategy<?>> strategies, Environment env) {
-        PlatformDetectionStrategy<?> strat = null;
-        if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
-            String platform = env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR);
-            logger.info("Selecting configured PlatformDetectionStrategy \"{}\"", platform);
-            for (PlatformDetectionStrategy<?> s : strategies) {
-                if (Objects.equals(platform, s.getClass().getCanonicalName())) {
-                    strat = s;
-                    break;
-                }
-            }
-            if (strat == null) {
-                throw new RuntimeException(
-                        String.format(
-                                "Selected PlatformDetectionStrategy \"%s\" not found", platform));
-            }
-        }
-        if (strat == null) {
-            strat =
-                    strategies.stream()
-                            // reverse sort, higher priorities should be earlier in the stream
-                            .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
-                            .filter(PlatformDetectionStrategy::isAvailable)
-                            .findFirst()
-                            .orElseThrow();
-        }
-        return strat;
-    }
-
-    @Provides
-    @IntoSet
-    static PlatformClient provideDetectedPlatformClient(PlatformDetectionStrategy<?> strat) {
-        return strat.getPlatformClient();
-    }
-
-    @Provides
-    @Singleton
-    static JvmDiscoveryClient provideJvmDiscoveryClient(Logger logger) {
-        return new JvmDiscoveryClient(logger);
+            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> strategies) {
+        return strategies.stream().findFirst().orElseThrow();
     }
 }

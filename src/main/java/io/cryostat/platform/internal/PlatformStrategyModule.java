@@ -74,8 +74,7 @@ public abstract class PlatformStrategyModule {
             Gson gson,
             NetworkResolver resolver,
             Environment env,
-            FileSystem fs,
-            Lazy<JvmDiscoveryClient> discoveryClient) {
+            FileSystem fs) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
                         logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
@@ -83,6 +82,7 @@ public abstract class PlatformStrategyModule {
                         logger, executor, noopAuthManager, connectionToolkit, env, fs),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
-                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
+                new DefaultPlatformStrategy(
+                        logger, noopAuthManager, () -> new JvmDiscoveryClient(logger)));
     }
 }
