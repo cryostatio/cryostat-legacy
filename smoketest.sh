@@ -72,9 +72,12 @@ runPostgres() {
     if [ ! -d "$(dirname "$0")/conf/postgres" ]; then
         mkdir "$(dirname "$0")/conf/postgres"
     fi
-    local image; local version;
-    image="$(getPomProperty postgres.image)"
-    version="$(getPomProperty postgres.version)"
+    if [ -z "${POSTGRES_IMAGE}" ]; then
+        local image; local version;
+        image="$(getPomProperty postgres.image)"
+        version="$(getPomProperty postgres.version)"
+        POSTGRES_IMAGE="${image}:${version}"
+    fi
     podman run \
         --name postgres \
         --pod cryostat-pod \
@@ -85,7 +88,7 @@ runPostgres() {
         --mount type=bind,source="$(dirname "$0")/conf/postgres",destination=/var/lib/postgresql/data/pgdata,relabel=shared \
         --mount type=bind,source="$(dirname "$0")/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
         --env PGDATA=/var/lib/postgresql/data/pgdata \
-        --rm -d "${image}:${version}"
+        --rm -d "${POSTGRES_IMAGE}"
 }
 
 runDemoApps() {
@@ -184,20 +187,27 @@ runDemoApps() {
 }
 
 runJfrDatasource() {
-    local stream; local tag;
-     stream="$(getPomProperty cryostat.itest.jfr-datasource.imageStream)"
-    tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
+    if [ -z "${DATASOURCE_IMAGE}" ]; then
+        local stream; local tag;
+        stream="$(getPomProperty cryostat.itest.jfr-datasource.imageStream)"
+        tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
+        DATASOURCE_IMAGE="${stream}:${tag}"
+    fi
     podman run \
         --name jfr-datasource \
         --pull always \
         --pod cryostat-pod \
-        --rm -d "${stream}:${tag}"
+        --rm -d "${DATASOURCE_IMAGE}"
 }
 
 runGrafana() {
-    local stream; local tag; local host; local port;
-    stream="$(getPomProperty cryostat.itest.grafana.imageStream)"
-    tag="$(getPomProperty cryostat.itest.grafana.version)"
+    if [ -z "${GRAFANA_IMAGE}" ]; then
+        local stream; local tag;
+        stream="$(getPomProperty cryostat.itest.grafana.imageStream)"
+        tag="$(getPomProperty cryostat.itest.grafana.version)"
+        GRAFANA_IMAGE="${stream}:${tag}"
+    fi
+    local host; local port;
     host="$(getPomProperty cryostat.itest.webHost)"
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     podman run \
@@ -207,13 +217,18 @@ runGrafana() {
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
-        --rm -d "${stream}:${tag}"
+        --rm -d "${GRAFANA_IMAGE}"
 }
 
 runReportGenerator() {
+    if [ -z "${REPORTS_IMAGE}" ]; then
+        local stream; local tag;
+        stream="$(getPomProperty cryostat.itest.reports.imageStream)"
+        tag="$(getPomProperty cryostat.itest.reports.version)"
+        REPORTS_IMAGE="${stream}:${tag}"
+    fi
     local RJMX_PORT=10000
-    stream="$(getPomProperty cryostat.itest.reports.imageStream)"
-    tag="$(getPomProperty cryostat.itest.reports.version)"
+    local port;
     port="$(getPomProperty cryostat.itest.reports.port)"
     podman run \
         --name reports \
@@ -224,7 +239,7 @@ runReportGenerator() {
         --restart on-failure \
         --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
-        --rm -d "${stream}:${tag}"
+        --rm -d "${REPORTS_IMAGE}"
 }
 
 createPod() {
