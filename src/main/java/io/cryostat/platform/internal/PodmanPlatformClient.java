@@ -258,8 +258,8 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                 children.add(target);
             }
         }
-        return new EnvironmentNode(
-                REALM, BaseNodeType.REALM, Collections.emptyMap(), pods.values());
+        children.addAll(pods.values());
+        return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
     }
 
     static record PortSpec(
