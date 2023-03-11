@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
@@ -70,6 +71,7 @@ class ArchivedRecordingsFetcherTest {
     ArchivedRecordingsFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -78,7 +80,7 @@ class ArchivedRecordingsFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new ArchivedRecordingsFetcher(auth);
+        this.fetcher = new ArchivedRecordingsFetcher(auth, credentialsManager);
     }
 
     @Test

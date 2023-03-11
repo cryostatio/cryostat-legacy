@@ -41,11 +41,13 @@ import static org.mockito.Answers.RETURNS_SELF;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
@@ -55,6 +57,8 @@ import io.cryostat.platform.discovery.TargetNode;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -71,6 +75,7 @@ class TargetNodesFetcherTest {
     TargetNodesFetcher fetcher;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock RootNodeFetcher rootNodeFetcher;
     @Mock TargetNodeRecurseFetcher recurseFetcher;
 
@@ -84,7 +89,8 @@ class TargetNodesFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new TargetNodesFetcher(auth, rootNodeFetcher, recurseFetcher);
+        this.fetcher =
+                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
     }
 
     @Test
@@ -122,10 +128,16 @@ class TargetNodesFetcherTest {
                     .when(() -> DataFetchingEnvironmentImpl.newDataFetchingEnvironment(env))
                     .thenReturn(builder);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+            HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+            when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             TargetNode target = Mockito.mock(TargetNode.class);
+            ServiceRef sr = new ServiceRef("id", URI.create("sr"), "alias");
+            when(target.getTarget()).thenReturn(sr);
 
             when(recurseFetcher.get(Mockito.any())).thenReturn(List.of(target));
 
@@ -147,6 +159,10 @@ class TargetNodesFetcherTest {
                 staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
 
                 when(env.getGraphQlContext()).thenReturn(graphCtx);
+                when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+                HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+                when(ctx.request()).thenReturn(req);
+                when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
                 when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -158,9 +174,13 @@ class TargetNodesFetcherTest {
                 TargetNode target2 = Mockito.mock(TargetNode.class);
                 TargetNode target3 = Mockito.mock(TargetNode.class);
 
+                ServiceRef sr = new ServiceRef("id", URI.create("sr"), "alias");
+
                 when(target1.getName()).thenReturn("foo");
+                when(target1.getTarget()).thenReturn(sr);
                 when(target2.getName()).thenReturn("foobar");
                 when(target3.getName()).thenReturn("foo");
+                when(target3.getTarget()).thenReturn(sr);
 
                 when(recurseFetcher.get(Mockito.any()))
                         .thenReturn(List.of(target1, target2, target3));
@@ -184,6 +204,10 @@ class TargetNodesFetcherTest {
                 staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
 
                 when(env.getGraphQlContext()).thenReturn(graphCtx);
+                when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+                HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+                when(ctx.request()).thenReturn(req);
+                when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
                 when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -206,8 +230,12 @@ class TargetNodesFetcherTest {
 
                 // annotation mocking
                 ServiceRef ref1 = Mockito.mock(ServiceRef.class);
+                when(ref1.getServiceUri()).thenReturn(URI.create("uri1"));
+                when(target1.getTarget()).thenReturn(ref1);
                 ServiceRef ref2 = Mockito.mock(ServiceRef.class);
+                when(target2.getTarget()).thenReturn(ref2);
                 ServiceRef ref3 = Mockito.mock(ServiceRef.class);
+                when(target3.getTarget()).thenReturn(ref3);
                 when(ref1.getCryostatAnnotations())
                         .thenReturn(
                                 Map.of(

@@ -44,6 +44,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -57,18 +58,16 @@ import graphql.schema.DataFetchingEnvironment;
 public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMetrics> {
 
     private final TargetConnectionManager tcm;
-    private final CredentialsManager credentialsManager;
     private final Logger logger;
 
     @Inject
     MBeanMetricsFetcher(
             AuthManager auth,
-            TargetConnectionManager tcm,
             CredentialsManager credentialsManager,
+            TargetConnectionManager tcm,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager);
         this.tcm = tcm;
-        this.credentialsManager = credentialsManager;
         this.logger = logger;
     }
 
@@ -92,13 +91,11 @@ public class MBeanMetricsFetcher extends AbstractPermissionedDataFetcher<MBeanMe
         TargetNode source = (TargetNode) environment.getSource();
         ServiceRef target = source.getTarget();
         String targetId = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
-        try {
-            return tcm.executeConnectedTask(cd, conn -> conn.getMBeanMetrics());
-        } catch (Exception e) {
-            logger.warn(e);
-            return null;
-        }
+
+        Credentials credentials =
+                getSessionCredentials(environment, targetId)
+                        .orElse(credentialsManager.getCredentials(target));
+        ConnectionDescriptor cd = new ConnectionDescriptor(targetId, credentials);
+        return tcm.executeConnectedTask(cd, conn -> conn.getMBeanMetrics());
     }
 }

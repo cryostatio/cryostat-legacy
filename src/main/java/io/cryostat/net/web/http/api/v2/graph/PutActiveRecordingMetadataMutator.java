@@ -48,6 +48,7 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -66,7 +67,6 @@ import graphql.schema.DataFetchingEnvironment;
 class PutActiveRecordingMetadataMutator
         extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
-    private final CredentialsManager credentialsManager;
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingMetadataManager metadataManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -82,8 +82,7 @@ class PutActiveRecordingMetadataMutator
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
-        super(auth);
-        this.credentialsManager = credentialsManager;
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.metadataManager = metadataManager;
@@ -129,8 +128,10 @@ class PutActiveRecordingMetadataMutator
             }
         }
 
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
+        Credentials credentials =
+                getSessionCredentials(environment, uri.toString())
+                        .orElse(credentialsManager.getCredentials(target));
+        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
 
         return targetConnectionManager.executeConnectedTask(
                 cd,

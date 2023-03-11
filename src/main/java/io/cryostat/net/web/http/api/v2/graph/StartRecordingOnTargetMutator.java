@@ -49,6 +49,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
@@ -56,6 +57,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
@@ -72,7 +74,6 @@ class StartRecordingOnTargetMutator
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
     private final Gson gson;
@@ -80,18 +81,17 @@ class StartRecordingOnTargetMutator
     @Inject
     StartRecordingOnTargetMutator(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
-        super(auth);
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
-        this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.gson = gson;
@@ -121,11 +121,14 @@ class StartRecordingOnTargetMutator
     public HyperlinkedSerializableRecordingDescriptor getAuthenticated(
             DataFetchingEnvironment environment) throws Exception {
         TargetNode node = environment.getSource();
+        ServiceRef target = node.getTarget();
         Map<String, Object> settings = environment.getArgument("recording");
 
-        String uri = node.getTarget().getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+        String uri = target.getServiceUri().toString();
+        Credentials credentials =
+                getSessionCredentials(environment, uri.toString())
+                        .orElse(credentialsManager.getCredentials(target));
+        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {

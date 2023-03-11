@@ -44,6 +44,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -56,8 +57,11 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
-    NodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
-        super(auth);
+    NodeFetcher(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RootNodeFetcher rootNodeFetcher) {
+        super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodeFetcher;
     }
 

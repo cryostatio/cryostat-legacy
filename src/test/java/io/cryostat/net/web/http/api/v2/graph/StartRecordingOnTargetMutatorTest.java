@@ -63,6 +63,8 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import com.google.gson.Gson;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -78,10 +80,10 @@ class StartRecordingOnTargetMutatorTest {
     StartRecordingOnTargetMutator mutator;
 
     @Mock AuthManager auth;
+    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
     @Mock Gson gson;
@@ -97,10 +99,10 @@ class StartRecordingOnTargetMutatorTest {
         this.mutator =
                 new StartRecordingOnTargetMutator(
                         auth,
+                        credentialsManager,
                         targetConnectionManager,
                         recordingTargetHelper,
                         recordingOptionsBuilderFactory,
-                        credentialsManager,
                         metadataManager,
                         webServer,
                         gson);
@@ -122,6 +124,10 @@ class StartRecordingOnTargetMutatorTest {
     @Test
     void shouldStartAndReturnRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
+        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 

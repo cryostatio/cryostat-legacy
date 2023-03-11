@@ -53,6 +53,7 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -73,7 +74,6 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper archiveHelper;
-    private final CredentialsManager credentialsManager;
     private final RecordingMetadataManager metadataManager;
     private final Provider<WebServer> webServer;
     private final Logger logger;
@@ -81,16 +81,15 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Inject
     RecordingsFetcher(
             AuthManager auth,
+            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingArchiveHelper archiveHelper,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
-        super(auth);
+        super(auth, credentialsManager);
         this.targetConnectionManager = targetConnectionManager;
         this.archiveHelper = archiveHelper;
-        this.credentialsManager = credentialsManager;
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.logger = logger;
@@ -132,8 +131,11 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
                         .collect(Collectors.toList());
 
         if (requestedFields.contains("active")) {
-            ConnectionDescriptor cd =
-                    new ConnectionDescriptor(targetId, credentialsManager.getCredentials(target));
+
+            Credentials credentials =
+                    getSessionCredentials(environment, targetId)
+                            .orElse(credentialsManager.getCredentials(target));
+            ConnectionDescriptor cd = new ConnectionDescriptor(targetId, credentials);
             // FIXME populating these two struct members are each async tasks. we should do them in
             // parallel
             recordings.active =

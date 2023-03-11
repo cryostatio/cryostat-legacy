@@ -38,6 +38,9 @@
 package io.cryostat.platform.internal;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+
+import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -47,6 +50,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
+import io.cryostat.net.web.WebModule;
 
 import dagger.Lazy;
 import dagger.Module;
@@ -63,14 +67,16 @@ public abstract class PlatformStrategyModule {
             Lazy<OpenShiftAuthManager> openShiftAuthManager,
             Lazy<NoopAuthManager> noopAuthManager,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
             Lazy<JvmDiscoveryClient> discoveryClient) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs),
+                        logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
+                new KubeApiPlatformStrategy(
+                        logger, executor, noopAuthManager, connectionToolkit, env, fs),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }

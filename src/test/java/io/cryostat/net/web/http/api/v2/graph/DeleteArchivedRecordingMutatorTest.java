@@ -68,8 +68,8 @@ class DeleteArchivedRecordingMutatorTest {
     DeleteArchivedRecordingMutator mutator;
 
     @Mock AuthManager auth;
-    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock CredentialsManager credentialsManager;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -80,7 +80,9 @@ class DeleteArchivedRecordingMutatorTest {
 
     @BeforeEach
     void setup() {
-        this.mutator = new DeleteArchivedRecordingMutator(auth, recordingArchiveHelper);
+        this.mutator =
+                new DeleteArchivedRecordingMutator(
+                        auth, credentialsManager, recordingArchiveHelper);
     }
 
     @Test

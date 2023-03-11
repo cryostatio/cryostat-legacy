@@ -35,69 +35,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web;
+package io.cryostat.sys;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+public class ThreadLocalPropagatingPoolExecutorService<T> extends ThreadPoolExecutor {
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.NetworkConfiguration;
-import io.cryostat.net.web.http.HttpModule;
-import io.cryostat.net.web.http.RequestHandler;
+    private final Supplier<T> getter;
+    private final Consumer<T> setter;
+    private final Runnable cleaner;
 
-import com.google.gson.Gson;
-import dagger.Module;
-import dagger.Provides;
-import io.vertx.core.Vertx;
-
-@Module(includes = {HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
-    public static final String VERTX_EXECUTOR = "VERTX_EXECUTOR";
-
-    @Provides
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger,
-            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath) {
-        return new WebServer(
-                httpServer,
-                netConf,
-                requestHandlers,
-                gson,
-                authManager,
-                logger,
-                archivedRecordingsPath);
+    public ThreadLocalPropagatingPoolExecutorService(
+            Supplier<T> getter, Consumer<T> setter, Runnable cleaner) {
+        super(
+                1,
+                Runtime.getRuntime().availableProcessors() * 2,
+                1,
+                TimeUnit.MINUTES,
+                new SynchronousQueue<>());
+        this.getter = getter;
+        this.setter = setter;
+        this.cleaner = cleaner;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return fs.createTempDirectory("cryostat").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
-
-    @Provides
-    @Singleton
-    @Named(VERTX_EXECUTOR)
-    static ExecutorService provideVertexecutor(Vertx vertx, Logger logger) {
-        return new Vertexecutor(vertx, logger);
+    @Override
+    public void execute(Runnable task) {
+        T t = getter.get();
+        super.execute(
+                () -> {
+                    setter.accept(t);
+                    try {
+                        task.run();
+                    } finally {
+                        cleaner.run();
+                    }
+                });
     }
 }

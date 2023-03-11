@@ -48,6 +48,8 @@ input ArchivedRecordingFilterInput {
 }
 
 type ServiceRef {
+    # This is the ID as currently known in the Discovery database at the time the query began. If
+    # the query includes session credentials, this ID will *not* be updated within the request.
     jvmId: String
     serviceUri: ServiceURI!
     alias: String
@@ -173,10 +175,15 @@ type MBeanMetrics {
     memory: MemoryMetrics!
     thread: ThreadMetrics!
     os: OperatingSystemMetrics!
+    # This is the ID as retrieved over an open network connection to the target JVM. This may use
+    # either stored credentials or session credentials. If using session credentials for a target
+    # that has no matching stored credentials, then this field will be non-null and the ID under
+    # the ServiceRef structure will be null due to the difference between stored representation
+    # and "live" retrieval with session credentials.
     jvmId: String!
 }
 
-# Currently all the relevant MXBean readable attributes in the Cryostat jvm 
+# Currently all the relevant MXBean readable attributes in the Cryostat jvm
 type RuntimeMetrics {
     bootClassPath: String
     classPath: String

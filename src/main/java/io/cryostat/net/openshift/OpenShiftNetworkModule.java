@@ -39,7 +39,7 @@ package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.WebModule;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -128,6 +129,7 @@ public abstract class OpenShiftNetworkModule {
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
+            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
@@ -141,7 +143,7 @@ public abstract class OpenShiftNetworkModule {
                 clientProvider,
                 classPropertiesLoader,
                 gson,
-                ForkJoinPool.commonPool(),
+                executor,
                 Scheduler.systemScheduler(),
                 logger);
     }

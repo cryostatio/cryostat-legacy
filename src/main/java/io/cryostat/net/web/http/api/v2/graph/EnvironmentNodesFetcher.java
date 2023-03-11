@@ -48,6 +48,7 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
@@ -61,8 +62,11 @@ class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<Envir
     private final RootNodeFetcher rootNodeFetcher;
 
     @Inject
-    EnvironmentNodesFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
-        super(auth);
+    EnvironmentNodesFetcher(
+            AuthManager auth,
+            CredentialsManager credentialsManager,
+            RootNodeFetcher rootNodeFetcher) {
+        super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodeFetcher;
     }
 
