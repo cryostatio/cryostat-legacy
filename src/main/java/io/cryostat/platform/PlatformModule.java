@@ -37,6 +37,9 @@
  */
 package io.cryostat.platform;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
@@ -115,8 +118,9 @@ public abstract class PlatformModule {
                 new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
         Predicate<PlatformDetectionStrategy<?>> fn;
         if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
-            String platform = env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR);
-            fn = s -> Objects.equals(platform, s.getClass().getCanonicalName());
+            List<String> platforms =
+                    Arrays.asList(env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR).split(","));
+            fn = s -> platforms.contains(s.getClass().getCanonicalName());
         } else if (env.hasEnv(Variables.DISABLE_BUILTIN_DISCOVERY)) {
             fn = s -> false;
         } else {
@@ -146,7 +150,23 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformDetectionStrategy<?> providePlatformStrategy(
-            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> strategies) {
-        return strategies.stream().findFirst().orElseThrow();
+            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            Set<PlatformDetectionStrategy<?>> strategies) {
+        return selectedStrategies.stream()
+                .findFirst()
+                .orElseThrow(
+                        () ->
+                                new NoSuchElementException(
+                                        String.format(
+                                                "No selected platforms found. Available platforms:"
+                                                        + " %s",
+                                                strategies.stream()
+                                                        .sorted(
+                                                                (a, b) ->
+                                                                        Integer.compare(
+                                                                                b.getPriority(),
+                                                                                a.getPriority()))
+                                                        .map(s -> s.getClass().getCanonicalName())
+                                                        .toList())));
     }
 }
