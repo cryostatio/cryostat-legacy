@@ -130,6 +130,7 @@ class TargetRecordingDeleteHandlerTest {
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("someTarget");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 

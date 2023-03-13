@@ -67,6 +67,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
@@ -120,6 +121,10 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
+        if (StringUtils.isBlank(targetId)) {
+            throw new HttpException(404);
+        }
+        credentialsManager.setSessionCredentials(targetId, null);
         try {
             Credentials credentials;
             if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
@@ -157,8 +162,14 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                 }
                 credentials = new Credentials(parts[0], parts[1]);
                 credentialsManager.setSessionCredentials(targetId, credentials);
-                ctx.addEndHandler(
-                        unused -> credentialsManager.setSessionCredentials(targetId, null));
+                // use the headers end handler to clear the ThreadLocal session credentials since
+                // this handler will run synchronously in the context thread, ensuring the
+                // ThreadLocal is cleared on time and not left dangling until an async cleanup
+                ctx.response()
+                        .headersEndHandler(
+                                unused -> credentialsManager.setSessionCredentials(targetId, null));
+                // ctx.addEndHandler(
+                //         unused -> credentialsManager.setSessionCredentials(targetId, null));
             } else {
                 credentials = credentialsManager.getCredentialsByTargetId(targetId);
             }

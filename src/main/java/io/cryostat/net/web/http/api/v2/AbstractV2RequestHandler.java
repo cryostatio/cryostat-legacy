@@ -96,7 +96,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         RequestParameters requestParams = RequestParameters.from(ctx);
         String targetId = requestParams.getPathParams().get("targetId");
         if (targetId != null) {
-            ctx.addEndHandler(unused -> credentialsManager.setSessionCredentials(targetId, null));
+            credentialsManager.setSessionCredentials(targetId, null);
         }
         try {
             if (requiresAuthentication()) {
@@ -110,6 +110,9 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                 }
             }
             writeResponse(ctx, handle(requestParams));
+            if (targetId != null) {
+                credentialsManager.setSessionCredentials(targetId, null);
+            }
         } catch (ApiException | HttpException e) {
             throw e;
         } catch (Exception e) {
