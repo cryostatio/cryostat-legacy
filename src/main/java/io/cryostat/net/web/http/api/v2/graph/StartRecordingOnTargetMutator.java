@@ -138,8 +138,7 @@ class StartRecordingOnTargetMutator
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
                     if (settings.containsKey("restart")) {
-                        Boolean v = (Boolean) settings.get("restart");
-                        restart = v != null && v;
+                        restart = Boolean.TRUE.equals(settings.get("restart"));
                     }
                     if (settings.containsKey("duration")) {
                         builder =
