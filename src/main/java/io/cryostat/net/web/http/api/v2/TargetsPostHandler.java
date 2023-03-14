@@ -169,6 +169,9 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             boolean dryRun =
                     StringUtils.isNotBlank(queries.get("dryrun"))
                             && Boolean.valueOf(queries.get("dryrun"));
+            boolean storeCredentials =
+                    StringUtils.isNotBlank(queries.get("storeCredentials"))
+                            && Boolean.valueOf(queries.get("storeCredentials"));
 
             String username = attrs.get("username");
             String password = attrs.get("password");
@@ -177,25 +180,31 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                             ? Optional.empty()
                             : Optional.of(new Credentials(username, password));
 
-            if (!dryRun && credentials.isPresent()) {
-                String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
-                int id = credentialsManager.addCredentials(matchExpression, credentials.get());
-                notificationFactory
-                        .createBuilder()
-                        .metaCategory("CredentialsStored")
-                        .metaType(HttpMimeType.JSON)
-                        .message(
-                                Map.of(
-                                        "id",
-                                        id,
-                                        "matchExpression",
-                                        matchExpression,
-                                        "numMatchingTargets",
-                                        1))
-                        .build()
-                        .send();
+            if (credentials.isPresent()) {
+                if (storeCredentials) {
+                    String matchExpression =
+                            CredentialsManager.targetIdToMatchExpression(connectUrl);
+                    int id = credentialsManager.addCredentials(matchExpression, credentials.get());
+                    notificationFactory
+                            .createBuilder()
+                            .metaCategory("CredentialsStored")
+                            .metaType(HttpMimeType.JSON)
+                            .message(
+                                    Map.of(
+                                            "id",
+                                            id,
+                                            "matchExpression",
+                                            matchExpression,
+                                            "numMatchingTargets",
+                                            1))
+                            .build()
+                            .send();
+                } else {
+                    credentialsManager.setSessionCredentials(uri.toString(), credentials.get());
+                }
             }
-            ServiceRef serviceRef = new ServiceRef(null, uri, alias);
+            String jvmId = jvmIdHelper.getJvmId(uri.toString(), false, credentials);
+            ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
 
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             for (AnnotationKey ak : AnnotationKey.values()) {
@@ -209,16 +218,14 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
-            ServiceRef resolved = jvmIdHelper.resolveId(serviceRef);
-
             if (!dryRun) {
-                boolean v = customTargetPlatformClient.addTarget(resolved);
+                boolean v = customTargetPlatformClient.addTarget(serviceRef);
                 if (!v) {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             } else {
-                if (storage.contains(resolved)) {
-                    return new IntermediateResponse<ServiceRef>().statusCode(202).body(resolved);
+                if (storage.contains(serviceRef)) {
+                    return new IntermediateResponse<ServiceRef>().statusCode(202).body(serviceRef);
                 }
             }
 
