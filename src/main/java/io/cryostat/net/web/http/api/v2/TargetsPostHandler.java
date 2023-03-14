@@ -195,9 +195,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                         .build()
                         .send();
             }
-
-            String jvmId = jvmIdHelper.getJvmId(uri.toString(), !dryRun, credentials);
-            ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
+            ServiceRef serviceRef = new ServiceRef(null, uri, alias);
 
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             for (AnnotationKey ak : AnnotationKey.values()) {
@@ -211,14 +209,16 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             cryostatAnnotations.put(AnnotationKey.REALM, CustomTargetPlatformClient.REALM);
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
 
+            ServiceRef resolved = jvmIdHelper.resolveId(serviceRef);
+
             if (!dryRun) {
-                boolean v = customTargetPlatformClient.addTarget(serviceRef);
+                boolean v = customTargetPlatformClient.addTarget(resolved);
                 if (!v) {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             } else {
-                if (storage.contains(serviceRef)) {
-                    return new IntermediateResponse<ServiceRef>().statusCode(202).body(serviceRef);
+                if (storage.contains(resolved)) {
+                    return new IntermediateResponse<ServiceRef>().statusCode(202).body(resolved);
                 }
             }
 
