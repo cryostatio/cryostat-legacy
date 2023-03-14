@@ -107,6 +107,14 @@ if ! podman pod exists cryostat-pod; then
         --publish "$CRYOSTAT_EXT_WEB_PORT":"$CRYOSTAT_WEB_PORT"
 fi
 
+# do: $ podman system service -t 0
+# or do: $ systemctl --user start podman.socket
+# to create the podman.sock to volume-mount into the container
+#
+# to check the podman socket is reachable and connectable within the container:
+# $ podman exec -it cryo /bin/sh
+# sh-4.4# curl -v -s --unix-socket /run/user/0/podman/podman.sock http://d:80/v3.0.0/libpod/info
+#
 # run as root (uid 0) within the container - with rootless podman this means
 # that the process will actually run with your own uid on the host machine,
 # rather than the uid being remapped to something else
@@ -114,6 +122,7 @@ podman run \
     --pod cryostat-pod \
     --name cryostat \
     --user 0 \
+    --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
     --memory 768M \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/certs",destination=/certs,relabel=shared \
@@ -122,6 +131,8 @@ podman run \
     --mount type=bind,source="$(dirname "$0")/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/truststore",destination=/truststore,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/probes",destination=/opt/cryostat.d/conf.d/probes.d,relabel=shared \
+    -v "$XDG_RUNTIME_DIR"/podman/podman.sock:/run/user/0/podman/podman.sock:Z \
+    --security-opt label=disable \
     -e CRYOSTAT_ENABLE_JDP_BROADCAST="true" \
     -e CRYOSTAT_REPORT_GENERATOR="$CRYOSTAT_REPORT_GENERATOR" \
     -e CRYOSTAT_PLATFORM="$CRYOSTAT_PLATFORM" \

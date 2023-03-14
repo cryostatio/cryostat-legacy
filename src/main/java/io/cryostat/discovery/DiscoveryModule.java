@@ -39,6 +39,7 @@ package io.cryostat.discovery;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.SortedSet;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -50,9 +51,10 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.PlatformModule;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.PluggableTypeAdapter;
@@ -116,13 +118,20 @@ public abstract class DiscoveryModule {
     @Singleton
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
-            Set<PlatformClient> platformClients,
+            @Named(PlatformModule.SELECTED_PLATFORMS)
+                    SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            @Named(PlatformModule.UNSELECTED_PLATFORMS)
+                    SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
             Lazy<CustomTargetPlatformClient> customTargets,
-            Environment env,
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(
-                storage, platformClients, customTargets, env, notificationFactory, logger);
+                storage,
+                selectedStrategies,
+                unselectedStrategies,
+                customTargets,
+                notificationFactory,
+                logger);
     }
 
     @Provides

@@ -97,6 +97,7 @@ runDemoApps() {
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
         --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     podman run \
@@ -105,6 +106,7 @@ runDemoApps() {
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
         --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     podman run \
@@ -114,6 +116,7 @@ runDemoApps() {
         --env USE_SSL=true \
         --env USE_AUTH=true \
         --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
 
     local webPort;
@@ -234,6 +237,7 @@ runReportGenerator() {
         --name reports \
         --pull always \
         --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:remote+http://localhost:${RJMX_PORT}" \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \

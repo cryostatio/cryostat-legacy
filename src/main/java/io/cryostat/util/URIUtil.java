@@ -57,10 +57,15 @@ public class URIUtil {
         return new URI(serviceUrl.toString());
     }
 
-    public static URI getRmiTarget(JMXServiceURL serviceUrl) throws URISyntaxException {
+    public static boolean isRmiUrl(JMXServiceURL serviceUrl) {
         String rmiPart = "/jndi/rmi://";
         String pathPart = serviceUrl.getURLPath();
-        if (!pathPart.startsWith(rmiPart)) {
+        return pathPart.startsWith(rmiPart);
+    }
+
+    public static URI getRmiTarget(JMXServiceURL serviceUrl) throws URISyntaxException {
+        String pathPart = serviceUrl.getURLPath();
+        if (!isRmiUrl(serviceUrl)) {
             throw new IllegalArgumentException(serviceUrl.getURLPath());
         }
         return new URI(pathPart.substring("/jndi/".length(), pathPart.length()));
