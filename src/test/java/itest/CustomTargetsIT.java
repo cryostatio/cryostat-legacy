@@ -226,7 +226,7 @@ public class CustomTargetsIT extends StandardSelfTest {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .post("/api/v2/targets")
+                .post("/api/v2/targets?storeCredentials=true")
                 .sendForm(
                         form,
                         ar -> {
