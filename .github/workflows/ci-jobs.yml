@@ -46,7 +46,7 @@ jobs:
     - uses: actions/setup-java@v2
       with:
         java-version: '17'
-        distribution: 'adopt'
+        distribution: 'temurin'
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
@@ -83,7 +83,7 @@ jobs:
     - uses: actions/setup-java@v2
       with:
         java-version: '17'
-        distribution: 'adopt'
+        distribution: 'temurin'
     - uses: actions/download-artifact@v3
       with:
         name: cryostat
@@ -126,7 +126,7 @@ jobs:
     - uses: actions/setup-java@v2
       with:
         java-version: '17'
-        distribution: 'adopt'
+        distribution: 'temurin'
     - name: maven-settings
       uses: s4u/maven-settings-action@v2
       with:
