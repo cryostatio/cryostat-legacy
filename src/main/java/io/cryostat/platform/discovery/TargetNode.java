@@ -54,13 +54,13 @@ public class TargetNode extends AbstractNode {
     }
 
     public TargetNode(NodeType nodeType, ServiceRef target) {
-        super(target.getServiceUri().toString(), nodeType, Collections.emptyMap());
-        this.target = new ServiceRef(target);
+        this(nodeType, target, Collections.emptyMap());
     }
 
     public TargetNode(NodeType nodeType, ServiceRef target, Map<String, String> labels) {
         super(target.getServiceUri().toString(), nodeType, labels);
         this.target = new ServiceRef(target);
+        this.id = hashCode();
     }
 
     public ServiceRef getTarget() {

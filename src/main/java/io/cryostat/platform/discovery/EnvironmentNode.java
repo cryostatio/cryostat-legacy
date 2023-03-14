@@ -70,6 +70,7 @@ public class EnvironmentNode extends AbstractNode {
         super(name, nodeType, labels);
         this.children = new ArrayList<>(children);
         Collections.sort(this.children);
+        this.id = hashCode();
     }
 
     public List<AbstractNode> getChildren() {
@@ -79,11 +80,13 @@ public class EnvironmentNode extends AbstractNode {
     public void addChildNode(AbstractNode child) {
         this.children.add(child);
         Collections.sort(this.children);
+        this.id = hashCode();
     }
 
     public void addChildren(Collection<? extends AbstractNode> children) {
         this.children.addAll(children);
         Collections.sort(this.children);
+        this.id = hashCode();
     }
 
     @Override

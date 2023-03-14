@@ -67,6 +67,7 @@ type TargetNode implements Node {
     recordings: Recordings!
     mbeanMetrics: MBeanMetrics!
 
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
@@ -78,6 +79,7 @@ type TargetNode implements Node {
 type EnvironmentNode implements Node {
     children: [Node!]!
 
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
@@ -86,6 +88,7 @@ type EnvironmentNode implements Node {
 }
 
 interface Node {
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
