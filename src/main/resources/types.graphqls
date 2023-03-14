@@ -8,18 +8,21 @@ scalar Int
 scalar Float
 
 input EnvironmentNodeFilterInput {
+    id: Int
     name: String
     nodeType: String
     labels: [String]
 }
 
 input TargetNodesFilterInput {
+    id: Int
     name: String
     labels: [String]
     annotations: [String]
 }
 
 input DescendantTargetsFilterInput {
+    id: Int
     name: String
     labels: [String]
     annotations: [String]

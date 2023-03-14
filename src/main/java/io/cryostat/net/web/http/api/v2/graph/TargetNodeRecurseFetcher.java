@@ -105,6 +105,11 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
         } else {
             throw new IllegalStateException(node.getClass().toString());
         }
+
+        if (filter.contains(FilterInput.Key.ID)) {
+            int id = filter.get(FilterInput.Key.ID);
+            result = result.stream().filter(n -> n.getId() == id).collect(Collectors.toList());
+        }
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             result =

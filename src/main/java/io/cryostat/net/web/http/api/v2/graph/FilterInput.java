@@ -65,6 +65,7 @@ class FilterInput {
     }
 
     enum Key {
+        ID("id"),
         NAME("name"),
         LABELS("labels"),
         ANNOTATIONS("annotations"),

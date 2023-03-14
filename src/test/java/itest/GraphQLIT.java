@@ -560,7 +560,8 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject query = new JsonObject();
         query.put(
                 "query",
-                "query { environmentNodes(filter: { name: \"JDP\" }) { id descendantTargets { id } } }");
+                "query { environmentNodes(filter: { name: \"JDP\" }) { id descendantTargets { id }"
+                        + " } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -1171,7 +1172,9 @@ class GraphQLIT extends ExternalTargetsTest {
                 return false;
             }
             Node other = (Node) obj;
-            return id == other.id && Objects.equals(name, other.name) && Objects.equals(nodeType, other.nodeType);
+            return id == other.id
+                    && Objects.equals(name, other.name)
+                    && Objects.equals(nodeType, other.nodeType);
         }
     }
 
