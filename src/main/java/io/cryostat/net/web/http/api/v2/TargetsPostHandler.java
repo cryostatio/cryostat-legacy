@@ -203,6 +203,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     credentialsManager.setSessionCredentials(uri.toString(), credentials.get());
                 }
             }
+
             String jvmId = jvmIdHelper.getJvmId(uri.toString(), false, credentials);
             ServiceRef serviceRef = new ServiceRef(jvmId, uri, alias);
 
