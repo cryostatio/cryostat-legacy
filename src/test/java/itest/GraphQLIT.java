@@ -278,10 +278,10 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                        + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
-                        + " metadata: { labels: { newLabel: someValue } }  }) { name state duration"
-                        + " archiveOnStop }} }");
+                    + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
+                    + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
+                    + " metadata: { labels: [ { key: \"newLabel\", value: \"someValue\"} ] }  }) {"
+                    + " name state duration archiveOnStop }} }");
         Map<String, String> expectedLabels =
                 Map.of(
                         "template.name",

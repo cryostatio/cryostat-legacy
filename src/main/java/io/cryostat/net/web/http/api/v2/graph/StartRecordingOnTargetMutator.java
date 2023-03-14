@@ -38,6 +38,8 @@
 package io.cryostat.net.web.http.api.v2.graph;
 
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +59,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -161,11 +164,21 @@ class StartRecordingOnTargetMutator
                     }
                     Metadata m = new Metadata();
                     if (settings.containsKey("metadata")) {
-                        m =
-                                (Metadata)
-                                        gson.fromJson(
-                                                settings.get("metadata").toString(),
-                                                new TypeToken<Metadata>() {}.getType());
+                        Map<String, Object> _metadata =
+                                gson.fromJson(
+                                        settings.get("metadata").toString(),
+                                        new TypeToken<Map<String, Object>>() {}.getType());
+
+                        Map<String, String> labels = new HashMap<>();
+                        List<InputRecordingLabel> inputLabels =
+                                gson.fromJson(
+                                        _metadata.get("labels").toString(),
+                                        new TypeToken<List<InputRecordingLabel>>() {}.getType());
+
+                        for (InputRecordingLabel l : inputLabels) {
+                            labels.put(l.getKey(), l.getValue());
+                        }
+                        m = new Metadata(labels);
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
