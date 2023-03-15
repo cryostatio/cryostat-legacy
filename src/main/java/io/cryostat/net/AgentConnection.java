@@ -265,4 +265,30 @@ public class AgentConnection implements JFRConnection {
                 .toCompletionStage()
                 .toCompletableFuture();
     }
+
+    public static class Factory {
+        private final long httpTimeout;
+        private final WebClient client;
+        private final CredentialsManager credentialsManager;
+        private final JvmIdHelper idHelper;
+        private final Logger logger;
+
+        Factory(
+                long httpTimeout,
+                WebClient client,
+                CredentialsManager credentialsManager,
+                JvmIdHelper idHelper,
+                Logger logger) {
+            this.httpTimeout = httpTimeout;
+            this.client = client;
+            this.credentialsManager = credentialsManager;
+            this.idHelper = idHelper;
+            this.logger = logger;
+        }
+
+        AgentConnection createConnection(URI agentUri) {
+            return new AgentConnection(
+                    agentUri, httpTimeout, client, credentialsManager, idHelper, logger);
+        }
+    }
 }

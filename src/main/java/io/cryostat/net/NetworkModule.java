@@ -117,21 +117,30 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static AgentConnectionFactory provideAgentConnectionFactory(
+    static AgentConnection.Factory provideAgentConnectionFactory(
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             CredentialsManager credentialsManager,
             JvmIdHelper idHelper,
             Logger logger) {
-        return new AgentConnectionFactory(
+        return new AgentConnection.Factory(
                 httpTimeoutSeconds, webClient, credentialsManager, idHelper, logger);
+    }
+
+    @Provides
+    @Singleton
+    static AgentClient provideAgentClient(
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
+            WebClient webClient,
+            CredentialsManager credentialsManager) {
+        return new AgentClient(httpTimeout, webClient, credentialsManager);
     }
 
     @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Lazy<AgentConnectionFactory> agentConnectionFactory,
+            Lazy<AgentConnection.Factory> agentConnectionFactory,
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,

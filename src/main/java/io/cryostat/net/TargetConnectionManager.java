@@ -80,7 +80,7 @@ public class TargetConnectionManager {
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
-    private final Lazy<AgentConnectionFactory> agentConnectionFactory;
+    private final Lazy<AgentConnection.Factory> agentConnectionFactory;
     private final Executor executor;
     private final Logger logger;
 
@@ -90,7 +90,7 @@ public class TargetConnectionManager {
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
-            Lazy<AgentConnectionFactory> agentConnectionFactory,
+            Lazy<AgentConnection.Factory> agentConnectionFactory,
             PlatformClient platform,
             Executor executor,
             Scheduler scheduler,
