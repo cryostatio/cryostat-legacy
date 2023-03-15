@@ -47,10 +47,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
@@ -120,9 +120,11 @@ public abstract class NetworkModule {
     static AgentConnectionFactory provideAgentConnectionFactory(
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
-            Clock clock,
-            JvmIdHelper idHelper) {
-        return new AgentConnectionFactory(httpTimeoutSeconds, webClient, clock, idHelper);
+            CredentialsManager credentialsManager,
+            JvmIdHelper idHelper,
+            Logger logger) {
+        return new AgentConnectionFactory(
+                httpTimeoutSeconds, webClient, credentialsManager, idHelper, logger);
     }
 
     @Provides

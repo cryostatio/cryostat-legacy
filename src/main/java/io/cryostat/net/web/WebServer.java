@@ -60,6 +60,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.net.AgentConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
@@ -317,6 +318,10 @@ public class WebServer extends AbstractVerticle {
     }
 
     private String getTargetId(JFRConnection conn) throws IOException {
+        // TODO this is a hack
+        if (conn instanceof AgentConnection) {
+            return ((AgentConnection) conn).getUri().toString();
+        }
         return conn.getJMXURL().toString();
     }
 

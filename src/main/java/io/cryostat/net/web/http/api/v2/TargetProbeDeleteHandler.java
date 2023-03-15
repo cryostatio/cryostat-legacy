@@ -128,8 +128,7 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
                     connection -> {
                         AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
                         // The convention for removing probes in the agent controller mbean is to
-                        // call
-                        // defineEventProbes with a null argument.
+                        // call defineEventProbes with a null argument.
                         helper.defineEventProbes(null);
                         notificationFactory
                                 .createBuilder()

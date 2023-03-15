@@ -39,14 +39,18 @@ package io.cryostat.net;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXServiceURL;
+import javax.script.ScriptException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
@@ -55,7 +59,10 @@ import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.FlightRecorderException;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
@@ -68,29 +75,39 @@ import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jsoup.nodes.Document;
 
-class AgentConnection implements JFRConnection {
+public class AgentConnection implements JFRConnection {
 
     private final URI agentUri;
     private final long httpTimeout;
     private final WebClient webClient;
-    private final Clock clock;
+    private final CredentialsManager credentialsManager;
     private final JvmIdHelper idHelper;
+    private final Logger logger;
 
     AgentConnection(
             URI agentUri,
             long httpTimeoutSeconds,
             WebClient webClient,
-            Clock clock,
-            JvmIdHelper idHelper) {
+            CredentialsManager credentialsManager,
+            JvmIdHelper idHelper,
+            Logger logger) {
         this.agentUri = agentUri;
         this.httpTimeout = httpTimeoutSeconds;
         this.webClient = webClient;
-        this.clock = clock;
+        this.credentialsManager = credentialsManager;
         this.idHelper = idHelper;
+        this.logger = logger;
     }
 
     @Override
@@ -98,21 +115,33 @@ class AgentConnection implements JFRConnection {
 
     @Override
     public void connect() throws ConnectionException {
-        // TODO test connection by pinging agent callback
+        CompletableFuture<HttpResponse<Buffer>> f = invoke(HttpMethod.GET, "/");
+        try {
+            HttpResponse<Buffer> resp = f.get();
+            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
+                throw new ConnectionException(resp.statusMessage());
+            }
+            ;
+        } catch (ExecutionException | InterruptedException e) {
+            throw new ConnectionException(ExceptionUtils.getMessage(e));
+        }
     }
 
     @Override
     public void disconnect() {}
 
+    public URI getUri() {
+        return agentUri;
+    }
+
     @Override
-    public long getApproximateServerTime(Clock arg0) {
+    public long getApproximateServerTime(Clock clock) {
         return clock.now().toEpochMilli();
     }
 
     @Override
     public IConnectionHandle getHandle() throws ConnectionException, IOException {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -122,8 +151,10 @@ class AgentConnection implements JFRConnection {
 
     @Override
     public JMXServiceURL getJMXURL() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        if (agentUri.getScheme().startsWith("http")) {
+            throw new UnsupportedOperationException();
+        }
+        return new JMXServiceURL(agentUri.toString());
     }
 
     @Override
@@ -169,8 +200,14 @@ class AgentConnection implements JFRConnection {
 
     @Override
     public boolean isConnected() {
-        // TODO Auto-generated method stub
-        return true;
+        CompletableFuture<HttpResponse<Buffer>> f = invoke(HttpMethod.GET, "/");
+        try {
+            HttpResponse<Buffer> resp = f.get();
+            return (HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode()));
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return false;
+        }
     }
 
     @Override
@@ -188,5 +225,44 @@ class AgentConnection implements JFRConnection {
         OperatingSystemMetrics os = new OperatingSystemMetrics(Collections.emptyMap());
 
         return new MBeanMetrics(runtime, memory, threads, os, null);
+    }
+
+    private CompletableFuture<HttpResponse<Buffer>> invoke(HttpMethod mtd, String path) {
+        HttpRequest<Buffer> req =
+                webClient
+                        .request(mtd, agentUri.getPort(), agentUri.getHost(), path)
+                        .ssl("https".equals(agentUri.getScheme()))
+                        .timeout(Duration.ofSeconds(httpTimeout).toMillis())
+                        .followRedirects(true);
+        try {
+            Credentials credentials =
+                    credentialsManager.getCredentialsByTargetId(agentUri.toString());
+            req =
+                    req.authentication(
+                            new UsernamePasswordCredentials(
+                                    credentials.getUsername(), credentials.getPassword()));
+        } catch (ScriptException se) {
+            return CompletableFuture.failedFuture(se);
+        }
+        return req.send()
+                .onComplete(
+                        ar -> {
+                            if (ar.failed()) {
+                                logger.warn(
+                                        "{} {} failed: {}",
+                                        mtd,
+                                        agentUri,
+                                        ExceptionUtils.getStackTrace(ar.cause()));
+                                return;
+                            }
+                            logger.info(
+                                    "{} {} status {}: {}",
+                                    mtd,
+                                    agentUri,
+                                    ar.result().statusCode(),
+                                    ar.result().statusMessage());
+                        })
+                .toCompletionStage()
+                .toCompletableFuture();
     }
 }

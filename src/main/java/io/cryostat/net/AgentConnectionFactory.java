@@ -39,7 +39,8 @@ package io.cryostat.net;
 
 import java.net.URI;
 
-import io.cryostat.core.sys.Clock;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.recordings.JvmIdHelper;
 
 import io.vertx.ext.web.client.WebClient;
@@ -48,18 +49,25 @@ class AgentConnectionFactory {
 
     private final long httpTimeout;
     private final WebClient webClient;
-    private final Clock clock;
+    private final CredentialsManager credentialsManager;
     private final JvmIdHelper idHelper;
+    private final Logger logger;
 
     AgentConnectionFactory(
-            long httpTimeoutSeconds, WebClient webClient, Clock clock, JvmIdHelper idHelper) {
+            long httpTimeoutSeconds,
+            WebClient webClient,
+            CredentialsManager credentialsManager,
+            JvmIdHelper idHelper,
+            Logger logger) {
         this.httpTimeout = httpTimeoutSeconds;
         this.webClient = webClient;
-        this.clock = clock;
+        this.credentialsManager = credentialsManager;
         this.idHelper = idHelper;
+        this.logger = logger;
     }
 
     AgentConnection createConnection(URI agentUri) {
-        return new AgentConnection(agentUri, httpTimeout, webClient, clock, idHelper);
+        return new AgentConnection(
+                agentUri, httpTimeout, webClient, credentialsManager, idHelper, logger);
     }
 }
