@@ -553,6 +553,41 @@ class GraphQLIT extends ExternalTargetsTest {
                         "^es-andrewazor-demo-Main_graphql-itest_[0-9]{8}T[0-9]{6}Z\\.jfr$"));
     }
 
+    @Test
+    @Order(8)
+    void testNodesHaveIds() throws Exception {
+        CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { environmentNodes(filter: { name: \"JDP\" }) { id descendantTargets { id }"
+                        + " } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                EnvironmentNodesResponse.class));
+                            }
+                        });
+        // if any of the nodes in the query did not have an ID property then the request would fail
+        EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Set<Integer> observedIds = new HashSet<>();
+        for (var env : actual.data.environmentNodes) {
+            // ids should be unique
+            MatcherAssert.assertThat(observedIds, Matchers.not(Matchers.contains(env.id)));
+            observedIds.add(env.id);
+            for (var target : env.descendantTargets) {
+                MatcherAssert.assertThat(observedIds, Matchers.not(Matchers.contains(target.id)));
+                observedIds.add(target.id);
+            }
+        }
+    }
+
     static class Target {
         String alias;
         String serviceUri;
@@ -1111,17 +1146,18 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     static class Node {
+        int id;
         String name;
         String nodeType;
 
         @Override
         public String toString() {
-            return "Node [name=" + name + ", nodeType=" + nodeType + "]";
+            return "Node [id=" + id + ", name=" + name + ", nodeType=" + nodeType + "]";
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, nodeType);
+            return Objects.hash(id, name, nodeType);
         }
 
         @Override
@@ -1136,7 +1172,9 @@ class GraphQLIT extends ExternalTargetsTest {
                 return false;
             }
             Node other = (Node) obj;
-            return Objects.equals(name, other.name) && Objects.equals(nodeType, other.nodeType);
+            return id == other.id
+                    && Objects.equals(name, other.name)
+                    && Objects.equals(nodeType, other.nodeType);
         }
     }
 

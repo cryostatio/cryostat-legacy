@@ -97,6 +97,11 @@ class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<Envir
         EnvironmentNode root = rootNodeFetcher.get(environment);
         Set<EnvironmentNode> nodes = flattenEnvNodes(root);
 
+        if (filter.contains(FilterInput.Key.ID)) {
+            int id = filter.get(FilterInput.Key.ID);
+            nodes = filter(nodes, n -> n.getId() == id);
+        }
+
         if (filter.contains(FilterInput.Key.NAME)) {
             String nodeName = filter.get(FilterInput.Key.NAME);
             nodes = filter(nodes, n -> Objects.equals(n.getName(), nodeName));

@@ -8,18 +8,21 @@ scalar Int
 scalar Float
 
 input EnvironmentNodeFilterInput {
+    id: Int
     name: String
     nodeType: String
     labels: [String]
 }
 
 input TargetNodesFilterInput {
+    id: Int
     name: String
     labels: [String]
     annotations: [String]
 }
 
 input DescendantTargetsFilterInput {
+    id: Int
     name: String
     labels: [String]
     annotations: [String]
@@ -67,6 +70,7 @@ type TargetNode implements Node {
     recordings: Recordings!
     mbeanMetrics: MBeanMetrics!
 
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
@@ -78,6 +82,7 @@ type TargetNode implements Node {
 type EnvironmentNode implements Node {
     children: [Node!]!
 
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
@@ -86,6 +91,7 @@ type EnvironmentNode implements Node {
 }
 
 interface Node {
+    id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!

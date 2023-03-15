@@ -88,6 +88,10 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
         while (reader.hasNext()) {
             String tokenName = reader.nextName();
             switch (tokenName) {
+                case "id":
+                    // ignore this if it's provided. We will (re)calculate the ID on our own.
+                    reader.nextInt();
+                    break;
                 case "name":
                     name = reader.nextString();
                     break;
@@ -235,6 +239,7 @@ public class AbstractNodeTypeAdapter extends PluggableTypeAdapter<AbstractNode> 
     public void write(JsonWriter writer, AbstractNode node) throws IOException {
         writer.beginObject();
 
+        writer.name("id").value(node.getId());
         writer.name("name").value(node.getName());
         writer.name("nodeType").value(node.getNodeType().getKind());
         writeMap(writer, "labels", node.getLabels());

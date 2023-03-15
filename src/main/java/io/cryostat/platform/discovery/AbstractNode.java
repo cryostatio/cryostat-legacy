@@ -51,6 +51,9 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public abstract class AbstractNode implements Comparable<AbstractNode> {
 
+    // this currently just holds a value from hashCode(). In the future it should be a database ID
+    protected int id;
+
     protected String name;
 
     protected NodeType nodeType;
@@ -65,6 +68,10 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
         this.name = name;
         this.nodeType = nodeType;
         this.labels = new HashMap<>(labels);
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getName() {
