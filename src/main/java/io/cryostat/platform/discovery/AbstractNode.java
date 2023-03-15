@@ -68,7 +68,6 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
         this.name = name;
         this.nodeType = nodeType;
         this.labels = new HashMap<>(labels);
-        this.id = hashCode();
     }
 
     public int getId() {
