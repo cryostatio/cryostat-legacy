@@ -63,6 +63,7 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.JvmIdHelper;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -118,22 +119,21 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentConnection.Factory provideAgentConnectionFactory(
-            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
-            WebClient webClient,
-            CredentialsManager credentialsManager,
-            JvmIdHelper idHelper,
-            Logger logger) {
-        return new AgentConnection.Factory(
-                httpTimeoutSeconds, webClient, credentialsManager, idHelper, logger);
+            AgentClient.Factory clientFactory, JvmIdHelper idHelper, Logger logger) {
+        return new AgentConnection.Factory(clientFactory, idHelper, logger);
     }
 
     @Provides
     @Singleton
-    static AgentClient provideAgentClient(
+    static AgentClient.Factory provideAgentClientFactory(
+            Vertx vertx,
+            Gson gson,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
-            CredentialsManager credentialsManager) {
-        return new AgentClient(httpTimeout, webClient, credentialsManager);
+            CredentialsManager credentialsManager,
+            Logger logger) {
+        return new AgentClient.Factory(
+                vertx, gson, httpTimeout, webClient, credentialsManager, logger);
     }
 
     @Provides
