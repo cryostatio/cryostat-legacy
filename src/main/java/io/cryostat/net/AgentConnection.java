@@ -184,9 +184,7 @@ public class AgentConnection implements JFRConnection {
             throws ConnectionException, IOException, InstanceNotFoundException,
                     IntrospectionException, ReflectionException {
         try {
-            var m = client.mbeanMetrics().toCompletionStage().toCompletableFuture().get();
-            logger.info("mbeans: {}", m);
-            return m;
+            return client.mbeanMetrics().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {
             throw new IOException(e);
         }

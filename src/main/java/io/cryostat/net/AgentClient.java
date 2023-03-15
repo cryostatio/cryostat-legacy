@@ -99,11 +99,9 @@ class AgentClient {
         Future<HttpResponse<String>> f =
                 invoke(HttpMethod.GET, "/mbean-metrics", BodyCodec.string());
         return f.map(HttpResponse::body)
-                .map(
-                        s -> {
-                            logger.info("mbean response: {}", s);
-                            return gson.fromJson(s, MBeanMetrics.class);
-                        });
+                // uses Gson rather than Vertx's Jackson because Gson is able to handle MBeanMetrics
+                // with no additional fuss. Jackson complains about private final fields.
+                .map(s -> gson.fromJson(s, MBeanMetrics.class));
     }
 
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
@@ -143,7 +141,7 @@ class AgentClient {
                                             promise.fail(ar.cause());
                                             return;
                                         }
-                                        logger.info(
+                                        logger.trace(
                                                 "{} {}{} status {}: {}",
                                                 mtd,
                                                 agentUri,
