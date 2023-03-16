@@ -67,16 +67,16 @@ type Annotations {
 
 type TargetNode implements Node {
     target: ServiceRef!
-    recordings: Recordings!
-    mbeanMetrics: MBeanMetrics!
+    recordings: Recordings
+    mbeanMetrics: MBeanMetrics
 
     id: Int!
     name: String!
     nodeType: NodeType!
     labels: Object!
 
-    doStartRecording(recording: RecordingSettings!): ActiveRecording!
-    doSnapshot: ActiveRecording!
+    doStartRecording(recording: RecordingSettings!): ActiveRecording
+    doSnapshot: ActiveRecording
 }
 
 type EnvironmentNode implements Node {
@@ -119,9 +119,9 @@ type ActiveRecording implements Recording {
     metadata: RecordingMetadata!
 
     doArchive: ArchivedRecording!
-    doStop: ActiveRecording!
-    doDelete: ActiveRecording!
-    doPutMetadata(metadata: Object): ActiveRecording!
+    doStop: ActiveRecording
+    doDelete: ActiveRecording
+    doPutMetadata(metadata: Object): ActiveRecording
 }
 
 type ArchivedRecording implements Recording {
