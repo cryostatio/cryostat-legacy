@@ -171,12 +171,7 @@ public class AgentConnection implements JFRConnection {
 
     @Override
     public boolean isConnected() {
-        try {
-            return client.ping().toCompletionStage().toCompletableFuture().get();
-        } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
-            return false;
-        }
+        return true;
     }
 
     @Override

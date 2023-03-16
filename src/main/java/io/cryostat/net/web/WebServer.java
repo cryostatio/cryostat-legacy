@@ -318,7 +318,9 @@ public class WebServer extends AbstractVerticle {
     }
 
     private String getTargetId(JFRConnection conn) throws IOException {
-        // TODO this is a hack
+        // TODO this is a hack, the JFRConnection interface should be refactored to expose a more
+        // general connection URL / targetId method since the JMX implementation is now only one
+        // possible implementation
         if (conn instanceof AgentConnection) {
             return ((AgentConnection) conn).getUri().toString();
         }
