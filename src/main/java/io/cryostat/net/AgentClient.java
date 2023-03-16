@@ -39,8 +39,21 @@ package io.cryostat.net;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.script.ScriptException;
+
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.flightrecorder.configuration.internal.EventTypeIDV2;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -52,12 +65,15 @@ import com.google.gson.Gson;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 class AgentClient {
 
@@ -102,6 +118,119 @@ class AgentClient {
                 // uses Gson rather than Vertx's Jackson because Gson is able to handle MBeanMetrics
                 // with no additional fuss. Jackson complains about private final fields.
                 .map(s -> gson.fromJson(s, MBeanMetrics.class));
+    }
+
+    Future<Collection<? extends IEventTypeInfo>> eventTypes() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body)
+                .map(
+                        arr -> {
+                            logger.info("{}", arr.getList());
+
+                            return arr.stream()
+                                    .map(o -> new AgentEventTypeInfo((JsonObject) o))
+                                    .toList();
+                        });
+    }
+
+    static class AgentEventTypeInfo implements IEventTypeInfo {
+
+        final JsonObject json;
+
+        AgentEventTypeInfo(JsonObject json) {
+            this.json = json;
+        }
+
+        @Override
+        public String getDescription() {
+            return json.getString("description");
+        }
+
+        @Override
+        public IEventTypeID getEventTypeID() {
+            return new EventTypeIDV2(json.getString("name"));
+        }
+
+        @Override
+        public String[] getHierarchicalCategory() {
+            return ((List<String>)
+                            json.getJsonArray("categories").getList().stream()
+                                    .map(Object::toString)
+                                    .toList())
+                    .toArray(new String[0]);
+        }
+
+        @Override
+        public String getName() {
+            return json.getString("name");
+        }
+
+        @Override
+        public Map<String, ? extends IOptionDescriptor<?>> getOptionDescriptors() {
+            // TODO
+            return Map.of();
+        }
+
+        @Override
+        public IOptionDescriptor<?> getOptionInfo(String arg0) {
+            // TODO
+            return null;
+        }
+    }
+
+    Future<IConstrainedMap<EventOptionID>> eventSettings() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-settings", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body)
+                .map(
+                        arr -> {
+                            return arr.stream()
+                                    .map(
+                                            o -> {
+                                                JsonObject json = (JsonObject) o;
+                                                String eventName = json.getString("name");
+                                                JsonArray jsonSettings =
+                                                        json.getJsonArray("settings");
+                                                Map<String, String> settings = new HashMap<>();
+                                                jsonSettings.forEach(
+                                                        s -> {
+                                                            JsonObject j = (JsonObject) s;
+                                                            settings.put(
+                                                                    j.getString("name"),
+                                                                    j.getString("defaultValue"));
+                                                        });
+                                                return Pair.of(eventName, settings);
+                                            })
+                                    .toList();
+                        })
+                .map(
+                        list -> {
+                            SimpleConstrainedMap<EventOptionID> result =
+                                    new SimpleConstrainedMap<EventOptionID>(null);
+                            list.forEach(
+                                    item -> {
+                                        item.getRight()
+                                                .forEach(
+                                                        (key, val) -> {
+                                                            try {
+                                                                result.put(
+                                                                        new EventOptionID(
+                                                                                new EventTypeIDV2(
+                                                                                        item
+                                                                                                .getLeft()),
+                                                                                key),
+                                                                        null,
+                                                                        val);
+                                                            } catch (
+                                                                    QuantityConversionException
+                                                                            qce) {
+                                                                logger.warn(qce);
+                                                            }
+                                                        });
+                                    });
+                            return result;
+                        });
     }
 
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {

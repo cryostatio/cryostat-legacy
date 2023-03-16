@@ -143,7 +143,7 @@ public class AgentConnection implements JFRConnection {
     @Override
     public IFlightRecorderService getService()
             throws ConnectionException, IOException, ServiceNotAvailableException {
-        return new AgentJFRService(client);
+        return new AgentJFRService(client, logger);
     }
 
     @Override
