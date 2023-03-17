@@ -127,11 +127,7 @@ class AgentClient {
         Future<HttpResponse<JsonArray>> f =
                 invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
-                .map(
-                        arr -> arr.stream()
-                        .map(o -> new AgentEventTypeInfo((JsonObject) o))
-                        .toList()
-                    );
+                .map(arr -> arr.stream().map(o -> new AgentEventTypeInfo((JsonObject) o)).toList());
     }
 
     static class AgentEventTypeInfo implements IEventTypeInfo {
@@ -265,6 +261,12 @@ class AgentClient {
                                     });
                             return result;
                         });
+    }
+
+    Future<List<String>> eventTemplates() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-templates", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body).map(arr -> arr.stream().map(Object::toString).toList());
     }
 
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {

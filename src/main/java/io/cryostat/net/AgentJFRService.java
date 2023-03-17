@@ -153,8 +153,12 @@ class AgentJFRService implements IFlightRecorderService {
 
     @Override
     public List<String> getServerTemplates() throws FlightRecorderException {
-        // TODO Auto-generated method stub
-        return List.of();
+        try {
+            return client.eventTemplates().toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return List.of();
+        }
     }
 
     @Override

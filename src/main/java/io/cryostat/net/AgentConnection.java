@@ -39,8 +39,6 @@ package io.cryostat.net;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -49,26 +47,21 @@ import javax.management.IntrospectionException;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXServiceURL;
 
-import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.core.sys.Clock;
-import io.cryostat.core.templates.Template;
+import io.cryostat.core.templates.RemoteTemplateService;
 import io.cryostat.core.templates.TemplateService;
-import io.cryostat.core.templates.TemplateType;
 import io.cryostat.recordings.JvmIdHelper;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.jsoup.nodes.Document;
 
 public class AgentConnection implements JFRConnection {
 
@@ -148,25 +141,7 @@ public class AgentConnection implements JFRConnection {
 
     @Override
     public TemplateService getTemplateService() {
-        return new TemplateService() {
-
-            @Override
-            public Optional<IConstrainedMap<EventOptionID>> getEvents(
-                    String name, TemplateType type) throws FlightRecorderException {
-                return Optional.empty();
-            }
-
-            @Override
-            public List<Template> getTemplates() throws FlightRecorderException {
-                return List.of();
-            }
-
-            @Override
-            public Optional<Document> getXml(String name, TemplateType type)
-                    throws FlightRecorderException {
-                return Optional.empty();
-            }
-        };
+        return new RemoteTemplateService(this);
     }
 
     @Override
