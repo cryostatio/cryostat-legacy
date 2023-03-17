@@ -54,16 +54,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.vertx.ext.web.client.WebClient;
-
 class AgentJFRService implements IFlightRecorderService {
 
-    private final long httpTimeout;
-    private final WebClient webClient;
+    private final AgentClient client;
 
-    AgentJFRService(long httpTimeout, WebClient webClient) {
-        this.httpTimeout = httpTimeout;
-        this.webClient = webClient;
+    AgentJFRService(AgentClient client) {
+        this.client = client;
     }
 
     @Override

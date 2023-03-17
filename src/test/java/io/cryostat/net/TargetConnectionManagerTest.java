@@ -70,7 +70,7 @@ class TargetConnectionManagerTest {
     TargetConnectionManager mgr;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit jfrConnectionToolkit;
-    @Mock AgentConnectionFactory agentConnectionFactory;
+    @Mock AgentConnection.Factory agentConnectionFactory;
     @Mock PlatformClient platformClient;
     Duration TTL = Duration.ofMillis(250);
 

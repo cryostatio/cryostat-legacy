@@ -47,10 +47,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
@@ -63,6 +63,7 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.JvmIdHelper;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -117,19 +118,29 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static AgentConnectionFactory provideAgentConnectionFactory(
-            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
+    static AgentConnection.Factory provideAgentConnectionFactory(
+            AgentClient.Factory clientFactory, JvmIdHelper idHelper, Logger logger) {
+        return new AgentConnection.Factory(clientFactory, idHelper, logger);
+    }
+
+    @Provides
+    @Singleton
+    static AgentClient.Factory provideAgentClientFactory(
+            Vertx vertx,
+            Gson gson,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
-            Clock clock,
-            JvmIdHelper idHelper) {
-        return new AgentConnectionFactory(httpTimeoutSeconds, webClient, clock, idHelper);
+            CredentialsManager credentialsManager,
+            Logger logger) {
+        return new AgentClient.Factory(
+                vertx, gson, httpTimeout, webClient, credentialsManager, logger);
     }
 
     @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Lazy<AgentConnectionFactory> agentConnectionFactory,
+            Lazy<AgentConnection.Factory> agentConnectionFactory,
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
