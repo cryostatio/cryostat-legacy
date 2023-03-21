@@ -113,8 +113,12 @@ class AgentJFRService implements IFlightRecorderService {
 
     @Override
     public List<IRecordingDescriptor> getAvailableRecordings() throws FlightRecorderException {
-        // TODO Auto-generated method stub
-        return List.of();
+        try {
+            return client.activeRecordings().toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return List.of();
+        }
     }
 
     @Override
