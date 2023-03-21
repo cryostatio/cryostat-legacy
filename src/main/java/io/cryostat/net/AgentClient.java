@@ -39,8 +39,25 @@ package io.cryostat.net;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.script.ScriptException;
+
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.IConstraint;
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.flightrecorder.configuration.internal.EventTypeIDV2;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -52,12 +69,14 @@ import com.google.gson.Gson;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 class AgentClient {
 
@@ -104,53 +123,190 @@ class AgentClient {
                 .map(s -> gson.fromJson(s, MBeanMetrics.class));
     }
 
-    private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
-        return vertx.executeBlocking(
-                promise -> {
-                    logger.info("{} {} {}", mtd, agentUri, path);
-                    HttpRequest<T> req =
-                            webClient
-                                    .request(mtd, agentUri.getPort(), agentUri.getHost(), path)
-                                    .ssl("https".equals(agentUri.getScheme()))
-                                    .timeout(Duration.ofSeconds(httpTimeout).toMillis())
-                                    .followRedirects(true)
-                                    .as(codec);
-                    try {
-                        Credentials credentials =
-                                credentialsManager.getCredentialsByTargetId(agentUri.toString());
-                        req =
-                                req.authentication(
-                                        new UsernamePasswordCredentials(
-                                                credentials.getUsername(),
-                                                credentials.getPassword()));
-                    } catch (ScriptException se) {
-                        promise.fail(se);
-                        return;
-                    }
+    Future<Collection<? extends IEventTypeInfo>> eventTypes() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body)
+                .map(arr -> arr.stream().map(o -> new AgentEventTypeInfo((JsonObject) o)).toList());
+    }
 
-                    req.send()
-                            .onComplete(
-                                    ar -> {
-                                        if (ar.failed()) {
-                                            logger.warn(
-                                                    "{} {}{} failed: {}",
-                                                    mtd,
-                                                    agentUri,
-                                                    path,
-                                                    ExceptionUtils.getStackTrace(ar.cause()));
-                                            promise.fail(ar.cause());
-                                            return;
-                                        }
-                                        logger.trace(
-                                                "{} {}{} status {}: {}",
-                                                mtd,
-                                                agentUri,
-                                                path,
-                                                ar.result().statusCode(),
-                                                ar.result().statusMessage());
-                                        promise.complete(ar.result());
+    static class AgentEventTypeInfo implements IEventTypeInfo {
+
+        final JsonObject json;
+
+        AgentEventTypeInfo(JsonObject json) {
+            this.json = json;
+        }
+
+        @Override
+        public String getDescription() {
+            return json.getString("description");
+        }
+
+        @Override
+        public IEventTypeID getEventTypeID() {
+            return new EventTypeIDV2(json.getString("name"));
+        }
+
+        @Override
+        public String[] getHierarchicalCategory() {
+            return ((List<String>)
+                            json.getJsonArray("categories").getList().stream()
+                                    .map(Object::toString)
+                                    .toList())
+                    .toArray(new String[0]);
+        }
+
+        @Override
+        public String getName() {
+            return json.getString("name");
+        }
+
+        static <T, V> V capture(T t) {
+            // TODO clean up this generics hack
+            return (V) t;
+        }
+
+        @Override
+        public Map<String, ? extends IOptionDescriptor<?>> getOptionDescriptors() {
+            Map<String, ? extends IOptionDescriptor<?>> result = new HashMap<>();
+            JsonArray settings = json.getJsonArray("settings");
+            settings.forEach(
+                    setting -> {
+                        String name = ((JsonObject) setting).getString("name");
+                        String defaultValue = ((JsonObject) setting).getString("defaultValue");
+                        result.put(
+                                name,
+                                capture(
+                                        new IOptionDescriptor<String>() {
+                                            @Override
+                                            public String getName() {
+                                                return name;
+                                            }
+
+                                            @Override
+                                            public String getDescription() {
+                                                return null;
+                                            }
+
+                                            @Override
+                                            public IConstraint<String> getConstraint() {
+                                                return null;
+                                            }
+
+                                            @Override
+                                            public String getDefault() {
+                                                return defaultValue;
+                                            }
+                                        }));
+                    });
+            return result;
+        }
+
+        @Override
+        public IOptionDescriptor<?> getOptionInfo(String s) {
+            return getOptionDescriptors().get(s);
+        }
+    }
+
+    Future<IConstrainedMap<EventOptionID>> eventSettings() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-settings", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body)
+                .map(
+                        arr -> {
+                            return arr.stream()
+                                    .map(
+                                            o -> {
+                                                JsonObject json = (JsonObject) o;
+                                                String eventName = json.getString("name");
+                                                JsonArray jsonSettings =
+                                                        json.getJsonArray("settings");
+                                                Map<String, String> settings = new HashMap<>();
+                                                jsonSettings.forEach(
+                                                        s -> {
+                                                            JsonObject j = (JsonObject) s;
+                                                            settings.put(
+                                                                    j.getString("name"),
+                                                                    j.getString("defaultValue"));
+                                                        });
+                                                return Pair.of(eventName, settings);
+                                            })
+                                    .toList();
+                        })
+                .map(
+                        list -> {
+                            SimpleConstrainedMap<EventOptionID> result =
+                                    new SimpleConstrainedMap<EventOptionID>(null);
+                            list.forEach(
+                                    item -> {
+                                        item.getRight()
+                                                .forEach(
+                                                        (key, val) -> {
+                                                            try {
+                                                                result.put(
+                                                                        new EventOptionID(
+                                                                                new EventTypeIDV2(
+                                                                                        item
+                                                                                                .getLeft()),
+                                                                                key),
+                                                                        null,
+                                                                        val);
+                                                            } catch (
+                                                                    QuantityConversionException
+                                                                            qce) {
+                                                                logger.warn(qce);
+                                                            }
+                                                        });
                                     });
-                });
+                            return result;
+                        });
+    }
+
+    Future<List<String>> eventTemplates() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/event-templates", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body).map(arr -> arr.stream().map(Object::toString).toList());
+    }
+
+    private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
+        return Future.fromCompletionStage(
+                CompletableFuture.supplyAsync(
+                        () -> {
+                            logger.info("{} {} {}", mtd, agentUri, path);
+                            HttpRequest<T> req =
+                                    webClient
+                                            .request(
+                                                    mtd,
+                                                    agentUri.getPort(),
+                                                    agentUri.getHost(),
+                                                    path)
+                                            .ssl("https".equals(agentUri.getScheme()))
+                                            .timeout(Duration.ofSeconds(httpTimeout).toMillis())
+                                            .followRedirects(true)
+                                            .as(codec);
+                            try {
+                                Credentials credentials =
+                                        credentialsManager.getCredentialsByTargetId(
+                                                agentUri.toString());
+                                req =
+                                        req.authentication(
+                                                new UsernamePasswordCredentials(
+                                                        credentials.getUsername(),
+                                                        credentials.getPassword()));
+                            } catch (ScriptException e) {
+                                logger.error(e);
+                                throw new RuntimeException(e);
+                            }
+
+                            try {
+                                return req.send().toCompletionStage().toCompletableFuture().get();
+                            } catch (InterruptedException | ExecutionException e) {
+                                logger.error(e);
+                                throw new RuntimeException(e);
+                            }
+                        },
+                        ForkJoinPool.commonPool()));
     }
 
     static class Factory {

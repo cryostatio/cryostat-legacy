@@ -179,7 +179,8 @@ public abstract class NetworkModule {
                             .setSsl(true)
                             .setDefaultHost(netConf.getWebServerHost())
                             .setDefaultPort(netConf.getExternalWebServerPort())
-                            .setFollowRedirects(true);
+                            .setFollowRedirects(true)
+                            .setTryUseCompression(true);
             if (netConf.isUntrustedSslAllowed()) {
                 opts = opts.setTrustAll(true).setVerifyHost(false);
             }

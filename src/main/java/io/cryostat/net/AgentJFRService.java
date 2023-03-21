@@ -41,6 +41,8 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IDescribedMap;
@@ -54,12 +56,16 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.core.log.Logger;
+
 class AgentJFRService implements IFlightRecorderService {
 
     private final AgentClient client;
+    private final Logger logger;
 
-    AgentJFRService(AgentClient client) {
+    AgentJFRService(AgentClient client, Logger logger) {
         this.client = client;
+        this.logger = logger;
     }
 
     @Override
@@ -79,25 +85,29 @@ class AgentJFRService implements IFlightRecorderService {
 
     @Override
     public void close(IRecordingDescriptor descriptor) throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public void enable() throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public Collection<? extends IEventTypeInfo> getAvailableEventTypes()
             throws FlightRecorderException {
-        return List.of();
+        try {
+            return client.eventTypes().toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return List.of();
+        }
     }
 
     @Override
     public Map<String, IOptionDescriptor<?>> getAvailableRecordingOptions()
             throws FlightRecorderException {
+        // TODO Auto-generated method stub
         return Map.of();
     }
 
@@ -110,8 +120,14 @@ class AgentJFRService implements IFlightRecorderService {
     @Override
     public IConstrainedMap<EventOptionID> getCurrentEventTypeSettings()
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
-        return new DefaultValueMap<>(Map.of());
+        try {
+            return Optional.of(
+                            client.eventSettings().toCompletionStage().toCompletableFuture().get())
+                    .orElse(new DefaultValueMap<>(Map.of()));
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return new DefaultValueMap<>(Map.of());
+        }
     }
 
     @Override
@@ -137,13 +153,16 @@ class AgentJFRService implements IFlightRecorderService {
 
     @Override
     public List<String> getServerTemplates() throws FlightRecorderException {
-        // TODO Auto-generated method stub
-        return List.of();
+        try {
+            return client.eventTemplates().toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            return List.of();
+        }
     }
 
     @Override
     public IRecordingDescriptor getSnapshotRecording() throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
@@ -156,21 +175,18 @@ class AgentJFRService implements IFlightRecorderService {
 
     @Override
     public boolean isEnabled() {
-        // TODO Auto-generated method stub
         return true;
     }
 
     @Override
     public InputStream openStream(IRecordingDescriptor arg0, boolean arg1)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public InputStream openStream(IRecordingDescriptor arg0, IQuantity arg1, boolean arg2)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
@@ -178,7 +194,6 @@ class AgentJFRService implements IFlightRecorderService {
     public InputStream openStream(
             IRecordingDescriptor arg0, IQuantity arg1, IQuantity arg2, boolean arg3)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
@@ -186,27 +201,23 @@ class AgentJFRService implements IFlightRecorderService {
     public IRecordingDescriptor start(
             IConstrainedMap<String> arg0, IConstrainedMap<EventOptionID> arg1)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public void stop(IRecordingDescriptor arg0) throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public void updateEventOptions(IRecordingDescriptor arg0, IConstrainedMap<EventOptionID> arg1)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
     @Override
     public void updateRecordingOptions(IRecordingDescriptor arg0, IConstrainedMap<String> arg1)
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
         throw new UnimplementedException();
     }
 
