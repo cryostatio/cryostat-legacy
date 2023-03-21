@@ -110,13 +110,10 @@ class TargetNodesFetcherTest {
             staticEnv
                     .when(() -> DataFetchingEnvironmentImpl.newDataFetchingEnvironment(env))
                     .thenReturn(builder);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             when(recurseFetcher.get(Mockito.any())).thenReturn(List.of());
 
-            List<TargetNode> nodes = fetcher.get(env);
+            List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(nodes, Matchers.empty());
@@ -145,7 +142,7 @@ class TargetNodesFetcherTest {
 
             when(recurseFetcher.get(Mockito.any())).thenReturn(List.of(target));
 
-            List<TargetNode> nodes = fetcher.get(env);
+            List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(nodes, Matchers.contains(target));
@@ -189,7 +186,7 @@ class TargetNodesFetcherTest {
                 when(recurseFetcher.get(Mockito.any()))
                         .thenReturn(List.of(target1, target2, target3));
 
-                List<TargetNode> nodes = fetcher.get(env);
+                List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
                 MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(target1, target3));
@@ -274,7 +271,7 @@ class TargetNodesFetcherTest {
                 when(recurseFetcher.get(Mockito.any()))
                         .thenReturn(List.of(target1, target2, target3));
 
-                List<TargetNode> nodes = fetcher.get(env);
+                List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
                 MatcherAssert.assertThat(nodes, Matchers.contains(target1));

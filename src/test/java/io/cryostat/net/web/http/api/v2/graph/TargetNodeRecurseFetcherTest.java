@@ -110,16 +110,13 @@ class TargetNodeRecurseFetcherTest {
 
     @Test
     void shouldThrowIllegalStateExceptionOnUnknownNode() throws Exception {
-        when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
         UnknownNode source = Mockito.mock(UnknownNode.class);
 
         when(env.getSource()).thenReturn(source);
 
         IllegalStateException ex =
-                Assertions.assertThrows(IllegalStateException.class, () -> fetcher.get(env));
+                Assertions.assertThrows(
+                        IllegalStateException.class, () -> fetcher.getAuthenticated(env));
         MatcherAssert.assertThat(ex.getMessage(), Matchers.equalTo(source.getClass().toString()));
     }
 
@@ -130,8 +127,6 @@ class TargetNodeRecurseFetcherTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
         ServiceRef sr = new ServiceRef("id1", URI.create("uri1"), "alias1");
@@ -139,7 +134,7 @@ class TargetNodeRecurseFetcherTest {
 
         when(env.getSource()).thenReturn(source);
 
-        List<TargetNode> nodes = fetcher.get(env);
+        List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
         MatcherAssert.assertThat(nodes, Matchers.notNullValue());
         MatcherAssert.assertThat(nodes, Matchers.contains(source));
@@ -155,7 +150,6 @@ class TargetNodeRecurseFetcherTest {
                                     DataFetchingEnvironmentImpl.newDataFetchingEnvironment(
                                             Mockito.any(DataFetchingEnvironment.class)))
                     .thenReturn(builder);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
             when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
             HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
             when(ctx.request()).thenReturn(req);
@@ -213,7 +207,7 @@ class TargetNodeRecurseFetcherTest {
                             orphanNode,
                             orphanNode);
 
-            List<TargetNode> nodes = fetcher.get(env);
+            List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(
@@ -235,7 +229,6 @@ class TargetNodeRecurseFetcherTest {
                 staticFilter
                         .when(() -> FilterInput.from(Mockito.any(DataFetchingEnvironment.class)))
                         .thenReturn(filter);
-                when(env.getGraphQlContext()).thenReturn(graphCtx);
                 when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
                 HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
                 when(ctx.request()).thenReturn(req);
@@ -304,7 +297,7 @@ class TargetNodeRecurseFetcherTest {
                                 orphanNode,
                                 orphanNode);
 
-                List<TargetNode> nodes = fetcher.get(env);
+                List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
                 MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(orphanNode));
