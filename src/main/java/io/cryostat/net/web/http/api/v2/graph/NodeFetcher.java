@@ -63,7 +63,8 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     NodeFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher, Logger logger) {
+            RootNodeFetcher rootNodeFetcher,
+            Logger logger) {
         super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodeFetcher;
         this.logger = logger;

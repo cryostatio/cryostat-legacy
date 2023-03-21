@@ -93,8 +93,8 @@ class TargetNodesFetcherTest {
     @BeforeEach
     void setup() {
         this.fetcher =
-                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher,
-                        logger);
+                new TargetNodesFetcher(
+                        auth, credentialsManager, rootNodeFetcher, recurseFetcher, logger);
     }
 
     @Test

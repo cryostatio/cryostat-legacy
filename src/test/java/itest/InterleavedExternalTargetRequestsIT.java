@@ -254,7 +254,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                         String.format(
                                                 "/api/v1/targets/%s/recordings",
                                                 URLEncodedUtils.formatSegments(
-                                                        jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
+                                                        jmxServiceUrl(
+                                                                TARGET_PORT_NUMBER_START + fi))));
                         if (useAuth) {
                             req =
                                     req.putHeader(
@@ -289,7 +290,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    URLEncodedUtils.formatSegments(jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
+                                    URLEncodedUtils.formatSegments(
+                                            jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
             if (useAuth) {
                 req =
                         req.putHeader(
@@ -336,7 +338,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                         String.format(
                                                 "/api/v1/targets/%s/recordings/%s",
                                                 URLEncodedUtils.formatSegments(
-                                                        jmxServiceUrl(TARGET_PORT_NUMBER_START + fi)),
+                                                        jmxServiceUrl(
+                                                                TARGET_PORT_NUMBER_START + fi)),
                                                 "interleaved-" + fi));
                         if (useAuth) {
                             req =
@@ -372,7 +375,8 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                     webClient.get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    URLEncodedUtils.formatSegments(jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
+                                    URLEncodedUtils.formatSegments(
+                                            jmxServiceUrl(TARGET_PORT_NUMBER_START + fi))));
             if (useAuth) {
                 req =
                         req.putHeader(

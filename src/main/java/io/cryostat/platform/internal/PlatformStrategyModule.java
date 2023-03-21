@@ -46,8 +46,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import javax.inject.Named;
-
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.Variables;
@@ -66,13 +64,10 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
-<<<<<<< HEAD
-import io.vertx.core.Vertx;
-=======
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
->>>>>>> da3e1c08 (attempting to request oauth scopes for all target namespaces)
 
 @Module
 public abstract class PlatformStrategyModule {
@@ -128,9 +123,21 @@ public abstract class PlatformStrategyModule {
             FileSystem fs) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger, executor, openShiftAuthManager, env, fs, installNamespace, targetNamespaces),
+                        logger,
+                        executor,
+                        openShiftAuthManager,
+                        env,
+                        fs,
+                        installNamespace,
+                        targetNamespaces),
                 new KubeApiPlatformStrategy(
-                        logger, executor, noopAuthManager, env, fs, installNamespace, targetNamespaces),
+                        logger,
+                        executor,
+                        noopAuthManager,
+                        env,
+                        fs,
+                        installNamespace,
+                        targetNamespaces),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
                 new DefaultPlatformStrategy(

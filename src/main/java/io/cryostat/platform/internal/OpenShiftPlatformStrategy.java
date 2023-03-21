@@ -37,8 +37,8 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.concurrent.Executor;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;

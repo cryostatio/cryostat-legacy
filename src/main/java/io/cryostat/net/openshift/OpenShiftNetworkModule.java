@@ -39,9 +39,8 @@ package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutorService;
-import java.util.Map;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
@@ -53,7 +52,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.WebModule;
-import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.resource.ClassPropertiesLoader;

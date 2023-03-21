@@ -47,9 +47,8 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 

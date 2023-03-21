@@ -300,8 +300,8 @@ public abstract class GraphModule {
             RootNodeFetcher rootNodeFetcher,
             TargetNodeRecurseFetcher recurseFetcher,
             Logger logger) {
-        return new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher,
-                logger);
+        return new TargetNodesFetcher(
+                auth, credentialsManager, rootNodeFetcher, recurseFetcher, logger);
     }
 
     @Binds
