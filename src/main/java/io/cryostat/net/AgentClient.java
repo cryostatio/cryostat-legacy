@@ -288,15 +288,16 @@ class AgentClient {
         }
 
         @Override
-        public IQuantity getDataEndTime() {
-            // TODO
-            return UnitLookup.EPOCH_MS.quantity(-1L);
+        public IQuantity getDataStartTime() {
+            return getStartTime();
         }
 
         @Override
-        public IQuantity getDataStartTime() {
-            // TODO
-            return UnitLookup.EPOCH_MS.quantity(-1L);
+        public IQuantity getDataEndTime() {
+            if (isContinuous()) {
+                return UnitLookup.EPOCH_MS.quantity(0);
+            }
+            return getDataStartTime().add(getDuration());
         }
 
         @Override
@@ -326,7 +327,6 @@ class AgentClient {
 
         @Override
         public ObjectName getObjectName() {
-            // TODO Auto-generated method stub
             return null;
         }
 
