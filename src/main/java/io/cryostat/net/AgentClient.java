@@ -47,17 +47,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 
+import javax.management.ObjectName;
 import javax.script.ScriptException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IConstraint;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
+import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.flightrecorder.configuration.internal.EventTypeIDV2;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -123,90 +127,26 @@ class AgentClient {
                 .map(s -> gson.fromJson(s, MBeanMetrics.class));
     }
 
+    Future<List<IRecordingDescriptor>> activeRecordings() {
+        Future<HttpResponse<JsonArray>> f =
+                invoke(HttpMethod.GET, "/recordings", BodyCodec.jsonArray());
+        return f.map(HttpResponse::body)
+                .map(
+                        arr ->
+                                arr.stream()
+                                        .map(
+                                                o ->
+                                                        (IRecordingDescriptor)
+                                                                new AgentRecordingDescriptor(
+                                                                        (JsonObject) o))
+                                        .toList());
+    }
+
     Future<Collection<? extends IEventTypeInfo>> eventTypes() {
         Future<HttpResponse<JsonArray>> f =
                 invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
                 .map(arr -> arr.stream().map(o -> new AgentEventTypeInfo((JsonObject) o)).toList());
-    }
-
-    static class AgentEventTypeInfo implements IEventTypeInfo {
-
-        final JsonObject json;
-
-        AgentEventTypeInfo(JsonObject json) {
-            this.json = json;
-        }
-
-        @Override
-        public String getDescription() {
-            return json.getString("description");
-        }
-
-        @Override
-        public IEventTypeID getEventTypeID() {
-            return new EventTypeIDV2(json.getString("name"));
-        }
-
-        @Override
-        public String[] getHierarchicalCategory() {
-            return ((List<String>)
-                            json.getJsonArray("categories").getList().stream()
-                                    .map(Object::toString)
-                                    .toList())
-                    .toArray(new String[0]);
-        }
-
-        @Override
-        public String getName() {
-            return json.getString("name");
-        }
-
-        static <T, V> V capture(T t) {
-            // TODO clean up this generics hack
-            return (V) t;
-        }
-
-        @Override
-        public Map<String, ? extends IOptionDescriptor<?>> getOptionDescriptors() {
-            Map<String, ? extends IOptionDescriptor<?>> result = new HashMap<>();
-            JsonArray settings = json.getJsonArray("settings");
-            settings.forEach(
-                    setting -> {
-                        String name = ((JsonObject) setting).getString("name");
-                        String defaultValue = ((JsonObject) setting).getString("defaultValue");
-                        result.put(
-                                name,
-                                capture(
-                                        new IOptionDescriptor<String>() {
-                                            @Override
-                                            public String getName() {
-                                                return name;
-                                            }
-
-                                            @Override
-                                            public String getDescription() {
-                                                return null;
-                                            }
-
-                                            @Override
-                                            public IConstraint<String> getConstraint() {
-                                                return null;
-                                            }
-
-                                            @Override
-                                            public String getDefault() {
-                                                return defaultValue;
-                                            }
-                                        }));
-                    });
-            return result;
-        }
-
-        @Override
-        public IOptionDescriptor<?> getOptionInfo(String s) {
-            return getOptionDescriptors().get(s);
-        }
     }
 
     Future<IConstrainedMap<EventOptionID>> eventSettings() {
@@ -336,6 +276,176 @@ class AgentClient {
         AgentClient create(URI agentUri) {
             return new AgentClient(
                     vertx, gson, httpTimeout, webClient, credentialsManager, agentUri, logger);
+        }
+    }
+
+    private static class AgentRecordingDescriptor implements IRecordingDescriptor {
+
+        final JsonObject json;
+
+        AgentRecordingDescriptor(JsonObject json) {
+            this.json = json;
+        }
+
+        @Override
+        public IQuantity getDataStartTime() {
+            return getStartTime();
+        }
+
+        @Override
+        public IQuantity getDataEndTime() {
+            if (isContinuous()) {
+                return UnitLookup.EPOCH_MS.quantity(0);
+            }
+            return getDataStartTime().add(getDuration());
+        }
+
+        @Override
+        public IQuantity getDuration() {
+            return UnitLookup.MILLISECOND.quantity(json.getLong("duration"));
+        }
+
+        @Override
+        public Long getId() {
+            return json.getLong("id");
+        }
+
+        @Override
+        public IQuantity getMaxAge() {
+            return UnitLookup.MILLISECOND.quantity(json.getLong("maxAge"));
+        }
+
+        @Override
+        public IQuantity getMaxSize() {
+            return UnitLookup.BYTE.quantity(json.getLong("maxSize"));
+        }
+
+        @Override
+        public String getName() {
+            return json.getString("name");
+        }
+
+        @Override
+        public ObjectName getObjectName() {
+            return null;
+        }
+
+        @Override
+        public Map<String, ?> getOptions() {
+            return json.getJsonObject("options").getMap();
+        }
+
+        @Override
+        public IQuantity getStartTime() {
+            return UnitLookup.EPOCH_MS.quantity(json.getLong("startTime"));
+        }
+
+        @Override
+        public RecordingState getState() {
+            // avoid using Enum.valueOf() since that throws an exception if the name isn't part of
+            // the type, and it's nicer to not throw and catch exceptions
+            String state = json.getString("state");
+            switch (state) {
+                case "CREATED":
+                    return RecordingState.CREATED;
+                case "RUNNING":
+                    return RecordingState.RUNNING;
+                case "STOPPING":
+                    return RecordingState.STOPPING;
+                case "STOPPED":
+                    return RecordingState.STOPPED;
+                default:
+                    return RecordingState.RUNNING;
+            }
+        }
+
+        @Override
+        public boolean getToDisk() {
+            return json.getBoolean("toDisk");
+        }
+
+        @Override
+        public boolean isContinuous() {
+            return json.getBoolean("isContinuous");
+        }
+    }
+
+    private static class AgentEventTypeInfo implements IEventTypeInfo {
+
+        final JsonObject json;
+
+        AgentEventTypeInfo(JsonObject json) {
+            this.json = json;
+        }
+
+        @Override
+        public String getDescription() {
+            return json.getString("description");
+        }
+
+        @Override
+        public IEventTypeID getEventTypeID() {
+            return new EventTypeIDV2(json.getString("name"));
+        }
+
+        @Override
+        public String[] getHierarchicalCategory() {
+            return ((List<String>)
+                            json.getJsonArray("categories").getList().stream()
+                                    .map(Object::toString)
+                                    .toList())
+                    .toArray(new String[0]);
+        }
+
+        @Override
+        public String getName() {
+            return json.getString("name");
+        }
+
+        static <T, V> V capture(T t) {
+            // TODO clean up this generics hack
+            return (V) t;
+        }
+
+        @Override
+        public Map<String, ? extends IOptionDescriptor<?>> getOptionDescriptors() {
+            Map<String, ? extends IOptionDescriptor<?>> result = new HashMap<>();
+            JsonArray settings = json.getJsonArray("settings");
+            settings.forEach(
+                    setting -> {
+                        String name = ((JsonObject) setting).getString("name");
+                        String defaultValue = ((JsonObject) setting).getString("defaultValue");
+                        result.put(
+                                name,
+                                capture(
+                                        new IOptionDescriptor<String>() {
+                                            @Override
+                                            public String getName() {
+                                                return name;
+                                            }
+
+                                            @Override
+                                            public String getDescription() {
+                                                return null;
+                                            }
+
+                                            @Override
+                                            public IConstraint<String> getConstraint() {
+                                                return null;
+                                            }
+
+                                            @Override
+                                            public String getDefault() {
+                                                return defaultValue;
+                                            }
+                                        }));
+                    });
+            return result;
+        }
+
+        @Override
+        public IOptionDescriptor<?> getOptionInfo(String s) {
+            return getOptionDescriptors().get(s);
         }
     }
 }
