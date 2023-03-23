@@ -192,6 +192,11 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindDiscoveryRegistrationCheckHandler(
+            DiscoveryRegistrationCheckHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindDiscoveryRegistrationHandler(DiscoveryRegistrationHandler handler);
 
     @Binds
