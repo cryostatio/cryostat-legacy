@@ -52,6 +52,7 @@ import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -81,13 +82,14 @@ class RecordingGetWithJwtHandlerTest {
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
     @Mock RecordingArchiveHelper archive;
+    @Mock JvmIdHelper jvmId;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new RecordingGetWithJwtHandler(
-                        auth, credentialsManager, jwt, () -> webServer, archive, logger);
+                        auth, credentialsManager, jwt, () -> webServer, archive, jvmId, logger);
     }
 
     @Nested

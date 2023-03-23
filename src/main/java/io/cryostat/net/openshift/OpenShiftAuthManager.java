@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -75,6 +76,9 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -120,7 +124,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 
     private final Environment env;
-    private final Lazy<String> namespace;
+    private final Lazy<String> installNamespace;
+    private final Lazy<List<String>> targetNamespaces;
     private final Lazy<OpenShiftClient> serviceAccountClient;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
@@ -131,7 +136,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     OpenShiftAuthManager(
             Environment env,
-            Lazy<String> namespace,
+            Lazy<String> installNamespace,
+            Lazy<List<String>> targetNamespaces,
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
@@ -141,7 +147,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Logger logger) {
         super(logger);
         this.env = env;
-        this.namespace = namespace;
+        this.installNamespace = installNamespace;
+        this.targetNamespaces = targetNamespaces;
         this.serviceAccountClient = serviceAccountClient;
         this.oauthUrls = new ConcurrentHashMap<>(2);
         this.oauthMetadata = new ConcurrentHashMap<>(1);
@@ -216,7 +223,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             throws ExecutionException, InterruptedException {
         Boolean hasValidHeader = false;
         try {
-            hasValidHeader = this.validateHttpHeader(headerProvider, resourceActions).get();
+            hasValidHeader =
+                    this.validateHttpHeader(
+                                    headerProvider, SecurityContext.DEFAULT, resourceActions)
+                            .get();
 
             if (Boolean.TRUE.equals(hasValidHeader)) {
                 return Optional.empty();
@@ -245,7 +255,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        if (securityContext == null) {
+            throw new IllegalStateException("SecurityContext was null");
+        }
+        if (!SecurityContext.DEFAULT.equals(securityContext)
+                && !(securityContext instanceof OpenShiftSecurityContext)) {
+            throw new IllegalStateException(
+                    String.format(
+                            "SecurityContext was of type %s, expected %s",
+                            securityContext.getClass().getName(),
+                            OpenShiftSecurityContext.class.getName()));
+        }
+
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
@@ -254,13 +278,29 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return reviewToken(token);
         }
 
+        String ns;
+        if (SecurityContext.DEFAULT.equals(securityContext)) {
+            // TODO does this make sense? Operations that use the DEFAULT security context are
+            // considered to be operations within the namespace that Cryostat is deployed within.
+            // This means that the requesting client must have some permissions to access Cryostat
+            // itself.
+            ns = installNamespace.get();
+        } else {
+            ns = ((OpenShiftSecurityContext) securityContext).getNamespace();
+        }
+        // FIXME remove
+        logger.info(
+                "Validating {} can {} with {} in {} ...",
+                token,
+                resourceActions,
+                securityContext,
+                ns);
+
         OpenShiftClient client = userClients.get(token);
         try {
             List<CompletableFuture<Void>> results =
                     resourceActions.stream()
-                            .flatMap(
-                                    resourceAction ->
-                                            validateAction(client, namespace.get(), resourceAction))
+                            .flatMap(resourceAction -> validateAction(client, ns, resourceAction))
                             .collect(Collectors.toList());
 
             CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
@@ -279,11 +319,32 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
+    @Override
+    public List<OpenShiftSecurityContext> getSecurityContexts() {
+        return serviceAccountClient.get().namespaces().list().getItems().stream()
+                .map(ns -> ns.getMetadata().getName())
+                .map(ns -> new OpenShiftSecurityContext(ns))
+                .toList();
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return new OpenShiftSecurityContext(node);
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return new OpenShiftSecurityContext(serviceRef);
+    }
+
     Future<Boolean> reviewToken(String token) {
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
             TokenReviewStatus status = fStatus.get();
             Boolean authenticated = status.getAuthenticated();
+            // FIXME return information about the reason for the failure so that we can tell the
+            // client that they did not present valid credentials, or their credentials don't grant
+            // permissions for the requested action (401 vs 403 status)
             return CompletableFuture.completedFuture(authenticated != null && authenticated);
         } catch (ExecutionException ee) {
             return CompletableFuture.failedFuture(ee.getCause());
@@ -354,18 +415,22 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
         String token = getTokenFromHttpHeader(authorization);
         if (token == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return validateToken(() -> token, resourceActions);
+        return validateToken(() -> token, securityContext, resourceActions);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -382,7 +447,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
+            return validateToken(() -> decoded, securityContext, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
@@ -532,7 +597,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Optional<String> clientId = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
         return String.format(
                 "system:serviceaccount:%s:%s",
-                namespace.get(),
+                installNamespace.get(),
                 clientId.orElseThrow(
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_CLIENT_ID)));
     }
@@ -543,25 +608,30 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Optional<String> customOAuthRole =
                 Optional.ofNullable(env.getEnv(CRYOSTAT_CUSTOM_OAUTH_ROLE));
 
-        String tokenScope =
-                String.format(
-                        "user:check-access role:%s:%s",
-                        baseOAuthRole.orElseThrow(
-                                () ->
-                                        new MissingEnvironmentVariableException(
-                                                CRYOSTAT_BASE_OAUTH_ROLE)),
-                        namespace.get());
+        List<String> tokenScopes = new ArrayList<>();
+        tokenScopes.add("user:check-access");
 
+        baseOAuthRole.orElseThrow(
+                () -> new MissingEnvironmentVariableException(CRYOSTAT_BASE_OAUTH_ROLE));
+
+        List<String> roles = new ArrayList<>();
+        roles.add(baseOAuthRole.get());
         if (customOAuthRole.isPresent()) {
             if (customOAuthRole.get().isBlank()) {
                 throw new IllegalArgumentException(
                         CRYOSTAT_CUSTOM_OAUTH_ROLE + " must not be blank.");
             }
-            tokenScope =
-                    String.format(
-                            "%s role:%s:%s", tokenScope, customOAuthRole.get(), namespace.get());
+            roles.add(customOAuthRole.get());
         }
-        return tokenScope;
+
+        for (String role : roles) {
+            for (String namespace : targetNamespaces.get()) {
+                tokenScopes.add(String.format("role:%s:%s", role, namespace));
+            }
+        }
+        String scope = String.join(" ", tokenScopes);
+        logger.info("Requesting final OAuth token scope: {}", scope);
+        return scope;
     }
 
     private String getOauthAccessTokenName(String token) {

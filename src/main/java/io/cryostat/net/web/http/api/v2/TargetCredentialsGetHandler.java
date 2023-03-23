@@ -48,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -103,6 +104,11 @@ class TargetCredentialsGetHandler extends AbstractV2RequestHandler<List<ServiceR
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

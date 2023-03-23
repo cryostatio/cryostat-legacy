@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.MatchExpressionValidationException;
@@ -136,34 +137,24 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
-        Rule rule;
-        HttpMimeType mime =
-                HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
-        switch (mime) {
-            case MULTIPART_FORM:
-            case URLENCODED_FORM:
-                try {
-                    Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
-                    rule = builder.build();
-                } catch (MatchExpressionValidationException | IllegalArgumentException iae) {
-                    throw new ApiException(400, iae);
-                }
-                break;
-            case JSON:
-                try {
-                    rule = gson.fromJson(params.getBody(), Rule.class);
+    public SecurityContext securityContext(RequestParameters params) {
+        // FIXME cleanup and remove this, all handlers should use the list form below
+        return null;
+    }
 
-                    if (rule == null) {
-                        throw new IllegalArgumentException("POST body was null");
-                    }
-                } catch (IllegalArgumentException | JsonSyntaxException e) {
-                    throw new ApiException(400, e);
-                }
-                break;
-            default:
-                throw new ApiException(415, mime.mime());
-        }
+    @Override
+    public List<SecurityContext> securityContexts(RequestParameters params) {
+        // TODO apply this same concept to credentials
+        Rule rule = getRuleFromParams(params);
+        return (List<SecurityContext>)
+                auth.getSecurityContexts().stream()
+                        .filter(sc -> rule.getContexts().contains(sc.getName()))
+                        .toList();
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
+        Rule rule = getRuleFromParams(params);
 
         try {
             rule = this.ruleRegistry.addRule(rule);
@@ -187,5 +178,39 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), rule.getName()))
                 .body(rule.getName());
+    }
+
+    private Rule getRuleFromParams(RequestParameters params) {
+        Rule rule;
+        HttpMimeType mime =
+                HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
+        switch (mime) {
+            case MULTIPART_FORM:
+            case URLENCODED_FORM:
+                try {
+                    Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
+                    rule = builder.build();
+                } catch (MatchExpressionValidationException | IllegalArgumentException iae) {
+                    throw new ApiException(400, iae);
+                }
+                break;
+            case JSON:
+                try {
+                    rule = gson.fromJson(params.getBody(), Rule.class);
+
+                    if (rule == null) {
+                        throw new IllegalArgumentException("POST body was null");
+                    }
+                    rule.validate();
+                } catch (MatchExpressionValidationException
+                        | IllegalArgumentException
+                        | JsonSyntaxException e) {
+                    throw new ApiException(400, e);
+                }
+                break;
+            default:
+                throw new ApiException(415, mime.mime());
+        }
+        return rule;
     }
 }

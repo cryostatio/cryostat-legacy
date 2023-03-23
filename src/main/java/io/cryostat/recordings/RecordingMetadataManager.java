@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -67,10 +66,11 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.events.Event;
@@ -86,6 +86,7 @@ import io.vertx.core.eventbus.EventBus;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
@@ -94,6 +95,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
 
+    private final AuthManager auth;
     private final ExecutorService executor;
     private final Path recordingMetadataDir;
     private final Path archivedRecordingsPath;
@@ -102,7 +104,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
-    private final PlatformClient platformClient;
+    private final DiscoveryStorage discoveryStorage;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
@@ -112,6 +114,7 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final CountDownLatch migrationLatch = new CountDownLatch(1);
 
     RecordingMetadataManager(
+            AuthManager auth,
             ExecutorService executor,
             Path recordingMetadataDir,
             Path archivedRecordingsPath,
@@ -120,12 +123,13 @@ public class RecordingMetadataManager extends AbstractVerticle
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
-            PlatformClient platformClient,
+            DiscoveryStorage discoveryStorage,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Gson gson,
             Base32 base32,
             Logger logger) {
+        this.auth = auth;
         this.executor = executor;
         this.recordingMetadataDir = recordingMetadataDir;
         this.archivedRecordingsPath = archivedRecordingsPath;
@@ -134,7 +138,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
-        this.platformClient = platformClient;
+        this.discoveryStorage = discoveryStorage;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
@@ -144,7 +148,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     @Override
     public void start(Promise<Void> future) {
-        this.platformClient.addTargetDiscoveryListener(this);
+        this.discoveryStorage.addTargetDiscoveryListener(this);
         this.jvmIdHelper.addListener(this);
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
@@ -322,7 +326,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                 setRecordingMetadata(
                                                         new ConnectionDescriptor(newTargetId),
                                                         recordingName,
-                                                        new Metadata(srm.getLabels()));
+                                                        srm.getLabels());
                                             } else {
                                                 logger.warn(
                                                         "Found metadata for lost"
@@ -408,7 +412,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     @Override
     public void stop() {
-        this.platformClient.removeTargetDiscoveryListener(this);
+        this.discoveryStorage.removeTargetDiscoveryListener(this);
     }
 
     @Override
@@ -496,7 +500,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 "Found active recording corresponding to recording metadata: {}",
                                 recordingName);
                         try {
-                            setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
+                            setRecordingMetadata(cd, recordingName, srm.getLabels());
                         } catch (IOException e) {
                             logger.error(
                                     "Could not set metadata for recording: {}, msg: {}",
@@ -520,10 +524,23 @@ public class RecordingMetadataManager extends AbstractVerticle
                         .get();
         String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
 
+        SecurityContext securityContext =
+                discoveryStorage
+                        .lookupServiceByTargetId(connectUrl)
+                        .map(auth::contextFor)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Could not determine source target"));
+
+        Metadata contextualMetadata = new Metadata(securityContext, metadata.getLabels());
+
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
                 metadataPath,
-                gson.toJson(StoredRecordingMetadata.of(connectUrl, jvmId, recordingName, metadata)),
+                gson.toJson(
+                        StoredRecordingMetadata.of(
+                                connectUrl, jvmId, recordingName, contextualMetadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -549,13 +566,24 @@ public class RecordingMetadataManager extends AbstractVerticle
     public Future<Metadata> setRecordingMetadata(
             ConnectionDescriptor connectionDescriptor,
             String recordingName,
-            Metadata metadata,
+            Map<String, String> labels,
             boolean issueNotification)
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(labels);
         String jvmId = jvmIdHelper.getJvmId(connectionDescriptor);
+
+        SecurityContext securityContext =
+                discoveryStorage
+                        .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                        .map(auth::contextFor)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Could not determine source target"));
+
+        Metadata contextualMetadata = new Metadata(securityContext, labels);
 
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         fs.writeString(
@@ -565,7 +593,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 connectionDescriptor.getTargetId(),
                                 jvmId,
                                 recordingName,
-                                metadata)),
+                                contextualMetadata)),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
@@ -582,29 +610,30 @@ public class RecordingMetadataManager extends AbstractVerticle
                                     "target",
                                     connectionDescriptor.getTargetId(),
                                     "metadata",
-                                    metadata))
+                                    contextualMetadata))
                     .build()
                     .send();
         }
 
-        return CompletableFuture.completedFuture(metadata);
+        return CompletableFuture.completedFuture(contextualMetadata);
     }
 
     public Future<Metadata> setRecordingMetadata(
-            ConnectionDescriptor connectionDescriptor, String recordingName, Metadata metadata)
+            ConnectionDescriptor connectionDescriptor,
+            String recordingName,
+            Map<String, String> labels)
             throws IOException {
         Objects.requireNonNull(connectionDescriptor);
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
-        return setRecordingMetadata(connectionDescriptor, recordingName, metadata, false);
+        Objects.requireNonNull(labels);
+        return setRecordingMetadata(connectionDescriptor, recordingName, labels, false);
     }
 
-    public Future<Metadata> setRecordingMetadata(String recordingName, Metadata metadata)
+    public Future<Metadata> setRecordingMetadata(String recordingName, Map<String, String> labels)
             throws IOException {
         Objects.requireNonNull(recordingName);
-        Objects.requireNonNull(metadata);
-        return this.setRecordingMetadata(
-                new ConnectionDescriptor(UPLOADS), recordingName, metadata);
+        Objects.requireNonNull(labels);
+        return this.setRecordingMetadata(new ConnectionDescriptor(UPLOADS), recordingName, labels);
     }
 
     public Metadata getMetadata(ConnectionDescriptor connectionDescriptor, String recordingName)
@@ -623,7 +652,17 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            metadata = new Metadata();
+
+            SecurityContext securityContext =
+                    discoveryStorage
+                            .lookupServiceByTargetId(connectionDescriptor.getTargetId())
+                            .map(auth::contextFor)
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Could not determine source target"));
+
+            metadata = new Metadata(securityContext, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
         } else {
             metadata = gson.fromJson(fs.readFile(metadataPath), Metadata.class);
@@ -638,7 +677,15 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Path metadataPath = getMetadataPath(jvmId, recordingName);
         if (!fs.isRegularFile(metadataPath)) {
-            Metadata metadata = new Metadata();
+            SecurityContext sc =
+                    jvmIdHelper
+                            .reverseLookup(jvmId)
+                            .map(auth::contextFor)
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Could not determine source target"));
+            Metadata metadata = new Metadata(sc, Map.of());
             fs.writeString(metadataPath, gson.toJson(metadata));
             return metadata;
         }
@@ -677,7 +724,7 @@ public class RecordingMetadataManager extends AbstractVerticle
         Objects.requireNonNull(recordingName);
         Objects.requireNonNull(filename);
         Metadata metadata = this.getMetadata(connectionDescriptor, recordingName);
-        return this.setRecordingMetadata(connectionDescriptor, filename, metadata);
+        return this.setRecordingMetadata(connectionDescriptor, filename, metadata.getLabels());
     }
 
     public Map<String, String> parseRecordingLabels(String labels) throws IllegalArgumentException {
@@ -917,9 +964,8 @@ public class RecordingMetadataManager extends AbstractVerticle
         private final String recordingName;
         private final String targetId;
 
-        StoredRecordingMetadata(
-                String targetId, String jvmId, String recordingName, Map<String, String> labels) {
-            super(labels);
+        StoredRecordingMetadata(String targetId, String jvmId, String recordingName, Metadata o) {
+            super(o);
             this.targetId = targetId;
             this.jvmId = jvmId;
             this.recordingName = recordingName;
@@ -927,8 +973,7 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         static StoredRecordingMetadata of(
                 String targetId, String jvmId, String recordingName, Metadata metadata) {
-            return new StoredRecordingMetadata(
-                    targetId, jvmId, recordingName, metadata.getLabels());
+            return new StoredRecordingMetadata(targetId, jvmId, recordingName, metadata);
         }
 
         String getTargetId() {
@@ -976,22 +1021,31 @@ public class RecordingMetadataManager extends AbstractVerticle
     }
 
     public static class Metadata {
+        /*
+         * The main Gson instance ignores transient fields, but the Gson instance used by
+         * RecordingMetadataManager is the GSON_INTERNAL which /does/ serialize transient fields.
+         * This keeps the securityContext out of API responses but preserves it for internal
+         * bookkeeping.
+         * */
+        protected final transient SecurityContext securityContext;
         protected final Map<String, String> labels;
 
-        public Metadata() {
-            this.labels = new ConcurrentHashMap<>();
-        }
-
         public Metadata(Metadata o) {
-            this.labels = new ConcurrentHashMap<>(o.labels);
+            this.securityContext = o.securityContext;
+            this.labels = new HashMap<>(o.labels);
         }
 
-        public Metadata(Map<String, String> labels) {
-            this.labels = new ConcurrentHashMap<>(labels);
+        public Metadata(SecurityContext securityContext, Map<String, String> labels) {
+            this.securityContext = securityContext;
+            this.labels = new HashMap<>(labels);
+        }
+
+        public SecurityContext getSecurityContext() {
+            return securityContext;
         }
 
         public Map<String, String> getLabels() {
-            return new ConcurrentHashMap<>(labels);
+            return new HashMap<>(labels);
         }
 
         @Override
@@ -1007,12 +1061,20 @@ public class RecordingMetadataManager extends AbstractVerticle
             }
 
             Metadata metadata = (Metadata) o;
-            return new EqualsBuilder().append(labels, metadata.labels).build();
+            return new EqualsBuilder()
+                    .append(securityContext, metadata.securityContext)
+                    .append(labels, metadata.labels)
+                    .build();
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder().append(labels).toHashCode();
+            return new HashCodeBuilder().append(securityContext).append(labels).toHashCode();
+        }
+
+        @Override
+        public String toString() {
+            return ToStringBuilder.reflectionToString(this);
         }
     }
 }

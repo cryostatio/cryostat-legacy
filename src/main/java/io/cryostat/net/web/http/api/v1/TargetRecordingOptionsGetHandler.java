@@ -52,9 +52,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -64,11 +67,13 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "targets/:targetId/recordingOptions";
     private final TargetConnectionManager connectionManager;
+    private final DiscoveryStorage discoveryStorage;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
 
@@ -77,11 +82,13 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
+            DiscoveryStorage discoveryStorage,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.connectionManager = connectionManager;
+        this.discoveryStorage = discoveryStorage;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.gson = gson;
     }
@@ -114,6 +121,15 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

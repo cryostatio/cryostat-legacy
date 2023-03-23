@@ -88,7 +88,7 @@ class RootNodeFetcherTest {
     @Test
     void shouldReturnUniverse() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         EnvironmentNode universe =

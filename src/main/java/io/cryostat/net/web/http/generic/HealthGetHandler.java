@@ -51,6 +51,7 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -64,7 +65,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 
-class HealthGetHandler implements RequestHandler {
+class HealthGetHandler implements RequestHandler<Void> {
 
     private final ApplicationVersion appVersion;
     private final WebClient webClient;
@@ -109,6 +110,11 @@ class HealthGetHandler implements RequestHandler {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

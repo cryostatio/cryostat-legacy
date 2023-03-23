@@ -60,6 +60,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
@@ -148,6 +149,8 @@ public class MessagingServer extends AbstractVerticle
                                                                         authManager
                                                                                 .validateWebSocketSubProtocol(
                                                                                         p,
+                                                                                        SecurityContext
+                                                                                                .DEFAULT,
                                                                                         ResourceAction
                                                                                                 .READ_ALL))
                                                         .onSuccess(() -> promise.complete(true))

@@ -46,10 +46,12 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -64,15 +66,18 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final RecordingTargetHelper recordingTargetHelper;
+    private final DiscoveryStorage discoveryStorage;
 
     @Inject
     TargetSnapshotPostHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.recordingTargetHelper = recordingTargetHelper;
+        this.discoveryStorage = discoveryStorage;
     }
 
     @Override
@@ -103,6 +108,15 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.PLAINTEXT);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

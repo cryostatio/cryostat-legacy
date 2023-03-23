@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,10 +48,12 @@ import javax.inject.Inject;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -72,6 +75,7 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final Logger logger;
 
     @Inject
     TargetRecordingMetadataLabelsPostHandler(
@@ -80,11 +84,13 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
             Gson gson,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            RecordingMetadataManager recordingMetadataManager) {
+            RecordingMetadataManager recordingMetadataManager,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.logger = logger;
     }
 
     @Override
@@ -126,6 +132,20 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
     }
 
     @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String recordingName = params.getPathParams().get("recordingName");
+        String targetId = params.getPathParams().get("targetId");
+        try {
+            Metadata m =
+                    recordingMetadataManager.getMetadata(
+                            new ConnectionDescriptor(targetId), recordingName);
+            return m.getSecurityContext();
+        } catch (IOException ioe) {
+            throw new ApiException(500, ioe);
+        }
+    }
+
+    @Override
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String targetId = params.getPathParams().get("targetId");
@@ -133,7 +153,6 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
         try {
             Map<String, String> labels =
                     recordingMetadataManager.parseRecordingLabels(params.getBody());
-            Metadata metadata = new Metadata(labels);
 
             ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(params);
 
@@ -143,8 +162,7 @@ public class TargetRecordingMetadataLabelsPostHandler extends AbstractV2RequestH
 
             Metadata updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadata(
-                                    connectionDescriptor, recordingName, metadata, true)
+                            .setRecordingMetadata(connectionDescriptor, recordingName, labels, true)
                             .get();
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);

@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -88,6 +89,10 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
             notifyAsyncTargetDiscovery(EventKind.FOUND, serviceRef);
         }
         return v;
+    }
+
+    public Optional<ServiceRef> getByUri(URI connectUrl) {
+        return targets.stream().filter(t -> t.getServiceUri().equals(connectUrl)).findFirst();
     }
 
     public boolean removeTarget(ServiceRef serviceRef) throws IOException {

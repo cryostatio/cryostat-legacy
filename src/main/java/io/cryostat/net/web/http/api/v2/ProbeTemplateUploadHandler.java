@@ -54,6 +54,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -120,6 +121,11 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public boolean requiresAuthentication() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

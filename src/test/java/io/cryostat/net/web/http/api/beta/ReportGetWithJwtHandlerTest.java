@@ -56,6 +56,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -64,6 +65,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -86,6 +88,7 @@ class ReportGetWithJwtHandlerTest {
     @Mock WebServer webServer;
     @Mock ReportService reports;
     @Mock RecordingArchiveHelper archiveHelper;
+    @Mock JvmIdHelper jvmId;
     @Mock Logger logger;
 
     @BeforeEach
@@ -98,6 +101,8 @@ class ReportGetWithJwtHandlerTest {
                         () -> webServer,
                         reports,
                         archiveHelper,
+                        jvmId,
+                        new Base32(),
                         30,
                         logger);
     }

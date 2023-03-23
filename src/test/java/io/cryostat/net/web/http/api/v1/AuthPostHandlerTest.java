@@ -95,7 +95,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldRespond200IfAuthPasses() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -116,7 +116,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -129,7 +129,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         RoutingContext ctx = mock(RoutingContext.class);

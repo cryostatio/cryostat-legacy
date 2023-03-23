@@ -47,6 +47,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -70,7 +71,7 @@ class ApiGetHandlerTest {
 
     AbstractV2RequestHandler<ApiGetHandler.ApiResponse> handler;
     @Mock WebServer webServer;
-    Set<RequestHandler> requestHandlers;
+    Set<RequestHandler<?>> requestHandlers;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
@@ -153,6 +154,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             requestHandlers.add(testHandler1);
 
@@ -195,6 +201,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -216,6 +227,11 @@ class ApiGetHandlerTest {
                         @Override
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
+                        }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -253,6 +269,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -274,6 +295,11 @@ class ApiGetHandlerTest {
                         @Override
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
+                        }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -311,6 +337,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -332,6 +363,11 @@ class ApiGetHandlerTest {
                         @Override
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
+                        }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
                         }
                     };
             RequestHandler testHandler3 =
@@ -355,6 +391,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             RequestHandler testHandler4 =
                     new TestRequestHandler() {
@@ -376,6 +417,11 @@ class ApiGetHandlerTest {
                         @Override
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
+                        }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -420,6 +466,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             // duplicate on purpose - this will serialize identically. This simulates ex.
             // TargtPostHandler and TargetPostBodyHandler, which also serialize identically.
@@ -444,6 +495,11 @@ class ApiGetHandlerTest {
                         public Set<ResourceAction> resourceActions() {
                             return Set.of();
                         }
+
+                        @Override
+                        public SecurityContext securityContext(Void ctx) {
+                            return SecurityContext.DEFAULT;
+                        }
                     };
             requestHandlers.add(testHandler1);
             requestHandlers.add(testHandler2);
@@ -458,7 +514,7 @@ class ApiGetHandlerTest {
         }
     }
 
-    abstract static class TestRequestHandler implements RequestHandler {
+    abstract static class TestRequestHandler implements RequestHandler<Void> {
         @Override
         public void handle(RoutingContext ctx) {
             ctx.next();

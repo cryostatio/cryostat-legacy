@@ -55,6 +55,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -79,6 +80,7 @@ class TargetEventsGetHandlerTest {
     TargetEventsGetHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
     @Mock IFlightRecorderService service;
@@ -88,7 +90,8 @@ class TargetEventsGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetEventsGetHandler(auth, credentialsManager, targetConnectionManager, gson);
+                new TargetEventsGetHandler(
+                        auth, credentialsManager, storage, targetConnectionManager, gson);
     }
 
     @Test

@@ -39,7 +39,9 @@ package io.cryostat.net.openshift;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -50,6 +52,8 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.WebModule;
+import io.cryostat.platform.internal.PlatformStrategyModule;
+import io.cryostat.util.PluggableJsonDeserializer;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -61,35 +65,15 @@ import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 @Module
 public abstract class OpenShiftNetworkModule {
 
     static final String OPENSHIFT_SERVICE_ACCOUNT_TOKEN = "OPENSHIFT_SERVICE_ACCOUNT_TOKEN";
-    static final String OPENSHIFT_NAMESPACE = "OPENSHIFT_NAMESPACE";
     static final String TOKENED_CLIENT = "TOKENED_CLIENT";
-
-    @Provides
-    @Singleton
-    @Named(OPENSHIFT_NAMESPACE)
-    @SuppressFBWarnings(
-            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
-            justification = "Kubernetes namespace file path is well-known and absolute")
-    static String provideNamespace(FileSystem fs) {
-        try {
-            return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
-                    .lines()
-                    .filter(StringUtils::isNotBlank)
-                    .findFirst()
-                    .get();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Provides
     @Singleton
@@ -112,9 +96,15 @@ public abstract class OpenShiftNetworkModule {
     @Provides
     @Named(TOKENED_CLIENT)
     static Function<String, OpenShiftClient> provideTokenedClient() {
-        return token ->
-                new DefaultOpenShiftClient(
-                        new OpenShiftConfigBuilder().withOauthToken(token).build());
+        return token -> {
+            Config config = Config.autoConfigure(null);
+            config.setOauthToken(token);
+            return new KubernetesClientBuilder()
+                    .withTaskExecutor(ForkJoinPool.commonPool())
+                    .withConfig(config)
+                    .build()
+                    .adapt(OpenShiftClient.class);
+        };
     }
 
     @Provides
@@ -130,7 +120,9 @@ public abstract class OpenShiftNetworkModule {
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
             @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
-            @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
+            @Named(PlatformStrategyModule.K8S_INSTALL_NAMESPACE) Lazy<String> installNamespace,
+            @Named(PlatformStrategyModule.K8S_TARGET_NAMESPACES)
+                    Lazy<List<String>> targetNamespaces,
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
             ClassPropertiesLoader classPropertiesLoader,
@@ -138,7 +130,8 @@ public abstract class OpenShiftNetworkModule {
             Logger logger) {
         return new OpenShiftAuthManager(
                 env,
-                namespace,
+                installNamespace,
+                targetNamespaces,
                 serviceAccountClient,
                 clientProvider,
                 classPropertiesLoader,
@@ -151,4 +144,13 @@ public abstract class OpenShiftNetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableJsonDeserializer<?> provideSecurityContextAdapter(
+            Lazy<AuthManager> auth,
+            @Named(PlatformStrategyModule.K8S_INSTALL_NAMESPACE) Lazy<String> installNamespace) {
+        return new OpenShiftSecurityContextDeserializer(auth, installNamespace);
+    }
 }

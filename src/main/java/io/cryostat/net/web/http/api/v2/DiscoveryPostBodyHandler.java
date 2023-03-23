@@ -43,6 +43,7 @@ import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -50,7 +51,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class DiscoveryPostBodyHandler implements RequestHandler {
+class DiscoveryPostBodyHandler implements RequestHandler<Void> {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
@@ -80,6 +81,11 @@ class DiscoveryPostBodyHandler implements RequestHandler {
     @Override
     public Set<ResourceAction> resourceActions() {
         return ResourceAction.NONE;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

@@ -41,11 +41,14 @@ import java.io.IOException;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-public class HttpMimeTypeAdapter extends TypeAdapter<HttpMimeType> {
+public class HttpMimeTypeAdapter extends PluggableTypeAdapter<HttpMimeType> {
+
+    public HttpMimeTypeAdapter() {
+        super(HttpMimeType.class);
+    }
 
     @Override
     public HttpMimeType read(JsonReader reader) throws IOException {

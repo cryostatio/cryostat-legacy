@@ -38,6 +38,7 @@
 package io.cryostat;
 
 import java.lang.management.MemoryUsage;
+import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
@@ -67,8 +68,8 @@ import io.cryostat.rules.RulesModule;
 import io.cryostat.storage.StorageModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
-import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
+import io.cryostat.util.JmxServiceUrlAdapter;
 import io.cryostat.util.MemoryUsageTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableJsonDeserializer;
@@ -81,6 +82,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
 import org.apache.commons.codec.binary.Base32;
 
@@ -102,6 +104,7 @@ public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
     public static final String UUID_FROM_STRING = "UUID_FROM_STRING";
+    public static final String GSON_INTERNAL = "GSON_INTERNAL";
 
     @Provides
     @Singleton
@@ -138,36 +141,100 @@ public abstract class MainModule {
         };
     }
 
-    // testing-only when extra adapters aren't needed
+    // testing-only with a default set of usually needed adapters and deserializers
     public static Gson provideGson(Logger logger) {
-        return provideGson(Set.of(), Set.of(), logger);
+        return provideGson(
+                Set.of(new JmxServiceUrlAdapter(logger), new HttpMimeTypeAdapter()),
+                Set.of(new RuleDeserializer()),
+                logger);
+    }
+
+    // testing-only when extra deserializers aren't needed
+    public static Gson provideGson(Logger logger, PluggableTypeAdapter<?>... adapters) {
+        return provideGson(Set.of(adapters), Set.of(), logger);
+    }
+
+    // testing-only when extra adapters aren't needed
+    public static Gson provideGson(Logger logger, PluggableJsonDeserializer<?>... deserializers) {
+        return provideGson(Set.of(), Set.of(deserializers), logger);
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideJmxServiceUrlAdapter(Logger logger) {
+        return new JmxServiceUrlAdapter(logger);
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideHttpMimeTypeAdapter() {
+        return new HttpMimeTypeAdapter();
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableTypeAdapter<?> provideProbeTemplateAdapter() {
+        return new ProbeTemplateTypeAdapter();
+    }
+
+    @Provides
+    @Singleton
+    @IntoSet
+    public static PluggableJsonDeserializer<?> provideRuleDeserializer() {
+        return new RuleDeserializer();
     }
 
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
     public static Gson provideGson(
-            Set<PluggableTypeAdapter<?>> extraAdapters,
+            Set<PluggableTypeAdapter<?>> typeAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
+        return gsonBuilder(typeAdapters, deserializers, logger).create();
+    }
+
+    private static GsonBuilder gsonBuilder(
+            Set<PluggableTypeAdapter<?>> typeAdapters,
             Set<PluggableJsonDeserializer<?>> deserializers,
             Logger logger) {
         GsonBuilder builder =
                 new GsonBuilder()
                         .serializeNulls()
                         .disableHtmlEscaping()
-                        .registerTypeAdapter(
-                                JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                        .registerTypeAdapter(JMXServiceURL.class, new JmxServiceUrlAdapter(logger))
                         .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
-                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(Rule.class, new RuleDeserializer())
                         .registerTypeAdapter(ProbeTemplate.class, new ProbeTemplateTypeAdapter())
+                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                         .registerTypeAdapter(MemoryUsage.class, new MemoryUsageTypeAdapter());
-        for (PluggableTypeAdapter<?> pta : extraAdapters) {
+        for (PluggableTypeAdapter<?> pta : typeAdapters) {
             builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
         }
         for (PluggableJsonDeserializer<?> pjd : deserializers) {
             builder = builder.registerTypeAdapter(pjd.getAdaptedType(), pjd);
         }
-        return builder.create();
+        return builder;
+    }
+
+    @Provides
+    @Singleton
+    @Named(GSON_INTERNAL)
+    /* provides a Gson instance which includes fields with the "transient" modifier. These fields
+     * will be excluded by the main Gson instance for most purposes, like serializing structures to
+     * send as API responses. This alternate instance can be used in cases where a field should not
+     * be exposed externally in an API response but should be serialized for local storage.
+     * */
+    public static Gson provideInternalGson(
+            Set<PluggableTypeAdapter<?>> typeAdapters,
+            Set<PluggableJsonDeserializer<?>> deserializers,
+            Logger logger) {
+        return gsonBuilder(typeAdapters, deserializers, logger)
+                .excludeFieldsWithModifiers(Modifier.STATIC)
+                .create();
     }
 
     @Provides

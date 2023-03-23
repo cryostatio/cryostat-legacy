@@ -54,16 +54,6 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     protected boolean archiveOnStop;
 
     public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-        this.metadata = new Metadata();
-        this.archiveOnStop = false;
-    }
-
-    public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl, Metadata metadata)
             throws QuantityConversionException {
         super(original);
@@ -88,12 +78,15 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
+            SerializableRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            Metadata metadata)
             throws QuantityConversionException {
         super(original);
         this.downloadUrl = downloadUrl;
         this.reportUrl = reportUrl;
-        this.metadata = new Metadata();
+        this.metadata = metadata;
         this.archiveOnStop = false;
     }
 
@@ -133,6 +126,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         HyperlinkedSerializableRecordingDescriptor descriptor =
                 (HyperlinkedSerializableRecordingDescriptor) o;
         return new EqualsBuilder()
+                .appendSuper(super.equals(o))
                 .append(downloadUrl, descriptor.downloadUrl)
                 .append(reportUrl, descriptor.reportUrl)
                 .append(metadata, descriptor.metadata)
@@ -143,6 +137,7 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
+                .appendSuper(super.hashCode())
                 .append(downloadUrl)
                 .append(reportUrl)
                 .append(metadata)

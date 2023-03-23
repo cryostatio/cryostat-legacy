@@ -49,6 +49,7 @@ import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -105,8 +106,23 @@ public class ProbeTemplateGetHandler extends AbstractV2RequestHandler<List<Probe
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_PROBE_TEMPLATE);
+    }
+
+    @Override
     public boolean requiresAuthentication() {
         return true;
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override
@@ -114,15 +130,5 @@ public class ProbeTemplateGetHandler extends AbstractV2RequestHandler<List<Probe
             throws Exception {
         return new IntermediateResponse<List<ProbeTemplate>>()
                 .body(probeTemplateService.getTemplates());
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_PROBE_TEMPLATE);
-    }
-
-    @Override
-    public List<HttpMimeType> produces() {
-        return List.of(HttpMimeType.JSON);
     }
 }

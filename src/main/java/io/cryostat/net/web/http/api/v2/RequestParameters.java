@@ -154,7 +154,7 @@ public class RequestParameters {
     }
 
     public String getAcceptableContentType() {
-        return acceptableContentType;
+        return this.acceptableContentType;
     }
 
     @SuppressFBWarnings(

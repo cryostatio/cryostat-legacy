@@ -46,33 +46,33 @@ import dagger.multibindings.IntoSet;
 @Module
 public abstract class HttpGenericModule {
 
-    static final String NON_API_PATH = "^(?!/api/).*";
+    public static final String NON_API_PATH = "^(?!/api/).*";
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRequestLoggingHandler(RequestLoggingHandler handler);
+    abstract RequestHandler<?> bindRequestLoggingHandler(RequestLoggingHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+    abstract RequestHandler<?> bindCorsEnablingHandler(CorsEnablingHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+    abstract RequestHandler<?> bindCorsOptionsHandler(CorsOptionsHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    abstract RequestHandler<?> bindHealthGetHandler(HealthGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindHealthLivenessGetHandler(HealthLivenessGetHandler handler);
+    abstract RequestHandler<?> bindHealthLivenessGetHandler(HealthLivenessGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    abstract RequestHandler<?> bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+    abstract RequestHandler<?> bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
 }

@@ -39,6 +39,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -142,7 +143,7 @@ public class RecordingTargetHelper {
             IConstrainedMap<String> recordingOptions,
             String templateName,
             TemplateType templateType,
-            Metadata metadata,
+            Map<String, String> metadataLabels,
             boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
@@ -174,14 +175,13 @@ public class RecordingTargetHelper {
                                                     preferredTemplateType));
                     String targetId = connectionDescriptor.getTargetId();
 
-                    Map<String, String> labels = metadata.getLabels();
+                    Map<String, String> labels = new HashMap<>(metadataLabels);
                     labels.put("template.name", templateName);
                     labels.put("template.type", preferredTemplateType.name());
-                    Metadata updatedMetadata = new Metadata(labels);
-                    updatedMetadata =
+                    Metadata updatedMetadata =
                             recordingMetadataManager
                                     .setRecordingMetadata(
-                                            connectionDescriptor, recordingName, updatedMetadata)
+                                            connectionDescriptor, recordingName, labels)
                                     .get();
                     HyperlinkedSerializableRecordingDescriptor linkedDesc =
                             new HyperlinkedSerializableRecordingDescriptor(
@@ -275,7 +275,9 @@ public class RecordingTargetHelper {
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         d,
                                         webServer.get().getDownloadURL(connection, d.getName()),
-                                        webServer.get().getReportURL(connection, d.getName()));
+                                        webServer.get().getReportURL(connection, d.getName()),
+                                        recordingMetadataManager.getMetadata(
+                                                connectionDescriptor, recordingName));
                         this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
                         return getDescriptorByName(connection, recordingName).get();
                     } else {
@@ -571,7 +573,11 @@ public class RecordingTargetHelper {
                                                                 webServer
                                                                         .get()
                                                                         .getReportURL(
-                                                                                connection, name));
+                                                                                connection, name),
+                                                                recordingMetadataManager
+                                                                        .getMetadata(
+                                                                                connectionDescriptor,
+                                                                                recordingName));
                                                 return linked;
                                             }
                                             return null;

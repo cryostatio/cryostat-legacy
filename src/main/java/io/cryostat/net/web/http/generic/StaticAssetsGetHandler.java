@@ -42,6 +42,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -49,7 +50,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 
-class StaticAssetsGetHandler implements RequestHandler {
+class StaticAssetsGetHandler implements RequestHandler<Void> {
 
     private final StaticHandler staticHandler;
 
@@ -81,6 +82,11 @@ class StaticAssetsGetHandler implements RequestHandler {
     @Override
     public String pathRegex() {
         return HttpGenericModule.NON_API_PATH;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

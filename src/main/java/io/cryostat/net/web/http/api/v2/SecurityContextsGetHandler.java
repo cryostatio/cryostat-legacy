@@ -35,41 +35,76 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.util;
+package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 
-import javax.management.remote.JMXServiceURL;
+import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpMethod;
 
-public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
+class SecurityContextsGetHandler extends AbstractV2RequestHandler<List<? extends SecurityContext>> {
 
-    private final Logger logger;
-
-    public GsonJmxServiceUrlAdapter(Logger logger) {
-        this.logger = logger;
+    @Inject
+    SecurityContextsGetHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+        super(auth, credentialsManager, gson);
     }
 
     @Override
-    public JMXServiceURL read(JsonReader reader) throws IOException {
-        String url = reader.nextString();
-        JMXServiceURL jmxUrl;
-        try {
-            jmxUrl = new JMXServiceURL(url);
-        } catch (Exception e) {
-            logger.warn(e);
-            jmxUrl = null;
-        }
-        return jmxUrl;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
-    public void write(JsonWriter writer, JMXServiceURL url) throws IOException {
-        writer.value(url.toString());
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_3;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        // TODO
+        return EnumSet.of(ResourceAction.READ_CREDENTIALS);
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "securitycontexts";
+    }
+
+    @Override
+    public List<HttpMimeType> produces() {
+        return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public IntermediateResponse<List<? extends SecurityContext>> handle(
+            RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<List<? extends SecurityContext>>()
+                .body(auth.getSecurityContexts());
     }
 }

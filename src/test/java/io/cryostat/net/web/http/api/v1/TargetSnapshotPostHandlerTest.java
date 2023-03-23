@@ -37,16 +37,20 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
@@ -71,6 +75,7 @@ class TargetSnapshotPostHandlerTest {
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
+    @Mock DiscoveryStorage storage;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
 
@@ -78,7 +83,7 @@ class TargetSnapshotPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetSnapshotPostHandler(
-                        auth, credentialsManager, recordingTargetHelper, logger);
+                        auth, credentialsManager, storage, recordingTargetHelper, logger);
     }
 
     @Test
@@ -90,8 +95,35 @@ class TargetSnapshotPostHandlerTest {
     }
 
     @Test
+    void shouldUseSecurityContextForTarget() throws Exception {
+        String targetId = "fooHost:0";
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+        SecurityContext sc = Mockito.mock(SecurityContext.class);
+        Mockito.when(auth.contextFor(sr)).thenReturn(sc);
+
+        SecurityContext actual = handler.securityContext(ctx);
+        MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+        Mockito.verify(storage).lookupServiceByTargetId(targetId);
+        Mockito.verify(auth).contextFor(sr);
+    }
+
+    @Test
     void shouldCreateSnapshot() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -127,7 +159,12 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringCreation() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -154,7 +191,12 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleSnapshotCreationExceptionDuringVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -192,7 +234,12 @@ class TargetSnapshotPostHandlerTest {
 
     @Test
     void shouldHandleFailedSnapshotVerification() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);

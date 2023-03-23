@@ -48,6 +48,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -81,6 +82,7 @@ class TargetRecordingOptionsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock RecordingOptionsBuilder builder;
     @Mock IConstrainedMap<String> recordingOptions;
@@ -95,6 +97,7 @@ class TargetRecordingOptionsGetHandlerTest {
                         auth,
                         credentialsManager,
                         targetConnectionManager,
+                        storage,
                         recordingOptionsBuilderFactory,
                         gson,
                         logger);

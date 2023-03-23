@@ -49,10 +49,13 @@ import javax.inject.Inject;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -62,15 +65,18 @@ import org.apache.commons.lang3.StringUtils;
 
 class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableEventTypeInfo>> {
 
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager targetConnectionManager;
 
     @Inject
     TargetEventsGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager targetConnectionManager,
             Gson gson) {
         super(auth, credentialsManager, gson);
+        this.discoveryStorage = discoveryStorage;
         this.targetConnectionManager = targetConnectionManager;
     }
 
@@ -107,6 +113,15 @@ class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableE
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

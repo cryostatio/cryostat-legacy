@@ -52,6 +52,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -75,6 +76,12 @@ class TargetNodeRecurseFetcher extends AbstractPermissionedDataFetcher<List<Targ
     @Override
     String name() {
         return "descendantTargets";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        AbstractNode source = environment.getSource();
+        return auth.contextFor(source);
     }
 
     @Override

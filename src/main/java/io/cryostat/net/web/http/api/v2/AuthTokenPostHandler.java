@@ -49,16 +49,22 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.Route;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URIBuilder;
 
 class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
@@ -67,6 +73,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     private final AssetJwtHelper jwt;
     private final Lazy<WebServer> webServer;
+    private final Logger logger;
 
     @Inject
     AuthTokenPostHandler(
@@ -79,6 +86,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         super(auth, credentialsManager, gson);
         this.jwt = jwt;
         this.webServer = webServer;
+        this.logger = logger;
     }
 
     @Override
@@ -114,6 +122,47 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        try {
+            String claim = params.getFormAttributes().get(AssetJwtHelper.RESOURCE_CLAIM);
+            String rawPath = new URI(claim).getRawPath();
+            Pair<Route, Map<String, String>> pair =
+                    webServer
+                            .get()
+                            .getRoute(HttpMethod.GET, rawPath)
+                            .orElseThrow(
+                                    () -> {
+                                        logger.warn(
+                                                "Could not determine an API handler for {}",
+                                                rawPath);
+                                        return new ApiException(403);
+                                    });
+            RequestHandler<RequestParameters> handler =
+                    (RequestHandler<RequestParameters>) webServer.get().getHandler(pair.getLeft());
+
+            String acceptableContentType = "*";
+            MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            MultiMap formAttributes = MultiMap.caseInsensitiveMultiMap();
+            Set<FileUpload> fileUploads = Set.of();
+            String body = null;
+            RequestParameters subParams =
+                    new RequestParameters(
+                            acceptableContentType,
+                            params.getAddress(),
+                            pair.getRight(),
+                            queryParams,
+                            headers,
+                            formAttributes,
+                            fileUploads,
+                            body);
+            return handler.securityContext(subParams);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
     }
 
     @Override

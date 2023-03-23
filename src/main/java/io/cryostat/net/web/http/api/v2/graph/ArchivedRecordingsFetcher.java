@@ -49,6 +49,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
@@ -77,6 +78,13 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
     @Override
     String name() {
         return "archived";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        // default context because if we've gotten here we already passed a check for the source
+        // target's context, and we don't have a handle to the target itself from here
+        return SecurityContext.DEFAULT;
     }
 
     @Override

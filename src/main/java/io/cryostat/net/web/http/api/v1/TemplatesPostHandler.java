@@ -56,6 +56,7 @@ import io.cryostat.core.templates.Template;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -118,6 +119,11 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

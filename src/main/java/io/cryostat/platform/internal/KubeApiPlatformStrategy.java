@@ -37,24 +37,17 @@
  */
 package io.cryostat.platform.internal;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 
-import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -66,21 +59,24 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
-    protected final Lazy<JFRConnectionToolkit> connectionToolkit;
+    protected final Lazy<String> installNamespace;
+    protected final Lazy<List<String>> targetNamespaces;
 
     KubeApiPlatformStrategy(
             Logger logger,
             Executor executor,
             Lazy<? extends AuthManager> authMgr,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
-            FileSystem fs) {
+            FileSystem fs,
+            Lazy<String> installNamespace,
+            Lazy<List<String>> targetNamespaces) {
         this.logger = logger;
         this.executor = executor;
         this.authMgr = authMgr;
-        this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.fs = fs;
+        this.installNamespace = installNamespace;
+        this.targetNamespaces = targetNamespaces;
     }
 
     @Override
@@ -102,8 +98,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        return new KubeApiPlatformClient(
-                getNamespaces(), createClient(), connectionToolkit, logger);
+        return new KubeApiPlatformClient(targetNamespaces.get(), createClient(), logger);
     }
 
     @Override
@@ -117,28 +112,9 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     protected boolean testAvailability(KubernetesClient client) {
-        boolean hasNamespace = StringUtils.isNotBlank(getOwnNamespace());
+        boolean hasNamespace = StringUtils.isNotBlank(installNamespace.get());
         boolean hasSecrets = fs.isDirectory(Path.of("/var/run/secrets/kubernetes.io"));
         boolean hasServiceHost = env.hasEnv("KUBERNETES_SERVICE_HOST");
         return hasNamespace || hasSecrets || hasServiceHost;
-    }
-
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    protected String getOwnNamespace() {
-        try {
-            return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
-        } catch (IOException e) {
-            logger.trace(e);
-            return null;
-        }
-    }
-
-    protected List<String> getNamespaces() {
-        List<String> list = new ArrayList<>();
-        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
-        if (StringUtils.isNotBlank(cfg)) {
-            list.addAll(Arrays.asList(cfg.split(",")));
-        }
-        return list;
     }
 }

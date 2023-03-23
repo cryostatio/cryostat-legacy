@@ -90,7 +90,7 @@ public class RecordingJwtDownloadIT extends JwtAssetsSelfTest {
         form.add("duration", "10");
         form.add("events", "template=ALL");
         webClient
-                .post(String.format("/api/v1/targets/%s/recordings", "localhost:0"))
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
                         form,
                         ar -> {

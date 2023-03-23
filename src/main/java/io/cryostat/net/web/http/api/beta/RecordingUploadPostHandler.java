@@ -52,9 +52,11 @@ import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.HttpModule;
@@ -64,8 +66,10 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
@@ -84,6 +88,7 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
     private final long httpTimeoutSeconds;
     private final WebClient webClient;
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final Logger logger;
 
     @Inject
     RecordingUploadPostHandler(
@@ -93,12 +98,14 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             RecordingArchiveHelper recordingArchiveHelper,
-            Gson gson) {
+            Gson gson,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.env = env;
         this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.logger = logger;
     }
 
     @Override
@@ -134,6 +141,22 @@ class RecordingUploadPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
+        try {
+            return recordingArchiveHelper.getRecordings(sourceTarget).get().stream()
+                    .filter(r -> r.getName().equals(recordingName))
+                    .findFirst()
+                    .map(ArchivedRecordingInfo::getMetadata)
+                    .map(Metadata::getSecurityContext)
+                    .orElseThrow(() -> new ApiException(404));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ApiException(500, e);
+        }
     }
 
     @Override

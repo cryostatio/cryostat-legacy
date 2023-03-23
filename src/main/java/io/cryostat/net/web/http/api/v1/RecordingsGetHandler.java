@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +49,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -56,6 +58,7 @@ import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
@@ -108,9 +111,25 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
-            List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
+            List<ArchivedRecordingInfo> result = new ArrayList<>();
+            for (var info : recordingArchiveHelper.getRecordings().get()) {
+                boolean authorized =
+                        auth.validateHttpHeader(
+                                        () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                        info.getMetadata().getSecurityContext(),
+                                        resourceActions())
+                                .get();
+                if (authorized) {
+                    result.add(info);
+                }
+            }
             ctx.response().end(gson.toJson(result));
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {

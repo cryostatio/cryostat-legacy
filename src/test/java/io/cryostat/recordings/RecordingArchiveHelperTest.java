@@ -65,8 +65,10 @@ import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
@@ -107,6 +109,7 @@ class RecordingArchiveHelperTest {
     @Mock Path archivedRecordingsReportPath;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
+    @Mock AuthManager auth;
     @Mock NotificationFactory notificationFactory;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock Base32 base32;
@@ -275,7 +278,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -357,7 +362,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -451,7 +458,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -532,7 +541,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -620,7 +631,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -761,7 +774,9 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.copyMetadataToArchives(
                                 Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(CompletableFuture.completedFuture(new Metadata()));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                new Metadata(SecurityContext.DEFAULT, Map.of())));
 
         ArchivedRecordingInfo info =
                 recordingArchiveHelper
@@ -826,7 +841,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.deleteRecordingMetadataIfExists(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         Path tempSubdirectory = Mockito.mock(Path.class);
         Mockito.when(tempSubdirectory.resolve(Mockito.anyString())).thenReturn(destinationFile);
@@ -868,7 +883,7 @@ class RecordingArchiveHelperTest {
                         recordingName,
                         "/some/path/download/" + recordingName,
                         "/some/path/archive/" + recordingName,
-                        new Metadata(),
+                        new Metadata(SecurityContext.DEFAULT, Map.of()),
                         0,
                         0);
 
@@ -963,7 +978,7 @@ class RecordingArchiveHelperTest {
                         });
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
         List<ArchivedRecordingInfo> expected =
@@ -973,7 +988,7 @@ class RecordingArchiveHelperTest {
                                 "recordingA",
                                 "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0),
                         new ArchivedRecordingInfo(
@@ -981,7 +996,7 @@ class RecordingArchiveHelperTest {
                                 "123recording",
                                 "/some/path/download/123recording",
                                 "/some/path/archive/123recording",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
@@ -1044,7 +1059,7 @@ class RecordingArchiveHelperTest {
                         });
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         Mockito.when(jvmIdHelper.jvmIdToSubdirectoryName(Mockito.anyString()))
                 .thenAnswer(
@@ -1068,7 +1083,7 @@ class RecordingArchiveHelperTest {
                                 "foo_recording",
                                 "/some/path/download/foo_recording",
                                 "/some/path/archive/foo_recording",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
@@ -1084,7 +1099,7 @@ class RecordingArchiveHelperTest {
                                 "foo_recording",
                                 "/some/path/download/foo_recording",
                                 "/some/path/archive/foo_recording",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0));
     }
@@ -1134,7 +1149,7 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         recordingMetadataManager.getMetadataFromPathIfExists(
                                 Mockito.any(), Mockito.anyString()))
-                .thenReturn(new Metadata());
+                .thenReturn(new Metadata(SecurityContext.DEFAULT, Map.of()));
 
         List<ArchiveDirectory> result = recordingArchiveHelper.getRecordingsAndDirectories().get();
 
@@ -1149,7 +1164,7 @@ class RecordingArchiveHelperTest {
                                                 "recordingA",
                                                 "/some/path/download/recordingA",
                                                 "/some/path/archive/recordingA",
-                                                new Metadata(),
+                                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                                 0,
                                                 0))),
                         new ArchiveDirectory(
@@ -1161,7 +1176,7 @@ class RecordingArchiveHelperTest {
                                                 "123recording",
                                                 "/some/path/download/123recording",
                                                 "/some/path/archive/123recording",
-                                                new Metadata(),
+                                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                                 0,
                                                 0))));
 

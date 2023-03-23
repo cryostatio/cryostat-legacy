@@ -58,6 +58,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.platform.ServiceRef;
@@ -108,6 +109,12 @@ class StartRecordingOnTargetMutator
     @Override
     String name() {
         return "doStartRecording";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        TargetNode node = environment.getSource();
+        return auth.contextFor(node);
     }
 
     @Override
@@ -162,23 +169,20 @@ class StartRecordingOnTargetMutator
                         Boolean v = (Boolean) settings.get("archiveOnStop");
                         archiveOnStop = v != null && v;
                     }
-                    Metadata m = new Metadata();
+                    Map<String, String> metadataLabels = new HashMap<>();
                     if (settings.containsKey("metadata")) {
                         Map<String, Object> _metadata =
                                 gson.fromJson(
                                         settings.get("metadata").toString(),
                                         new TypeToken<Map<String, Object>>() {}.getType());
-
-                        Map<String, String> labels = new HashMap<>();
                         List<InputRecordingLabel> inputLabels =
                                 gson.fromJson(
                                         _metadata.get("labels").toString(),
                                         new TypeToken<List<InputRecordingLabel>>() {}.getType());
 
                         for (InputRecordingLabel l : inputLabels) {
-                            labels.put(l.getKey(), l.getValue());
+                            metadataLabels.put(l.getKey(), l.getValue());
                         }
-                        m = new Metadata(labels);
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
@@ -188,7 +192,7 @@ class StartRecordingOnTargetMutator
                                     (String) settings.get("template"),
                                     TemplateType.valueOf(
                                             ((String) settings.get("templateType")).toUpperCase()),
-                                    m,
+                                    metadataLabels,
                                     archiveOnStop);
                     WebServer ws = webServer.get();
                     Metadata metadata = metadataManager.getMetadata(cd, desc.getName());

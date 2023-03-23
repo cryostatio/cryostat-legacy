@@ -67,7 +67,6 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
-import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
@@ -399,7 +398,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     builder.build(),
                                     template.getLeft(),
                                     template.getRight(),
-                                    new Metadata(),
+                                    Map.of(),
                                     false);
                         });
         try {
@@ -419,9 +418,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                                             .getLabels());
                                     labels.put("rule", rule.getName());
                                     metadataManager.setRecordingMetadata(
-                                            connectionDescriptor,
-                                            recording.getName(),
-                                            new Metadata(labels));
+                                            connectionDescriptor, recording.getName(), labels);
                                 } catch (IOException ioe) {
                                     logger.error(ioe);
                                 }

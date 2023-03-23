@@ -42,21 +42,17 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class HealthLivenessGetHandler implements RequestHandler {
+class HealthLivenessGetHandler implements RequestHandler<Void> {
 
     @Inject
     HealthLivenessGetHandler() {}
-
-    @Override
-    public void handle(RoutingContext ctx) {
-        ctx.response().setStatusCode(204).end();
-    }
 
     @Override
     public ApiVersion apiVersion() {
@@ -76,5 +72,15 @@ class HealthLivenessGetHandler implements RequestHandler {
     @Override
     public Set<ResourceAction> resourceActions() {
         return ResourceAction.NONE;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().setStatusCode(204).end();
     }
 }

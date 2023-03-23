@@ -69,7 +69,8 @@ import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler {
+public abstract class AbstractAssetJwtConsumingHandler
+        implements RequestHandler<RequestParameters> {
 
     protected final AuthManager auth;
     protected final CredentialsManager credentialsManager;
@@ -153,7 +154,11 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
 
         try {
             String subject = parsed.getJWTClaimsSet().getSubject();
-            if (!auth.validateHttpHeader(() -> subject, resourceActions()).get()) {
+            if (!auth.validateHttpHeader(
+                            () -> subject,
+                            securityContext(RequestParameters.from(ctx)),
+                            resourceActions())
+                    .get()) {
                 throw new ApiException(401, "Token subject has insufficient permissions");
             }
         } catch (ExecutionException | InterruptedException e) {
@@ -161,6 +166,12 @@ public abstract class AbstractAssetJwtConsumingHandler implements RequestHandler
         }
 
         return parsed;
+    }
+
+    protected ConnectionDescriptor getUnauthenticatedConnectionDescriptor(RequestParameters params)
+            throws ParseException {
+        String targetId = params.getPathParams().get("targetId");
+        return new ConnectionDescriptor(targetId, null);
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(RoutingContext ctx, JWT jwt)

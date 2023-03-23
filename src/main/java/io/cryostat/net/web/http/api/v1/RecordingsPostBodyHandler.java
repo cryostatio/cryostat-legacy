@@ -50,6 +50,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -103,6 +104,11 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

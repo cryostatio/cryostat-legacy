@@ -42,6 +42,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -55,6 +56,9 @@ import java.util.regex.Pattern;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -107,7 +111,9 @@ class BasicAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         if (!configLoaded) {
             this.loadConfig();
         }
@@ -123,27 +129,32 @@ class BasicAuthManager extends AbstractAuthManager {
         // FIXME actually implement this
         resourceActions.forEach(
                 action ->
-                        logger.trace(
-                                "user {} granted {} {}",
+                        logger.info(
+                                "user '{}' granted [{} {}] in context '{}'",
                                 user,
                                 action.getVerb(),
-                                action.getResource()));
+                                action.getResource(),
+                                securityContext));
         return CompletableFuture.completedFuture(granted);
     }
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String decoded = getCredentialsFromHeader(headerProvider.get());
         if (decoded == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return validateToken(() -> decoded, resourceActions);
+        return validateToken(() -> decoded, securityContext, resourceActions);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -159,7 +170,7 @@ class BasicAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
+            return validateToken(() -> decoded, securityContext, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
@@ -168,6 +179,21 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<SecurityContext> getSecurityContexts() {
+        return List.of(SecurityContext.DEFAULT);
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return SecurityContext.DEFAULT;
     }
 
     private Pair<String, String> splitCredentials(String credentials) {

@@ -47,6 +47,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.discovery.EnvironmentNode;
@@ -101,6 +102,11 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

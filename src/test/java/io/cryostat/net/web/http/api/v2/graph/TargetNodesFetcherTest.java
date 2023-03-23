@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
@@ -84,13 +85,16 @@ class TargetNodesFetcherTest {
     @Mock RoutingContext ctx;
     @Mock FilterInput filter;
 
+    @Mock Logger logger;
+
     @Mock(answer = RETURNS_SELF)
     DataFetchingEnvironmentImpl.Builder builder;
 
     @BeforeEach
     void setup() {
         this.fetcher =
-                new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
+                new TargetNodesFetcher(
+                        auth, credentialsManager, rootNodeFetcher, recurseFetcher, logger);
     }
 
     @Test
@@ -106,13 +110,10 @@ class TargetNodesFetcherTest {
             staticEnv
                     .when(() -> DataFetchingEnvironmentImpl.newDataFetchingEnvironment(env))
                     .thenReturn(builder);
-            when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
 
             when(recurseFetcher.get(Mockito.any())).thenReturn(List.of());
 
-            List<TargetNode> nodes = fetcher.get(env);
+            List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(nodes, Matchers.empty());
@@ -132,7 +133,7 @@ class TargetNodesFetcherTest {
             HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
             when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             TargetNode target = Mockito.mock(TargetNode.class);
@@ -141,7 +142,7 @@ class TargetNodesFetcherTest {
 
             when(recurseFetcher.get(Mockito.any())).thenReturn(List.of(target));
 
-            List<TargetNode> nodes = fetcher.get(env);
+            List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
             MatcherAssert.assertThat(nodes, Matchers.notNullValue());
             MatcherAssert.assertThat(nodes, Matchers.contains(target));
@@ -163,7 +164,7 @@ class TargetNodesFetcherTest {
                 HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
                 when(ctx.request()).thenReturn(req);
                 when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-                when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
                 when(filter.contains(Mockito.any())).thenReturn(false);
@@ -185,7 +186,7 @@ class TargetNodesFetcherTest {
                 when(recurseFetcher.get(Mockito.any()))
                         .thenReturn(List.of(target1, target2, target3));
 
-                List<TargetNode> nodes = fetcher.get(env);
+                List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
                 MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(target1, target3));
@@ -208,7 +209,7 @@ class TargetNodesFetcherTest {
                 HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
                 when(ctx.request()).thenReturn(req);
                 when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-                when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 
                 when(filter.contains(Mockito.any())).thenReturn(false);
@@ -270,7 +271,7 @@ class TargetNodesFetcherTest {
                 when(recurseFetcher.get(Mockito.any()))
                         .thenReturn(List.of(target1, target2, target3));
 
-                List<TargetNode> nodes = fetcher.get(env);
+                List<TargetNode> nodes = fetcher.getAuthenticated(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
                 MatcherAssert.assertThat(nodes, Matchers.contains(target1));

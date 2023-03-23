@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
@@ -46,8 +47,11 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -55,6 +59,8 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
 
@@ -66,15 +72,21 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
     static final String PATH = "recordings/:sourceTarget/:recordingName";
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final RecordingMetadataManager metadataManager;
+    private final Logger logger;
 
     @Inject
     RecordingGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            RecordingArchiveHelper recordingArchiveHelper,
+            RecordingMetadataManager metadataManager,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.metadataManager = metadataManager;
+        this.logger = logger;
     }
 
     @Override
@@ -110,6 +122,20 @@ public class RecordingGetHandler extends AbstractV2RequestHandler<Path> {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
+        try {
+            Metadata m =
+                    metadataManager.getMetadata(
+                            new ConnectionDescriptor(sourceTarget), recordingName);
+            return m.getSecurityContext();
+        } catch (IOException ioe) {
+            throw new ApiException(404, ioe);
+        }
     }
 
     @Override

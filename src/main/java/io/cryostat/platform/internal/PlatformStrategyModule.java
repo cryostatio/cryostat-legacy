@@ -37,11 +37,18 @@
  */
 package io.cryostat.platform.internal;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import javax.inject.Named;
+import javax.inject.Singleton;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
@@ -57,14 +64,53 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.client.Config;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.StringUtils;
 
 @Module
 public abstract class PlatformStrategyModule {
 
+    public static final String K8S_INSTALL_NAMESPACE = "K8S_INSTALL_NAMESPACE";
+    public static final String K8S_TARGET_NAMESPACES = "K8S_TARGET_NAMESPACES";
+
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes namespace file path is well-known and absolute")
+    @Provides
+    @Singleton
+    @Named(K8S_INSTALL_NAMESPACE)
+    static String provideK8sInstallNamespace(Environment env, FileSystem fs, Logger logger) {
+        try {
+            return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
+                    .lines()
+                    .filter(StringUtils::isNotBlank)
+                    .findFirst()
+                    .get();
+        } catch (IOException e) {
+            logger.trace(e);
+            return null;
+        }
+    }
+
+    @Provides
+    @Singleton
+    @Named(K8S_TARGET_NAMESPACES)
+    static List<String> provideK8sTargetNamespaces(Environment env) {
+        List<String> list = new ArrayList<>();
+        String cfg = env.getEnv(Variables.K8S_NAMESPACES, "");
+        if (StringUtils.isNotBlank(cfg)) {
+            list.addAll(Arrays.asList(cfg.split(",")));
+        }
+        return list;
+    }
+
     @Provides
     @ElementsIntoSet
     static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
+            @Named(K8S_INSTALL_NAMESPACE) Lazy<String> installNamespace,
+            @Named(K8S_TARGET_NAMESPACES) Lazy<List<String>> targetNamespaces,
             Logger logger,
             Lazy<OpenShiftAuthManager> openShiftAuthManager,
             Lazy<NoopAuthManager> noopAuthManager,
@@ -77,9 +123,21 @@ public abstract class PlatformStrategyModule {
             FileSystem fs) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
+                        logger,
+                        executor,
+                        openShiftAuthManager,
+                        env,
+                        fs,
+                        installNamespace,
+                        targetNamespaces),
                 new KubeApiPlatformStrategy(
-                        logger, executor, noopAuthManager, connectionToolkit, env, fs),
+                        logger,
+                        executor,
+                        noopAuthManager,
+                        env,
+                        fs,
+                        installNamespace,
+                        targetNamespaces),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
                 new DefaultPlatformStrategy(

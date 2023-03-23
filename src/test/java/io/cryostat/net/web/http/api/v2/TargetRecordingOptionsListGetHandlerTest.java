@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -54,10 +55,13 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -83,6 +87,7 @@ class TargetRecordingOptionsListGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock IFlightRecorderService service;
     @Mock JFRConnection connection;
     @Mock Logger logger;
@@ -92,7 +97,7 @@ class TargetRecordingOptionsListGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingOptionsListGetHandler(
-                        auth, credentialsManager, targetConnectionManager, gson);
+                        auth, credentialsManager, targetConnectionManager, storage, gson);
     }
 
     @Test
@@ -113,7 +118,34 @@ class TargetRecordingOptionsListGetHandlerTest {
     }
 
     @Test
+    void shouldUseSecurityContextForTarget() throws Exception {
+        String targetId = "fooHost:0";
+
+        RequestParameters requestParams = Mockito.mock(RequestParameters.class);
+
+        Map<String, String> pathParams = Map.of("targetId", targetId);
+        Mockito.when(requestParams.getPathParams()).thenReturn(pathParams);
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        Mockito.when(requestParams.getHeaders()).thenReturn(headers);
+
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(sr));
+        SecurityContext sc = Mockito.mock(SecurityContext.class);
+        Mockito.when(auth.contextFor(sr)).thenReturn(sc);
+
+        SecurityContext actual = handler.securityContext(requestParams);
+        MatcherAssert.assertThat(actual, Matchers.sameInstance(sc));
+        Mockito.verify(storage).lookupServiceByTargetId(targetId);
+        Mockito.verify(auth).contextFor(sr);
+    }
+
+    @Test
     void shouldRespondWithRecordingOptionsList() throws Exception {
+        ServiceRef sr = Mockito.mock(ServiceRef.class);
+        Mockito.when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(sr));
+        Mockito.when(auth.contextFor(sr)).thenReturn(SecurityContext.DEFAULT);
+
         IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
         when(descriptor.getDescription()).thenReturn("Foo Option");
@@ -138,7 +170,7 @@ class TargetRecordingOptionsListGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         try {

@@ -42,6 +42,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -62,7 +63,7 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 import org.apache.commons.io.FileUtils;
 
-class RequestLoggingHandler implements RequestHandler {
+class RequestLoggingHandler implements RequestHandler<Void> {
 
     private final LoggerHandler delegate;
 
@@ -86,6 +87,11 @@ class RequestLoggingHandler implements RequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return null;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

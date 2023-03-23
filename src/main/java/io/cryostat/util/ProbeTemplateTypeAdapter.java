@@ -41,11 +41,14 @@ import java.io.IOException;
 
 import io.cryostat.core.agent.ProbeTemplate;
 
-import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-public class ProbeTemplateTypeAdapter extends TypeAdapter<ProbeTemplate> {
+public class ProbeTemplateTypeAdapter extends PluggableTypeAdapter<ProbeTemplate> {
+
+    public ProbeTemplateTypeAdapter() {
+        super(ProbeTemplate.class);
+    }
 
     @Override
     public void write(JsonWriter out, ProbeTemplate value) throws IOException {
@@ -60,6 +63,7 @@ public class ProbeTemplateTypeAdapter extends TypeAdapter<ProbeTemplate> {
     @Override
     public ProbeTemplate read(JsonReader in) throws IOException {
         // Unused, we never read ProbeTemplates from Json, only write them
+        // FIXME this should be a JsonSerializer then, not a TypeAdapter
         return null;
     }
 }

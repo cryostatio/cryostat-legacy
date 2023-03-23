@@ -55,11 +55,15 @@ import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -73,6 +77,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final ReportService reportService;
+    private final RecordingArchiveHelper archiveHelper;
     private final long reportGenerationTimeoutSeconds;
 
     @Inject
@@ -80,11 +85,13 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             CredentialsManager credentialsManager,
             ReportService reportService,
+            RecordingArchiveHelper archiveHelper,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
                     long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.reportService = reportService;
+        this.archiveHelper = archiveHelper;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
@@ -124,6 +131,23 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.HTML);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        String recordingName = ctx.pathParam("recordingName");
+        try {
+
+            return archiveHelper.getRecordings().get().stream()
+                    .filter(r -> r.getName().equals(recordingName))
+                    .findFirst()
+                    .map(ArchivedRecordingInfo::getMetadata)
+                    .map(Metadata::getSecurityContext)
+                    .orElseThrow(() -> new HttpException(404));
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+            throw new HttpException(500, e);
+        }
     }
 
     @Override

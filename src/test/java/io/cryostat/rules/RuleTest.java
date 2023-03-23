@@ -37,6 +37,7 @@
  */
 package io.cryostat.rules;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.vertx.core.MultiMap;
 import org.hamcrest.MatcherAssert;
@@ -153,6 +154,7 @@ class RuleTest {
                         .eventSpecifier(EVENT_SPECIFIER)
                         .initialDelaySeconds(-1)
                         .archivalPeriodSeconds(30)
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getInitialDelaySeconds(), Matchers.equalTo(30));
     }
@@ -193,11 +195,27 @@ class RuleTest {
     }
 
     @Test
+    void shouldThrowOnBlankContexts() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(), Matchers.containsString("\"contexts\" cannot be empty"));
+    }
+
+    @Test
     void shouldDefaultToEmptyDescriptionIfLeftNull() throws Exception {
         Rule rule =
                 builder.name(NAME)
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getDescription(), Matchers.is(Matchers.emptyString()));
     }
@@ -208,6 +226,7 @@ class RuleTest {
                 builder.name("Some Rule")
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
     }
@@ -218,13 +237,18 @@ class RuleTest {
                 builder.name("Some Rule")
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getRecordingName(), Matchers.equalTo("auto_Some_Rule"));
     }
 
     @Test
     void shouldAcceptEventSpecifierArchiveSpecialCase() throws Exception {
-        Rule rule = builder.matchExpression(MATCH_EXPRESSION).eventSpecifier("archive").build();
+        Rule rule =
+                builder.matchExpression(MATCH_EXPRESSION)
+                        .eventSpecifier("archive")
+                        .context("__DEFAULT__")
+                        .build();
         MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
     }
 
@@ -234,6 +258,7 @@ class RuleTest {
                 builder.name("Some Rule")
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier("archive")
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
     }
@@ -244,6 +269,7 @@ class RuleTest {
                 builder.description("Unused description")
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier("archive")
+                        .context("__DEFAULT__")
                         .build();
         MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
     }
@@ -355,6 +381,9 @@ class RuleTest {
                 json.addProperty("maxSizeBytes", maxSizeBytes);
                 json.addProperty("archivalPeriodSeconds", archivalPeriodSeconds);
                 json.addProperty("preservedArchives", preservedArchives);
+                JsonArray contexts = new JsonArray();
+                contexts.add("__DEFAULT__");
+                json.add("contexts", contexts);
                 Rule rule = Rule.Builder.from(json).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -382,6 +411,9 @@ class RuleTest {
                 json.addProperty("name", name);
                 json.addProperty("matchExpression", matchExpression);
                 json.addProperty("eventSpecifier", eventSpecifier);
+                JsonArray contexts = new JsonArray();
+                contexts.add("__DEFAULT__");
+                json.add("contexts", contexts);
                 Rule rule = Rule.Builder.from(json).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -400,6 +432,9 @@ class RuleTest {
                 JsonObject json = new JsonObject();
                 json.addProperty("matchExpression", matchExpression);
                 json.addProperty("eventSpecifier", eventSpecifier);
+                JsonArray contexts = new JsonArray();
+                contexts.add("__DEFAULT__");
+                json.add("contexts", contexts);
                 Rule rule = Rule.Builder.from(json).build();
 
                 MatcherAssert.assertThat(
@@ -433,6 +468,7 @@ class RuleTest {
                 form.set("maxSizeBytes", String.valueOf(maxSizeBytes));
                 form.set("archivalPeriodSeconds", String.valueOf(archivalPeriodSeconds));
                 form.set("preservedArchives", String.valueOf(preservedArchives));
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -460,6 +496,7 @@ class RuleTest {
                 form.set("name", name);
                 form.set("matchExpression", matchExpression);
                 form.set("eventSpecifier", eventSpecifier);
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
@@ -478,6 +515,7 @@ class RuleTest {
                 MultiMap form = MultiMap.caseInsensitiveMultiMap();
                 form.set("matchExpression", matchExpression);
                 form.set("eventSpecifier", eventSpecifier);
+                form.set("contexts", "DEFAULT");
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(

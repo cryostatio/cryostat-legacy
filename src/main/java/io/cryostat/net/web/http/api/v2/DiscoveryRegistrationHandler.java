@@ -61,6 +61,7 @@ import io.cryostat.discovery.PluginInfo;
 import io.cryostat.discovery.RegistrationException;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -137,6 +138,11 @@ class DiscoveryRegistrationHandler extends AbstractV2RequestHandler<Map<String, 
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

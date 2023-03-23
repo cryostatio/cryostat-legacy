@@ -38,6 +38,7 @@
 package itest;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -72,16 +73,17 @@ public class ArchivedRecordingJwtDownloadIT extends JwtAssetsSelfTest {
             resource = createRecording();
             Thread.sleep(10_000L);
             archivedResource = createArchivedRecording(resource);
+            String recordingName =
+                    StringUtils.substringAfter(archivedResource.getPath(), "recordings/");
             String downloadUrl =
                     getTokenDownloadUrl(
-                            new URL(
-                                    String.format(
-                                            "http://%s:%d/api/beta/recordings/%s/%s",
-                                            Utils.WEB_HOST,
-                                            Utils.WEB_PORT,
-                                            SELF_REFERENCE_TARGET_ID,
-                                            StringUtils.substringAfter(
-                                                    archivedResource.getPath(), "recordings/"))));
+                            new URI(String.format("http://%s:%d/", Utils.WEB_HOST, Utils.WEB_PORT))
+                                    .resolve(
+                                            String.format(
+                                                    "api/beta/recordings/%s/%s",
+                                                    SELF_REFERENCE_TARGET_ID, recordingName))
+                                    .normalize()
+                                    .toURL());
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);

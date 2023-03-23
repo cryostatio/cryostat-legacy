@@ -47,6 +47,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Provider;
 
@@ -57,12 +58,15 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.StoredRecordingMetadata;
 
@@ -89,15 +93,16 @@ public class RecordingMetadataManagerTest {
     RecordingMetadataManager recordingMetadataManager;
     Vertx vertx = MockVertx.vertx();
 
+    @Mock AuthManager auth;
     @Mock Path recordingMetadataDir;
     @Mock Path archivedRecordingsPath;
     @Mock FileSystem fs;
     @Mock Provider<RecordingArchiveHelper> archiveHelperProvider;
     @Mock Base32 base32;
     @Mock Logger logger;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock CredentialsManager credentialsManager;
-    @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock Notification notification;
@@ -135,6 +140,7 @@ public class RecordingMetadataManagerTest {
 
         this.recordingMetadataManager =
                 new RecordingMetadataManager(
+                        auth,
                         new DirectExecutorService(),
                         recordingMetadataDir,
                         archivedRecordingsPath,
@@ -143,7 +149,7 @@ public class RecordingMetadataManagerTest {
                         archiveHelperProvider,
                         targetConnectionManager,
                         credentialsManager,
-                        platformClient,
+                        storage,
                         notificationFactory,
                         jvmIdHelper,
                         gson,
@@ -166,8 +172,13 @@ public class RecordingMetadataManagerTest {
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
-                .setRecordingMetadata(connectionDescriptor, recordingName, new Metadata(labels))
+                .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
 
         verify(fs)
@@ -205,7 +216,7 @@ public class RecordingMetadataManagerTest {
         String jvmId = "id";
         Map<String, String> labels =
                 Map.of("KEY", "newValue", "key.2", "some.value", "key3", "1234");
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
 
         when(jvmIdHelper.getJvmId(Mockito.any(ConnectionDescriptor.class))).thenReturn(jvmId);
         when(connectionDescriptor.getTargetId()).thenReturn("someTarget");
@@ -220,8 +231,13 @@ public class RecordingMetadataManagerTest {
         when(fs.readFile(mockPath))
                 .thenReturn(new BufferedReader(new StringReader("{\"labels\":{}}")));
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(Mockito.anyString()))
+                .thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
-                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
 
         recordingMetadataManager.deleteRecordingMetadataIfExists(jvmId, recordingName);
@@ -235,12 +251,12 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
         StoredRecordingMetadata srm =
                 StoredRecordingMetadata.of(targetId, jvmId, recordingName, metadata);
         Map<String, String> updatedLabels =
                 Map.of("KEY", "UPDATED_VALUE", "key.2", "some.value", "key3", "1234");
-        Metadata updatedMetadata = new Metadata(updatedLabels);
+        Metadata updatedMetadata = new Metadata(SecurityContext.DEFAULT, updatedLabels);
         StoredRecordingMetadata updatedSrm =
                 StoredRecordingMetadata.of(targetId, jvmId, recordingName, updatedMetadata);
 
@@ -250,12 +266,16 @@ public class RecordingMetadataManagerTest {
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
-                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
 
         recordingMetadataManager
-                .setRecordingMetadata(connectionDescriptor, recordingName, updatedMetadata)
+                .setRecordingMetadata(connectionDescriptor, recordingName, updatedLabels)
                 .get();
 
         InOrder inOrder = Mockito.inOrder(fs);
@@ -281,7 +301,7 @@ public class RecordingMetadataManagerTest {
         String targetId = "someTarget";
         String jvmId = "id";
         Map<String, String> labels = Map.of("KEY", "value", "key.2", "some.value", "key3", "1234");
-        Metadata metadata = new Metadata(labels);
+        Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
         StoredRecordingMetadata srm =
                 StoredRecordingMetadata.of(targetId, jvmId, recordingName, metadata);
         String filename = "archivedRecording";
@@ -291,8 +311,12 @@ public class RecordingMetadataManagerTest {
         when(recordingMetadataDir.resolve(Mockito.anyString())).thenReturn(mockPath);
         when(mockPath.resolve(Mockito.anyString())).thenReturn(mockPath);
 
+        ServiceRef serviceRef = Mockito.mock(ServiceRef.class);
+        when(storage.lookupServiceByTargetId(targetId)).thenReturn(Optional.of(serviceRef));
+        when(auth.contextFor(Mockito.any(ServiceRef.class))).thenReturn(SecurityContext.DEFAULT);
+
         recordingMetadataManager
-                .setRecordingMetadata(connectionDescriptor, recordingName, metadata)
+                .setRecordingMetadata(connectionDescriptor, recordingName, labels)
                 .get();
 
         recordingMetadataManager.copyMetadataToArchives(

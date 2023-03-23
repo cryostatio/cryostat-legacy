@@ -181,6 +181,7 @@ class RuleDeleteHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .build();
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
@@ -223,6 +224,7 @@ class RuleDeleteHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .build();
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
@@ -263,6 +265,7 @@ class RuleDeleteHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .build();
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
@@ -291,6 +294,7 @@ class RuleDeleteHandlerTest {
                             .name(testRuleName)
                             .matchExpression("true")
                             .eventSpecifier("template=Continuous")
+                            .context("__DEFAULT__")
                             .build();
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));

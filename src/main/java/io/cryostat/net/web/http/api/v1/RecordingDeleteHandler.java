@@ -47,11 +47,14 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.DeprecatedApi;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -98,6 +101,23 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        String recordingName = ctx.pathParam("recordingName");
+        try {
+
+            return recordingArchiveHelper.getRecordings().get().stream()
+                    .filter(r -> r.getName().equals(recordingName))
+                    .findFirst()
+                    .map(ArchivedRecordingInfo::getMetadata)
+                    .map(Metadata::getSecurityContext)
+                    .orElseThrow(() -> new HttpException(404));
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+            throw new HttpException(500, e);
+        }
     }
 
     @Override

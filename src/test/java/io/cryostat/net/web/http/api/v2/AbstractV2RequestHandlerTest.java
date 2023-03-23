@@ -59,6 +59,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -120,7 +121,7 @@ class AbstractV2RequestHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -129,7 +130,7 @@ class AbstractV2RequestHandlerTest {
 
     @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -165,7 +166,7 @@ class AbstractV2RequestHandlerTest {
 
         @BeforeEach
         void setup2() {
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -260,7 +261,7 @@ class AbstractV2RequestHandlerTest {
         @BeforeEach
         void setup3() {
             handler = new ConnectionDescriptorHandler(auth, credentialsManager, gson);
-            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -459,6 +460,11 @@ class AbstractV2RequestHandlerTest {
         public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<String>().body("OK");
         }
+
+        @Override
+        public SecurityContext securityContext(RequestParameters ctx) {
+            return SecurityContext.DEFAULT;
+        }
     }
 
     static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {
@@ -533,6 +539,11 @@ class AbstractV2RequestHandlerTest {
         public IntermediateResponse<Path> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<Path>().body(Path.of("/my/file.html"));
         }
+
+        @Override
+        public SecurityContext securityContext(RequestParameters ctx) {
+            return SecurityContext.DEFAULT;
+        }
     }
 
     static class RawResponseHandler extends AbstractV2RequestHandler<String> {
@@ -573,6 +584,11 @@ class AbstractV2RequestHandlerTest {
         @Override
         public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<String>().body("<xml></xml>");
+        }
+
+        @Override
+        public SecurityContext securityContext(RequestParameters ctx) {
+            return SecurityContext.DEFAULT;
         }
     }
 }

@@ -58,6 +58,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.RecordingsFetcher.Recordings;
 import io.cryostat.platform.ServiceRef;
@@ -103,6 +104,12 @@ class RecordingsFetcher extends AbstractPermissionedDataFetcher<Recordings> {
     @Override
     String name() {
         return "recordings";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        TargetNode source = (TargetNode) environment.getSource();
+        return auth.contextFor(source);
     }
 
     @Override

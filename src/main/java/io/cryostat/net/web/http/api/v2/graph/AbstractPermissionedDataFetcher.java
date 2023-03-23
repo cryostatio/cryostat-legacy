@@ -48,6 +48,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
@@ -83,6 +84,7 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
         boolean authenticated =
                 auth.validateHttpHeader(
                                 () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                                securityContext(environment),
                                 resourceActions())
                         .get();
         if (!authenticated) {
@@ -92,6 +94,8 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     }
 
     abstract T getAuthenticated(DataFetchingEnvironment environment) throws Exception;
+
+    abstract SecurityContext securityContext(DataFetchingEnvironment environment);
 
     // FIXME targetId should not be supplied, this method should either figure it out from context,
     // or the X-JMX-Authorization header should actually have a value that encodes a map from

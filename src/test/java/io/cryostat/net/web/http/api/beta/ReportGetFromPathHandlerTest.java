@@ -55,6 +55,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.google.gson.Gson;
@@ -78,13 +79,20 @@ class ReportGetFromPathHandlerTest {
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
     @Mock Gson gson;
+    @Mock RecordingArchiveHelper archiveHelper;
     @Mock ReportService reportService;
 
     @BeforeEach
     void setup() {
         this.handler =
                 new ReportGetFromPathHandler(
-                        authManager, credentialsManager, gson, reportService, 30);
+                        authManager,
+                        credentialsManager,
+                        gson,
+                        archiveHelper,
+                        reportService,
+                        30,
+                        null);
     }
 
     @Nested

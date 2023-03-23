@@ -54,6 +54,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -101,6 +102,12 @@ class PutActiveRecordingMetadataMutator
     }
 
     @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        GraphRecordingDescriptor source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return Set.of(
                 ResourceAction.READ_RECORDING,
@@ -143,8 +150,7 @@ class PutActiveRecordingMetadataMutator
 
                     Metadata metadata =
                             metadataManager
-                                    .setRecordingMetadata(
-                                            cd, recordingName, new Metadata(labels), true)
+                                    .setRecordingMetadata(cd, recordingName, labels, true)
                                     .get();
 
                     return new HyperlinkedSerializableRecordingDescriptor(

@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
@@ -54,12 +55,16 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingSourceTargetNotFoundException;
@@ -69,6 +74,7 @@ import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
@@ -77,6 +83,8 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     private final ReportService reportService;
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final JvmIdHelper jvmId;
+    private final Base32 base32;
     private final long generationTimeoutSeconds;
 
     @Inject
@@ -87,11 +95,15 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             Lazy<WebServer> webServer,
             ReportService reportService,
             RecordingArchiveHelper recordingArchiveHelper,
+            JvmIdHelper jvmId,
+            Base32 base32,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
         this.reportService = reportService;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.jvmId = jvmId;
+        this.base32 = base32;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
@@ -131,6 +143,23 @@ class ReportGetWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     @Override
     public boolean isOrdered() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String sourceTarget = params.getPathParams().get("sourceTarget");
+        String recordingName = params.getPathParams().get("recordingName");
+        try {
+            String id = jvmId.getJvmId(sourceTarget);
+            String encoded = base32.encodeToString(id.getBytes(StandardCharsets.UTF_8));
+            return recordingArchiveHelper
+                    .getRecordingFromPath(encoded, recordingName)
+                    .orElseThrow(() -> new ApiException(403))
+                    .getMetadata()
+                    .getSecurityContext();
+        } catch (JvmIdGetException jige) {
+            throw new ApiException(404, jige);
+        }
     }
 
     @Override

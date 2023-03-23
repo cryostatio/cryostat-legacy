@@ -53,9 +53,12 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -73,6 +76,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     static final String PATH = TargetRecordingOptionsGetHandler.PATH;
     private static final String UNSET_KEYWORD = "unset";
     private final RecordingOptionsCustomizer customizer;
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
@@ -82,12 +86,14 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
             AuthManager auth,
             CredentialsManager credentialsManager,
             RecordingOptionsCustomizer customizer,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager connectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.customizer = customizer;
+        this.discoveryStorage = discoveryStorage;
         this.connectionManager = connectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.gson = gson;
@@ -126,6 +132,15 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

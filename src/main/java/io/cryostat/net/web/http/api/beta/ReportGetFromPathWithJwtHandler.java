@@ -54,12 +54,14 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractAssetJwtConsumingHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
@@ -75,6 +77,7 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
 
     static final String PATH = "fs/reports/:subdirectoryName/:recordingName/jwt";
 
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final ReportService reportService;
     private final long generationTimeoutSeconds;
 
@@ -89,6 +92,7 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, credentialsManager, jwtFactory, webServer, logger);
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.reportService = reportService;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
@@ -129,6 +133,17 @@ class ReportGetFromPathWithJwtHandler extends AbstractAssetJwtConsumingHandler {
     @Override
     public boolean isOrdered() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        return recordingArchiveHelper
+                .getRecordingFromPath(subdirectoryName, recordingName)
+                .orElseThrow(() -> new ApiException(403))
+                .getMetadata()
+                .getSecurityContext();
     }
 
     @Override

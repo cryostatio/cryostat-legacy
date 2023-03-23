@@ -235,6 +235,7 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.NAME.getSerialKey(), name);
             form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), matchExpression);
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), eventSpecifier);
+            form.set(Rule.Attribute.CONTEXTS.getSerialKey(), "DEFAULT");
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -258,6 +259,7 @@ class RulesPostHandlerTest {
                     "target.annotations.cryostat.JAVA_MAIN == 'someTarget'");
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), val);
+            form.set(Rule.Attribute.CONTEXTS.getSerialKey(), "DEFAULT");
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -321,6 +323,7 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.MAX_AGE_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.MAX_SIZE_BYTES.getSerialKey(), "8192");
             form.set(Rule.Attribute.ENABLED.getSerialKey(), "true");
+            form.set(Rule.Attribute.CONTEXTS.getSerialKey(), "DEFAULT");
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
@@ -345,6 +348,7 @@ class RulesPostHandlerTest {
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
                                     .enabled(true)
+                                    .contexts(Set.of("DEFAULT"))
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
@@ -376,7 +380,9 @@ class RulesPostHandlerTest {
                                     "maxSizeBytes",
                                     8192,
                                     "enabled",
-                                    true));
+                                    true,
+                                    "contexts",
+                                    List.of("__DEFAULT__")));
             Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
@@ -403,6 +409,7 @@ class RulesPostHandlerTest {
                                     .maxAgeSeconds(60)
                                     .maxSizeBytes(8192)
                                     .enabled(true)
+                                    .context("__DEFAULT__")
                                     .build());
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();

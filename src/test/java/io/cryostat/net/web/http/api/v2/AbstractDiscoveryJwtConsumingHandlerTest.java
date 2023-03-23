@@ -276,7 +276,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(false));
 
             ApiException ex =
@@ -286,7 +286,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails2() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new PermissionDeniedException(
@@ -299,7 +299,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails3() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
@@ -311,7 +311,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails4() {
             // Check a doubly-nested PermissionDeniedException
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -329,7 +329,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails5() {
             // Check doubly-nested KubernetesClientException with its own cause
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -343,7 +343,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthThrows() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
             ApiException ex =
@@ -402,7 +402,7 @@ class AbstractDiscoveryJwtConsumingHandlerTest {
             Mockito.lenient().when(webServer.getHostUrl()).thenReturn(hostUrl);
 
             Mockito.lenient()
-                    .when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 

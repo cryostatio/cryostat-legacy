@@ -87,19 +87,19 @@ public abstract class GraphModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
+    abstract RequestHandler<?> bindGraphPostBodyHandler(GraphQLPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphPostHandler(GraphQLPostHandler handler);
+    abstract RequestHandler<?> bindGraphPostHandler(GraphQLPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphGetHandler(GraphQLGetHandler handler);
+    abstract RequestHandler<?> bindGraphGetHandler(GraphQLGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGraphiGetHandler(GraphiQLGetHandler handler);
+    abstract RequestHandler<?> bindGraphiGetHandler(GraphiQLGetHandler handler);
 
     @Provides
     @Singleton
@@ -271,8 +271,9 @@ public abstract class GraphModule {
     static NodeFetcher provideNodeFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
-        return new NodeFetcher(auth, credentialsManager, rootNodeFetcher);
+            RootNodeFetcher rootNodeFetcher,
+            Logger logger) {
+        return new NodeFetcher(auth, credentialsManager, rootNodeFetcher, logger);
     }
 
     @Binds
@@ -297,8 +298,10 @@ public abstract class GraphModule {
             AuthManager auth,
             CredentialsManager credentialsManager,
             RootNodeFetcher rootNodeFetcher,
-            TargetNodeRecurseFetcher recurseFetcher) {
-        return new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
+            TargetNodeRecurseFetcher recurseFetcher,
+            Logger logger) {
+        return new TargetNodesFetcher(
+                auth, credentialsManager, rootNodeFetcher, recurseFetcher, logger);
     }
 
     @Binds

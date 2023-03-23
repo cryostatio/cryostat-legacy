@@ -50,6 +50,7 @@ import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -85,6 +86,7 @@ class TargetRecordingOptionsPatchHandlerTest {
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsCustomizer customizer;
     @Mock TargetConnectionManager connectionManager;
+    @Mock DiscoveryStorage storage;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock RecordingOptionsBuilder builder;
     @Mock IConstrainedMap<String> recordingOptions;
@@ -99,6 +101,7 @@ class TargetRecordingOptionsPatchHandlerTest {
                         auth,
                         credentialsManager,
                         customizer,
+                        storage,
                         connectionManager,
                         recordingOptionsBuilderFactory,
                         gson,

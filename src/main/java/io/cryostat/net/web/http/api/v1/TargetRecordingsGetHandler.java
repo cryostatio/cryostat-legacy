@@ -49,10 +49,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -63,10 +66,12 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager connectionManager;
+    private final DiscoveryStorage discoveryStorage;
     private final Provider<WebServer> webServerProvider;
     private final RecordingMetadataManager recordingMetadataManager;
     private final Gson gson;
@@ -76,11 +81,13 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager connectionManager,
+            DiscoveryStorage discoveryStorage,
             Provider<WebServer> webServerProvider,
             RecordingMetadataManager recordingMetadataManager,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, logger);
+        this.discoveryStorage = discoveryStorage;
         this.connectionManager = connectionManager;
         this.webServerProvider = webServerProvider;
         this.recordingMetadataManager = recordingMetadataManager;
@@ -115,6 +122,15 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

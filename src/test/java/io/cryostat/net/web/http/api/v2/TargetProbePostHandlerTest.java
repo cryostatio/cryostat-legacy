@@ -55,6 +55,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -90,6 +91,7 @@ public class TargetProbePostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock DiscoveryStorage storage;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Environment env;
     Gson gson = MainModule.provideGson(logger);
@@ -116,6 +118,7 @@ public class TargetProbePostHandlerTest {
                         fs,
                         auth,
                         credentialsManager,
+                        storage,
                         targetConnectionManager,
                         env,
                         gson);

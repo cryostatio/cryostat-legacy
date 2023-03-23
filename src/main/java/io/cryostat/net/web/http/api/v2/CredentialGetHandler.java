@@ -48,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.MatchedCredentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -100,6 +101,11 @@ class CredentialGetHandler extends AbstractV2RequestHandler<MatchedCredentials> 
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

@@ -38,6 +38,7 @@
 package io.cryostat.net;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +47,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 public interface AuthManager {
     AuthenticationScheme getScheme();
@@ -60,14 +64,26 @@ public interface AuthManager {
             throws ExecutionException, InterruptedException, IOException, TokenNotFoundException;
 
     Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
 
     Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
 
     Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions);
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+
+    List<? extends SecurityContext> getSecurityContexts();
+
+    SecurityContext contextFor(AbstractNode node);
+
+    SecurityContext contextFor(ServiceRef serviceRef);
 }

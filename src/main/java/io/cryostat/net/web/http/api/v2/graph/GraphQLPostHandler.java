@@ -45,6 +45,7 @@ import javax.inject.Inject;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -56,7 +57,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
-class GraphQLPostHandler implements RequestHandler {
+class GraphQLPostHandler implements RequestHandler<RoutingContext> {
 
     static final String PATH = "graphql";
 
@@ -99,10 +100,18 @@ class GraphQLPostHandler implements RequestHandler {
     }
 
     @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
     public void handle(RoutingContext ctx) {
         try {
             if (!auth.validateHttpHeader(
                             () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                            // default context here, but each nested query/mutation will perform its
+                            // own context check as we descend the tree
+                            SecurityContext.DEFAULT,
                             resourceActions())
                     .get()) {
                 throw new ApiException(401);

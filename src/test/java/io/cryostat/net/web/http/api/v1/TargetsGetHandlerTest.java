@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -135,6 +136,8 @@ class TargetsGetHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         handler.handleAuthenticated(ctx);
 

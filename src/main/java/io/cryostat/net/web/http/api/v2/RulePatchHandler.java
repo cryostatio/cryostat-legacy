@@ -52,6 +52,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.ServiceRef;
@@ -130,6 +131,22 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        // FIXME cleanup and remove this, all handlers should use the list form below
+        return null;
+    }
+
+    @Override
+    public List<SecurityContext> securityContexts(RequestParameters params) {
+        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
+        Rule rule = ruleRegistry.getRule(name).get();
+        return (List<SecurityContext>)
+                auth.getSecurityContexts().stream()
+                        .filter(sc -> rule.getContexts().contains(sc.getName()))
+                        .toList();
     }
 
     @Override

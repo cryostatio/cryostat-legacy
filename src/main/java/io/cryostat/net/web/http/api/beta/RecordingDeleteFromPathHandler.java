@@ -47,6 +47,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -54,8 +55,10 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -109,6 +112,17 @@ public class RecordingDeleteFromPathHandler extends AbstractV2RequestHandler<Voi
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        return recordingArchiveHelper
+                .getRecordingFromPath(subdirectoryName, recordingName)
+                .map(ArchivedRecordingInfo::getMetadata)
+                .map(Metadata::getSecurityContext)
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

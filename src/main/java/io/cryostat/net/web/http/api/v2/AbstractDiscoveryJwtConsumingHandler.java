@@ -55,6 +55,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.discovery.PluginInfo;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.security.jwt.DiscoveryJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -74,7 +75,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
-abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler {
+abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler<RoutingContext> {
 
     static final String X_FORWARDED_FOR = "X-Forwarded-For";
 
@@ -101,6 +102,11 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
     }
 
     abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
+
+    @Override
+    public final SecurityContext securityContext(RoutingContext ctx) {
+        return SecurityContext.DEFAULT;
+    }
 
     protected boolean checkTokenTimeClaims() {
         return true;
@@ -182,7 +188,8 @@ abstract class AbstractDiscoveryJwtConsumingHandler<T> implements RequestHandler
 
         try {
             String subject = parsed.getJWTClaimsSet().getSubject();
-            if (!auth.validateHttpHeader(() -> subject, resourceActions()).get()) {
+            if (!auth.validateHttpHeader(() -> subject, securityContext(ctx), resourceActions())
+                    .get()) {
                 throw new ApiException(401, "Token subject has insufficient permissions");
             }
         } catch (ExecutionException | InterruptedException e) {

@@ -49,6 +49,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -110,6 +111,15 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public boolean isOrdered() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String targetId = params.getPathParams().get("targetId");
+        return auth.contextFor(
+                customTargetPlatformClient
+                        .getByUri(URI.create(targetId))
+                        .orElseThrow(() -> new ApiException(404)));
     }
 
     @Override

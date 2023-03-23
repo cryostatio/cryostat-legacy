@@ -37,15 +37,19 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -67,6 +71,7 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
 
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final RecordingMetadataManager recordingMetadataManager;
+    private final Logger logger;
 
     @Inject
     RecordingMetadataLabelsPostFromPathHandler(
@@ -74,10 +79,12 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
             CredentialsManager credentialsManager,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper,
-            RecordingMetadataManager recordingMetadataManager) {
+            RecordingMetadataManager recordingMetadataManager,
+            Logger logger) {
         super(auth, credentialsManager, gson);
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.recordingMetadataManager = recordingMetadataManager;
+        this.logger = logger;
     }
 
     @Override
@@ -116,19 +123,40 @@ public class RecordingMetadataLabelsPostFromPathHandler extends AbstractV2Reques
     }
 
     @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        try {
+            Metadata m =
+                    recordingMetadataManager.getMetadataFromPathIfExists(
+                            subdirectoryName, recordingName);
+            return m.getSecurityContext();
+        } catch (IOException ioe) {
+            throw new ApiException(500, ioe);
+        }
+    }
+
+    @Override
     public IntermediateResponse<Metadata> handle(RequestParameters params) throws Exception {
         String recordingName = params.getPathParams().get("recordingName");
         String subdirectoryName = params.getPathParams().get("subdirectoryName");
 
         try {
-            Metadata metadata =
-                    new Metadata(recordingMetadataManager.parseRecordingLabels(params.getBody()));
+            Map<String, String> labels =
+                    recordingMetadataManager.parseRecordingLabels(params.getBody());
+
+            Metadata oldMetadata =
+                    recordingMetadataManager.getMetadataFromPathIfExists(
+                            subdirectoryName, recordingName);
+
+            Metadata updatedMetadata = new Metadata(oldMetadata.getSecurityContext(), labels);
 
             recordingArchiveHelper.getRecordingPathFromPath(subdirectoryName, recordingName).get();
 
-            Metadata updatedMetadata =
+            updatedMetadata =
                     recordingMetadataManager
-                            .setRecordingMetadataFromPath(subdirectoryName, recordingName, metadata)
+                            .setRecordingMetadataFromPath(
+                                    subdirectoryName, recordingName, updatedMetadata)
                             .get();
 
             return new IntermediateResponse<Metadata>().body(updatedMetadata);

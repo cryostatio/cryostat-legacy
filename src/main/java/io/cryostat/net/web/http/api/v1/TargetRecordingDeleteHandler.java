@@ -45,9 +45,11 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -60,15 +62,18 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
+    private final DiscoveryStorage discoveryStorage;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetRecordingDeleteHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
+        this.discoveryStorage = discoveryStorage;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -95,6 +100,15 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

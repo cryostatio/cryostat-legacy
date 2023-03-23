@@ -53,6 +53,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -68,7 +69,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 
-public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
+public abstract class AbstractV2RequestHandler<T> implements RequestHandler<RequestParameters> {
 
     public abstract boolean requiresAuthentication();
 
@@ -100,13 +101,18 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         }
         try {
             if (requiresAuthentication()) {
-                boolean permissionGranted =
-                        validateRequestAuthorization(
-                                        requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
-                                .get();
-                if (!permissionGranted) {
-                    // expected to go into catch clause below
-                    throw new ApiException(401, "HTTP Authorization Failure");
+                for (SecurityContext sc : securityContexts(requestParams)) {
+                    boolean permissionGranted =
+                            validateRequestAuthorization(
+                                            requestParams
+                                                    .getHeaders()
+                                                    .get(HttpHeaders.AUTHORIZATION),
+                                            sc)
+                                    .get();
+                    if (!permissionGranted) {
+                        // expected to go into catch clause below
+                        throw new ApiException(401);
+                    }
                 }
             }
             writeResponse(ctx, handle(requestParams));
@@ -114,7 +120,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             throw e;
         } catch (Exception e) {
             if (AbstractAuthenticatedRequestHandler.isAuthFailure(e)) {
-                throw new ApiException(401, "HTTP Authorization Failure", e);
+                throw new ApiException(403, "HTTP Authorization Failure", e);
             }
             if (AbstractAuthenticatedRequestHandler.isTargetConnectionFailure(e)) {
                 handleConnectionException(ctx, e);
@@ -123,8 +129,9 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(String authHeader) throws Exception {
-        return auth.validateHttpHeader(() -> authHeader, resourceActions());
+    protected Future<Boolean> validateRequestAuthorization(String authHeader, SecurityContext sc)
+            throws Exception {
+        return auth.validateHttpHeader(() -> authHeader, sc, resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {

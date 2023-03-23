@@ -37,6 +37,7 @@
  */
 package io.cryostat.net;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,6 +46,9 @@ import java.util.function.Supplier;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
@@ -59,7 +63,7 @@ public class NoopAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+        return CompletableFuture.completedFuture(new UserInfo("anonymous"));
     }
 
     @Override
@@ -70,24 +74,54 @@ public class NoopAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
+            Supplier<String> tokenProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        resourceActions.forEach(
+                action ->
+                        logger.info(
+                                "anonymous user with credentials '{}' granted [{} {}] in context"
+                                        + " '{}'",
+                                tokenProvider.get(),
+                                action.getVerb(),
+                                action.getResource(),
+                                securityContext));
         return CompletableFuture.completedFuture(true);
     }
 
     @Override
     public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+            Supplier<String> headerProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        return validateToken(headerProvider, securityContext, resourceActions);
     }
 
     @Override
     public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+            Supplier<String> subProtocolProvider,
+            SecurityContext securityContext,
+            Set<ResourceAction> resourceActions) {
+        return validateToken(subProtocolProvider, securityContext, resourceActions);
     }
 
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<SecurityContext> getSecurityContexts() {
+        return List.of(SecurityContext.DEFAULT);
+    }
+
+    @Override
+    public SecurityContext contextFor(AbstractNode node) {
+        return SecurityContext.DEFAULT;
+    }
+
+    @Override
+    public SecurityContext contextFor(ServiceRef serviceRef) {
+        return SecurityContext.DEFAULT;
     }
 }

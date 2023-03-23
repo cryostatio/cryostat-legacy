@@ -46,9 +46,12 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -61,15 +64,18 @@ import io.vertx.ext.web.handler.HttpException;
 class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
+    private final DiscoveryStorage discoveryStorage;
 
     @Inject
     TargetTemplateGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
+            DiscoveryStorage discoveryStorage,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
+        this.discoveryStorage = discoveryStorage;
     }
 
     @Override
@@ -100,6 +106,15 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JFC, HttpMimeType.XML);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

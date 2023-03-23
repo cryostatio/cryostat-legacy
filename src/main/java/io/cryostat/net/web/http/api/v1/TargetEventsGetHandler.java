@@ -49,10 +49,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -61,9 +64,11 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.HttpException;
 
 class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
 
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager connectionManager;
     private final Gson gson;
 
@@ -71,10 +76,12 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     TargetEventsGetHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager connectionManager,
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, logger);
+        this.discoveryStorage = discoveryStorage;
         this.connectionManager = connectionManager;
         this.gson = gson;
     }
@@ -107,6 +114,15 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.JSON);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

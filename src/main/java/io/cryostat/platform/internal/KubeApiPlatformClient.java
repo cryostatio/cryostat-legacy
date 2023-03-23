@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
@@ -65,7 +64,6 @@ import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 
-import dagger.Lazy;
 import io.fabric8.kubernetes.api.model.EndpointAddress;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
@@ -88,7 +86,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     public static final String REALM = "KubernetesApi";
 
     private final KubernetesClient k8sClient;
-    private final Set<String> namespaces;
+    private final Set<String> targetNamespaces;
     private final LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>> nsInformers =
             new LazyInitializer<HashMap<String, SharedIndexInformer<Endpoints>>>() {
                 @Override
@@ -100,7 +98,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     // namespaces
                     // within the discovery tree are mapped.
                     var result = new HashMap<String, SharedIndexInformer<Endpoints>>();
-                    namespaces.forEach(
+                    targetNamespaces.forEach(
                             ns -> {
                                 result.put(
                                         ns,
@@ -119,7 +117,6 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             };
     private Integer memoHash;
     private EnvironmentNode memoTree;
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final Map<Triple<String, String, String>, Pair<HasMetadata, EnvironmentNode>>
             discoveryNodeCache = new ConcurrentHashMap<>();
@@ -127,13 +124,9 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             new ConcurrentHashMap<>();
 
     KubeApiPlatformClient(
-            Collection<String> namespaces,
-            KubernetesClient k8sClient,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Logger logger) {
-        this.namespaces = new HashSet<>(namespaces);
+            Collection<String> targetNamespaces, KubernetesClient k8sClient, Logger logger) {
+        this.targetNamespaces = new HashSet<>(targetNamespaces);
         this.k8sClient = k8sClient;
-        this.connectionToolkit = connectionToolkit;
         this.logger = logger;
     }
 
@@ -215,7 +208,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     targetTuple.addr.getIp() != null
                             ? targetTuple.addr.getIp()
                             : targetTuple.addr.getHostname(),
-                    targetTuple.objRef.getName());
+                    targetTuple.addr.getTargetRef().getName());
             return;
         }
         String targetKind = target.getKind();
@@ -326,7 +319,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                     continue;
                 }
                 for (EndpointAddress addr : subset.getAddresses()) {
-                    tts.add(new TargetTuple(addr.getTargetRef(), addr, port));
+                    tts.add(new TargetTuple(addr, port));
                 }
             }
         }
@@ -378,12 +371,10 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     private class TargetTuple {
-        ObjectReference objRef;
         EndpointAddress addr;
         EndpointPort port;
 
-        TargetTuple(ObjectReference objRef, EndpointAddress addr, EndpointPort port) {
-            this.objRef = objRef;
+        TargetTuple(EndpointAddress addr, EndpointPort port) {
             this.addr = addr;
             this.port = port;
         }
@@ -391,7 +382,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         ServiceRef toServiceRef() {
             Pair<HasMetadata, EnvironmentNode> node =
                     discoveryNodeCache.computeIfAbsent(
-                            cacheKey(objRef.getNamespace(), objRef),
+                            cacheKey(addr.getTargetRef().getNamespace(), addr.getTargetRef()),
                             KubeApiPlatformClient.this::queryForNode);
             HasMetadata podRef = node.getLeft();
             if (node.getRight().getNodeType() != KubernetesNodeType.POD) {
@@ -401,7 +392,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                 throw new IllegalStateException();
             }
             try {
-                String targetName = objRef.getName();
+                String targetName = addr.getTargetRef().getName();
 
                 String ip = addr.getIp().replaceAll("\\.", "-");
                 String namespace = podRef.getMetadata().getNamespace();

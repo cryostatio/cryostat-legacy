@@ -49,19 +49,24 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -71,20 +76,26 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
 
     static final String PATH = "fs/reports/:subdirectoryName/:recordingName";
 
+    private final RecordingArchiveHelper archiveHelper;
     private final ReportService reportService;
     private final long reportGenerationTimeoutSeconds;
+    private final Logger logger;
 
     @Inject
     ReportGetFromPathHandler(
             AuthManager auth,
             CredentialsManager credentialsManager,
             Gson gson,
+            RecordingArchiveHelper archiveHelper,
             ReportService reportService,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
-                    long reportGenerationTimeoutSeconds) {
+                    long reportGenerationTimeoutSeconds,
+            Logger logger) {
         super(auth, credentialsManager, gson);
+        this.archiveHelper = archiveHelper;
         this.reportService = reportService;
         this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
+        this.logger = logger;
     }
 
     @Override
@@ -123,6 +134,18 @@ public class ReportGetFromPathHandler extends AbstractV2RequestHandler<Path> {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        String subdirectoryName = params.getPathParams().get("subdirectoryName");
+        String recordingName = params.getPathParams().get("recordingName");
+        return archiveHelper.getRecordingsFromPath(subdirectoryName).stream()
+                .filter(r -> r.getName().equals(recordingName))
+                .findFirst()
+                .map(ArchivedRecordingInfo::getMetadata)
+                .map(Metadata::getSecurityContext)
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

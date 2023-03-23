@@ -47,6 +47,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -74,6 +75,12 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
     @Override
     String name() {
         return "doArchive";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        GraphRecordingDescriptor source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
     }
 
     @Override

@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
@@ -94,6 +95,7 @@ class TargetRecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager auth;
+    @Mock DiscoveryStorage storage;
     @Mock CredentialsManager credentialsManager;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
@@ -108,6 +110,7 @@ class TargetRecordingGetHandlerTest {
         this.handler =
                 new TargetRecordingGetHandler(
                         auth,
+                        storage,
                         credentialsManager,
                         jwt,
                         () -> webServer,

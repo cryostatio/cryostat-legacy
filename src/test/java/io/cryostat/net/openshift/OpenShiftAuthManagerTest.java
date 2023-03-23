@@ -63,6 +63,7 @@ import io.cryostat.net.openshift.OpenShiftAuthManager.GroupResource;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -165,6 +166,7 @@ class OpenShiftAuthManagerTest {
                 new OpenShiftAuthManager(
                         env,
                         () -> NAMESPACE,
+                        () -> List.of(NAMESPACE),
                         () -> client,
                         tokenProvider,
                         classPropertiesLoader,
@@ -264,7 +266,8 @@ class OpenShiftAuthManagerTest {
     @NullAndEmptySource
     void shouldNotValidateBlankToken(String tok) throws Exception {
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> tok, ResourceAction.NONE).get(), Matchers.is(false));
+                mgr.validateToken(() -> tok, SecurityContext.DEFAULT, ResourceAction.NONE).get(),
+                Matchers.is(false));
     }
 
     @Test
@@ -282,7 +285,9 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(), Matchers.is(true));
+                mgr.validateToken(() -> "userToken", SecurityContext.DEFAULT, ResourceAction.NONE)
+                        .get(),
+                Matchers.is(true));
     }
 
     @Test
@@ -300,7 +305,8 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(),
+                mgr.validateToken(() -> "userToken", SecurityContext.DEFAULT, ResourceAction.NONE)
+                        .get(),
                 Matchers.is(false));
     }
 
@@ -319,7 +325,11 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_RECORDING)).get(),
+                mgr.validateToken(
+                                () -> "token",
+                                SecurityContext.DEFAULT,
+                                Set.of(ResourceAction.READ_RECORDING))
+                        .get(),
                 Matchers.is(true));
     }
 
@@ -343,6 +353,7 @@ class OpenShiftAuthManagerTest {
                         () ->
                                 mgr.validateToken(
                                                 () -> "token",
+                                                SecurityContext.DEFAULT,
                                                 Set.of(ResourceAction.READ_RECORDING))
                                         .get());
         ee.printStackTrace();
@@ -644,7 +655,9 @@ class OpenShiftAuthManagerTest {
 
         String token = "abcd1234";
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> token, Set.of(resourceAction)).get(), Matchers.is(true));
+                mgr.validateToken(() -> token, SecurityContext.DEFAULT, Set.of(resourceAction))
+                        .get(),
+                Matchers.is(true));
 
         // server.takeRequest() returns each request fired in order, so do that repeatedly and drop
         // any initial requests that are made by the OpenShiftClient that aren't directly
@@ -712,7 +725,9 @@ class OpenShiftAuthManagerTest {
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));
+                mgr.validateToken(() -> "token", SecurityContext.DEFAULT, Set.of(resourceAction))
+                        .get(),
+                Matchers.is(true));
     }
 
     // the below parsing tests should be in a @Nested class, but this doesn't play nicely with the

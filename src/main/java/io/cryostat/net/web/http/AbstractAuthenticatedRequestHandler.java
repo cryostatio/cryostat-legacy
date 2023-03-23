@@ -60,6 +60,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -69,7 +70,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+public abstract class AbstractAuthenticatedRequestHandler
+        implements RequestHandler<RoutingContext> {
 
     public static final Pattern AUTH_HEADER_PATTERN =
             Pattern.compile("(?<type>[\\w]+)[\\s]+(?<credentials>[\\S]+)");
@@ -92,10 +94,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     @Override
     public void handle(RoutingContext ctx) {
         try {
-            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
-            if (!permissionGranted) {
-                // expected to go into catch clause below
-                throw new HttpException(401, "HTTP Authorization Failure");
+            for (SecurityContext sc : securityContexts(ctx)) {
+                boolean permissionGranted = validateRequestAuthorization(ctx.request(), sc).get();
+                if (!permissionGranted) {
+                    // expected to go into catch clause below
+                    throw new HttpException(401);
+                }
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
@@ -104,7 +108,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             throw e;
         } catch (Exception e) {
             if (isAuthFailure(e)) {
-                throw new HttpException(401, "HTTP Authorization Failure", e);
+                throw new HttpException(403, "HTTP Authorization Failure", e);
             }
             if (isTargetConnectionFailure(e)) {
                 handleConnectionException(ctx, e);
@@ -113,9 +117,10 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
+    protected Future<Boolean> validateRequestAuthorization(
+            HttpServerRequest req, SecurityContext sc) throws Exception {
         return auth.validateHttpHeader(
-                () -> req.getHeader(HttpHeaders.AUTHORIZATION), resourceActions());
+                () -> req.getHeader(HttpHeaders.AUTHORIZATION), sc, resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {

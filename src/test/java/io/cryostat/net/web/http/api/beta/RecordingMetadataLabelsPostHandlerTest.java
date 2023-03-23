@@ -50,10 +50,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -86,6 +88,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
     @Mock Gson gson;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock RecordingMetadataManager recordingMetadataManager;
+    @Mock Logger logger;
     @Mock RequestParameters params;
     @Mock ConnectionDescriptor connectionDescriptor;
     @Mock IRecordingDescriptor descriptor;
@@ -101,7 +104,8 @@ public class RecordingMetadataLabelsPostHandlerTest {
                         credentialsManager,
                         gson,
                         recordingArchiveHelper,
-                        recordingMetadataManager);
+                        recordingMetadataManager,
+                        logger);
     }
 
     @Nested
@@ -164,7 +168,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
             String recordingName = "someRecording";
             String sourceTarget = "someTarget";
             Map<String, String> labels = Map.of("key", "value");
-            Metadata metadata = new Metadata(labels);
+            Metadata metadata = new Metadata(SecurityContext.DEFAULT, labels);
             String requestLabels = labels.toString();
             Map<String, String> params = Mockito.mock(Map.class);
 
@@ -179,7 +183,7 @@ public class RecordingMetadataLabelsPostHandlerTest {
             when(recordingMetadataManager.parseRecordingLabels(requestLabels)).thenReturn(labels);
 
             when(recordingMetadataManager.setRecordingMetadata(
-                            new ConnectionDescriptor(sourceTarget), recordingName, metadata, true))
+                            new ConnectionDescriptor(sourceTarget), recordingName, labels, true))
                     .thenReturn(CompletableFuture.completedFuture(metadata));
 
             IntermediateResponse<Metadata> response = handler.handle(requestParameters);

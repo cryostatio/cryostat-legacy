@@ -48,11 +48,13 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -69,6 +71,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     protected final TargetConnectionManager targetConnectionManager;
+    protected final DiscoveryStorage discoveryStorage;
     protected final RecordingTargetHelper recordingTargetHelper;
 
     private final Vertx vertx;
@@ -78,11 +81,13 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
+            DiscoveryStorage discoveryStorage,
             HttpServer httpServer,
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
+        this.discoveryStorage = discoveryStorage;
         this.recordingTargetHelper = recordingTargetHelper;
         this.vertx = httpServer.getVertx();
     }
@@ -115,6 +120,15 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public List<HttpMimeType> produces() {
         return List.of(HttpMimeType.OCTET_STREAM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override

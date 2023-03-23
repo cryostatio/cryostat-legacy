@@ -40,7 +40,9 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -56,11 +58,13 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -85,6 +89,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
 
     static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
+    private final DiscoveryStorage discoveryStorage;
     private final RecordingTargetHelper recordingTargetHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
@@ -96,6 +101,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
+            DiscoveryStorage discoveryStorage,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
@@ -104,6 +110,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
             Logger logger) {
         super(auth, credentialsManager, logger);
         this.targetConnectionManager = targetConnectionManager;
+        this.discoveryStorage = discoveryStorage;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
@@ -149,6 +156,15 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     @Override
     public List<HttpMimeType> consumes() {
         return List.of(HttpMimeType.URLENCODED_FORM, HttpMimeType.MULTIPART_FORM);
+    }
+
+    @Override
+    public SecurityContext securityContext(RoutingContext ctx) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromContext(ctx);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new HttpException(404));
     }
 
     @Override
@@ -199,12 +215,13 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
-                                Metadata metadata = new Metadata();
+                                Map<String, String> metadataLabels = new HashMap<>();
                                 if (attrs.contains("metadata")) {
-                                    metadata =
+                                    Metadata metadata =
                                             gson.fromJson(
                                                     attrs.get("metadata"),
                                                     new TypeToken<Metadata>() {}.getType());
+                                    metadataLabels.putAll(metadata.getLabels());
                                 }
                                 boolean archiveOnStop = false;
                                 if (attrs.contains("archiveOnStop")) {
@@ -226,7 +243,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 builder.build(),
                                                 template.getLeft(),
                                                 template.getRight(),
-                                                metadata,
+                                                metadataLabels,
                                                 archiveOnStop);
 
                                 try {

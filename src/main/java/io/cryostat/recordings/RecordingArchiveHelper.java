@@ -485,6 +485,73 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
+    public List<ArchivedRecordingInfo> getRecordingsFromPath(String subdirectoryName) {
+        try {
+            String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            List<ArchivedRecordingInfo> list = new ArrayList<>();
+            for (String recordingName : fs.listDirectoryChildren(subdirectoryPath)) {
+                Path recordingPath = subdirectoryPath.resolve(recordingName);
+                validateSavePath(recordingName, recordingPath);
+                Path filenamePath = recordingPath.getFileName();
+                String filename = filenamePath.toString();
+                String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+                ArchivedRecordingInfo archivedRecordingInfo =
+                        new ArchivedRecordingInfo(
+                                targetId,
+                                recordingName,
+                                webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                                webServerProvider.get().getArchivedReportURL(targetId, filename),
+                                recordingMetadataManager.deleteRecordingMetadataIfExists(
+                                        jvmId, recordingName),
+                                getFileSize(filename),
+                                getArchivedTime(filename));
+                list.add(archivedRecordingInfo);
+            }
+            return list;
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            return List.of();
+        }
+    }
+
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and"
+                            + " getFileName() of the Path are not null, barring some exceptional"
+                            + " circumstance like some external filesystem access race.")
+    public Optional<ArchivedRecordingInfo> getRecordingFromPath(
+            String subdirectoryName, String recordingName) {
+        try {
+            String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+            Path subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+            Path recordingPath = subdirectoryPath.resolve(recordingName);
+            validateSavePath(recordingName, recordingPath);
+            Path filenamePath = recordingPath.getFileName();
+            String filename = filenamePath.toString();
+            String targetId = getConnectUrlFromPath(subdirectoryPath).get();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            targetId,
+                            recordingName,
+                            webServerProvider.get().getArchivedDownloadURL(targetId, filename),
+                            webServerProvider.get().getArchivedReportURL(targetId, filename),
+                            recordingMetadataManager.getMetadataFromPathIfExists(
+                                    jvmId, recordingName),
+                            getFileSize(filename),
+                            getArchivedTime(filename));
+            return Optional.of(archivedRecordingInfo);
+        } catch (IOException | URISyntaxException | InterruptedException | ExecutionException e) {
+            return Optional.empty();
+        }
+    }
+
     public Future<ArchivedRecordingInfo> deleteRecording(
             String sourceTarget, String recordingName) {
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
@@ -557,6 +624,10 @@ public class RecordingArchiveHelper {
     }
 
     private void validateSavePath(String recordingName, Path path) throws IOException {
+        if (path == null) {
+            throw new IOException(
+                    String.format("Filesystem path for %s could not be determined", recordingName));
+        }
         if (path.getParent() == null) {
             throw new IOException(
                     String.format(

@@ -45,6 +45,7 @@ import javax.inject.Inject;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
@@ -72,6 +73,12 @@ class DeleteArchivedRecordingMutator
     @Override
     String name() {
         return "doDelete";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        ArchivedRecordingInfo source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
     }
 
     @Override

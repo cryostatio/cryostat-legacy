@@ -49,6 +49,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.v2.graph.PutActiveRecordingMetadataMutator.InputRecordingLabel;
 import io.cryostat.recordings.RecordingMetadataManager;
@@ -94,6 +95,12 @@ class PutArchivedRecordingMetadataMutator
     }
 
     @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        ArchivedRecordingInfo source = environment.getSource();
+        return source.getMetadata().getSecurityContext();
+    }
+
+    @Override
     public Set<ResourceAction> resourceActions() {
         return Set.of(ResourceAction.READ_RECORDING, ResourceAction.UPDATE_RECORDING);
     }
@@ -124,7 +131,7 @@ class PutArchivedRecordingMetadataMutator
                                 new ConnectionDescriptor(
                                         uri, credentialsManager.getCredentialsByTargetId(uri)),
                                 recordingName,
-                                new Metadata(labels),
+                                labels,
                                 true)
                         .get();
 

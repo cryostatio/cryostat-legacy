@@ -52,6 +52,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -203,7 +204,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(false));
 
             ApiException ex =
@@ -213,7 +214,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails2() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new PermissionDeniedException(
@@ -226,7 +227,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthFails3() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
@@ -238,7 +239,7 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails4() {
             // Check a doubly-nested PermissionDeniedException
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -256,7 +257,7 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Test
         void shouldThrow401IfAuthFails5() {
             // Check doubly-nested KubernetesClientException with its own cause
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(
                             CompletableFuture.failedFuture(
                                     new ExecutionException(
@@ -270,7 +271,7 @@ class AbstractAssetJwtConsumingHandlerTest {
 
         @Test
         void shouldThrow401IfAuthThrows() {
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
             ApiException ex =
@@ -304,7 +305,7 @@ class AbstractAssetJwtConsumingHandlerTest {
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
 
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -435,13 +436,13 @@ class AbstractAssetJwtConsumingHandlerTest {
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
 
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
             handler =
                     new ConnectionDescriptorHandler(
                             auth, credentialsManager, jwtHelper, () -> webServer, logger);
-            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+            Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -575,6 +576,11 @@ class AbstractAssetJwtConsumingHandlerTest {
         @Override
         public Set<ResourceAction> resourceActions() {
             return ResourceAction.NONE;
+        }
+
+        @Override
+        public SecurityContext securityContext(RequestParameters params) {
+            return SecurityContext.DEFAULT;
         }
 
         @Override

@@ -50,6 +50,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
@@ -60,7 +61,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
 import org.apache.http.HttpHeaders;
 
-class CorsEnablingHandler implements RequestHandler {
+class CorsEnablingHandler implements RequestHandler<Void> {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
     protected final CorsHandler corsHandler;
     protected final Environment env;
@@ -124,6 +125,11 @@ class CorsEnablingHandler implements RequestHandler {
     @Override
     public String path() {
         return ALL_PATHS;
+    }
+
+    @Override
+    public SecurityContext securityContext(Void ctx) {
+        return SecurityContext.DEFAULT;
     }
 
     @Override

@@ -45,8 +45,10 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 
@@ -55,14 +57,17 @@ import graphql.schema.DataFetchingEnvironment;
 class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
 
     private final RootNodeFetcher rootNodeFetcher;
+    private final Logger logger;
 
     @Inject
     NodeFetcher(
             AuthManager auth,
             CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
+            RootNodeFetcher rootNodeFetcher,
+            Logger logger) {
         super(auth, credentialsManager);
         this.rootNodeFetcher = rootNodeFetcher;
+        this.logger = logger;
     }
 
     @Override
@@ -73,6 +78,16 @@ class NodeFetcher extends AbstractPermissionedDataFetcher<AbstractNode> {
     @Override
     String name() {
         return "find";
+    }
+
+    @Override
+    SecurityContext securityContext(DataFetchingEnvironment environment) {
+        try {
+            EnvironmentNode root = rootNodeFetcher.get(environment);
+            return auth.contextFor(root);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override

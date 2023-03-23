@@ -40,13 +40,14 @@ package io.cryostat.net.web.http;
 import java.util.List;
 
 import io.cryostat.net.security.PermissionedAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-public interface RequestHandler extends Handler<RoutingContext>, PermissionedAction {
+public interface RequestHandler<T> extends Handler<RoutingContext>, PermissionedAction {
     /** Lower number == higher priority handler */
     static final int DEFAULT_PRIORITY = 100;
 
@@ -79,6 +80,12 @@ public interface RequestHandler extends Handler<RoutingContext>, PermissionedAct
     }
 
     HttpMethod httpMethod();
+
+    SecurityContext securityContext(T ctx);
+
+    default List<SecurityContext> securityContexts(T ctx) {
+        return List.of(securityContext(ctx));
+    }
 
     default List<HttpMimeType> produces() {
         return List.of();

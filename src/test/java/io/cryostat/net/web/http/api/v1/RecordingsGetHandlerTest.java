@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.rules.ArchivePathException;
@@ -106,7 +108,7 @@ class RecordingsGetHandlerTest {
 
     @Test
     void shouldRespondWith501IfArchivePathException() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
@@ -139,7 +141,7 @@ class RecordingsGetHandlerTest {
                                 "recordingFoo",
                                 "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo",
-                                new Metadata(),
+                                new Metadata(SecurityContext.DEFAULT, Map.of()),
                                 0,
                                 0)));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
@@ -149,7 +151,7 @@ class RecordingsGetHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         handler.handle(ctx);

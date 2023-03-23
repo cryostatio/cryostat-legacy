@@ -48,10 +48,13 @@ import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.SecurityContext;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -66,6 +69,7 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
     private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final FileSystem fs;
+    private final DiscoveryStorage discoveryStorage;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
     private static final String NOTIFICATION_CATEGORY = "ProbesRemoved";
@@ -77,12 +81,14 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
             FileSystem fs,
             AuthManager auth,
             CredentialsManager credentialsManager,
+            DiscoveryStorage discoveryStorage,
             TargetConnectionManager connectionManager,
             Environment env,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.logger = logger;
         this.notificationFactory = notificationFactory;
+        this.discoveryStorage = discoveryStorage;
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
@@ -111,6 +117,15 @@ class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public boolean requiresAuthentication() {
         return true;
+    }
+
+    @Override
+    public SecurityContext securityContext(RequestParameters params) {
+        ConnectionDescriptor cd = getConnectionDescriptorFromParams(params);
+        return discoveryStorage
+                .lookupServiceByTargetId(cd.getTargetId())
+                .map(auth::contextFor)
+                .orElseThrow(() -> new ApiException(404));
     }
 
     @Override

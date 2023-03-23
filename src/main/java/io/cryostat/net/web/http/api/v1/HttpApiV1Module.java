@@ -51,42 +51,43 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+    abstract RequestHandler<?> bindAuthPostHandler(AuthPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindNotificationsUrlGetHandler(NotificationsUrlGetHandler handler);
+    abstract RequestHandler<?> bindNotificationsUrlGetHandler(NotificationsUrlGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
+    abstract RequestHandler<?> bindGrafanaDatasourceUrlGetHandler(
             GrafanaDatasourceUrlGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
+    abstract RequestHandler<?> bindGrafanaDashboardUrlGetHandler(
             GrafanaDashboardUrlGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingPatchHandler(TargetRecordingPatchHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingPatchHandler(TargetRecordingPatchHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingDeleteHandler(TargetRecordingDeleteHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingDeleteHandler(
+            TargetRecordingDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingUploadPostHandler(
+    abstract RequestHandler<?> bindTargetRecordingUploadPostHandler(
             TargetRecordingUploadPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingPatchBodyHandler(
+    abstract RequestHandler<?> bindTargetRecordingPatchBodyHandler(
             TargetRecordingPatchBodyHandler handler);
 
     @Provides
@@ -103,93 +104,93 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+    abstract RequestHandler<?> bindRecordingGetHandler(RecordingGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingDeleteHandler(RecordingDeleteHandler handler);
+    abstract RequestHandler<?> bindRecordingDeleteHandler(RecordingDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
+    abstract RequestHandler<?> bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+    abstract RequestHandler<?> bindTargetReportGetHandler(TargetReportGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    abstract RequestHandler<?> bindReportGetHandler(ReportGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingsGetHandler(RecordingsGetHandler handler);
+    abstract RequestHandler<?> bindRecordingsGetHandler(RecordingsGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
+    abstract RequestHandler<?> bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
+    abstract RequestHandler<?> bindRecordingsPostHandler(RecordingsPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetsGetHandler(TargetsGetHandler handler);
+    abstract RequestHandler<?> bindTargetsGetHandler(TargetsGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingsGetHandler(TargetRecordingsGetHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingsGetHandler(TargetRecordingsGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingsPostBodyHandler(
+    abstract RequestHandler<?> bindTargetRecordingsPostBodyHandler(
             TargetRecordingsPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingsPostHandler(TargetRecordingsPostHandler handler);
+    abstract RequestHandler<?> bindTargetRecordingsPostHandler(TargetRecordingsPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
+    abstract RequestHandler<?> bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+    abstract RequestHandler<?> bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTemplatesPostBodyHandler(TemplatesPostBodyHandler handler);
+    abstract RequestHandler<?> bindTemplatesPostBodyHandler(TemplatesPostBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTemplatesPostHandler(TemplatesPostHandler handler);
+    abstract RequestHandler<?> bindTemplatesPostHandler(TemplatesPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTemplateDeleteHandler(TemplateDeleteHandler handler);
+    abstract RequestHandler<?> bindTemplateDeleteHandler(TemplateDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
+    abstract RequestHandler<?> bindTargetEventsGetHandler(TargetEventsGetHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
+    abstract RequestHandler<?> bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsPatchBodyHandler(
+    abstract RequestHandler<?> bindTargetRecordingOptionsPatchBodyHandler(
             TargetRecordingOptionsPatchBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsPatchHandler(
+    abstract RequestHandler<?> bindTargetRecordingOptionsPatchHandler(
             TargetRecordingOptionsPatchHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsGetHandler(
+    abstract RequestHandler<?> bindTargetRecordingOptionsGetHandler(
             TargetRecordingOptionsGetHandler handler);
 }

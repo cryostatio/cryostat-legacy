@@ -39,6 +39,11 @@ package io.cryostat.rules;
 
 import static io.cryostat.util.StringUtil.requireNonBlank;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -56,6 +61,7 @@ public class Rule {
 
     static final String ARCHIVE_EVENT = "archive";
 
+    private final List<String> contexts;
     private final String name;
     private final String description;
     private final String matchExpression;
@@ -94,6 +100,7 @@ public class Rule {
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
         this.enabled = builder.enabled;
+        this.contexts = builder.contexts;
         this.validate();
     }
 
@@ -150,6 +157,10 @@ public class Rule {
         this.enabled = enabled;
     }
 
+    public List<String> getContexts() {
+        return new ArrayList<>(contexts);
+    }
+
     public static String sanitizeRuleName(String name) {
         // FIXME this is not robust
         return name.replaceAll("\\s", "_");
@@ -167,11 +178,13 @@ public class Rule {
             requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
+            requireNonEmpty(this.contexts, Attribute.CONTEXTS);
         } else {
             requireNonBlank(this.name, Attribute.NAME.getSerialKey());
             requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
             requireNonNegative(this.initialDelaySeconds, Attribute.INITIAL_DELAY_SECONDS);
             requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+            requireNonEmpty(this.contexts, Attribute.CONTEXTS);
         }
     }
 
@@ -194,6 +207,13 @@ public class Rule {
                     String.format("\"%s\" cannot be positive, was \"%d\"", attr, i));
         }
         return i;
+    }
+
+    private static <T> Collection<T> requireNonEmpty(Collection<T> collection, Attribute attr) {
+        if (collection.isEmpty()) {
+            throw new IllegalArgumentException(String.format("\"%s\" cannot be empty", attr));
+        }
+        return collection;
     }
 
     private static String validateEventSpecifier(String eventSpecifier)
@@ -227,6 +247,7 @@ public class Rule {
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
         private boolean enabled = true;
+        private List<String> contexts = new ArrayList<>();
 
         public Builder name(String name) {
             this.name = name;
@@ -278,6 +299,16 @@ public class Rule {
             return this;
         }
 
+        public Builder context(String context) {
+            this.contexts.add(context);
+            return this;
+        }
+
+        public Builder contexts(Collection<String> contexts) {
+            this.contexts.addAll(contexts);
+            return this;
+        }
+
         public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
         }
@@ -297,7 +328,15 @@ public class Rule {
                             .enabled(
                                     getBoolean(
                                             formAttributes.get(
-                                                    Rule.Attribute.ENABLED.getSerialKey())));
+                                                    Rule.Attribute.ENABLED.getSerialKey())))
+                            .contexts(
+                                    Arrays.asList(
+                                            Optional.ofNullable(
+                                                            formAttributes.get(
+                                                                    Rule.Attribute.CONTEXTS
+                                                                            .getSerialKey()))
+                                                    .orElse("")
+                                                    .split(",")));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, formAttributes);
@@ -321,7 +360,8 @@ public class Rule {
                                             .getAsString())
                             .enabled(
                                     getBoolean(
-                                            getAsNullableString(jsonObj, Rule.Attribute.ENABLED)));
+                                            getAsNullableString(jsonObj, Rule.Attribute.ENABLED)))
+                            .contexts(getStringList(jsonObj, Rule.Attribute.CONTEXTS));
 
             builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
             builder.setOptionalInt(Rule.Attribute.INITIAL_DELAY_SECONDS, jsonObj);
@@ -345,6 +385,14 @@ public class Rule {
                 return null;
             }
             return el.getAsString();
+        }
+
+        private static List<String> getStringList(JsonObject jsonObj, Rule.Attribute attr) {
+            JsonElement el = jsonObj.get(attr.getSerialKey());
+            if (el == null) {
+                return List.of();
+            }
+            return el.getAsJsonArray().asList().stream().map(JsonElement::getAsString).toList();
         }
 
         private Builder setOptionalInt(Rule.Attribute key, MultiMap formAttributes)
@@ -432,7 +480,8 @@ public class Rule {
         PRESERVED_ARCHIVES("preservedArchives"),
         MAX_AGE_SECONDS("maxAgeSeconds"),
         MAX_SIZE_BYTES("maxSizeBytes"),
-        ENABLED("enabled");
+        ENABLED("enabled"),
+        CONTEXTS("contexts");
 
         private final String serialKey;
 
