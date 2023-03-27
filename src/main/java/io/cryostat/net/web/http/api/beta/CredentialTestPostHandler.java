@@ -49,6 +49,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.beta.CredentialTestPostHandler.CredentialTestResult;
@@ -143,8 +144,8 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                                         conn.connect();
                                         return CredentialTestResult.NA;
                                     }));
-        } catch (Exception e) {
-            if (e.getCause() instanceof SecurityException) {
+        } catch (Exception e1) {
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e1)) {
                 ConnectionDescriptor creds =
                         new ConnectionDescriptor(targetId, new Credentials(username, password));
                 try {
@@ -157,15 +158,25 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                                                 return CredentialTestResult.SUCCESS;
                                             }));
                 } catch (Exception e2) {
-                    if (e2.getCause() instanceof SecurityException) {
+                    if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e2)) {
                         return new IntermediateResponse<CredentialTestResult>()
                                 .body(CredentialTestResult.FAILURE);
                     }
-                    throw new ApiException(500, e2);
+                    throw resolveErrors(e2);
                 }
             }
-            throw new ApiException(500, e);
+            throw resolveErrors(e1);
         }
+    }
+
+    ApiException resolveErrors(Exception e) throws Exception {
+        if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
+            return new ApiException(502, "Target SSL Untrusted", e);
+        }
+        if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
+            return new ApiException(504, "Non-JMX Port", e);
+        }
+        return new ApiException(500, "Internal Error", e);
     }
 
     static enum CredentialTestResult {
