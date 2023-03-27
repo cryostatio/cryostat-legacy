@@ -162,21 +162,11 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                         return new IntermediateResponse<CredentialTestResult>()
                                 .body(CredentialTestResult.FAILURE);
                     }
-                    throw resolveErrors(e2);
+                    throw e2;
                 }
             }
-            throw resolveErrors(e1);
+            throw e1;
         }
-    }
-
-    ApiException resolveErrors(Exception e) throws Exception {
-        if (AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)) {
-            return new ApiException(502, "Target SSL Untrusted", e);
-        }
-        if (AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
-            return new ApiException(504, "Non-JMX Port", e);
-        }
-        return new ApiException(500, "Internal Error", e);
     }
 
     static enum CredentialTestResult {
