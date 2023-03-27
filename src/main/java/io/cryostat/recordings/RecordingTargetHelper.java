@@ -275,7 +275,8 @@ public class RecordingTargetHelper {
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         d,
                                         webServer.get().getDownloadURL(connection, d.getName()),
-                                        webServer.get().getReportURL(connection, d.getName()));
+                                        webServer.get().getReportURL(connection, d.getName()),
+                                        RecordingState.STOPPED);
                         this.issueNotification(targetId, linkedDesc, STOP_NOTIFICATION_CATEGORY);
                         return getDescriptorByName(connection, recordingName).get();
                     } else {
