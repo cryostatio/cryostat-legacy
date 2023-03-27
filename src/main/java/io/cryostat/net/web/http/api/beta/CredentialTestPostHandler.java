@@ -161,10 +161,10 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                         return new IntermediateResponse<CredentialTestResult>()
                                 .body(CredentialTestResult.FAILURE);
                     }
-                    throw new ApiException(400, "Invalid credentials", e2);
+                    throw new ApiException(500, e2);
                 }
             }
-            throw new ApiException(400, e);
+            throw new ApiException(500, e);
         }
     }
 
