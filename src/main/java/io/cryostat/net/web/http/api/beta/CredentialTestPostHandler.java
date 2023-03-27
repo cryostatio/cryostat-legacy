@@ -52,6 +52,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.beta.CredentialTestPostHandler.CredentialTestResult;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
@@ -61,7 +62,7 @@ import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 
-public class CredentialTestPostHandler extends AbstractV2RequestHandler<Boolean> {
+public class CredentialTestPostHandler extends AbstractV2RequestHandler<CredentialTestResult> {
 
     static final String PATH = "credentials/:targetId";
 
@@ -116,33 +117,64 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Boolean>
     }
 
     @Override
-    public IntermediateResponse<Boolean> handle(RequestParameters params) throws Exception {
+    public IntermediateResponse<CredentialTestResult> handle(RequestParameters params)
+            throws Exception {
         String targetId = params.getPathParams().get("targetId");
         String username = params.getFormAttributes().get("username");
         String password = params.getFormAttributes().get("password");
-        if (StringUtils.isBlank(targetId)) {
-            throw new ApiException(400, "\"targetId\" is required.");
+        if (StringUtils.isAnyBlank(targetId, username, password)) {
+            StringBuilder sb = new StringBuilder();
+            if (StringUtils.isBlank(targetId)) {
+                sb.append("\"matchExpression\" is required.");
+            }
+            if (StringUtils.isBlank(username)) {
+                sb.append("\"username\" is required.");
+            }
+            if (StringUtils.isBlank(password)) {
+                sb.append(" \"password\" is required.");
+            }
+
+            throw new ApiException(400, sb.toString().trim());
         }
-        ConnectionDescriptor cd;
-        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
-            cd = new ConnectionDescriptor(targetId, new Credentials(username, password));
-        } else {
-            cd = new ConnectionDescriptor(targetId);
-        }
+        ConnectionDescriptor noCreds = new ConnectionDescriptor(targetId, null);
+
         try {
-            return new IntermediateResponse<Boolean>()
+            return new IntermediateResponse<CredentialTestResult>()
                     .body(
                             tcm.executeConnectedTask(
-                                    cd,
+                                    noCreds,
                                     (conn) -> {
                                         conn.connect();
-                                        return true;
+                                        return CredentialTestResult.NA;
                                     }));
         } catch (Exception e) {
             if (e.getCause() instanceof SecurityException) {
-                return new IntermediateResponse<Boolean>().body(false);
+                ConnectionDescriptor creds =
+                        new ConnectionDescriptor(targetId, new Credentials(username, password));
+                try {
+                    return new IntermediateResponse<CredentialTestResult>()
+                            .body(
+                                    tcm.executeConnectedTask(
+                                            creds,
+                                            (conn) -> {
+                                                conn.connect();
+                                                return CredentialTestResult.SUCCESS;
+                                            }));
+                } catch (Exception e2) {
+                    if (e2.getCause() instanceof SecurityException) {
+                        return new IntermediateResponse<CredentialTestResult>()
+                                .body(CredentialTestResult.FAILURE);
+                    }
+                    throw e2;
+                }
             }
             throw e;
         }
+    }
+
+    static enum CredentialTestResult {
+        SUCCESS,
+        FAILURE,
+        NA;
     }
 }
