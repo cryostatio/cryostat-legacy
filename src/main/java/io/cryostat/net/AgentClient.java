@@ -81,8 +81,10 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.auth.InvalidCredentialsException;
 
-class AgentClient {
+public class AgentClient {
+    public static final String NULL_CREDENTIALS = "No credentials found for agent";
 
     private final Vertx vertx;
     private final Gson gson;
@@ -212,41 +214,56 @@ class AgentClient {
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
         return Future.fromCompletionStage(
                 CompletableFuture.supplyAsync(
-                        () -> {
-                            logger.info("{} {} {}", mtd, agentUri, path);
-                            HttpRequest<T> req =
-                                    webClient
-                                            .request(
-                                                    mtd,
-                                                    agentUri.getPort(),
-                                                    agentUri.getHost(),
-                                                    path)
-                                            .ssl("https".equals(agentUri.getScheme()))
-                                            .timeout(Duration.ofSeconds(httpTimeout).toMillis())
-                                            .followRedirects(true)
-                                            .as(codec);
-                            try {
-                                Credentials credentials =
-                                        credentialsManager.getCredentialsByTargetId(
-                                                agentUri.toString());
-                                req =
-                                        req.authentication(
-                                                new UsernamePasswordCredentials(
-                                                        credentials.getUsername(),
-                                                        credentials.getPassword()));
-                            } catch (ScriptException e) {
-                                logger.error(e);
-                                throw new RuntimeException(e);
-                            }
+                                () -> {
+                                    logger.info("{} {} {}", mtd, agentUri, path);
+                                    HttpRequest<T> req =
+                                            webClient
+                                                    .request(
+                                                            mtd,
+                                                            agentUri.getPort(),
+                                                            agentUri.getHost(),
+                                                            path)
+                                                    .ssl("https".equals(agentUri.getScheme()))
+                                                    .timeout(
+                                                            Duration.ofSeconds(httpTimeout)
+                                                                    .toMillis())
+                                                    .followRedirects(true)
+                                                    .as(codec);
+                                    try {
+                                        Credentials credentials =
+                                                credentialsManager.getCredentialsByTargetId(
+                                                        agentUri.toString());
+                                        if (credentials == null
+                                                || credentials.getUsername() == null
+                                                || credentials.getPassword() == null) {
+                                            throw new InvalidCredentialsException(
+                                                    NULL_CREDENTIALS + " " + agentUri);
+                                        }
+                                        req =
+                                                req.authentication(
+                                                        new UsernamePasswordCredentials(
+                                                                credentials.getUsername(),
+                                                                credentials.getPassword()));
+                                    } catch (ScriptException | InvalidCredentialsException e) {
+                                        logger.error(e);
+                                        throw new RuntimeException(e);
+                                    }
 
-                            try {
-                                return req.send().toCompletionStage().toCompletableFuture().get();
-                            } catch (InterruptedException | ExecutionException e) {
-                                logger.error(e);
-                                throw new RuntimeException(e);
-                            }
-                        },
-                        ForkJoinPool.commonPool()));
+                                    try {
+                                        return req.send()
+                                                .toCompletionStage()
+                                                .toCompletableFuture()
+                                                .get();
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        logger.error(e);
+                                        throw new RuntimeException(e);
+                                    }
+                                },
+                                ForkJoinPool.commonPool())
+                        .exceptionally(
+                                t -> {
+                                    throw new RuntimeException(t);
+                                }));
     }
 
     static class Factory {
