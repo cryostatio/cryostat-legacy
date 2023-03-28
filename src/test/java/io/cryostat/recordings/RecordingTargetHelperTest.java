@@ -829,9 +829,9 @@ public class RecordingTargetHelperTest {
 
         Mockito.verify(service).stop(descriptor);
 
-        Metadata metadata = new Metadata();
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                new HyperlinkedSerializableRecordingDescriptor(descriptor, null, null, metadata);
+                new HyperlinkedSerializableRecordingDescriptor(
+                        descriptor, null, null, RecordingState.STOPPED);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingStopped");

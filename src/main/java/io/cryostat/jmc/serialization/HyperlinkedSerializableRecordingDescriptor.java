@@ -39,6 +39,7 @@ package io.cryostat.jmc.serialization;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
@@ -85,6 +86,20 @@ public class HyperlinkedSerializableRecordingDescriptor extends SerializableReco
         this.reportUrl = reportUrl;
         this.metadata = metadata;
         this.archiveOnStop = archiveOnStop;
+    }
+
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original,
+            String downloadUrl,
+            String reportUrl,
+            RecordingState state)
+            throws QuantityConversionException {
+        super(original);
+        this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
+        this.metadata = new Metadata();
+        this.archiveOnStop = false;
+        this.state = state;
     }
 
     public HyperlinkedSerializableRecordingDescriptor(
