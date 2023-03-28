@@ -43,8 +43,11 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.net.AgentClient;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -61,6 +64,7 @@ import io.cryostat.net.web.http.api.v2.RequestParameters;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class CredentialTestPostHandler extends AbstractV2RequestHandler<CredentialTestResult> {
 
@@ -145,7 +149,8 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                                         return CredentialTestResult.NA;
                                     }));
         } catch (Exception e1) {
-            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e1)) {
+            if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e1)
+                    || isAgentAuthFailure(e1)) {
                 ConnectionDescriptor creds =
                         new ConnectionDescriptor(targetId, new Credentials(username, password));
                 try {
@@ -158,7 +163,8 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
                                                 return CredentialTestResult.SUCCESS;
                                             }));
                 } catch (Exception e2) {
-                    if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e2)) {
+                    if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e2)
+                            || isAgentAuthFailure(e2)) {
                         return new IntermediateResponse<CredentialTestResult>()
                                 .body(CredentialTestResult.FAILURE);
                     }
@@ -167,6 +173,15 @@ public class CredentialTestPostHandler extends AbstractV2RequestHandler<Credenti
             }
             throw e1;
         }
+    }
+
+    boolean isAgentAuthFailure(Exception e) {
+        int index = ExceptionUtils.indexOfType(e, ConnectionException.class);
+        if (index >= 0) {
+            Throwable ce = ExceptionUtils.getThrowableList(e).get(index);
+            return ce.getMessage().contains(AgentClient.NULL_CREDENTIALS);
+        }
+        return false;
     }
 
     static enum CredentialTestResult {
