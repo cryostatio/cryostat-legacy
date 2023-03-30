@@ -161,4 +161,12 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindMatchExpressionDeleteHandler(MatchExpressionDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialTestPostHandler(CredentialTestPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialTestGetBodyHandler(CredentialTestPostBodyHandler handler);
 }

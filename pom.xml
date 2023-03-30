@@ -66,13 +66,13 @@
   <org.apache.maven.plugins.site.version>3.12.1</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.4.2</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.2.0</org.apache.maven.plugins.clean.version>
-  <org.apache.maven.plugins.resources.version>3.3.0</org.apache.maven.plugins.resources.version>
+  <org.apache.maven.plugins.resources.version>3.3.1</org.apache.maven.plugins.resources.version>
   <org.apache.maven.plugins.assembly.version>3.5.0</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.12.1</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.1.0</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.build.helper.plugin.version>3.3.0</org.codehaus.mojo.build.helper.plugin.version>
-  <com.mycila.license.maven.plugin.version>4.1</com.mycila.license.maven.plugin.version>
-  <org.owasp.dependency.check.version>8.2.0</org.owasp.dependency.check.version>
+  <com.mycila.license.maven.plugin.version>4.2</com.mycila.license.maven.plugin.version>
+  <org.owasp.dependency.check.version>8.2.1</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.3.1</com.google.cloud.tools.jib.maven.plugin.version>
 
   <com.google.dagger.version>2.45</com.google.dagger.version>
@@ -106,7 +106,7 @@
   <org.postgresql.postgresql.version>42.5.1</org.postgresql.postgresql.version>
 
   <com.github.spotbugs.version>4.7.3</com.github.spotbugs.version>
-  <com.github.spotbugs.plugin.version>4.7.3.2</com.github.spotbugs.plugin.version>
+  <com.github.spotbugs.plugin.version>4.7.3.3</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.9.2</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
   <org.mockito.version>5.2.0</org.mockito.version>
