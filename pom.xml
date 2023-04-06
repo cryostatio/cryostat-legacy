@@ -94,7 +94,7 @@
   -->
   <com.graphql.java.extended.scalars.version>19.0</com.graphql.java.extended.scalars.version>
   <com.nimbusds.jose.jwt.version>9.31</com.nimbusds.jose.jwt.version>
-  <org.bouncycastle.version>1.71</org.bouncycastle.version>
+  <org.bouncycastle.version>1.71.1</org.bouncycastle.version>
   <org.jasypt.version>1.9.3</org.jasypt.version>
   <org.jasypt-hibernate5.version>1.9.3</org.jasypt-hibernate5.version>
   <org.slf4j.version>1.7.36</org.slf4j.version>
