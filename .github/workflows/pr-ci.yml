@@ -22,6 +22,7 @@ jobs:
   build-and-test:
     uses: ./.github/workflows/ci-jobs.yml
     with:
+      build-arch: amd64
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
     secrets: inherit
@@ -39,10 +40,10 @@ jobs:
       run: exit 1
     - uses: actions/download-artifact@v3
       with:
-        name: cryostat
+        name: cryostat-amd64
       if: github.repository_owner == 'cryostatio'
     - name: Load cryostat image
-      run: podman load -i cryostat.tar
+      run: podman load -i cryostat-amd64.tar
       if: github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
       run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
