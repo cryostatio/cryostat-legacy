@@ -106,7 +106,7 @@
   <org.postgresql.postgresql.version>42.5.1</org.postgresql.postgresql.version>
 
   <com.github.spotbugs.version>4.7.3</com.github.spotbugs.version>
-  <com.github.spotbugs.plugin.version>4.7.3.3</com.github.spotbugs.plugin.version>
+  <com.github.spotbugs.plugin.version>4.7.3.4</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.9.2</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
   <org.mockito.version>5.2.0</org.mockito.version>
