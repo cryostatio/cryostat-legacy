@@ -92,7 +92,7 @@
     FIXME this needs to be synced with the vertx version - is there a BOM to use or something?
     https://github.com/vert-x3/vertx-web/blob/${io.vertx.web.version}/vertx-web-graphql/pom.xml#L35
   -->
-  <com.graphql.java.extended.scalars.version>19.0</com.graphql.java.extended.scalars.version>
+  <com.graphql.java.extended.scalars.version>20.1</com.graphql.java.extended.scalars.version>
   <com.nimbusds.jose.jwt.version>9.31</com.nimbusds.jose.jwt.version>
   <org.bouncycastle.version>1.72</org.bouncycastle.version>
   <org.jasypt.version>1.9.3</org.jasypt.version>
