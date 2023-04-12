@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.reports;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -156,11 +157,12 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                         : ExitStatus.byExitCode(proc.exitValue());
 
                         if (fs.exists(reportStatsPath)) {
-                            ReportStats stats =
-                                    gson.fromJson(fs.readFile(reportStatsPath), ReportStats.class);
-                            evt.setRecordingSizeBytes(stats.getRecordingSizeBytes());
-                            evt.setRulesEvaluated(stats.getRulesEvaluated());
-                            evt.setRulesApplicable(stats.getRulesApplicable());
+                            try (BufferedReader br = fs.readFile(reportStatsPath)) {
+                                ReportStats stats = gson.fromJson(br, ReportStats.class);
+                                evt.setRecordingSizeBytes(stats.getRecordingSizeBytes());
+                                evt.setRulesEvaluated(stats.getRulesEvaluated());
+                                evt.setRulesApplicable(stats.getRulesApplicable());
+                            }
                         }
 
                         switch (status) {

@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.openshift;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
@@ -80,12 +81,8 @@ public abstract class OpenShiftNetworkModule {
             value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
             justification = "Kubernetes namespace file path is well-known and absolute")
     static String provideNamespace(FileSystem fs) {
-        try {
-            return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
-                    .lines()
-                    .filter(StringUtils::isNotBlank)
-                    .findFirst()
-                    .get();
+        try (BufferedReader br = fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))) {
+            return br.lines().filter(StringUtils::isNotBlank).findFirst().get();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,12 +95,9 @@ public abstract class OpenShiftNetworkModule {
             value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
             justification = "Kubernetes serviceaccount file path is well-known and absolute")
     static String provideServiceAccountToken(FileSystem fs) {
-        try {
-            return fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))
-                    .lines()
-                    .filter(StringUtils::isNotBlank)
-                    .findFirst()
-                    .get();
+        try (BufferedReader br =
+                fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))) {
+            return br.lines().filter(StringUtils::isNotBlank).findFirst().get();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -38,6 +38,7 @@
 package io.cryostat.recordings;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -354,8 +355,9 @@ public class RecordingArchiveHelper {
                 for (String file : fs.listDirectoryChildren(subdirectory)) {
                     // use metadata file to determine connectUrl to probe for jvmId
                     if (file.equals(CONNECT_URL)) {
-                        connectUrl =
-                                Optional.of(fs.readFile(subdirectory.resolve(file)).readLine());
+                        try (BufferedReader r = fs.readFile(subdirectory.resolve(file))) {
+                            connectUrl = Optional.of(r.readLine());
+                        }
                     }
                 }
                 future.complete(connectUrl.orElseThrow(IOException::new));

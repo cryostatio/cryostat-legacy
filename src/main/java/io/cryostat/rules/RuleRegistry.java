@@ -95,7 +95,16 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                             }
                         })
                 .filter(Objects::nonNull)
-                .map(reader -> gson.fromJson(reader, Rule.class))
+                .map(
+                        reader -> {
+                            try (reader) {
+                                return gson.fromJson(reader, Rule.class);
+                            } catch (IOException ioe) {
+                                logger.error(ioe);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
                 .forEach(rules::add);
     }
 
