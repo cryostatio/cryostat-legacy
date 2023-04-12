@@ -38,6 +38,7 @@
 
 package io.cryostat.recordings;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
@@ -213,58 +214,65 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                     .filter(Objects::nonNull)
                                                     .forEach(
                                                             pair -> {
-                                                                StoredRecordingMetadata srm =
-                                                                        gson.fromJson(
-                                                                                pair.getLeft(),
-                                                                                StoredRecordingMetadata
-                                                                                        .class);
-                                                                Path file = pair.getRight();
-                                                                String targetId = srm.getTargetId();
-                                                                String recordingName =
-                                                                        srm.getRecordingName();
-                                                                // jvmId should always exist
-                                                                // since we are using directory
-                                                                // structure
-                                                                if (srm.getJvmId() != null) {
-                                                                    try {
-                                                                        if (!isArchivedRecording(
-                                                                                recordingName)) {
-                                                                            logger.info(
-                                                                                    "Potentially"
-                                                                                        + " stale"
-                                                                                        + " metadata"
-                                                                                        + " file:"
-                                                                                        + " {}, for"
-                                                                                        + " target:"
+                                                                try (BufferedReader br =
+                                                                        pair.getLeft()) {
+                                                                    StoredRecordingMetadata srm =
+                                                                            gson.fromJson(
+                                                                                    br,
+                                                                                    StoredRecordingMetadata
+                                                                                            .class);
+                                                                    Path file = pair.getRight();
+                                                                    String targetId =
+                                                                            srm.getTargetId();
+                                                                    String recordingName =
+                                                                            srm.getRecordingName();
+                                                                    // jvmId should always exist
+                                                                    // since we are using directory
+                                                                    // structure
+                                                                    if (srm.getJvmId() != null) {
+                                                                        try {
+                                                                            if (!isArchivedRecording(
+                                                                                    recordingName)) {
+                                                                                logger.info(
+                                                                                        "Potentially"
+                                                                                            + " stale"
+                                                                                            + " metadata"
+                                                                                            + " file:"
+                                                                                            + " {}, for"
+                                                                                            + " target:"
+                                                                                            + " {}",
+                                                                                        recordingName,
+                                                                                        targetId);
+                                                                                staleMetadata.put(
+                                                                                        srm, file);
+                                                                                return;
+                                                                            }
+                                                                        } catch (IOException e) {
+                                                                            logger.error(
+                                                                                    "Could not"
+                                                                                        + " check"
+                                                                                        + " if recording"
+                                                                                        + " {} exists"
+                                                                                        + " on target"
+                                                                                        + " {}, msg:"
                                                                                         + " {}",
                                                                                     recordingName,
-                                                                                    targetId);
-                                                                            staleMetadata.put(
-                                                                                    srm, file);
-                                                                            return;
+                                                                                    targetId,
+                                                                                    e.getMessage());
                                                                         }
-                                                                    } catch (IOException e) {
-                                                                        logger.error(
-                                                                                "Could not check if"
-                                                                                    + " recording"
-                                                                                    + " {} exists"
-                                                                                    + " on target"
-                                                                                    + " {}, msg:"
-                                                                                    + " {}",
-                                                                                recordingName,
-                                                                                targetId,
-                                                                                e.getMessage());
-                                                                    }
-                                                                } else {
-                                                                    logger.warn(
-                                                                            "Invalid metadata with"
-                                                                                    + " no jvmId"
+                                                                    } else {
+                                                                        logger.warn(
+                                                                                "Invalid metadata"
+                                                                                    + " with no"
+                                                                                    + " jvmId"
                                                                                     + " originating"
-                                                                                    + " from"
-                                                                                    + " {}",
-                                                                            targetId);
-                                                                    deleteMetadataPathIfExists(
-                                                                            file);
+                                                                                    + " from {}",
+                                                                                targetId);
+                                                                        deleteMetadataPathIfExists(
+                                                                                file);
+                                                                    }
+                                                                } catch (IOException ioe) {
+                                                                    logger.error(ioe);
                                                                 }
                                                             });
                                         }
@@ -280,11 +288,8 @@ public class RecordingMetadataManager extends AbstractVerticle
                                 (remove after 2.2.0 release and replace with subdirectory::fs.isDirectory (ignore files))? */
                                 else if (fs.isRegularFile(subdirectory)) {
                                     StoredRecordingMetadata srm;
-                                    try {
-                                        srm =
-                                                gson.fromJson(
-                                                        fs.readFile(subdirectory),
-                                                        StoredRecordingMetadata.class);
+                                    try (BufferedReader br = fs.readFile(subdirectory)) {
+                                        srm = gson.fromJson(br, StoredRecordingMetadata.class);
                                     } catch (Exception e) {
                                         logger.error(
                                                 "Could not read file {} in recordingMetadata"
@@ -626,7 +631,9 @@ public class RecordingMetadataManager extends AbstractVerticle
             metadata = new Metadata();
             fs.writeString(metadataPath, gson.toJson(metadata));
         } else {
-            metadata = gson.fromJson(fs.readFile(metadataPath), Metadata.class);
+            try (BufferedReader br = fs.readFile(metadataPath)) {
+                metadata = gson.fromJson(br, Metadata.class);
+            }
         }
         return metadata;
     }
@@ -642,7 +649,9 @@ public class RecordingMetadataManager extends AbstractVerticle
             fs.writeString(metadataPath, gson.toJson(metadata));
             return metadata;
         }
-        return gson.fromJson(fs.readFile(metadataPath), Metadata.class);
+        try (BufferedReader br = fs.readFile(metadataPath)) {
+            return gson.fromJson(br, Metadata.class);
+        }
     }
 
     public Metadata deleteRecordingMetadataIfExists(
@@ -661,11 +670,13 @@ public class RecordingMetadataManager extends AbstractVerticle
 
         Path metadataPath = this.getMetadataPath(jvmId, recordingName);
         if (fs.isRegularFile(metadataPath)) {
-            Metadata metadata = gson.fromJson(fs.readFile(metadataPath), Metadata.class);
-            if (fs.deleteIfExists(metadataPath)) {
-                deleteSubdirectoryIfEmpty(metadataPath.getParent());
+            try (BufferedReader br = fs.readFile(metadataPath)) {
+                Metadata metadata = gson.fromJson(br, Metadata.class);
+                if (fs.deleteIfExists(metadataPath)) {
+                    deleteSubdirectoryIfEmpty(metadataPath.getParent());
+                }
+                return metadata;
             }
-            return metadata;
         }
         return null;
     }
@@ -740,11 +751,10 @@ public class RecordingMetadataManager extends AbstractVerticle
             logger.info("[{}] Metadata transfer: {} -> {}", targetId, oldJvmId, newJvmId);
             Path oldParent = getMetadataPath(oldJvmId);
             for (String encodedFilename : fs.listDirectoryChildren(oldParent)) {
-                try {
-                    Path oldMetadataPath = oldParent.resolve(encodedFilename);
+                Path oldMetadataPath = oldParent.resolve(encodedFilename);
+                try (BufferedReader storedMetadata = fs.readFile(oldMetadataPath)) {
                     StoredRecordingMetadata srm =
-                            gson.fromJson(
-                                    fs.readFile(oldMetadataPath), StoredRecordingMetadata.class);
+                            gson.fromJson(storedMetadata, StoredRecordingMetadata.class);
                     String recordingName = srm.recordingName;
                     StoredRecordingMetadata updatedSrm =
                             StoredRecordingMetadata.of(targetId, newJvmId, recordingName, srm);
