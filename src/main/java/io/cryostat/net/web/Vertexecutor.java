@@ -1,4 +1,3 @@
-package io.cryostat.net.web;
 /*
  * Copyright The Cryostat Authors
  *
@@ -36,6 +35,8 @@ package io.cryostat.net.web;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+package io.cryostat.net.web;
 
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;

@@ -37,6 +37,9 @@
  */
 package io.cryostat.sys;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+
 import javax.inject.Singleton;
 
 import io.cryostat.core.sys.Clock;
@@ -64,5 +67,11 @@ public abstract class SystemModule {
     @Singleton
     static FileSystem provideFileSystem() {
         return new FileSystem();
+    }
+
+    @Provides
+    @Singleton
+    static ExecutorService provideExecutorService() {
+        return ForkJoinPool.commonPool();
     }
 }

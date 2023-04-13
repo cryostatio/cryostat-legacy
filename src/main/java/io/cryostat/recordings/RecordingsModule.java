@@ -176,7 +176,7 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
+            ExecutorService executor,
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
@@ -223,7 +223,7 @@ public abstract class RecordingsModule {
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
             TargetConnectionManager targetConnectionManager,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
+            ExecutorService executor,
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,

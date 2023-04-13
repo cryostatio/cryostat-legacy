@@ -40,8 +40,6 @@ package io.cryostat.platform.internal;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import javax.inject.Named;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
@@ -50,7 +48,6 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
-import io.cryostat.net.web.WebModule;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -69,7 +66,7 @@ public abstract class PlatformStrategyModule {
             Lazy<OpenShiftAuthManager> openShiftAuthManager,
             Lazy<NoopAuthManager> noopAuthManager,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
+            ExecutorService executor,
             Vertx vertx,
             Gson gson,
             NetworkResolver resolver,

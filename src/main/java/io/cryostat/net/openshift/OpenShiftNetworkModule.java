@@ -50,7 +50,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.web.WebModule;
 import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -123,7 +122,7 @@ public abstract class OpenShiftNetworkModule {
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(
             Environment env,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
+            ExecutorService executor,
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
             Lazy<OpenShiftClient> serviceAccountClient,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> clientProvider,
