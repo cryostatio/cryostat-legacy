@@ -203,12 +203,13 @@ public class ReportIT extends StandardSelfTest {
                             });
             JsonObject jsonResponse = getUnformattedResponse.get();
             MatcherAssert.assertThat(jsonResponse, Matchers.notNullValue());
-            MatcherAssert.assertThat(jsonResponse.getMap(), Matchers.is(Matchers.aMapWithSize(7)));
+            MatcherAssert.assertThat(jsonResponse.getMap(), Matchers.is(Matchers.aMapWithSize(8)));
             Assertions.assertTrue(jsonResponse.containsKey("HeapContent"));
             Assertions.assertTrue(jsonResponse.containsKey("StringDeduplication"));
             Assertions.assertTrue(jsonResponse.containsKey("PrimitiveToObjectConversion"));
             Assertions.assertTrue(jsonResponse.containsKey("GcFreedRatio"));
             Assertions.assertTrue(jsonResponse.containsKey("HighGc"));
+            Assertions.assertTrue(jsonResponse.containsKey("HeapDump"));
             Assertions.assertTrue(jsonResponse.containsKey("Allocations.class"));
             Assertions.assertTrue(jsonResponse.containsKey("LowOnPhysicalMemory"));
             for (var obj : jsonResponse.getMap().entrySet()) {
