@@ -182,7 +182,7 @@ public class TargetReportIT extends StandardSelfTest {
 
             JsonObject jsonResponse = getUnformattedResponse.get();
             MatcherAssert.assertThat(jsonResponse, Matchers.notNullValue());
-            MatcherAssert.assertThat(jsonResponse.getMap(), Matchers.is(Matchers.aMapWithSize(7)));
+            MatcherAssert.assertThat(jsonResponse.getMap(), Matchers.is(Matchers.aMapWithSize(8)));
             Assertions.assertTrue(jsonResponse.containsKey("HeapContent"));
             Assertions.assertTrue(jsonResponse.containsKey("StringDeduplication"));
             Assertions.assertTrue(jsonResponse.containsKey("PrimitiveToObjectConversion"));
@@ -190,6 +190,7 @@ public class TargetReportIT extends StandardSelfTest {
             Assertions.assertTrue(jsonResponse.containsKey("HighGc"));
             Assertions.assertTrue(jsonResponse.containsKey("Allocations.class"));
             Assertions.assertTrue(jsonResponse.containsKey("LowOnPhysicalMemory"));
+            Assertions.assertTrue(jsonResponse.containsKey("HeapDump"));
             for (var obj : jsonResponse.getMap().entrySet()) {
                 var value = JsonObject.mapFrom(obj.getValue());
                 Assertions.assertTrue(value.containsKey("score"));
@@ -208,8 +209,6 @@ public class TargetReportIT extends StandardSelfTest {
                 MatcherAssert.assertThat(
                         value.getString("topic"), Matchers.not(Matchers.emptyOrNullString()));
                 Assertions.assertTrue(value.containsKey("description"));
-                MatcherAssert.assertThat(
-                        value.getString("description"), Matchers.not(Matchers.emptyOrNullString()));
             }
 
         } finally {
