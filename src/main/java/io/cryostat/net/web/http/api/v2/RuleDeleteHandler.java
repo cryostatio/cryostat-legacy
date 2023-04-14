@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import javax.inject.Inject;
 
@@ -60,7 +61,6 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 
 class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
@@ -69,7 +69,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = RuleGetHandler.PATH;
     static final String CLEAN_PARAM = "clean";
 
-    private final Vertx vertx;
+    private final ExecutorService executor;
     private final RuleRegistry ruleRegistry;
     private final RecordingTargetHelper recordings;
     private final DiscoveryStorage storage;
@@ -79,7 +79,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     RuleDeleteHandler(
-            Vertx vertx,
+            ExecutorService executor,
             AuthManager auth,
             RuleRegistry ruleRegistry,
             RecordingTargetHelper recordings,
@@ -89,7 +89,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, gson);
-        this.vertx = vertx;
+        this.executor = executor;
         this.ruleRegistry = ruleRegistry;
         this.recordings = recordings;
         this.storage = storage;
@@ -148,13 +148,12 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                 .build()
                 .send();
         if (Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            vertx.executeBlocking(
-                    promise -> {
+            executor.submit(
+                    () -> {
                         try {
                             cleanup(params, rule);
-                            promise.complete();
                         } catch (Exception e) {
-                            promise.fail(e);
+                            logger.error(e);
                         }
                     });
         }
@@ -165,8 +164,8 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
         storage.listUniqueReachableServices().stream()
                 .forEach(
                         (ServiceRef ref) -> {
-                            vertx.executeBlocking(
-                                    promise -> {
+                            executor.submit(
+                                    () -> {
                                         try {
                                             if (ruleRegistry.applies(rule, ref)) {
                                                 String targetId = ref.getServiceUri().toString();
@@ -179,10 +178,8 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
                                                 recordings.stopRecording(
                                                         cd, rule.getRecordingName());
                                             }
-                                            promise.complete();
                                         } catch (Exception e) {
                                             logger.error(e);
-                                            promise.fail(e);
                                         }
                                     });
                         });
