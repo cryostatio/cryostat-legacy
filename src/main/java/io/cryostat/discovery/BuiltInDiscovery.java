@@ -56,6 +56,7 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 
 import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
@@ -89,6 +90,9 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
         this.logger = logger;
     }
 
+    @SuppressFBWarnings(
+            value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+            justification = "executor.submit() return value is ignored, the Future is never needed")
     @Override
     public void start(Promise<Void> start) {
         storage.addTargetDiscoveryListener(this);
