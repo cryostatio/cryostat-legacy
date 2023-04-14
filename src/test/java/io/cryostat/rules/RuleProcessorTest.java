@@ -42,6 +42,7 @@ import static org.mockito.Mockito.never;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -49,6 +50,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.DirectExecutorService;
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
@@ -92,6 +94,7 @@ class RuleProcessorTest {
 
     RuleProcessor processor;
     Vertx vertx;
+    ExecutorService executor = new DirectExecutorService();
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
     @Mock CredentialsManager credentialsManager;
@@ -112,6 +115,7 @@ class RuleProcessorTest {
         this.processor =
                 new RuleProcessor(
                         vertx,
+                        executor,
                         platformClient,
                         registry,
                         credentialsManager,
@@ -159,15 +163,12 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
 
         Mockito.when(connection.getService()).thenReturn(service);
 
@@ -269,15 +270,12 @@ class RuleProcessorTest {
 
     @Test
     void testSuccessfulArchiverRuleActivationWithCredentials() throws Exception {
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
 
         Mockito.when(connection.getService()).thenReturn(service);
 
@@ -409,15 +407,12 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
 
         Event<CredentialsEvent, String> event = Mockito.mock(Event.class);

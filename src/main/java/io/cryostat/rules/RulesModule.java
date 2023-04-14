@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -137,6 +138,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleProcessor provideRuleProcessor(
             Vertx vertx,
+            ExecutorService executor,
             DiscoveryStorage storage,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
@@ -149,6 +151,7 @@ public abstract class RulesModule {
             Logger logger) {
         return new RuleProcessor(
                 vertx,
+                executor,
                 storage,
                 registry,
                 credentialsManager,
