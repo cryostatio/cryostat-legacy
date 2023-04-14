@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -62,6 +63,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
+    private final ExecutorService executor;
     private final DiscoveryStorage storage;
     private final Set<PlatformDetectionStrategy<?>> selectedStrategies;
     private final Set<PlatformDetectionStrategy<?>> unselectedStrategies;
@@ -71,12 +73,14 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     private final Logger logger;
 
     BuiltInDiscovery(
+            ExecutorService executor,
             DiscoveryStorage storage,
             SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
             SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
             Lazy<CustomTargetPlatformClient> customTargets,
             NotificationFactory notificationFactory,
             Logger logger) {
+        this.executor = executor;
         this.storage = storage;
         this.selectedStrategies = selectedStrategies;
         this.unselectedStrategies = unselectedStrategies;
@@ -129,14 +133,12 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
                             platform.addTargetDiscoveryListener(
                                     tde ->
-                                            getVertx()
-                                                    .executeBlocking(
-                                                            promise ->
-                                                                    promise.complete(
-                                                                            storage.update(
-                                                                                    id,
-                                                                                    platform.getDiscoveryTree()
-                                                                                            .getChildren()))));
+                                            executor.submit(
+                                                    () ->
+                                                            storage.update(
+                                                                    id,
+                                                                    platform.getDiscoveryTree()
+                                                                            .getChildren())));
                             Promise<EnvironmentNode> promise = Promise.promise();
                             promise.future()
                                     .onSuccess(

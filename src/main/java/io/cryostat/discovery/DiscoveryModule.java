@@ -40,6 +40,7 @@ package io.cryostat.discovery;
 import java.time.Duration;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutorService;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -117,6 +118,7 @@ public abstract class DiscoveryModule {
     @Provides
     @Singleton
     static BuiltInDiscovery provideBuiltInDiscovery(
+            ExecutorService executor,
             DiscoveryStorage storage,
             @Named(PlatformModule.SELECTED_PLATFORMS)
                     SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
@@ -126,6 +128,7 @@ public abstract class DiscoveryModule {
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(
+                executor,
                 storage,
                 selectedStrategies,
                 unselectedStrategies,
