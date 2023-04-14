@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -61,6 +62,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import io.cryostat.DirectExecutorService;
+import io.cryostat.MockVertx;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
@@ -96,7 +99,8 @@ import org.mockito.stubbing.Answer;
 @ExtendWith(MockitoExtension.class)
 public class RecordingTargetHelperTest {
     RecordingTargetHelper recordingTargetHelper;
-    @Mock Vertx vertx;
+    @Mock Vertx vertx = MockVertx.vertx();
+    ExecutorService executor = new DirectExecutorService();
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock WebServer webServer;
@@ -131,6 +135,7 @@ public class RecordingTargetHelperTest {
         this.recordingTargetHelper =
                 new RecordingTargetHelper(
                         vertx,
+                        executor,
                         targetConnectionManager,
                         () -> webServer,
                         eventOptionsBuilderFactory,

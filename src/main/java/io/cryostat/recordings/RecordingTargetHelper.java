@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -72,8 +73,6 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import dagger.Lazy;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -94,6 +93,7 @@ public class RecordingTargetHelper {
     private static final Pattern SNAPSHOT_NAME_PATTERN = Pattern.compile("^(snapshot\\-)([0-9]+)$");
 
     private final Vertx vertx;
+    private final ExecutorService executor;
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -107,6 +107,7 @@ public class RecordingTargetHelper {
 
     RecordingTargetHelper(
             Vertx vertx,
+            ExecutorService executor,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
@@ -117,6 +118,7 @@ public class RecordingTargetHelper {
             RecordingArchiveHelper recordingArchiveHelper,
             Logger logger) {
         this.vertx = vertx;
+        this.executor = executor;
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
@@ -541,74 +543,77 @@ public class RecordingTargetHelper {
             boolean archiveOnStop) {
         String targetId = connectionDescriptor.getTargetId();
 
-        Handler<Promise<HyperlinkedSerializableRecordingDescriptor>> promiseHandler =
-                promise -> {
-                    try {
-                        HyperlinkedSerializableRecordingDescriptor linkedDesc =
-                                targetConnectionManager.executeConnectedTask(
-                                        connectionDescriptor,
-                                        connection -> {
-                                            Optional<IRecordingDescriptor> desc =
-                                                    getDescriptorByName(connection, recordingName);
-
-                                            desc =
-                                                    desc.stream()
-                                                            .filter(
-                                                                    r ->
-                                                                            r.getState()
-                                                                                    .equals(
-                                                                                            RecordingState
-                                                                                                    .STOPPED))
-                                                            .findFirst();
-                                            if (desc.isPresent()) {
-                                                String name = desc.get().getName();
-                                                HyperlinkedSerializableRecordingDescriptor linked =
-                                                        new HyperlinkedSerializableRecordingDescriptor(
-                                                                desc.get(),
-                                                                webServer
-                                                                        .get()
-                                                                        .getDownloadURL(
-                                                                                connection, name),
-                                                                webServer
-                                                                        .get()
-                                                                        .getReportURL(
-                                                                                connection, name));
-                                                return linked;
-                                            }
-                                            return null;
-                                        });
-                        promise.complete(linkedDesc);
-                    } catch (Exception e) {
-                        promise.fail(e);
-                    }
-                };
         long task =
                 this.vertx.setTimer(
                         delay + TIMESTAMP_DRIFT_SAFEGUARD,
                         id -> {
-                            vertx.executeBlocking(
-                                    promiseHandler,
-                                    false,
-                                    result -> {
-                                        if (result.failed()) {
-                                            return;
-                                        }
-                                        this.issueNotification(
-                                                targetId,
-                                                ((HyperlinkedSerializableRecordingDescriptor)
-                                                        result.result()),
-                                                STOP_NOTIFICATION_CATEGORY);
-                                        if (archiveOnStop) {
-                                            try {
-                                                recordingArchiveHelper
-                                                        .saveRecording(
-                                                                connectionDescriptor, recordingName)
-                                                        .get();
-                                            } catch (InterruptedException | ExecutionException e) {
-                                                logger.error(
-                                                        "Failed to archive the active recording: "
-                                                                + e);
+                            executor.submit(
+                                    () -> {
+                                        try {
+
+                                            HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                                                    targetConnectionManager.executeConnectedTask(
+                                                            connectionDescriptor,
+                                                            connection -> {
+                                                                Optional<IRecordingDescriptor>
+                                                                        desc =
+                                                                                getDescriptorByName(
+                                                                                        connection,
+                                                                                        recordingName);
+
+                                                                desc =
+                                                                        desc.stream()
+                                                                                .filter(
+                                                                                        r ->
+                                                                                                r.getState()
+                                                                                                        .equals(
+                                                                                                                RecordingState
+                                                                                                                        .STOPPED))
+                                                                                .findFirst();
+                                                                if (desc.isPresent()) {
+                                                                    String name =
+                                                                            desc.get().getName();
+                                                                    HyperlinkedSerializableRecordingDescriptor
+                                                                            linked =
+                                                                                    new HyperlinkedSerializableRecordingDescriptor(
+                                                                                            desc
+                                                                                                    .get(),
+                                                                                            webServer
+                                                                                                    .get()
+                                                                                                    .getDownloadURL(
+                                                                                                            connection,
+                                                                                                            name),
+                                                                                            webServer
+                                                                                                    .get()
+                                                                                                    .getReportURL(
+                                                                                                            connection,
+                                                                                                            name));
+                                                                    return linked;
+                                                                }
+                                                                return null;
+                                                            });
+
+                                            this.issueNotification(
+                                                    targetId,
+                                                    linkedDesc,
+                                                    STOP_NOTIFICATION_CATEGORY);
+                                            if (archiveOnStop) {
+                                                try {
+                                                    recordingArchiveHelper
+                                                            .saveRecording(
+                                                                    connectionDescriptor,
+                                                                    recordingName)
+                                                            .get();
+                                                } catch (InterruptedException
+                                                        | ExecutionException e1) {
+                                                    logger.error(
+                                                            "Failed to archive the active"
+                                                                    + " recording: "
+                                                                    + e1);
+                                                }
                                             }
+                                        } catch (Exception e) {
+                                            logger.error(e);
                                         }
                                     });
                         });

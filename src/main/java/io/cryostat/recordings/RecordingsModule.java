@@ -98,6 +98,7 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
             Vertx vertx,
+            ExecutorService executor,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
@@ -109,6 +110,7 @@ public abstract class RecordingsModule {
             Logger logger) {
         return new RecordingTargetHelper(
                 vertx,
+                executor,
                 targetConnectionManager,
                 webServer,
                 eventOptionsBuilderFactory,
