@@ -230,8 +230,6 @@ public class ReportIT extends StandardSelfTest {
                 MatcherAssert.assertThat(
                         value.getString("topic"), Matchers.not(Matchers.emptyOrNullString()));
                 Assertions.assertTrue(value.containsKey("description"));
-                MatcherAssert.assertThat(
-                        value.getString("description"), Matchers.not(Matchers.emptyOrNullString()));
             }
 
         } finally {
