@@ -167,7 +167,7 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static Vertx provideVertx() {
-        return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
+        return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true).setWorkerPoolSize(3));
     }
 
     @Provides
