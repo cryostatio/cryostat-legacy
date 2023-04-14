@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import javax.inject.Inject;
 
@@ -60,7 +61,6 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 
@@ -70,7 +70,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
     static final String PATH = RuleGetHandler.PATH;
     static final String CLEAN_PARAM = "clean";
 
-    private final Vertx vertx;
+    private final ExecutorService executor;
     private final RuleRegistry ruleRegistry;
     private final DiscoveryStorage storage;
     private final RecordingTargetHelper recordings;
@@ -79,7 +79,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
 
     @Inject
     RulePatchHandler(
-            Vertx vertx,
+            ExecutorService executor,
             AuthManager auth,
             DiscoveryStorage storage,
             RecordingTargetHelper recordings,
@@ -89,7 +89,7 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
             Gson gson,
             Logger logger) {
         super(auth, credentialsManager, gson);
-        this.vertx = vertx;
+        this.executor = executor;
         this.recordings = recordings;
         this.ruleRegistry = ruleRegistry;
         this.storage = storage;
@@ -161,13 +161,13 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                 .send();
 
         if (!enabled && Boolean.valueOf(params.getQueryParams().get(CLEAN_PARAM))) {
-            vertx.executeBlocking(
-                    promise -> {
+            executor.submit(
+                    () -> {
                         try {
                             cleanup(params, rule);
-                            promise.complete();
                         } catch (Exception e) {
-                            promise.fail(e);
+                            logger.warn("Rule \"{}\" cleanup failed", name);
+                            logger.warn(e);
                         }
                     });
         }
@@ -179,8 +179,8 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
         storage.listUniqueReachableServices().stream()
                 .forEach(
                         (ServiceRef ref) -> {
-                            vertx.executeBlocking(
-                                    promise -> {
+                            executor.submit(
+                                    () -> {
                                         try {
                                             if (ruleRegistry.applies(rule, ref)) {
                                                 String targetId = ref.getServiceUri().toString();
@@ -193,10 +193,8 @@ class RulePatchHandler extends AbstractV2RequestHandler<Void> {
                                                 recordings.stopRecording(
                                                         cd, rule.getRecordingName());
                                             }
-                                            promise.complete();
                                         } catch (Exception e) {
                                             logger.error(e);
-                                            promise.fail(e);
                                         }
                                     });
                         });

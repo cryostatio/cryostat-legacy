@@ -42,9 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
+import io.cryostat.DirectExecutorService;
 import io.cryostat.MainModule;
-import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.discovery.DiscoveryStorage;
@@ -62,7 +63,6 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -79,7 +79,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RulePatchHandlerTest {
 
     RulePatchHandler handler;
-    Vertx vertx = MockVertx.vertx();
+    ExecutorService executor = new DirectExecutorService();
     @Mock AuthManager auth;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock DiscoveryStorage storage;
@@ -109,7 +109,7 @@ class RulePatchHandlerTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new RulePatchHandler(
-                        vertx,
+                        executor,
                         auth,
                         storage,
                         recordingTargetHelper,
@@ -242,7 +242,6 @@ class RulePatchHandlerTest {
             Mockito.verify(notificationBuilder).build();
             Mockito.verify(notification).send();
 
-            Mockito.verify(vertx, Mockito.times(2)).executeBlocking(Mockito.any());
             Mockito.verify(registry)
                     .applies(Mockito.any(Rule.class), Mockito.any(ServiceRef.class));
             Mockito.verify(recordingTargetHelper)
