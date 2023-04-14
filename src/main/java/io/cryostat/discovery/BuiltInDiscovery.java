@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -132,13 +133,15 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                                     });
 
                             platform.addTargetDiscoveryListener(
-                                    tde ->
-                                            executor.submit(
-                                                    () ->
-                                                            storage.update(
-                                                                    id,
-                                                                    platform.getDiscoveryTree()
-                                                                            .getChildren())));
+                                    tde -> {
+                                        Future<?> f =
+                                                executor.submit(
+                                                        () ->
+                                                                storage.update(
+                                                                        id,
+                                                                        platform.getDiscoveryTree()
+                                                                                .getChildren()));
+                                    });
                             Promise<EnvironmentNode> promise = Promise.promise();
                             promise.future()
                                     .onSuccess(
