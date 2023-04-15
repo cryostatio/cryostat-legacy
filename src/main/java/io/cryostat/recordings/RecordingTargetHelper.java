@@ -550,7 +550,6 @@ public class RecordingTargetHelper {
                             executor.submit(
                                     () -> {
                                         try {
-
                                             HyperlinkedSerializableRecordingDescriptor linkedDesc =
                                                     targetConnectionManager.executeConnectedTask(
                                                             connectionDescriptor,
@@ -593,10 +592,12 @@ public class RecordingTargetHelper {
                                                                 return null;
                                                             });
 
-                                            this.issueNotification(
-                                                    targetId,
-                                                    linkedDesc,
-                                                    STOP_NOTIFICATION_CATEGORY);
+                                            if (linkedDesc != null) {
+                                                this.issueNotification(
+                                                        targetId,
+                                                        linkedDesc,
+                                                        STOP_NOTIFICATION_CATEGORY);
+                                            }
                                             if (archiveOnStop) {
                                                 try {
                                                     recordingArchiveHelper
