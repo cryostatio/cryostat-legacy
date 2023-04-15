@@ -345,10 +345,11 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
                 Set<Long> ids = entry.getValue();
-                ids.forEach((id) -> {
-                    vertx.cancelTimer(id);
-                    logger.trace("Cancelled timer {}", id);
-                });
+                ids.forEach(
+                        (id) -> {
+                            vertx.cancelTimer(id);
+                            logger.trace("Cancelled timer {}", id);
+                        });
                 it.remove();
             }
         }
