@@ -37,35 +37,32 @@
  */
 package io.cryostat.sys;
 
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class ThreadLocalPropagatingPoolExecutorService<T> extends ThreadPoolExecutor {
+public class ThreadLocalPropagatingPoolExecutorService<T> extends AbstractExecutorService {
 
     private final Supplier<T> getter;
     private final Consumer<T> setter;
+    private final ExecutorService delegate;
     private final Runnable cleaner;
 
     public ThreadLocalPropagatingPoolExecutorService(
-            Supplier<T> getter, Consumer<T> setter, Runnable cleaner) {
-        super(
-                1,
-                Runtime.getRuntime().availableProcessors() * 2,
-                1,
-                TimeUnit.MINUTES,
-                new SynchronousQueue<>());
+            Supplier<T> getter, Consumer<T> setter, ExecutorService delegate, Runnable cleaner) {
         this.getter = getter;
         this.setter = setter;
+        this.delegate = delegate;
         this.cleaner = cleaner;
     }
 
     @Override
     public void execute(Runnable task) {
         T t = getter.get();
-        super.execute(
+        delegate.execute(
                 () -> {
                     setter.accept(t);
                     try {
@@ -74,5 +71,30 @@ public class ThreadLocalPropagatingPoolExecutorService<T> extends ThreadPoolExec
                         cleaner.run();
                     }
                 });
+    }
+
+    @Override
+    public void shutdown() {
+        delegate.shutdown();
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+        return delegate.shutdownNow();
+    }
+
+    @Override
+    public boolean isShutdown() {
+        return delegate.isShutdown();
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return delegate.isTerminated();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        return delegate.awaitTermination(timeout, unit);
     }
 }

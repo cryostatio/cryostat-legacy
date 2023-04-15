@@ -42,6 +42,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import javax.inject.Provider;
@@ -105,10 +107,18 @@ public abstract class GraphModule {
     @Singleton
     static GraphQL provideGraphQL(
             Set<AbstractPermissionedDataFetcher<?>> fetchers, Set<AbstractTypeResolver> resolvers) {
+        AtomicInteger workerCount = new AtomicInteger(0);
         Executor executor =
                 new ThreadLocalPropagatingPoolExecutorService<>(
                         CredentialsManager.SESSION_CREDENTIALS::get,
                         CredentialsManager.SESSION_CREDENTIALS::set,
+                        Executors.newCachedThreadPool(
+                                r -> {
+                                    Thread t = new Thread(r);
+                                    t.setName("GraphQL-worker-" + workerCount.getAndIncrement());
+                                    t.setDaemon(true);
+                                    return t;
+                                }),
                         CredentialsManager.SESSION_CREDENTIALS::remove);
         RuntimeWiring.Builder wiringBuilder =
                 RuntimeWiring.newRuntimeWiring()
