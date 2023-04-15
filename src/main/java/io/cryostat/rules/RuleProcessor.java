@@ -251,6 +251,13 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                     rule.isEnabled());
             return;
         }
+        if (tasks.containsKey(Pair.of(serviceRef, rule))) {
+            this.logger.trace(
+                    "Activating rule {} for target {} aborted, rule is already active",
+                    rule.getName(),
+                    serviceRef.getServiceUri());
+            return;
+        }
         this.logger.trace(
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
@@ -338,7 +345,10 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
                 Set<Long> ids = entry.getValue();
-                ids.forEach(vertx::cancelTimer);
+                ids.forEach((id) -> {
+                    vertx.cancelTimer(id);
+                    logger.trace("Cancelled timer {}", id);
+                });
                 it.remove();
             }
         }
