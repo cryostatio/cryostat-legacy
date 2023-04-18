@@ -37,17 +37,21 @@
  */
 package io.cryostat.sys;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Singleton;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 
 import dagger.Module;
 import dagger.Provides;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @Module
 public abstract class SystemModule {
@@ -71,7 +75,24 @@ public abstract class SystemModule {
 
     @Provides
     @Singleton
-    static ExecutorService provideExecutorService() {
-        return new ForkJoinPool(Math.max(2, Runtime.getRuntime().availableProcessors()));
+    static ExecutorService provideExecutorService(Logger logger) {
+        return new ForkJoinPool(
+                Runtime.getRuntime().availableProcessors(),
+                ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+                new UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread t, Throwable e) {
+                        logger.error(
+                                "Uncaught exception on thread {} ({})", t.getId(), t.getName());
+                        logger.error(ExceptionUtils.getStackTrace(e));
+                    }
+                },
+                true,
+                0,
+                32767,
+                Runtime.getRuntime().availableProcessors(),
+                null,
+                1,
+                TimeUnit.MINUTES);
     }
 }
