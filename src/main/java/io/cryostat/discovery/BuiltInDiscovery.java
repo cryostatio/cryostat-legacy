@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -57,6 +56,7 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 
 import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
@@ -133,15 +133,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                                     });
 
                             platform.addTargetDiscoveryListener(
-                                    tde -> {
-                                        Future<?> f =
-                                                executor.submit(
-                                                        () ->
-                                                                storage.update(
-                                                                        id,
-                                                                        platform.getDiscoveryTree()
-                                                                                .getChildren()));
-                                    });
+                                    tde -> handleUpdateFromPlatform(platform, id));
                             Promise<EnvironmentNode> promise = Promise.promise();
                             promise.future()
                                     .onSuccess(
@@ -155,6 +147,11 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                             }
                         });
         start.tryComplete();
+    }
+
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
+    private void handleUpdateFromPlatform(PlatformClient platform, UUID id) {
+        executor.submit(() -> storage.update(id, platform.getDiscoveryTree().getChildren()));
     }
 
     @Override
