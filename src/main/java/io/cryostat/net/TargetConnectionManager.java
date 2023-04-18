@@ -141,11 +141,6 @@ public class TargetConnectionManager {
     }
 
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
-            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
-        return executeConnectedTaskAsync(connectionDescriptor, task, this.executor);
-    }
-
-    public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, Executor ex) {
         synchronized (
                 targetLocks.computeIfAbsent(

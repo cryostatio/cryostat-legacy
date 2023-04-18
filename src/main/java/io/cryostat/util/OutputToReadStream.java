@@ -28,7 +28,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -74,6 +75,7 @@ import io.vertx.core.streams.WriteStream;
  */
 public class OutputToReadStream extends OutputStream implements ReadStream<Buffer> {
 
+    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private AtomicReference<CountDownLatch> paused = new AtomicReference<>(new CountDownLatch(0));
     private boolean closed;
     private AtomicLong demand = new AtomicLong(0);
@@ -113,18 +115,17 @@ public class OutputToReadStream extends OutputStream implements ReadStream<Buffe
             throws IOException {
         Promise<Void> promise = Promise.promise();
         pipeTo(sink, promise);
-        ForkJoinPool.commonPool()
-                .submit(
-                        () -> {
-                            try (final InputStream is = source;
-                                    final OutputStream os = this) {
-                                checkConnection();
-                                is.transferTo(os);
-                                checkConnection();
-                            } catch (IOException e) {
-                                promise.tryFail(e);
-                            }
-                        });
+        EXECUTOR.submit(
+                () -> {
+                    try (final InputStream is = source;
+                            final OutputStream os = this) {
+                        checkConnection();
+                        is.transferTo(os);
+                        checkConnection();
+                    } catch (IOException e) {
+                        promise.tryFail(e);
+                    }
+                });
         return promise.future();
     }
 

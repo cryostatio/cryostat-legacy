@@ -127,13 +127,14 @@ public abstract class NetworkModule {
     @Singleton
     static AgentClient.Factory provideAgentClientFactory(
             Vertx vertx,
+            ExecutorService executor,
             Gson gson,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
             CredentialsManager credentialsManager,
             Logger logger) {
         return new AgentClient.Factory(
-                vertx, gson, httpTimeout, webClient, credentialsManager, logger);
+                vertx, executor, gson, httpTimeout, webClient, credentialsManager, logger);
     }
 
     @Provides

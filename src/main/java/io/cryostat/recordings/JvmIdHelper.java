@@ -148,7 +148,8 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                                             .get()
                                                             .get(serviceUri.toString()))
                                             .orElse(credentialsManager.getCredentials(sr))),
-                            JFRConnection::getJvmId);
+                            JFRConnection::getJvmId,
+                            executor);
             future.thenAccept(
                     id -> {
                         String prevId = this.ids.synchronous().get(uriStr);
@@ -195,7 +196,8 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                 credentials.isPresent()
                                         ? credentials.get()
                                         : credentialsManager.getCredentialsByTargetId(targetId)),
-                        JFRConnection::getJvmId);
+                        JFRConnection::getJvmId,
+                        executor);
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
         return future;
     }
