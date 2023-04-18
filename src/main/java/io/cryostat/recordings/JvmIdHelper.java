@@ -45,10 +45,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -74,7 +72,6 @@ import org.apache.commons.lang3.StringUtils;
 
 public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, String> {
 
-    private final ExecutorService executor;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final long connectionTimeoutSeconds;
@@ -89,11 +86,10 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             CredentialsManager credentialsManager,
             PlatformClient platform,
             long connectionTimeoutSeconds,
-            ExecutorService executor,
+            Executor executor,
             Scheduler scheduler,
             Base32 base32,
             Logger logger) {
-        this.executor = executor;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
@@ -141,30 +137,15 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         String uriStr = serviceUri.toString();
         try {
             CompletableFuture<String> future =
-                    CompletableFuture.supplyAsync(
-                            () -> {
-                                try {
-                                    return this.targetConnectionManager.executeConnectedTask(
-                                            new ConnectionDescriptor(
-                                                    uriStr,
-                                                    Optional.ofNullable(
-                                                                    CredentialsManager
-                                                                            .SESSION_CREDENTIALS
-                                                                            .get()
-                                                                            .get(
-                                                                                    serviceUri
-                                                                                            .toString()))
-                                                            .orElse(
-                                                                    credentialsManager
-                                                                            .getCredentials(sr))),
-                                            JFRConnection::getJvmId);
-
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    throw new CompletionException(e);
-                                }
-                            },
-                            executor);
+                    this.targetConnectionManager.executeConnectedTaskAsync(
+                            new ConnectionDescriptor(
+                                    uriStr,
+                                    Optional.ofNullable(
+                                                    CredentialsManager.SESSION_CREDENTIALS
+                                                            .get()
+                                                            .get(serviceUri.toString()))
+                                            .orElse(credentialsManager.getCredentials(sr))),
+                            JFRConnection::getJvmId);
             future.thenAccept(
                     id -> {
                         String prevId = this.ids.synchronous().get(uriStr);
@@ -182,7 +163,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
             reverse.put(id, sr);
             return updated;
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
             logger.warn("Could not resolve jvmId for target {}", uriStr);
             throw new JvmIdGetException(e, uriStr);
         }
@@ -205,24 +186,13 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                     RecordingArchiveHelper.LOST_RECORDINGS_SUBDIRECTORY);
         }
         CompletableFuture<String> future =
-                CompletableFuture.supplyAsync(
-                        () -> {
-                            try {
-                                return this.targetConnectionManager.executeConnectedTask(
-                                        new ConnectionDescriptor(
-                                                targetId,
-                                                credentials.isPresent()
-                                                        ? credentials.get()
-                                                        : credentialsManager
-                                                                .getCredentialsByTargetId(
-                                                                        targetId)),
-                                        JFRConnection::getJvmId);
-                            } catch (Exception e) {
-                                logger.error(e);
-                                throw new CompletionException(e);
-                            }
-                        },
-                        executor);
+                this.targetConnectionManager.executeConnectedTaskAsync(
+                        new ConnectionDescriptor(
+                                targetId,
+                                credentials.isPresent()
+                                        ? credentials.get()
+                                        : credentialsManager.getCredentialsByTargetId(targetId)),
+                        JFRConnection::getJvmId);
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
         return future;
     }
