@@ -54,7 +54,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,6 +86,7 @@ import io.vertx.core.eventbus.EventBus;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
@@ -491,24 +491,44 @@ public class RecordingMetadataManager extends AbstractVerticle
                             recordingName,
                             targetId,
                             path);
-                    if (!targetRecordingExists(cd, recordingName)) {
-                        // recording was lost
-                        logger.info("Active recording lost {}, deleting...", recordingName);
-                        deleteMetadataPathIfExists(path);
-                    } else {
-                        // target still up
-                        logger.info(
-                                "Found active recording corresponding to recording metadata: {}",
-                                recordingName);
-                        try {
-                            setRecordingMetadata(cd, recordingName, new Metadata(srm.getLabels()));
-                        } catch (IOException e) {
-                            logger.error(
-                                    "Could not set metadata for recording: {}, msg: {}",
-                                    recordingName,
-                                    e.getMessage());
-                        }
-                    }
+
+                    targetRecordingExists(cd, recordingName)
+                            .completeOnTimeout(false, connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .whenCompleteAsync(
+                                    (exists, t) -> {
+                                        if (t != null) {
+                                            logger.warn(
+                                                    "Target unreachable: {}, cause: {}",
+                                                    cd.getTargetId(),
+                                                    ExceptionUtils.getStackTrace(t));
+                                        }
+                                        if (!exists) {
+                                            // recording was lost
+                                            logger.info(
+                                                    "Active recording lost {}, deleting...",
+                                                    recordingName);
+                                            deleteMetadataPathIfExists(path);
+                                        } else {
+                                            // target still up
+                                            logger.info(
+                                                    "Found active recording corresponding to"
+                                                            + " recording metadata: {}",
+                                                    recordingName);
+                                            try {
+                                                setRecordingMetadata(
+                                                        cd,
+                                                        recordingName,
+                                                        new Metadata(srm.getLabels()));
+                                            } catch (IOException e) {
+                                                logger.error(
+                                                        "Could not set metadata for recording: {},"
+                                                                + " msg: {}",
+                                                        recordingName,
+                                                        e.getMessage());
+                                            }
+                                        }
+                                    },
+                                    executor);
                 });
     }
 
@@ -829,28 +849,14 @@ public class RecordingMetadataManager extends AbstractVerticle
         }
     }
 
-    private boolean targetRecordingExists(ConnectionDescriptor cd, String recordingName) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        try {
-            return this.targetConnectionManager
-                    .executeConnectedTaskAsync(
-                            cd,
-                            conn ->
-                                    conn.getService().getAvailableRecordings().stream()
-                                            .anyMatch(
-                                                    r ->
-                                                            future.complete(
-                                                                    Objects.equals(
-                                                                            recordingName,
-                                                                            r.getName()))))
-                    .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
-        } catch (TimeoutException te) {
-            logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
-            return false;
-        } catch (Exception e) {
-            logger.error(e);
-            return false;
-        }
+    private CompletableFuture<Boolean> targetRecordingExists(
+            ConnectionDescriptor cd, String recordingName) {
+        return this.targetConnectionManager.executeConnectedTaskAsync(
+                cd,
+                conn ->
+                        conn.getService().getAvailableRecordings().stream()
+                                .anyMatch(r -> Objects.equals(recordingName, r.getName())),
+                executor);
     }
 
     private Path getMetadataPath(String jvmId) throws IOException {

@@ -72,6 +72,6 @@ public abstract class SystemModule {
     @Provides
     @Singleton
     static ExecutorService provideExecutorService() {
-        return ForkJoinPool.commonPool();
+        return new ForkJoinPool(Math.max(2, Runtime.getRuntime().availableProcessors()));
     }
 }

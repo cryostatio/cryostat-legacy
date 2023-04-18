@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -75,6 +76,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
     private final long connectionTimeoutSeconds;
+    private final ExecutorService executor;
     private final Base32 base32;
     private final Logger logger;
 
@@ -86,10 +88,11 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             CredentialsManager credentialsManager,
             PlatformClient platform,
             long connectionTimeoutSeconds,
-            Executor executor,
+            ExecutorService executor,
             Scheduler scheduler,
             Base32 base32,
             Logger logger) {
+        this.executor = executor;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
