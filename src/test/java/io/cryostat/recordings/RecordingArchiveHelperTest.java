@@ -1141,6 +1141,7 @@ class RecordingArchiveHelperTest {
         List<ArchiveDirectory> expected =
                 List.of(
                         new ArchiveDirectory(
+                                "encodedJvmIdA",
                                 "connectUrlA",
                                 "encodedJvmIdA",
                                 List.of(
@@ -1153,6 +1154,7 @@ class RecordingArchiveHelperTest {
                                                 0,
                                                 0))),
                         new ArchiveDirectory(
+                                "encodedJvmId123",
                                 "connectUrl123",
                                 "encodedJvmId123",
                                 List.of(
@@ -1167,19 +1169,24 @@ class RecordingArchiveHelperTest {
 
         MatcherAssert.assertThat(result, Matchers.hasSize(2));
         MatcherAssert.assertThat(
+                result.get(0).getDirectoryName(),
+                Matchers.equalTo(expected.get(0).getDirectoryName()));
+        MatcherAssert.assertThat(
                 result.get(0).getConnectUrl(), Matchers.equalTo(expected.get(0).getConnectUrl()));
         MatcherAssert.assertThat(
                 result.get(0).getJvmId(), Matchers.equalTo(expected.get(0).getJvmId()));
         MatcherAssert.assertThat(
                 result.get(0).getRecordings(), Matchers.equalTo(expected.get(0).getRecordings()));
+
+        MatcherAssert.assertThat(
+                result.get(1).getDirectoryName(),
+                Matchers.equalTo(expected.get(1).getDirectoryName()));
         MatcherAssert.assertThat(
                 result.get(1).getConnectUrl(), Matchers.equalTo(expected.get(1).getConnectUrl()));
         MatcherAssert.assertThat(
                 result.get(1).getJvmId(), Matchers.equalTo(expected.get(1).getJvmId()));
         MatcherAssert.assertThat(
                 result.get(1).getRecordings(), Matchers.equalTo(expected.get(1).getRecordings()));
-
-        recordingArchiveHelper.getRecordingsAndDirectories().get();
     }
 
     @Test
