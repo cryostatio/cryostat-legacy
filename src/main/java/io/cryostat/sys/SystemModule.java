@@ -51,6 +51,8 @@ import io.cryostat.core.sys.FileSystem;
 
 import dagger.Module;
 import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @Module
@@ -75,6 +77,7 @@ public abstract class SystemModule {
 
     @Provides
     @Singleton
+    @SuppressFBWarnings(value="NP_NONNULL_PARAM_VIOLATION")
     static ExecutorService provideExecutorService(Logger logger) {
         return new ForkJoinPool(
                 Runtime.getRuntime().availableProcessors(),
