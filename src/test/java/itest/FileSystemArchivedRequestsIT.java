@@ -116,7 +116,7 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             MatcherAssert.assertThat(labels, Matchers.equalTo(expectedLabels));
 
             // post metadata fromPath
-            subdirectoryName = dir.getString("jvmId");
+            subdirectoryName = dir.getString("directoryName");
             String recordingName = archivedRecording.getString("name");
             Map<String, String> uploadMetadata = Map.of("label", "test");
             CompletableFuture<JsonObject> metadataFuture = new CompletableFuture<>();

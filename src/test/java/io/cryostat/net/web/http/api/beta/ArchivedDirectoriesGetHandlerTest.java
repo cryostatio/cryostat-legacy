@@ -146,7 +146,10 @@ class ArchivedDirectoriesGetHandlerTest {
         listFuture.complete(
                 List.of(
                         new ArchiveDirectory(
-                                "encodedServiceUriFoo", "someJvmId", List.of(recording))));
+                                "directory",
+                                "encodedServiceUriFoo",
+                                "someJvmId",
+                                List.of(recording))));
         Mockito.when(recordingArchiveHelper.getRecordingsAndDirectories()).thenReturn(listFuture);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -161,6 +164,6 @@ class ArchivedDirectoriesGetHandlerTest {
 
         Mockito.verify(resp)
                 .end(
-                        "[{\"connectUrl\":\"encodedServiceUriFoo\",\"jvmId\":\"someJvmId\",\"recordings\":[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0,\"archivedTime\":0}]}]");
+                        "[{\"directoryName\":\"directory\",\"connectUrl\":\"encodedServiceUriFoo\",\"jvmId\":\"someJvmId\",\"recordings\":[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\",\"metadata\":{\"labels\":{}},\"size\":0,\"archivedTime\":0}]}]");
     }
 }
