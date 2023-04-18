@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -832,17 +833,29 @@ public class RecordingMetadataManager extends AbstractVerticle
     private boolean targetRecordingExists(ConnectionDescriptor cd, String recordingName) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            return this.targetConnectionManager
-                    .executeConnectedTaskAsync(
-                            cd,
-                            conn ->
-                                    conn.getService().getAvailableRecordings().stream()
-                                            .anyMatch(
-                                                    r ->
-                                                            future.complete(
-                                                                    Objects.equals(
-                                                                            recordingName,
-                                                                            r.getName()))))
+            return CompletableFuture.supplyAsync(
+                            () -> {
+                                try {
+                                    return this.targetConnectionManager.executeConnectedTask(
+                                            cd,
+                                            conn ->
+                                                    conn
+                                                            .getService()
+                                                            .getAvailableRecordings()
+                                                            .stream()
+                                                            .anyMatch(
+                                                                    r ->
+                                                                            future.complete(
+                                                                                    Objects.equals(
+                                                                                            recordingName,
+                                                                                            r
+                                                                                                    .getName()))));
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    throw new CompletionException(e);
+                                }
+                            },
+                            executor)
                     .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException te) {
             logger.warn("Target unreachable {}, msg {}", cd.getTargetId(), te.getMessage());
