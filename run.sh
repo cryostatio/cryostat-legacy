@@ -107,6 +107,11 @@ if ! podman pod exists cryostat-pod; then
         --publish "$CRYOSTAT_EXT_WEB_PORT":"$CRYOSTAT_WEB_PORT"
 fi
 
+protocol="https";
+if [ "$CRYOSTAT_DISABLE_SSL" = "true" ]; then
+    protocol="http"
+fi
+
 # do: $ podman system service -t 0
 # or do: $ systemctl --user start podman.socket
 # to create the podman.sock to volume-mount into the container
@@ -124,6 +129,11 @@ podman run \
     --user 0 \
     --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
     --memory 768M \
+    --health-cmd="[\"curl\", \"-sk\", \"${protocol}://localhost:8181/health/liveness\"]" \
+    --health-interval="10s" \
+    --health-start-period="20s" \
+    --health-timeout="3s" \
+    --health-on-failure="restart" \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/certs",destination=/certs,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/clientlib",destination=/clientlib,relabel=shared \

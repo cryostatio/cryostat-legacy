@@ -542,6 +542,11 @@
               <argument>run</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.containerName}</argument>
+              <argument>--health-cmd=["curl", "-sSk", "-o", "/dev/null", "http://localhost:8181/health/liveness"]</argument>
+              <argument>--health-interval=10s</argument>
+              <argument>--health-start-period=20s</argument>
+              <argument>--health-timeout=3s</argument>
+              <argument>--health-on-failure=kill</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/conf.d</argument>
               <argument>--mount</argument>
