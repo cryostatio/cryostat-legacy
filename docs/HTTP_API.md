@@ -2431,24 +2431,6 @@ The handler-specific descriptions below describe how each handler populates the
 | Upload a recording from archive to the Grafana datasource                 | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler-1)                           |
 
 ### Miscellaneous
-* #### `JvmIdGetHandler`
-
-    ##### synopsis
-    Get the unique jvmId for a target JVM. This is a unique identifier for the JVM, and is used to map targetIds their corresponding JVMs.
-
-    ##### request
-    `GET /api/beta/targets/:targetId`
-
-    ##### response
-    `200` - The result is the jvmId.
-
-    `500` - The requested target JVM cannot be reached.
-
-    ##### example
-    ```
-    $ curl http://localhost:8181/api/beta/targets/localhost:0
-    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"bIeUvB77jlm7MpIAPVhDtqesTNX9a63zLW8IUZFfUug="}}
-    ```
 ### Recordings in Target JVMs
 * #### `TargetRecordingMetadataLabelsPostHandler`
 

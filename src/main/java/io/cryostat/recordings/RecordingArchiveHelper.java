@@ -748,7 +748,7 @@ public class RecordingArchiveHelper {
                                         })
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                directories.add(new ArchiveDirectory(subdirectoryName, targetId, jvmId, temp));
+                directories.add(new ArchiveDirectory(targetId, jvmId, temp));
             }
             future.complete(directories);
         } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {
@@ -1285,24 +1285,15 @@ public class RecordingArchiveHelper {
                         + " constructed upon request so it wouldn't matter even if somehow the List"
                         + " was modified")
     public static class ArchiveDirectory {
-        private final String directoryName;
         private final String connectUrl;
         private final String jvmId;
         private final List<ArchivedRecordingInfo> recordings;
 
         public ArchiveDirectory(
-                String directoryName,
-                String connectUrl,
-                String jvmId,
-                List<ArchivedRecordingInfo> recordings) {
-            this.directoryName = directoryName;
+                String connectUrl, String jvmId, List<ArchivedRecordingInfo> recordings) {
             this.connectUrl = connectUrl;
             this.jvmId = jvmId;
             this.recordings = recordings;
-        }
-
-        public String getDirectoryName() {
-            return directoryName;
         }
 
         public String getConnectUrl() {
