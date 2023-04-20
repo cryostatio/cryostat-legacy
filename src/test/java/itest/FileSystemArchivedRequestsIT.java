@@ -40,6 +40,7 @@ package itest;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -60,6 +61,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.JwtAssetsSelfTest;
 import itest.util.Podman;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.http.client.utils.URIBuilder;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,6 +70,7 @@ import org.junit.jupiter.api.Test;
 
 public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
     private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
+    private static final Base32 base32 = new Base32();
 
     static final String TEST_RECORDING_NAME = "FileSystemArchivedRequestsIT";
 
@@ -116,7 +119,8 @@ public class FileSystemArchivedRequestsIT extends JwtAssetsSelfTest {
             MatcherAssert.assertThat(labels, Matchers.equalTo(expectedLabels));
 
             // post metadata fromPath
-            subdirectoryName = dir.getString("jvmId");
+            subdirectoryName =
+                    base32.encodeAsString(dir.getString("jvmId").getBytes(StandardCharsets.UTF_8));
             String recordingName = archivedRecording.getString("name");
             Map<String, String> uploadMetadata = Map.of("label", "test");
             CompletableFuture<JsonObject> metadataFuture = new CompletableFuture<>();

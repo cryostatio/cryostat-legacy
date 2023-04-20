@@ -484,7 +484,6 @@ class DiscoveryStorageTest {
 
             TargetDiscoveryEvent modifiedEvent =
                     new TargetDiscoveryEvent(EventKind.MODIFIED, nextServiceRef);
-            System.out.println(modifiedEvent.getServiceRef());
             MatcherAssert.assertThat(discoveryEvents, Matchers.contains(modifiedEvent));
         }
     }

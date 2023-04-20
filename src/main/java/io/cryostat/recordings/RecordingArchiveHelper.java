@@ -748,7 +748,7 @@ public class RecordingArchiveHelper {
                                         })
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                directories.add(new ArchiveDirectory(targetId, subdirectoryName, temp));
+                directories.add(new ArchiveDirectory(targetId, jvmId, temp));
             }
             future.complete(directories);
         } catch (ArchivePathException | IOException | InterruptedException | ExecutionException e) {
