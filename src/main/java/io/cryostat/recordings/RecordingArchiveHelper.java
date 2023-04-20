@@ -172,114 +172,84 @@ public class RecordingArchiveHelper {
     // startup migration for archived recordings
     protected void migrate(ExecutorService executor) throws Exception {
         List<String> subdirectories = fs.listDirectoryChildren(archivedRecordingsPath);
-        List<Future<Void>> futures = new ArrayList<>(subdirectories.size());
         for (String subdirectoryName : subdirectories) {
-            Future<Void> future =
-                    executor.submit(
-                            () -> {
-                                Path subdirectoryPath = null;
-                                try {
-                                    if (jvmIdHelper.isSpecialDirectory(subdirectoryName)) {
-                                        logger.info(
-                                                "Skipping archive migration: appears to be a"
-                                                        + " special location: {}",
-                                                subdirectoryName);
-                                        return null;
-                                    }
-                                    logger.info(
-                                            "Found archived recordings subdirectory: {}",
-                                            subdirectoryName);
+            Path subdirectoryPath = null;
+            try {
+                if (jvmIdHelper.isSpecialDirectory(subdirectoryName)) {
+                    logger.info(
+                            "Skipping archive migration: appears to be a" + " special location: {}",
+                            subdirectoryName);
+                    continue;
+                }
+                logger.info("Found archived recordings subdirectory: {}", subdirectoryName);
 
-                                    subdirectoryPath =
-                                            archivedRecordingsPath.resolve(subdirectoryName);
-                                    String connectUrl;
-                                    try {
-                                        connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
-                                        logger.info("Found connectUrl: {}", connectUrl);
-                                    } catch (InterruptedException | ExecutionException e) {
-                                        // try to migrate the recording to the new structure
-                                        connectUrl =
-                                                new String(
-                                                        base32.decode(subdirectoryName),
-                                                        StandardCharsets.UTF_8);
-                                    }
-                                    String jvmId = jvmIdHelper.getJvmId(connectUrl);
-                                    Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
-                                    if (Objects.equals(subdirectoryPath, encodedJvmIdPath)) {
-                                        logger.info(
-                                                "Skipping {} - no change in ID", subdirectoryPath);
-                                        return null;
-                                    }
-                                    logger.info(
-                                            "Migrating recordings from {} to {}",
-                                            subdirectoryPath,
-                                            encodedJvmIdPath);
-                                    if (!fs.exists(encodedJvmIdPath)) {
-                                        fs.createDirectory(encodedJvmIdPath);
-                                        fs.writeString(
-                                                encodedJvmIdPath.resolve(CONNECT_URL),
-                                                connectUrl,
-                                                StandardOpenOption.CREATE);
-                                    }
-                                    fs.deleteIfExists(subdirectoryPath.resolve(CONNECT_URL));
-                                    for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
-                                        Path oldLocation = subdirectoryPath.resolve(file);
-                                        Path newLocation = encodedJvmIdPath.resolve(file);
-                                        logger.info("{} -> {}", oldLocation, newLocation);
-                                        Files.move(oldLocation, newLocation);
-                                    }
-                                    FileUtils.deleteQuietly(subdirectoryPath.toFile());
-                                } catch (JvmIdGetException e) {
-                                    logger.warn(
-                                            "Failed to migrate archived recordings for {} - no"
-                                                    + " connection to {}",
-                                            subdirectoryName,
-                                            e.getTarget());
-                                    Path lostPath =
-                                            archivedRecordingsPath.resolve(
-                                                    LOST_RECORDINGS_SUBDIRECTORY);
-                                    if (!fs.exists(lostPath)) {
-                                        fs.createDirectory(lostPath);
-                                    }
-                                    for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
-                                        if (file.equals(CONNECT_URL)) {
-                                            continue;
-                                        }
-                                        Path oldLocation = subdirectoryPath.resolve(file);
-                                        Path newLocation = lostPath.resolve(file);
-                                        logger.info(
-                                                "Moving lost recordings: {} -> {}",
-                                                oldLocation,
-                                                newLocation);
-                                        Files.move(oldLocation, newLocation);
-                                        String jvmId =
-                                                jvmIdHelper.subdirectoryNameToJvmId(
-                                                        subdirectoryName);
-                                        Metadata m =
-                                                recordingMetadataManager
-                                                        .deleteRecordingMetadataIfExists(
-                                                                jvmId, file);
-                                        if (m != null) {
-                                            recordingMetadataManager.setRecordingMetadataFromPath(
-                                                    LOST_RECORDINGS_SUBDIRECTORY, file, m);
-                                        } else {
-                                            logger.warn(
-                                                    "No metadata found for lost recording {}",
-                                                    oldLocation);
-                                        }
-                                    }
-                                    FileUtils.deleteQuietly(subdirectoryPath.toFile());
-                                } catch (IOException e) {
-                                    logger.warn(e);
-                                } catch (CancellationException e) {
-                                    logger.error(e);
-                                }
-                                return null;
-                            });
-            futures.add(future);
-        }
-        for (var f : futures) {
-            f.get();
+                subdirectoryPath = archivedRecordingsPath.resolve(subdirectoryName);
+                String connectUrl;
+                try {
+                    connectUrl = getConnectUrlFromPath(subdirectoryPath).get();
+                    logger.info("Found connectUrl: {}", connectUrl);
+                } catch (InterruptedException | ExecutionException e) {
+                    // try to migrate the recording to the new structure
+                    connectUrl =
+                            new String(base32.decode(subdirectoryName), StandardCharsets.UTF_8);
+                }
+                String jvmId = jvmIdHelper.getJvmId(connectUrl);
+                Path encodedJvmIdPath = getRecordingSubdirectoryPath(jvmId);
+                if (Objects.equals(subdirectoryPath, encodedJvmIdPath)) {
+                    logger.info("Skipping {} - no change in ID", subdirectoryPath);
+                    continue;
+                }
+                logger.info(
+                        "Migrating recordings from {} to {}", subdirectoryPath, encodedJvmIdPath);
+                if (!fs.exists(encodedJvmIdPath)) {
+                    fs.createDirectory(encodedJvmIdPath);
+                    fs.writeString(
+                            encodedJvmIdPath.resolve(CONNECT_URL),
+                            connectUrl,
+                            StandardOpenOption.CREATE);
+                }
+                fs.deleteIfExists(subdirectoryPath.resolve(CONNECT_URL));
+                for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                    Path oldLocation = subdirectoryPath.resolve(file);
+                    Path newLocation = encodedJvmIdPath.resolve(file);
+                    logger.info("{} -> {}", oldLocation, newLocation);
+                    Files.move(oldLocation, newLocation);
+                }
+                FileUtils.deleteQuietly(subdirectoryPath.toFile());
+            } catch (JvmIdGetException e) {
+                logger.warn(
+                        "Failed to migrate archived recordings for {} - no" + " connection to {}",
+                        subdirectoryName,
+                        e.getTarget());
+                Path lostPath = archivedRecordingsPath.resolve(LOST_RECORDINGS_SUBDIRECTORY);
+                if (!fs.exists(lostPath)) {
+                    fs.createDirectory(lostPath);
+                }
+                for (String file : fs.listDirectoryChildren(subdirectoryPath)) {
+                    if (file.equals(CONNECT_URL)) {
+                        continue;
+                    }
+                    Path oldLocation = subdirectoryPath.resolve(file);
+                    Path newLocation = lostPath.resolve(file);
+                    logger.info("Moving lost recordings: {} -> {}", oldLocation, newLocation);
+                    Files.move(oldLocation, newLocation);
+                    String jvmId = jvmIdHelper.subdirectoryNameToJvmId(subdirectoryName);
+                    Metadata m =
+                            recordingMetadataManager.deleteRecordingMetadataIfExists(jvmId, file);
+                    if (m != null) {
+                        recordingMetadataManager.setRecordingMetadataFromPath(
+                                LOST_RECORDINGS_SUBDIRECTORY, file, m);
+                    } else {
+                        logger.warn("No metadata found for lost recording {}", oldLocation);
+                    }
+                }
+                FileUtils.deleteQuietly(subdirectoryPath.toFile());
+            } catch (IOException e) {
+                logger.warn(e);
+            } catch (CancellationException e) {
+                logger.error(e);
+            }
+            continue;
         }
     }
 
