@@ -501,6 +501,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                     "Target unreachable: {}, cause: {}",
                                                     cd.getTargetId(),
                                                     ExceptionUtils.getStackTrace(t));
+                                            return;
                                         }
                                         if (!exists) {
                                             // recording was lost
