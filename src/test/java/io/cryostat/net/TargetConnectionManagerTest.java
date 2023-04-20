@@ -43,7 +43,7 @@ import java.util.concurrent.ForkJoinPool;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.DirectExecutor;
+import io.cryostat.DirectExecutorService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -81,10 +81,11 @@ class TargetConnectionManagerTest {
                         () -> jfrConnectionToolkit,
                         () -> agentConnectionFactory,
                         platformClient,
-                        new DirectExecutor(),
+                        new DirectExecutorService(),
                         Scheduler.disabledScheduler(),
                         TTL,
                         -1,
+                        5,
                         logger);
     }
 
@@ -178,6 +179,7 @@ class TargetConnectionManagerTest {
                         Scheduler.systemScheduler(),
                         Duration.ofNanos(1),
                         1,
+                        5,
                         logger);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -203,10 +205,11 @@ class TargetConnectionManagerTest {
                         () -> jfrConnectionToolkit,
                         () -> agentConnectionFactory,
                         platformClient,
-                        Runnable::run,
+                        new DirectExecutorService(),
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
+                        5,
                         logger);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -241,10 +244,11 @@ class TargetConnectionManagerTest {
                         () -> jfrConnectionToolkit,
                         () -> agentConnectionFactory,
                         platformClient,
-                        Runnable::run,
+                        new DirectExecutorService(),
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
+                        5,
                         logger);
         ConnectionDescriptor desc = new ConnectionDescriptor(url);
         JFRConnection conn = mgr.executeConnectedTask(desc, a -> a);

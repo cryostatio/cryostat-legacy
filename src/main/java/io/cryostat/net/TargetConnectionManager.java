@@ -49,7 +49,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -81,25 +84,28 @@ public class TargetConnectionManager {
 
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
     private final Lazy<AgentConnection.Factory> agentConnectionFactory;
-    private final Executor executor;
+    private final ExecutorService executor;
+    private final long jmxConnectionTimeout;
     private final Logger logger;
 
     private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
-    private final Map<String, Object> targetLocks;
+    private final Map<String, ReentrantLock> targetLocks;
     private final Optional<Semaphore> semaphore;
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
             Lazy<AgentConnection.Factory> agentConnectionFactory,
             PlatformClient platform,
-            Executor executor,
+            ExecutorService executor,
             Scheduler scheduler,
             Duration ttl,
             int maxTargetConnections,
+            long jmxConnectionTimeout,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.agentConnectionFactory = agentConnectionFactory;
         this.executor = executor;
+        this.jmxConnectionTimeout = jmxConnectionTimeout;
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
@@ -141,30 +147,42 @@ public class TargetConnectionManager {
     }
 
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
+        return executeConnectedTaskAsync(connectionDescriptor, task, this.executor)
+                .orTimeout(jmxConnectionTimeout, TimeUnit.SECONDS);
+    }
+
+    public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, Executor ex) {
-        synchronized (
+        ReentrantLock lock =
                 targetLocks.computeIfAbsent(
-                        connectionDescriptor.getTargetId(), k -> new Object())) {
-            return connections
-                    .get(connectionDescriptor)
-                    .thenApplyAsync(
-                            conn -> {
-                                try {
-                                    return task.execute(conn);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    throw new CompletionException(e);
-                                }
-                            },
-                            ex);
-        }
+                        connectionDescriptor.getTargetId(), k -> new ReentrantLock(true));
+        lock.lock();
+        return connections
+                .get(connectionDescriptor)
+                .handleAsync(
+                        (conn, t) -> {
+                            if (t != null) {
+                                lock.unlock();
+                                throw new CompletionException(t);
+                            }
+                            try {
+                                return task.execute(conn);
+                            } catch (Exception e) {
+                                logger.error(e);
+                                throw new CompletionException(e);
+                            } finally {
+                                lock.unlock();
+                            }
+                        },
+                        ex);
     }
 
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
         synchronized (
                 targetLocks.computeIfAbsent(
-                        connectionDescriptor.getTargetId(), k -> new Object())) {
+                        connectionDescriptor.getTargetId(), k -> new ReentrantLock(true))) {
             return task.execute(connections.get(connectionDescriptor).get());
         }
     }

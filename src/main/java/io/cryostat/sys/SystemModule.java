@@ -90,7 +90,7 @@ public abstract class SystemModule {
                     }
                 },
                 true,
-                0,
+                Runtime.getRuntime().availableProcessors() * 2,
                 32767,
                 Runtime.getRuntime().availableProcessors(),
                 null,

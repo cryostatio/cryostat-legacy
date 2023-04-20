@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -120,8 +121,8 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         WebServer webServer = webServerProvider.get();
-        List<HyperlinkedSerializableRecordingDescriptor> descriptors =
-                connectionManager.executeConnectedTask(
+        CompletableFuture<List<HyperlinkedSerializableRecordingDescriptor>> descriptors =
+                connectionManager.executeConnectedTaskAsync(
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             List<IRecordingDescriptor> origDescriptors =
@@ -141,7 +142,17 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                             }
                             return list;
                         });
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response().end(gson.toJson(descriptors));
+        descriptors
+                .thenAccept(
+                        list -> {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+                            ctx.response().end(gson.toJson(list));
+                        })
+                .exceptionally(
+                        t -> {
+                            ctx.fail(t);
+                            return null;
+                        });
     }
 }
