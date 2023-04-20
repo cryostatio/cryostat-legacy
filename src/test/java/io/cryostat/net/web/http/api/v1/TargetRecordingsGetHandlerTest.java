@@ -40,6 +40,8 @@ package io.cryostat.net.web.http.api.v1;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
@@ -125,10 +127,11 @@ class TargetRecordingsGetHandlerTest {
 
     @Test
     void shouldRespondWithErrorIfExceptionThrown() throws Exception {
+        Exception dummy = new Exception("dummy exception");
         Mockito.when(
-                        connectionManager.executeConnectedTask(
+                        connectionManager.executeConnectedTaskAsync(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenThrow(new Exception("dummy exception"));
+                .thenReturn(CompletableFuture.failedFuture(dummy));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
@@ -136,7 +139,12 @@ class TargetRecordingsGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
+        Assertions.assertDoesNotThrow(() -> handler.handleAuthenticated(ctx));
+        ArgumentCaptor<Exception> exCaptor = ArgumentCaptor.forClass(Exception.class);
+        Mockito.verify(ctx).fail(exCaptor.capture());
+        Exception ex = exCaptor.getValue();
+        MatcherAssert.assertThat(ex, Matchers.instanceOf(CompletionException.class));
+        MatcherAssert.assertThat(ex.getCause(), Matchers.sameInstance(dummy));
     }
 
     @Test
@@ -145,13 +153,14 @@ class TargetRecordingsGetHandlerTest {
         IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
 
         Mockito.when(
-                        connectionManager.executeConnectedTask(
+                        connectionManager.executeConnectedTaskAsync(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                ((TargetConnectionManager.ConnectedTask<Object>)
-                                                arg0.getArgument(1))
-                                        .execute(connection));
+                                CompletableFuture.completedFuture(
+                                        ((TargetConnectionManager.ConnectedTask<Object>)
+                                                        arg0.getArgument(1))
+                                                .execute(connection)));
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(connection.getHost()).thenReturn("fooHost");
         Mockito.when(connection.getPort()).thenReturn(1);
