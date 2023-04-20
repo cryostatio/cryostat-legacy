@@ -37,7 +37,6 @@
  */
 package io.cryostat.configuration;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,7 +63,6 @@ import io.cryostat.util.events.AbstractEventEmitter;
 import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 
@@ -100,60 +98,6 @@ public class CredentialsManager
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
-    }
-
-    // TODO remove after 2.2 release
-    public void migrate() throws Exception {
-        if (!fs.exists(credentialsDir)) {
-            return;
-        }
-        for (String file : this.fs.listDirectoryChildren(credentialsDir)) {
-            String fileContent;
-            try {
-                Path path = credentialsDir.resolve(file);
-                fileContent = fs.readString(path);
-                JsonObject json = gson.fromJson(fileContent, JsonObject.class);
-
-                JsonObject rawCredentials = json.get("credentials").getAsJsonObject();
-                if (rawCredentials == null) {
-                    fs.deleteIfExists(path);
-                    continue;
-                }
-                String username = rawCredentials.get("username").getAsString();
-                String password = rawCredentials.get("password").getAsString();
-                if (StringUtils.isAnyBlank(username, password)) {
-                    fs.deleteIfExists(path);
-                    continue;
-                }
-                Credentials credentials = new Credentials(username, password);
-
-                if (json.has("targetId")) {
-                    // migrate old target-specific credentials to the matchExpression format in the
-                    // database...
-                    String targetId = json.get("targetId").getAsString();
-                    if (StringUtils.isNotBlank(targetId)) {
-                        addCredentials(targetIdToMatchExpression(targetId), credentials);
-                        fs.deleteIfExists(path);
-                        logger.info("Migrated {}", path);
-                        continue;
-                    }
-                } else if (json.has("matchExpression")) {
-                    // ... and migrate matchExpression-formatted files into the database
-                    String matchExpression = json.get("matchExpression").getAsString();
-                    if (StringUtils.isNotBlank(matchExpression)) {
-                        addCredentials(matchExpression, credentials);
-                        fs.deleteIfExists(path);
-                        logger.info("Migrated {}", path);
-                    }
-                }
-            } catch (IOException | IllegalStateException e) {
-                logger.warn(e);
-                continue;
-            }
-        }
-        if (fs.isDirectory(credentialsDir) && fs.listDirectoryChildren(credentialsDir).isEmpty()) {
-            fs.deleteIfExists(credentialsDir);
-        }
     }
 
     public static String targetIdToMatchExpression(String targetId) {

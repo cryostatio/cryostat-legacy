@@ -49,12 +49,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,9 +68,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
@@ -90,7 +86,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingMetadataManager extends AbstractVerticle
-        implements Consumer<TargetDiscoveryEvent>, EventListener<JvmIdHelper.IdEvent, String> {
+        implements EventListener<JvmIdHelper.IdEvent, String> {
 
     public static final String NOTIFICATION_CATEGORY = "RecordingMetadataUpdated";
     private static final String UPLOADS = RecordingArchiveHelper.UPLOADED_RECORDINGS_SUBDIRECTORY;
@@ -103,14 +99,11 @@ public class RecordingMetadataManager extends AbstractVerticle
     private final Provider<RecordingArchiveHelper> archiveHelperProvider;
     private final TargetConnectionManager targetConnectionManager;
     private final CredentialsManager credentialsManager;
-    private final PlatformClient platformClient;
     private final NotificationFactory notificationFactory;
     private final JvmIdHelper jvmIdHelper;
     private final Gson gson;
     private final Base32 base32;
     private final Logger logger;
-
-    private final CountDownLatch migrationLatch = new CountDownLatch(1);
 
     RecordingMetadataManager(
             ExecutorService executor,
@@ -121,7 +114,6 @@ public class RecordingMetadataManager extends AbstractVerticle
             Provider<RecordingArchiveHelper> archiveHelperProvider,
             TargetConnectionManager targetConnectionManager,
             CredentialsManager credentialsManager,
-            PlatformClient platformClient,
             NotificationFactory notificationFactory,
             JvmIdHelper jvmIdHelper,
             Gson gson,
@@ -135,7 +127,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.archiveHelperProvider = archiveHelperProvider;
         this.targetConnectionManager = targetConnectionManager;
         this.credentialsManager = credentialsManager;
-        this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
         this.jvmIdHelper = jvmIdHelper;
         this.gson = gson;
@@ -145,7 +136,6 @@ public class RecordingMetadataManager extends AbstractVerticle
 
     @Override
     public void start(Promise<Void> future) {
-        this.platformClient.addTargetDiscoveryListener(this);
         this.jvmIdHelper.addListener(this);
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
@@ -283,92 +273,10 @@ public class RecordingMetadataManager extends AbstractVerticle
                                                 subdirectory,
                                                 e.getMessage());
                                     }
-                                }
-                                /* TODO: This is a ONE-TIME migration check for the old metadata files that were stored without a directory
-                                (remove after 2.2.0 release and replace with subdirectory::fs.isDirectory (ignore files))? */
-                                else if (fs.isRegularFile(subdirectory)) {
-                                    StoredRecordingMetadata srm;
-                                    try (BufferedReader br = fs.readFile(subdirectory)) {
-                                        srm = gson.fromJson(br, StoredRecordingMetadata.class);
-                                    } catch (Exception e) {
-                                        logger.error(
-                                                "Could not read file {} in recordingMetadata"
-                                                        + " directory, msg: {}",
-                                                subdirectory,
-                                                e.getMessage());
-                                        deleteMetadataPathIfExists(subdirectory);
-                                        return;
-                                    }
-                                    logger.info("Found old metadata file: {}", subdirectory);
-                                    String targetId = srm.getTargetId();
-                                    String recordingName = srm.getRecordingName();
-                                    if (targetId.equals("archives")) {
-                                        try {
-                                            if (isArchivedRecording(recordingName)) {
-
-                                                Path recordingPath =
-                                                        archiveHelper
-                                                                .getRecordingPath(recordingName)
-                                                                .get();
-                                                String subdirectoryName =
-                                                        recordingPath
-                                                                .getParent()
-                                                                .getFileName()
-                                                                .toString();
-                                                String newTargetId =
-                                                        new String(
-                                                                base32.decode(subdirectoryName),
-                                                                StandardCharsets.UTF_8);
-                                                logger.info(
-                                                        "Found metadata corresponding"
-                                                                + " to archived recording:"
-                                                                + " {}",
-                                                        recordingName);
-                                                setRecordingMetadata(
-                                                        new ConnectionDescriptor(newTargetId),
-                                                        recordingName,
-                                                        new Metadata(srm.getLabels()));
-                                            } else {
-                                                logger.warn(
-                                                        "Found metadata for lost"
-                                                                + " archived recording: {}",
-                                                        recordingName,
-                                                        subdirectory);
-                                                deleteMetadataPathIfExists(subdirectory);
-                                            }
-                                        } catch (InterruptedException | ExecutionException e) {
-                                            logger.error(
-                                                    "Couldn't get recording path {}",
-                                                    recordingName);
-                                        } catch (IOException e) {
-                                            logger.error(
-                                                    "Couldn't check if recording was"
-                                                            + " archived {}",
-                                                    recordingName);
-                                        }
-
-                                    } else {
-                                        logger.info(
-                                                "Potentially stale metadata file: {}, for target:"
-                                                        + " {}",
-                                                recordingName,
-                                                targetId);
-                                        staleMetadata.put(srm, subdirectory);
-                                        return;
-                                    }
-                                    try {
-                                        fs.deleteIfExists(subdirectory);
-                                        logger.info("Removed old metadata file: {}", subdirectory);
-                                    } catch (IOException e) {
-                                        logger.error(
-                                                "Failed to delete metadata file {}," + " msg: {}",
-                                                subdirectory,
-                                                e.getCause());
-                                    }
                                 } else {
                                     logger.warn(
                                             "Recording metadata subdirectory {} is"
-                                                    + " neither a directory nor a file",
+                                                    + " not a directory",
                                             subdirectory);
                                     throw new IllegalStateException(
                                             subdirectory + " is neither a directory nor a file");
@@ -391,69 +299,16 @@ public class RecordingMetadataManager extends AbstractVerticle
                             "Event bus [{}]: {}",
                             DiscoveryStorage.DISCOVERY_STARTUP_ADDRESS,
                             message.body());
-                    new Thread(
-                                    () -> {
-                                        try {
-                                            logger.info("Starting archive migration");
-                                            archiveHelper.migrate(executor);
-                                            logger.info("Successfully migrated archives");
-                                            pruneStaleMetadata(staleMetadata);
-                                            logger.info("Successfully pruned all stale metadata");
-                                        } catch (Exception e) {
-                                            logger.warn(
-                                                    "Couldn't read archived recordings directory");
-                                            logger.warn(e);
-                                        } finally {
-                                            migrationLatch.countDown();
-                                        }
-                                    })
-                            .start();
+                    executor.submit(
+                            () -> {
+                                try {
+                                    pruneStaleMetadata(staleMetadata);
+                                    logger.info("Successfully pruned all stale metadata");
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+                            });
                 });
-    }
-
-    @Override
-    public void stop() {
-        this.platformClient.removeTargetDiscoveryListener(this);
-    }
-
-    @Override
-    public void accept(TargetDiscoveryEvent tde) {
-        executor.execute(
-                () -> {
-                    try {
-                        migrationLatch.await();
-                    } catch (InterruptedException e) {
-                        logger.error(e);
-                    }
-
-                    switch (tde.getEventKind()) {
-                        case FOUND:
-                            handleFoundTarget(tde.getServiceRef());
-                            break;
-                        case LOST:
-                            // don't handle directly, let the JvmIdHelper invalidate its cached
-                            // ID and inform us of that occurrence, and use that invalidation
-                            // message to clear our stored metadata
-                            break;
-                        default:
-                            throw new UnsupportedOperationException(tde.getEventKind().toString());
-                    }
-                });
-    }
-
-    private void handleFoundTarget(ServiceRef serviceRef) {
-        ConnectionDescriptor cd;
-        try {
-            cd = getConnectionDescriptorWithCredentials(serviceRef);
-        } catch (IOException | ScriptException e) {
-            logger.error(
-                    "Could not get credentials on FOUND target {}, msg: {}",
-                    serviceRef.getServiceUri().toString(),
-                    e.getMessage());
-            return;
-        }
-        this.transferMetadataIfRestarted(cd);
-        archiveHelperProvider.get().transferArchivesIfRestarted(cd.getTargetId());
     }
 
     @Override

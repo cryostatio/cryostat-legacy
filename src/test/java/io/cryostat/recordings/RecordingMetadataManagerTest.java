@@ -62,7 +62,6 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingMetadataManager.StoredRecordingMetadata;
 
@@ -97,7 +96,6 @@ public class RecordingMetadataManagerTest {
     @Mock Logger logger;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock CredentialsManager credentialsManager;
-    @Mock PlatformClient platformClient;
     @Mock NotificationFactory notificationFactory;
     @Mock JvmIdHelper jvmIdHelper;
     @Mock Notification notification;
@@ -143,7 +141,6 @@ public class RecordingMetadataManagerTest {
                         archiveHelperProvider,
                         targetConnectionManager,
                         credentialsManager,
-                        platformClient,
                         notificationFactory,
                         jvmIdHelper,
                         gson,

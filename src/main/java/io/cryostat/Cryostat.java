@@ -77,7 +77,6 @@ class Cryostat extends AbstractVerticle {
         logger.trace("env: {}", environment.getEnv().toString());
 
         try {
-            client.credentialsManager().migrate();
             client.ruleRegistry().loadRules();
         } catch (Exception e) {
             logger.error(e);
