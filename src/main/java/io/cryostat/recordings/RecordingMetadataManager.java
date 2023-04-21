@@ -68,7 +68,6 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
@@ -139,7 +138,6 @@ public class RecordingMetadataManager extends AbstractVerticle
         this.jvmIdHelper.addListener(this);
         Map<StoredRecordingMetadata, Path> staleMetadata =
                 new HashMap<StoredRecordingMetadata, Path>();
-        RecordingArchiveHelper archiveHelper = archiveHelperProvider.get();
         try {
             this.fs.listDirectoryChildren(recordingMetadataDir).stream()
                     .peek(n -> logger.info("Peeking contents of metadata directory: {}", n))
@@ -770,12 +768,6 @@ public class RecordingMetadataManager extends AbstractVerticle
             logger.error("Try to delete path that doesn't exist {}", path);
         }
         return false;
-    }
-
-    private ConnectionDescriptor getConnectionDescriptorWithCredentials(ServiceRef serviceRef)
-            throws JsonSyntaxException, JsonIOException, IOException, ScriptException {
-        Credentials credentials = credentialsManager.getCredentials(serviceRef);
-        return new ConnectionDescriptor(serviceRef, credentials);
     }
 
     private ConnectionDescriptor getConnectionDescriptorWithCredentials(String targetId)

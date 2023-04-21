@@ -180,10 +180,14 @@ public class TargetConnectionManager {
 
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        synchronized (
+        ReentrantLock lock =
                 targetLocks.computeIfAbsent(
-                        connectionDescriptor.getTargetId(), k -> new ReentrantLock(true))) {
+                        connectionDescriptor.getTargetId(), k -> new ReentrantLock(true));
+        try {
+            lock.lock();
             return task.execute(connections.get(connectionDescriptor).get());
+        } finally {
+            lock.unlock();
         }
     }
 
