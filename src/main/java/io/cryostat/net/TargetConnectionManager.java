@@ -157,16 +157,15 @@ public class TargetConnectionManager {
         ReentrantLock lock =
                 targetLocks.computeIfAbsent(
                         connectionDescriptor.getTargetId(), k -> new ReentrantLock(true));
-        lock.lock();
         return connections
                 .get(connectionDescriptor)
                 .handleAsync(
                         (conn, t) -> {
                             if (t != null) {
-                                lock.unlock();
                                 throw new CompletionException(t);
                             }
                             try {
+                                lock.lock();
                                 return task.execute(conn);
                             } catch (Exception e) {
                                 logger.error(e);
