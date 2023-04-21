@@ -84,7 +84,7 @@ public abstract class RecordingsModule {
     @Provides
     @Named(Variables.JMX_CONNECTION_TIMEOUT)
     static long provideJmxConnectionTimeoutSeconds(Environment env) {
-        return Math.max(1, Long.parseLong(env.getEnv(Variables.JMX_CONNECTION_TIMEOUT, "3")));
+        return Math.max(1, Long.parseLong(env.getEnv(Variables.JMX_CONNECTION_TIMEOUT, "5")));
     }
 
     @Provides
