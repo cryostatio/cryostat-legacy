@@ -154,9 +154,6 @@ public class TargetConnectionManager {
 
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, Executor ex) {
-        ReentrantLock lock =
-                targetLocks.computeIfAbsent(
-                        connectionDescriptor.getTargetId(), k -> new ReentrantLock(true));
         return connections
                 .get(connectionDescriptor)
                 .handleAsync(
@@ -165,13 +162,10 @@ public class TargetConnectionManager {
                                 throw new CompletionException(t);
                             }
                             try {
-                                lock.lock();
-                                return task.execute(conn);
+                                return executeConnectedTask(connectionDescriptor, task);
                             } catch (Exception e) {
                                 logger.error(e);
                                 throw new CompletionException(e);
-                            } finally {
-                                lock.unlock();
                             }
                         },
                         ex);
