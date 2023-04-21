@@ -148,8 +148,7 @@ public class TargetConnectionManager {
 
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) {
-        return executeConnectedTaskAsync(connectionDescriptor, task, this.executor)
-                .orTimeout(jmxConnectionTimeout, TimeUnit.SECONDS);
+        return executeConnectedTaskAsync(connectionDescriptor, task, this.executor);
     }
 
     public <T> CompletableFuture<T> executeConnectedTaskAsync(
@@ -168,7 +167,8 @@ public class TargetConnectionManager {
                                 throw new CompletionException(e);
                             }
                         },
-                        ex);
+                        ex)
+                .orTimeout(jmxConnectionTimeout, TimeUnit.SECONDS);
     }
 
     public <T> T executeConnectedTask(
