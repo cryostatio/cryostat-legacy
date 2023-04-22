@@ -4,6 +4,10 @@
 set -x
 set -e
 
+if [ -z "${PULL_IMAGES}" ]; then
+    PULL_IMAGES="always"
+fi
+
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/properties/$1/text()" pom.xml
@@ -198,7 +202,7 @@ runJfrDatasource() {
     fi
     podman run \
         --name jfr-datasource \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --rm -d "${DATASOURCE_IMAGE}"
 }
@@ -215,7 +219,7 @@ runGrafana() {
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     podman run \
         --name grafana \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
@@ -235,7 +239,7 @@ runReportGenerator() {
     port="$(getPomProperty cryostat.itest.reports.port)"
     podman run \
         --name reports \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:remote+http://localhost:${RJMX_PORT}" \
         --cpus 1 \
