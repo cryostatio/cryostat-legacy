@@ -241,11 +241,11 @@ runReportGenerator() {
         --name reports \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:remote+http://localhost:${RJMX_PORT}" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:${RJMX_PORT}/jmxrmi" \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
-        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
