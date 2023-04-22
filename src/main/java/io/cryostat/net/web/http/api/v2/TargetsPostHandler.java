@@ -180,28 +180,23 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                             ? Optional.empty()
                             : Optional.of(new Credentials(username, password));
 
-            if (credentials.isPresent()) {
-                if (storeCredentials) {
-                    String matchExpression =
-                            CredentialsManager.targetIdToMatchExpression(connectUrl);
-                    int id = credentialsManager.addCredentials(matchExpression, credentials.get());
-                    notificationFactory
-                            .createBuilder()
-                            .metaCategory("CredentialsStored")
-                            .metaType(HttpMimeType.JSON)
-                            .message(
-                                    Map.of(
-                                            "id",
-                                            id,
-                                            "matchExpression",
-                                            matchExpression,
-                                            "numMatchingTargets",
-                                            1))
-                            .build()
-                            .send();
-                } else {
-                    credentialsManager.setSessionCredentials(uri.toString(), credentials.get());
-                }
+            if (storeCredentials && credentials.isPresent()) {
+                String matchExpression = CredentialsManager.targetIdToMatchExpression(connectUrl);
+                int id = credentialsManager.addCredentials(matchExpression, credentials.get());
+                notificationFactory
+                        .createBuilder()
+                        .metaCategory("CredentialsStored")
+                        .metaType(HttpMimeType.JSON)
+                        .message(
+                                Map.of(
+                                        "id",
+                                        id,
+                                        "matchExpression",
+                                        matchExpression,
+                                        "numMatchingTargets",
+                                        1))
+                        .build()
+                        .send();
             }
 
             String jvmId = jvmIdHelper.getJvmId(uri.toString(), false, credentials);

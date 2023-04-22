@@ -478,8 +478,6 @@ class TargetsPostHandlerTest {
         IntermediateResponse<ServiceRef> response = handler.handle(params);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(202));
 
-        Mockito.verify(credentialsManager).setSessionCredentials(Mockito.any(), Mockito.any());
-
         ServiceRef respRef = response.getBody();
         MatcherAssert.assertThat(respRef.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
         MatcherAssert.assertThat(respRef.getAlias(), Matchers.equalTo(Optional.of(alias)));
