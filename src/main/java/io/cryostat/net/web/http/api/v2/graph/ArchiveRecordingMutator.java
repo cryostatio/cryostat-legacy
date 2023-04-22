@@ -43,7 +43,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -56,14 +55,16 @@ import graphql.schema.DataFetchingEnvironment;
 class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRecordingInfo> {
 
     private final RecordingArchiveHelper recordingArchiveHelper;
+    private final CredentialsManager credentialsManager;
 
     @Inject
     ArchiveRecordingMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth, credentialsManager);
+            RecordingArchiveHelper recordingArchiveHelper,
+            CredentialsManager credentialsManager) {
+        super(auth);
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
@@ -91,11 +92,8 @@ class ArchiveRecordingMutator extends AbstractPermissionedDataFetcher<ArchivedRe
         GraphRecordingDescriptor source = environment.getSource();
         ServiceRef target = source.target;
         String uri = target.getServiceUri().toString();
-
-        Credentials credentials =
-                getSessionCredentials(environment, uri.toString())
-                        .orElse(credentialsManager.getCredentials(target));
-        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
         return recordingArchiveHelper.saveRecording(cd, source.getName()).get();
     }

@@ -40,7 +40,6 @@ package io.cryostat.net.web;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -57,12 +56,10 @@ import io.cryostat.net.web.http.RequestHandler;
 import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
-import io.vertx.core.Vertx;
 
 @Module(includes = {HttpModule.class})
 public abstract class WebModule {
     public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
-    public static final String VERTX_EXECUTOR = "VERTX_EXECUTOR";
 
     @Provides
     static WebServer provideWebServer(
@@ -92,12 +89,5 @@ public abstract class WebModule {
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
-    }
-
-    @Provides
-    @Singleton
-    @Named(VERTX_EXECUTOR)
-    static ExecutorService provideVertexecutor(Vertx vertx, Logger logger) {
-        return new Vertexecutor(vertx, logger);
     }
 }

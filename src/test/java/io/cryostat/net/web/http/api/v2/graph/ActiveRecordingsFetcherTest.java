@@ -46,7 +46,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ActiveRecordingsFetcher.Active;
@@ -70,7 +69,6 @@ class ActiveRecordingsFetcherTest {
     ActiveRecordingsFetcher fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -79,7 +77,7 @@ class ActiveRecordingsFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new ActiveRecordingsFetcher(auth, credentialsManager);
+        this.fetcher = new ActiveRecordingsFetcher(auth);
     }
 
     @Test

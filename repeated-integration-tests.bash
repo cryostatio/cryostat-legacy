@@ -17,7 +17,7 @@ fi
 
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
-        xpath -q -e "project/$1/text()" pom.xml
+        xpath -q -e "project/properties/$1/text()" pom.xml
     elif command -v mvnd > /dev/null 2>&1 ; then
         mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
     else
@@ -26,15 +26,15 @@ getPomProperty() {
 }
 
 if [ -z "${POD_NAME}" ]; then
-    POD_NAME="$(getPomProperty properties/cryostat.itest.podName)"
+    POD_NAME="$(getPomProperty cryostat.itest.podName)"
 fi
 
 if [ -z "${CONTAINER_NAME}" ]; then
-    CONTAINER_NAME="$(getPomProperty properties/cryostat.itest.containerName)"
+    CONTAINER_NAME="$(getPomProperty cryostat.itest.containerName)"
 fi
 
 if [ -z "${ITEST_IMG_VERSION}" ]; then
-    ITEST_IMG_VERSION="$(getPomProperty version)"
+    ITEST_IMG_VERSION="$(getPomProperty project.version)"
     ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
 fi
 

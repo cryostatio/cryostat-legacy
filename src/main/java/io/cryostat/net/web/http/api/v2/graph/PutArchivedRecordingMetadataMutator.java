@@ -45,7 +45,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
@@ -71,12 +70,11 @@ class PutArchivedRecordingMetadataMutator
     @Inject
     PutArchivedRecordingMetadataMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
-        super(auth, credentialsManager);
+        super(auth);
         this.metadataManager = metadataManager;
         this.webServer = webServer;
         this.gson = gson;
@@ -121,8 +119,7 @@ class PutArchivedRecordingMetadataMutator
         Metadata metadata =
                 metadataManager
                         .setRecordingMetadata(
-                                new ConnectionDescriptor(
-                                        uri, credentialsManager.getCredentialsByTargetId(uri)),
+                                new ConnectionDescriptor(uri),
                                 recordingName,
                                 new Metadata(labels),
                                 true)

@@ -66,8 +66,6 @@ import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.SelectedField;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -90,9 +88,9 @@ class RecordingsFetcherTest {
     RecordingsFetcher fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingArchiveHelper archiveHelper;
+    @Mock CredentialsManager credentialsManager;
     @Mock RecordingMetadataManager metadataManager;
     @Mock Provider<WebServer> webServer;
     @Mock Logger logger;
@@ -114,9 +112,9 @@ class RecordingsFetcherTest {
         this.fetcher =
                 new RecordingsFetcher(
                         auth,
-                        credentialsManager,
                         targetConnectionManager,
                         archiveHelper,
+                        credentialsManager,
                         metadataManager,
                         webServer,
                         logger);
@@ -162,10 +160,6 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnNoneWithRequestedFields() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -200,10 +194,6 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnActiveRecording() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -275,10 +265,6 @@ class RecordingsFetcherTest {
     @Test
     void shouldReturnAllRecordings() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
