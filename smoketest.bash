@@ -225,26 +225,57 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
-
-    # test lots of agents (ports start at 49152)
-    DYNAMIC_PORT=49152
-
-    # Set maximum value for AGENT_TARGETS to 50
+    # Set maximum value for targets to 50
     MAX_TARGETS=50
+
+    # test lots of jmx targets (ports start at 49152)
+    JMX_DYNAMIC_PORT=49152
+    # test lots of agents (ports start at 49252) to account for HTTP and JMX ports
+    AGENT_DYNAMIC_PORT=$((JMX_DYNAMIC_PORT + MAX_TARGETS * 2))
+
+    if [ -z "${JMX_TARGETS}" ]; then
+        JMX_TARGETS=0
+    fi
+
+    # set JMX_TARGETS to 50 if it's greater than 50
+    if [ "${JMX_TARGETS}" -gt 50 ]; then
+        JMX_TARGETS=50
+    fi
+
+    # test targets
+    for i in $(seq 1 "${JMX_TARGETS}"); do
+        local httpPort=$((JMX_DYNAMIC_PORT + i))
+        local jmxPort=$((JMX_DYNAMIC_PORT + MAX_TARGETS + i))
+
+        podman run \
+            --name "my-vertx-fib-demo-${i}" \
+            --env HTTP_PORT=${httpPort} \
+            --env JMX_PORT=${jmxPort} \
+            --pod cryostat-pod \
+            --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:${jmxPort}/jmxrmi" \
+            --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
+
+        PODMAN_ARGS+=(
+            --publish "${httpPort}:${jmxPort}"
+            --publish "${jmxPort}:${webserverPort}"
+        )
+    done
+
 
     # set AGENT_TARGETS to 50 if it's not already defined
     if [ -z "${AGENT_TARGETS}" ]; then
-    AGENT_TARGETS=0
+        AGENT_TARGETS=0
     fi
 
     # set AGENT_TARGETS to 50 if it's greater than 50
     if [ "${AGENT_TARGETS}" -gt 50 ]; then
-    AGENT_TARGETS=50
+        AGENT_TARGETS=50
     fi
 
+    # test agent-targets
     for i in $(seq 1 "${AGENT_TARGETS}"); do
-        local quarkusPort=$((DYNAMIC_PORT + i))
-        local webserverPort=$((DYNAMIC_PORT + MAX_TARGETS + i))
+        local quarkusPort=$((AGENT_DYNAMIC_PORT + i))
+        local webserverPort=$((AGENT_DYNAMIC_PORT + MAX_TARGETS + i))
 
         podman run \
             --name "my-quarkus-test-agent-${i}" \
