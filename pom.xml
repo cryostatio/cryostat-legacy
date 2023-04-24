@@ -44,6 +44,7 @@
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
+  <cryostat.itest.pullImages>always</cryostat.itest.pullImages>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
   <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
@@ -495,7 +496,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--pull=always</argument>
+              <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=jfr-datasource-itest</argument>
               <argument>--detach</argument>
@@ -515,7 +516,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--pull=always</argument>
+              <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=grafana-itest</argument>
               <argument>--env</argument>
