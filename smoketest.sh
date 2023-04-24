@@ -4,6 +4,10 @@
 set -x
 set -e
 
+if [ -z "${PULL_IMAGES}" ]; then
+    PULL_IMAGES="always"
+fi
+
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/properties/$1/text()" pom.xml
@@ -198,7 +202,7 @@ runJfrDatasource() {
     fi
     podman run \
         --name jfr-datasource \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --rm -d "${DATASOURCE_IMAGE}"
 }
@@ -215,7 +219,7 @@ runGrafana() {
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     podman run \
         --name grafana \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
@@ -235,13 +239,13 @@ runReportGenerator() {
     port="$(getPomProperty cryostat.itest.reports.port)"
     podman run \
         --name reports \
-        --pull always \
+        --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:remote+http://localhost:${RJMX_PORT}" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:${RJMX_PORT}/jmxrmi" \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
-        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
