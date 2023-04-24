@@ -212,7 +212,7 @@
     <groupId>io.netty</groupId>
     <artifactId>netty-transport-native-epoll</artifactId>
     <classifier>linux-x86_64</classifier>
-    <version>4.1.86.Final</version><!-- FIXME this should be tied to the vertx version -->
+    <version>4.1.91.Final</version><!-- FIXME this should be tied to the vertx version -->
     <!-- https://repo1.maven.org/maven2/io/vertx/vertx-dependencies/${io.vertx.web.version}/vertx-dependencies-${io.vertx.web.version}.pom -->
     <!-- https://groups.google.com/g/vertx/c/uzzcgw-YuOg -->
   </dependency>
