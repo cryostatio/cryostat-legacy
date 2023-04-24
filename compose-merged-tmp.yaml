@@ -1,0 +1,44 @@
+---
+services:
+
+  vertx-jmx-1:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.3
+    container_name: vertx-jmx-1
+    deploy:
+      mode: global
+    labels:
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxPort=9093
+      - io.cryostat.jmxHost=vertx-jmx-1
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx-1:9093/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8080
+
+  vertx-jmx-2:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.3
+    container_name: vertx-jmx-2
+    deploy:
+      mode: global
+    labels:
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxPort=9093
+      - io.cryostat.jmxHost=vertx-jmx-2
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx-2:9093/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8080
+
+  vertx-jmx-3:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.3
+    container_name: vertx-jmx-3
+    deploy:
+      mode: global
+    labels:
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxPort=9093
+      - io.cryostat.jmxHost=vertx-jmx-3
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx-3:9093/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8080
