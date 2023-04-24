@@ -38,6 +38,10 @@ if [ -z "${ITEST_IMG_VERSION}" ]; then
     ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
 fi
 
+if [ -z "${PULL_IMAGES}" ]; then
+    PULL_IMAGES="always"
+fi
+
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then
         "${MVN}" exec:exec@destroy-pod
@@ -47,6 +51,9 @@ trap cleanup EXIT
 cleanup
 
 STARTFLAGS=(
+    "-DfailIfNoTests=true"
+    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
+    "-Dcryostat.itest.pullImages=${PULL_IMAGES}"
     "build-helper:regex-property@image-tag-to-lower"
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
@@ -57,8 +64,6 @@ STARTFLAGS=(
     "exec:exec@wait-for-grafana"
     "failsafe:integration-test"
     "failsafe:verify"
-    "-DfailIfNoTests=true"
-    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
 )
 
 if [ -n "$2" ]; then
