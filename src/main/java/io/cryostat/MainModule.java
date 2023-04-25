@@ -194,7 +194,15 @@ public abstract class MainModule {
 
     @Provides
     @Singleton
-    public static VerticleDeployer provideVerticleDeployer(Vertx vertx, Logger logger) {
-        return new VerticleDeployer(vertx, logger);
+    @Named(Variables.VERTX_POOL_SIZE)
+    public static int provideVertxPoolSize(Environment env) {
+        return Math.max(1, Integer.parseInt(env.getEnv(Variables.VERTX_POOL_SIZE, "20")));
+    }
+
+    @Provides
+    @Singleton
+    public static VerticleDeployer provideVerticleDeployer(
+            Vertx vertx, @Named(Variables.VERTX_POOL_SIZE) int poolSize, Logger logger) {
+        return new VerticleDeployer(vertx, poolSize, logger);
     }
 }
