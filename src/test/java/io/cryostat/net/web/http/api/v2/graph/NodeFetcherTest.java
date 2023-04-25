@@ -47,7 +47,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -72,7 +71,6 @@ class NodeFetcherTest {
     NodeFetcher fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
     @Mock RootNodeFetcher rootNodeFetcher;
 
     @Mock DataFetchingEnvironment env;
@@ -81,7 +79,7 @@ class NodeFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new NodeFetcher(auth, credentialsManager, rootNodeFetcher);
+        this.fetcher = new NodeFetcher(auth, rootNodeFetcher);
     }
 
     @Test

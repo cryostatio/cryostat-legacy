@@ -37,8 +37,6 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.concurrent.Executor;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -53,12 +51,11 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
     OpenShiftPlatformStrategy(
             Logger logger,
-            Executor executor,
             Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
-        super(logger, executor, authMgr, connectionToolkit, env, fs);
+        super(logger, authMgr, connectionToolkit, env, fs);
     }
 
     @Override

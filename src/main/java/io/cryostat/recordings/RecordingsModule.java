@@ -43,7 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -176,7 +176,6 @@ public abstract class RecordingsModule {
             // CONFIGURATION_PATH
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             FileSystem fs,
             Provider<RecordingArchiveHelper> archiveHelperProvider,
@@ -200,7 +199,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    executor,
+                    ForkJoinPool.commonPool(),
                     metadataDir,
                     archivedRecordingsPath,
                     connectionTimeoutSeconds,
@@ -223,7 +222,6 @@ public abstract class RecordingsModule {
     @Singleton
     static JvmIdHelper provideJvmIdHelper(
             TargetConnectionManager targetConnectionManager,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             CredentialsManager credentialsManager,
             DiscoveryStorage storage,
@@ -234,7 +232,7 @@ public abstract class RecordingsModule {
                 credentialsManager,
                 storage,
                 connectionTimeoutSeconds,
-                executor,
+                ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 base32,
                 logger);

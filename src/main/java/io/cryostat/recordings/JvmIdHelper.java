@@ -138,13 +138,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         try {
             CompletableFuture<String> future =
                     this.targetConnectionManager.executeConnectedTaskAsync(
-                            new ConnectionDescriptor(
-                                    uriStr,
-                                    Optional.ofNullable(
-                                                    CredentialsManager.SESSION_CREDENTIALS
-                                                            .get()
-                                                            .get(serviceUri.toString()))
-                                            .orElse(credentialsManager.getCredentials(sr))),
+                            new ConnectionDescriptor(uriStr, credentialsManager.getCredentials(sr)),
                             JFRConnection::getJvmId);
             future.thenAccept(
                     id -> {
@@ -198,20 +192,11 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
-        return getJvmId(
-                connectionDescriptor.getTargetId(),
-                true,
-                Optional.ofNullable(
-                        CredentialsManager.SESSION_CREDENTIALS
-                                .get()
-                                .get(connectionDescriptor.getTargetId())));
+        return getJvmId(connectionDescriptor.getTargetId(), true, Optional.empty());
     }
 
     public String getJvmId(String targetId) throws JvmIdGetException {
-        return getJvmId(
-                targetId,
-                true,
-                Optional.ofNullable(CredentialsManager.SESSION_CREDENTIALS.get().get(targetId)));
+        return getJvmId(targetId, true, Optional.empty());
     }
 
     public String getJvmId(String targetId, boolean cache, Optional<Credentials> credentials)
@@ -275,9 +260,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
 
         @Override
         public CompletableFuture<String> asyncLoad(String key, Executor executor) throws Exception {
-            return computeJvmId(
-                    key,
-                    Optional.ofNullable(CredentialsManager.SESSION_CREDENTIALS.get().get(key)));
+            return computeJvmId(key, Optional.empty());
         }
 
         @Override

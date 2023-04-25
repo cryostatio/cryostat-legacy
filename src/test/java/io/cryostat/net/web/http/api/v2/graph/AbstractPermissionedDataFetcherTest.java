@@ -42,7 +42,6 @@ import static org.mockito.Mockito.when;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.security.ResourceAction;
@@ -65,7 +64,6 @@ class AbstractPermissionedDataFetcherTest {
     AbstractPermissionedDataFetcher<?> fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -74,7 +72,7 @@ class AbstractPermissionedDataFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new PermissionedDataFetcher(auth, credentialsManager);
+        this.fetcher = new PermissionedDataFetcher(auth);
     }
 
     @Test
@@ -95,8 +93,8 @@ class AbstractPermissionedDataFetcherTest {
     }
 
     static class PermissionedDataFetcher extends AbstractPermissionedDataFetcher<String> {
-        PermissionedDataFetcher(AuthManager auth, CredentialsManager credentialsManager) {
-            super(auth, credentialsManager);
+        PermissionedDataFetcher(AuthManager auth) {
+            super(auth);
         }
 
         @Override

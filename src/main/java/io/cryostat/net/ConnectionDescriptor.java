@@ -39,7 +39,6 @@ package io.cryostat.net;
 
 import java.util.Optional;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
 
@@ -55,19 +54,12 @@ public class ConnectionDescriptor {
         this(serviceRef.getServiceUri().toString());
     }
 
-    // TODO remove this constructor, all descriptors should explicitly specify any credentials
     public ConnectionDescriptor(String targetId) {
-        this(targetId, CredentialsManager.SESSION_CREDENTIALS.get().get(targetId));
+        this(targetId, null);
     }
 
     public ConnectionDescriptor(ServiceRef serviceRef, Credentials credentials) {
-        this(
-                serviceRef.getServiceUri().toString(),
-                Optional.ofNullable(
-                                CredentialsManager.SESSION_CREDENTIALS
-                                        .get()
-                                        .get(serviceRef.getServiceUri().toString()))
-                        .orElse(credentials));
+        this(serviceRef.getServiceUri().toString(), credentials);
     }
 
     public ConnectionDescriptor(String targetId, Credentials credentials) {

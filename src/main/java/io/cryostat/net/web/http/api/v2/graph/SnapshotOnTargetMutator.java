@@ -43,11 +43,9 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -56,14 +54,16 @@ import graphql.schema.DataFetchingEnvironment;
 class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecordingDescriptor> {
 
     private final RecordingTargetHelper recordingTargetHelper;
+    private final CredentialsManager credentialsManager;
 
     @Inject
     SnapshotOnTargetMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingTargetHelper recordingTargetHelper) {
-        super(auth, credentialsManager);
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager) {
+        super(auth);
         this.recordingTargetHelper = recordingTargetHelper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
@@ -91,13 +91,11 @@ class SnapshotOnTargetMutator extends AbstractPermissionedDataFetcher<GraphRecor
     public GraphRecordingDescriptor getAuthenticated(DataFetchingEnvironment environment)
             throws Exception {
         TargetNode node = environment.getSource();
-        ServiceRef target = node.getTarget();
-        String uri = target.getServiceUri().toString();
 
-        Credentials credentials =
-                getSessionCredentials(environment, uri.toString())
-                        .orElse(credentialsManager.getCredentials(target));
-        ConnectionDescriptor cd = new ConnectionDescriptor(uri, credentials);
-        return new GraphRecordingDescriptor(target, recordingTargetHelper.createSnapshot(cd).get());
+        String uri = node.getTarget().getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+        return new GraphRecordingDescriptor(
+                node.getTarget(), recordingTargetHelper.createSnapshot(cd).get());
     }
 }

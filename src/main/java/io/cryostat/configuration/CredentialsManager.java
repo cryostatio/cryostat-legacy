@@ -80,9 +80,6 @@ public class CredentialsManager
     private final Gson gson;
     private final Logger logger;
 
-    public static final ThreadLocal<Map<String, Credentials>> SESSION_CREDENTIALS =
-            ThreadLocal.withInitial(() -> new HashMap<>());
-
     CredentialsManager(
             Path credentialsDir,
             MatchExpressionValidator matchExpressionValidator,
@@ -184,23 +181,7 @@ public class CredentialsManager
         return -1;
     }
 
-    public void setSessionCredentials(String targetId, Credentials credentials) {
-        if (credentials == null) {
-            SESSION_CREDENTIALS.get().remove(targetId);
-        } else {
-            SESSION_CREDENTIALS.get().put(targetId, credentials);
-        }
-    }
-
-    public Credentials getSessionCredentials(String targetId) {
-        return SESSION_CREDENTIALS.get().get(targetId);
-    }
-
     public Credentials getCredentialsByTargetId(String targetId) throws ScriptException {
-        Credentials sessionCredentials = getSessionCredentials(targetId);
-        if (sessionCredentials != null) {
-            return sessionCredentials;
-        }
         for (ServiceRef service : this.platformClient.listDiscoverableServices()) {
             if (Objects.equals(targetId, service.getServiceUri().toString())) {
                 return getCredentials(service);
@@ -210,11 +191,6 @@ public class CredentialsManager
     }
 
     public Credentials getCredentials(ServiceRef serviceRef) throws ScriptException {
-        Credentials sessionCredentials =
-                getSessionCredentials(serviceRef.getServiceUri().toString());
-        if (sessionCredentials != null) {
-            return sessionCredentials;
-        }
         for (StoredCredentials sc : dao.getAll()) {
             if (matchExpressionEvaluator.get().applies(sc.getMatchExpression(), serviceRef)) {
                 return sc.getCredentials();

@@ -156,9 +156,6 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                             427, "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
                 }
                 credentials = new Credentials(parts[0], parts[1]);
-                credentialsManager.setSessionCredentials(targetId, credentials);
-                ctx.addEndHandler(
-                        unused -> credentialsManager.setSessionCredentials(targetId, null));
             } else {
                 credentials = credentialsManager.getCredentialsByTargetId(targetId);
             }

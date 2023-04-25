@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.ArchivedRecordingsFetcher.Archived;
@@ -65,8 +64,8 @@ import graphql.schema.DataFetchingEnvironment;
 class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived> {
 
     @Inject
-    ArchivedRecordingsFetcher(AuthManager auth, CredentialsManager credentialsManager) {
-        super(auth, credentialsManager);
+    ArchivedRecordingsFetcher(AuthManager auth) {
+        super(auth);
     }
 
     @Override

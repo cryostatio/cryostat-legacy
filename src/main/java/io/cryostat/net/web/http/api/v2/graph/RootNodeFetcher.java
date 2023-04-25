@@ -42,7 +42,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -55,9 +54,8 @@ class RootNodeFetcher extends AbstractPermissionedDataFetcher<EnvironmentNode> {
     private final DiscoveryStorage storage;
 
     @Inject
-    RootNodeFetcher(
-            AuthManager auth, CredentialsManager credentialsManager, DiscoveryStorage storage) {
-        super(auth, credentialsManager);
+    RootNodeFetcher(AuthManager auth, DiscoveryStorage storage) {
+        super(auth);
         this.storage = storage;
     }
 
