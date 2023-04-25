@@ -326,8 +326,7 @@ class AbstractV2RequestHandlerTest {
                     desc.getCredentials().get(),
                     Matchers.equalTo(new Credentials("jmxuser", "jmxpass")));
 
-            Credentials storedCredential = new Credentials("jmxuser", "jmxpass");
-            Mockito.verify(credentialsManager).setSessionCredentials(targetId, storedCredential);
+            Mockito.verifyNoInteractions(credentialsManager);
         }
 
         @ParameterizedTest

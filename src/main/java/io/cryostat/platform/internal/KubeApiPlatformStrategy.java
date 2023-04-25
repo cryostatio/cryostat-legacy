@@ -43,7 +43,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -62,7 +62,6 @@ import org.apache.commons.lang3.StringUtils;
 class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     protected final Logger logger;
-    protected final Executor executor;
     protected final Lazy<? extends AuthManager> authMgr;
     protected final Environment env;
     protected final FileSystem fs;
@@ -70,13 +69,11 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
 
     KubeApiPlatformStrategy(
             Logger logger,
-            Executor executor,
             Lazy<? extends AuthManager> authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
         this.logger = logger;
-        this.executor = executor;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
@@ -112,7 +109,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     }
 
     protected KubernetesClient createClient() {
-        return new KubernetesClientBuilder().withTaskExecutor(executor).build();
+        return new KubernetesClientBuilder().withTaskExecutor(ForkJoinPool.commonPool()).build();
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")

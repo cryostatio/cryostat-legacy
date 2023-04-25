@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.v2.graph.labels.LabelSelectorMatcher;
@@ -65,10 +64,9 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
     @Inject
     TargetNodesFetcher(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             RootNodeFetcher rootNodefetcher,
             TargetNodeRecurseFetcher recurseFetcher) {
-        super(auth, credentialsManager);
+        super(auth);
         this.rootNodeFetcher = rootNodefetcher;
         this.recurseFetcher = recurseFetcher;
     }
@@ -142,9 +140,6 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
                                 .collect(Collectors.toList());
             }
         }
-
-        result.forEach(
-                t -> getSessionCredentials(environment, t.getTarget().getServiceUri().toString()));
         return result;
     }
 }

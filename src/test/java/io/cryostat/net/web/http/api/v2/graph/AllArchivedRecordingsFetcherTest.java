@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -72,7 +71,6 @@ class AllArchivedRecordingsFetcherTest {
     AllArchivedRecordingsFetcher fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
     @Mock RecordingArchiveHelper archiveHelper;
     @Mock Logger logger;
 
@@ -84,8 +82,7 @@ class AllArchivedRecordingsFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher =
-                new AllArchivedRecordingsFetcher(auth, credentialsManager, archiveHelper, logger);
+        this.fetcher = new AllArchivedRecordingsFetcher(auth, archiveHelper, logger);
     }
 
     @Test

@@ -38,9 +38,6 @@
 package io.cryostat.platform.internal;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
-import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
@@ -50,7 +47,6 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
 import io.cryostat.net.openshift.OpenShiftAuthManager;
-import io.cryostat.net.web.WebModule;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -69,7 +65,6 @@ public abstract class PlatformStrategyModule {
             Lazy<OpenShiftAuthManager> openShiftAuthManager,
             Lazy<NoopAuthManager> noopAuthManager,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             Vertx vertx,
             Gson gson,
             NetworkResolver resolver,
@@ -77,9 +72,8 @@ public abstract class PlatformStrategyModule {
             FileSystem fs) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger, executor, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(
-                        logger, executor, noopAuthManager, connectionToolkit, env, fs),
+                        logger, openShiftAuthManager, connectionToolkit, env, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs),
                 new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
                 new DefaultPlatformStrategy(

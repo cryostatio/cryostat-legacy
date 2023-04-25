@@ -37,22 +37,15 @@
  */
 package itest;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -60,7 +53,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class JmxSessionAuthIT extends ExternalTargetsTest {
+public class JmxAuthIT extends ExternalTargetsTest {
 
     private static final String TARGET_BASIC_CREDENTIALS =
             "Basic " + Base64.getEncoder().encodeToString("admin:adminpass123".getBytes());
@@ -82,12 +75,7 @@ public class JmxSessionAuthIT extends ExternalTargetsTest {
                         new Podman.ImageSpec(
                                 FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
-        CONTAINERS.add(
-                Podman.run(
-                        new Podman.ImageSpec(
-                                FIB_DEMO_IMAGESPEC,
-                                Map.of("JMX_PORT", "9094", "USE_AUTH", "true"))));
-        waitForDiscovery(2);
+        waitForDiscovery(1);
     }
 
     @AfterAll
@@ -176,76 +164,5 @@ public class JmxSessionAuthIT extends ExternalTargetsTest {
                 .get(String.format("/api/v2/targets/%s/events", jmxServiceUrlEncoded))
                 .send(ar -> response.complete(ar.result().statusCode()));
         MatcherAssert.assertThat(response.get(), SC_JMX_AUTH_FAIL);
-    }
-
-    @Test
-    void checkStatusForGraphqlQueryWithCredentials() throws Exception {
-        CompletableFuture<Pair<Integer, String>> response = new CompletableFuture<>();
-        try (InputStream is =
-                getClass().getClassLoader().getResourceAsStream("JmxSessionAuthIT.query.graphql")) {
-            String query = IOUtils.toString(is, StandardCharsets.UTF_8);
-            webClient
-                    .post("/api/v2.2/graphql")
-                    .putHeader(X_JMX_AUTHORIZATION, TARGET_BASIC_CREDENTIALS)
-                    .sendJsonObject(
-                            new JsonObject(Map.of("query", query)),
-                            ar -> {
-                                HttpResponse<Buffer> result = ar.result();
-                                response.complete(
-                                        Pair.of(result.statusCode(), result.bodyAsString()));
-                            });
-            Pair<Integer, String> pair = response.get();
-            MatcherAssert.assertThat(pair.getLeft(), SC_OK_RANGE);
-            JsonObject result = new JsonObject(pair.getRight());
-            MatcherAssert.assertThat(
-                    pair.getRight(),
-                    Matchers.not(
-                            Matchers.containsString(" org.openjdk.jmc.rjmx.ConnectionException")));
-            for (int i = 0; i < CONTAINERS.size(); i++) {
-                long uptime =
-                        result.getJsonObject("data")
-                                .getJsonArray("targetNodes")
-                                .getJsonObject(i)
-                                .getJsonObject("mbeanMetrics")
-                                .getJsonObject("runtime")
-                                .getLong("uptime");
-                MatcherAssert.assertThat(uptime, Matchers.greaterThan(0L));
-
-                String mbeanJvmId =
-                        result.getJsonObject("data")
-                                .getJsonArray("targetNodes")
-                                .getJsonObject(i)
-                                .getJsonObject("mbeanMetrics")
-                                .getString("jvmId");
-                MatcherAssert.assertThat(mbeanJvmId, Matchers.not(Matchers.emptyOrNullString()));
-            }
-        }
-    }
-
-    @Test
-    void checkStatusForGraphqlQueryWithoutCredentials() throws Exception {
-        CompletableFuture<Pair<Integer, String>> response = new CompletableFuture<>();
-        try (InputStream is =
-                getClass().getClassLoader().getResourceAsStream("JmxSessionAuthIT.query.graphql")) {
-            String query = IOUtils.toString(is, StandardCharsets.UTF_8);
-            webClient
-                    .post("/api/v2.2/graphql")
-                    .sendJsonObject(
-                            new JsonObject(Map.of("query", query)),
-                            ar -> {
-                                HttpResponse<Buffer> result = ar.result();
-                                response.complete(
-                                        Pair.of(result.statusCode(), result.bodyAsString()));
-                            });
-            Pair<Integer, String> pair = response.get();
-            MatcherAssert.assertThat(pair.getLeft(), SC_OK_RANGE);
-            MatcherAssert.assertThat(
-                    pair.getRight(),
-                    Matchers.containsString(
-                            "Exception while fetching data (/targetNodes[0]/mbeanMetrics) :"
-                                    + " org.openjdk.jmc.rjmx.ConnectionException caused by"
-                                    + " java.lang.SecurityException: Authentication failed! Invalid"
-                                    + " username or password"));
-        }
     }
 }

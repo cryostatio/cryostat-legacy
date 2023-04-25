@@ -47,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.UnknownNode;
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.ServiceRef;
@@ -61,8 +60,6 @@ import io.cryostat.platform.internal.KubeApiPlatformClient.KubernetesNodeType;
 import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -87,7 +84,6 @@ class TargetNodeRecurseFetcherTest {
     TargetNodeRecurseFetcher fetcher;
 
     @Mock AuthManager auth;
-    @Mock CredentialsManager credentialsManager;
 
     @Mock DataFetchingEnvironment env;
     @Mock GraphQLContext graphCtx;
@@ -99,7 +95,7 @@ class TargetNodeRecurseFetcherTest {
 
     @BeforeEach
     void setup() {
-        this.fetcher = new TargetNodeRecurseFetcher(auth, credentialsManager);
+        this.fetcher = new TargetNodeRecurseFetcher(auth);
     }
 
     @Test
@@ -126,16 +122,10 @@ class TargetNodeRecurseFetcherTest {
     @Test
     void shouldReturnSource() throws Exception {
         when(env.getGraphQlContext()).thenReturn(graphCtx);
-        when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         TargetNode source = Mockito.mock(TargetNode.class);
-        ServiceRef sr = new ServiceRef("id1", URI.create("uri1"), "alias1");
-        when(source.getTarget()).thenReturn(sr);
 
         when(env.getSource()).thenReturn(source);
 
@@ -156,10 +146,6 @@ class TargetNodeRecurseFetcherTest {
                                             Mockito.any(DataFetchingEnvironment.class)))
                     .thenReturn(builder);
             when(env.getGraphQlContext()).thenReturn(graphCtx);
-            when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-            HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-            when(ctx.request()).thenReturn(req);
-            when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -232,10 +218,6 @@ class TargetNodeRecurseFetcherTest {
                         .when(() -> FilterInput.from(Mockito.any(DataFetchingEnvironment.class)))
                         .thenReturn(filter);
                 when(env.getGraphQlContext()).thenReturn(graphCtx);
-                when(graphCtx.get(RoutingContext.class)).thenReturn(ctx);
-                HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-                when(ctx.request()).thenReturn(req);
-                when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
                 when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                         .thenReturn(CompletableFuture.completedFuture(true));
 

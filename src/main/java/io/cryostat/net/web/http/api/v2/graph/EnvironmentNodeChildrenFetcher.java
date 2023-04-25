@@ -44,7 +44,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -55,8 +54,8 @@ import graphql.schema.DataFetchingEnvironment;
 class EnvironmentNodeChildrenFetcher extends AbstractPermissionedDataFetcher<List<AbstractNode>> {
 
     @Inject
-    EnvironmentNodeChildrenFetcher(AuthManager auth, CredentialsManager credentialsManager) {
-        super(auth, credentialsManager);
+    EnvironmentNodeChildrenFetcher(AuthManager auth) {
+        super(auth);
     }
 
     @Override

@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import javax.inject.Provider;
@@ -58,7 +57,6 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.sys.ThreadLocalPropagatingPoolExecutorService;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -105,11 +103,6 @@ public abstract class GraphModule {
     @Singleton
     static GraphQL provideGraphQL(
             Set<AbstractPermissionedDataFetcher<?>> fetchers, Set<AbstractTypeResolver> resolvers) {
-        Executor executor =
-                new ThreadLocalPropagatingPoolExecutorService<>(
-                        CredentialsManager.SESSION_CREDENTIALS::get,
-                        CredentialsManager.SESSION_CREDENTIALS::set,
-                        CredentialsManager.SESSION_CREDENTIALS::remove);
         RuntimeWiring.Builder wiringBuilder =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -128,7 +121,7 @@ public abstract class GraphModule {
             for (String ctx : fetcher.applicableContexts()) {
                 DataFetcher<?> df = fetcher;
                 if (fetcher.blocking()) {
-                    df = AsyncDataFetcher.async(df, executor);
+                    df = AsyncDataFetcher.async(df);
                 }
                 wiringBuilder =
                         wiringBuilder.type(
@@ -182,9 +175,8 @@ public abstract class GraphModule {
     abstract AbstractTypeResolver bindRecordingResolver(RecordingTypeResolver typeResolver);
 
     @Provides
-    static RootNodeFetcher provideRootNodeFetcher(
-            AuthManager auth, CredentialsManager credentialsManager, DiscoveryStorage storage) {
-        return new RootNodeFetcher(auth, credentialsManager, storage);
+    static RootNodeFetcher provideRootNodeFetcher(AuthManager auth, DiscoveryStorage storage) {
+        return new RootNodeFetcher(auth, storage);
     }
 
     @Binds
@@ -194,14 +186,14 @@ public abstract class GraphModule {
     @Provides
     static RecordingsFetcher provideRecordingsFetcher(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
+            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Logger logger) {
         return new RecordingsFetcher(
-                auth, credentialsManager, tcm, archiveHelper, metadataManager, webServer, logger);
+                auth, tcm, archiveHelper, credentialsManager, metadataManager, webServer, logger);
     }
 
     @Binds
@@ -209,9 +201,8 @@ public abstract class GraphModule {
     abstract AbstractPermissionedDataFetcher<?> bindRecordingsFetcher(RecordingsFetcher apdf);
 
     @Provides
-    static ActiveRecordingsFetcher provideActiveRecordingsFetcher(
-            AuthManager auth, CredentialsManager credentialsManager) {
-        return new ActiveRecordingsFetcher(auth, credentialsManager);
+    static ActiveRecordingsFetcher provideActiveRecordingsFetcher(AuthManager auth) {
+        return new ActiveRecordingsFetcher(auth);
     }
 
     @Binds
@@ -221,12 +212,8 @@ public abstract class GraphModule {
 
     @Provides
     static AllArchivedRecordingsFetcher provideAllArchivedRecordingsFetcher(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            Logger logger) {
-        return new AllArchivedRecordingsFetcher(
-                auth, credentialsManager, recordingArchiveHelper, logger);
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Logger logger) {
+        return new AllArchivedRecordingsFetcher(auth, recordingArchiveHelper, logger);
     }
 
     @Binds
@@ -235,9 +222,8 @@ public abstract class GraphModule {
             AllArchivedRecordingsFetcher apdf);
 
     @Provides
-    static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher(
-            AuthManager auth, CredentialsManager credentialsManager) {
-        return new ArchivedRecordingsFetcher(auth, credentialsManager);
+    static ArchivedRecordingsFetcher provideArchivedRecordingsFetcher(AuthManager auth) {
+        return new ArchivedRecordingsFetcher(auth);
     }
 
     @Binds
@@ -246,9 +232,8 @@ public abstract class GraphModule {
             ArchivedRecordingsFetcher apdf);
 
     @Provides
-    static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher(
-            AuthManager auth, CredentialsManager credentialsManager) {
-        return new EnvironmentNodeChildrenFetcher(auth, credentialsManager);
+    static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher(AuthManager auth) {
+        return new EnvironmentNodeChildrenFetcher(auth);
     }
 
     @Binds
@@ -257,9 +242,8 @@ public abstract class GraphModule {
             EnvironmentNodeChildrenFetcher apdf);
 
     @Provides
-    static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher(
-            AuthManager auth, CredentialsManager credentialsManager) {
-        return new TargetNodeRecurseFetcher(auth, credentialsManager);
+    static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher(AuthManager auth) {
+        return new TargetNodeRecurseFetcher(auth);
     }
 
     @Binds
@@ -268,11 +252,8 @@ public abstract class GraphModule {
             TargetNodeRecurseFetcher apdf);
 
     @Provides
-    static NodeFetcher provideNodeFetcher(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
-        return new NodeFetcher(auth, credentialsManager, rootNodeFetcher);
+    static NodeFetcher provideNodeFetcher(AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        return new NodeFetcher(auth, rootNodeFetcher);
     }
 
     @Binds
@@ -281,10 +262,8 @@ public abstract class GraphModule {
 
     @Provides
     static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RootNodeFetcher rootNodeFetcher) {
-        return new EnvironmentNodesFetcher(auth, credentialsManager, rootNodeFetcher);
+            AuthManager auth, RootNodeFetcher rootNodeFetcher) {
+        return new EnvironmentNodesFetcher(auth, rootNodeFetcher);
     }
 
     @Binds
@@ -295,10 +274,9 @@ public abstract class GraphModule {
     @Provides
     static TargetNodesFetcher provideTargetNodesFetcher(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             RootNodeFetcher rootNodeFetcher,
             TargetNodeRecurseFetcher recurseFetcher) {
-        return new TargetNodesFetcher(auth, credentialsManager, rootNodeFetcher, recurseFetcher);
+        return new TargetNodesFetcher(auth, rootNodeFetcher, recurseFetcher);
     }
 
     @Binds
@@ -308,19 +286,19 @@ public abstract class GraphModule {
     @Provides
     static StartRecordingOnTargetMutator provideStartRecordingOnTargetMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson) {
         return new StartRecordingOnTargetMutator(
                 auth,
-                credentialsManager,
                 targetConnectionManager,
                 recordingTargetHelper,
                 recordingOptionsBuilderFactory,
+                credentialsManager,
                 metadataManager,
                 webServer,
                 gson);
@@ -334,9 +312,9 @@ public abstract class GraphModule {
     @Provides
     static SnapshotOnTargetMutator provideSnapshotOnTargetMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingTargetHelper recordingTargetHelper) {
-        return new SnapshotOnTargetMutator(auth, credentialsManager, recordingTargetHelper);
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager) {
+        return new SnapshotOnTargetMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
     @Binds
@@ -347,9 +325,9 @@ public abstract class GraphModule {
     @Provides
     static ArchiveRecordingMutator provideArchiveRecordingMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        return new ArchiveRecordingMutator(auth, credentialsManager, recordingArchiveHelper);
+            RecordingArchiveHelper recordingArchiveHelper,
+            CredentialsManager credentialsManager) {
+        return new ArchiveRecordingMutator(auth, recordingArchiveHelper, credentialsManager);
     }
 
     @Binds
@@ -360,16 +338,16 @@ public abstract class GraphModule {
     @Provides
     static StopRecordingMutator provideStopRecordingsOnTargetMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer) {
         return new StopRecordingMutator(
                 auth,
-                credentialsManager,
                 targetConnectionManager,
                 recordingTargetHelper,
+                credentialsManager,
                 metadataManager,
                 webServer);
     }
@@ -405,13 +383,12 @@ public abstract class GraphModule {
     @Provides
     static PutArchivedRecordingMetadataMutator providePutArchivedRecordingMetadataMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             RecordingMetadataManager metadataManager,
             Provider<WebServer> webServer,
             Gson gson,
             Base32 base32) {
         return new PutArchivedRecordingMetadataMutator(
-                auth, credentialsManager, metadataManager, webServer, gson, base32);
+                auth, metadataManager, webServer, gson, base32);
     }
 
     @Binds
@@ -422,9 +399,9 @@ public abstract class GraphModule {
     @Provides
     static DeleteActiveRecordingMutator provideDeleteActiveRecordingMutator(
             AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingTargetHelper recordingTargetHelper) {
-        return new DeleteActiveRecordingMutator(auth, credentialsManager, recordingTargetHelper);
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager) {
+        return new DeleteActiveRecordingMutator(auth, recordingTargetHelper, credentialsManager);
     }
 
     @Binds
@@ -434,10 +411,8 @@ public abstract class GraphModule {
 
     @Provides
     static DeleteArchivedRecordingMutator provideDeleteArchivedRecordingMutator(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        return new DeleteArchivedRecordingMutator(auth, credentialsManager, recordingArchiveHelper);
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
+        return new DeleteArchivedRecordingMutator(auth, recordingArchiveHelper);
     }
 
     @Binds
@@ -448,10 +423,10 @@ public abstract class GraphModule {
     @Provides
     static MBeanMetricsFetcher provideMBeanMetricsFetcher(
             AuthManager auth,
-            CredentialsManager credentialsManager,
             TargetConnectionManager tcm,
+            CredentialsManager credentialsManager,
             Logger logger) {
-        return new MBeanMetricsFetcher(auth, credentialsManager, tcm, logger);
+        return new MBeanMetricsFetcher(auth, tcm, credentialsManager, logger);
     }
 
     @Binds
