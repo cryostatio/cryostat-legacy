@@ -44,7 +44,6 @@ import java.util.Map;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.DefaultPlatformClient;
 import io.cryostat.platform.internal.KubeApiPlatformClient;
-import io.cryostat.platform.internal.KubeEnvPlatformClient;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -101,8 +100,7 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
         if (nodeType.getKind().equals(BaseNodeType.REALM.getKind())) {
             if (name.equalsIgnoreCase(DefaultPlatformClient.REALM)) {
                 return RealmOrder.JDP;
-            } else if (name.equalsIgnoreCase(KubeApiPlatformClient.REALM)
-                    || name.equalsIgnoreCase(KubeEnvPlatformClient.REALM)) {
+            } else if (name.equalsIgnoreCase(KubeApiPlatformClient.REALM)) {
                 return RealmOrder.KUBE;
             } else if (name.equalsIgnoreCase(CustomTargetPlatformClient.REALM)) {
                 return RealmOrder.CUSTOM;
