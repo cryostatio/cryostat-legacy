@@ -62,13 +62,16 @@ public class VerticleDeployer {
 
     public Future deploy(Verticle verticle, boolean worker) {
         String name = verticle.getClass().getName();
-        logger.info("Deploying {} Verticle", name);
         DeploymentOptions deploymentOptions = new DeploymentOptions();
         deploymentOptions.setWorker(worker);
         if (deploymentOptions.isWorker()) {
-            deploymentOptions.setWorkerPoolName(verticle.getClass().getSimpleName() + "-worker");
+            deploymentOptions.setWorkerPoolName(name + "-worker");
             deploymentOptions.setWorkerPoolSize(poolSize);
         }
+        logger.info(
+                "Deploying {} Verticle with options: {}",
+                name,
+                deploymentOptions.toJson().encodePrettily());
         return vertx.deployVerticle(verticle, deploymentOptions)
                 .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
                 .onFailure(
