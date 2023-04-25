@@ -74,7 +74,6 @@ public abstract class PlatformStrategyModule {
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, env, fs),
                 new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs),
-                new KubeEnvPlatformStrategy(logger, fs, noopAuthManager, connectionToolkit, env),
                 new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
                 new DefaultPlatformStrategy(
                         logger, noopAuthManager, () -> new JvmDiscoveryClient(logger)));
