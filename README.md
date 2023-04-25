@@ -128,12 +128,12 @@ Cryostat can be configured via the following environment variables:
 * `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance. Defaults to the empty string, which disables CORS.
 * `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of websocket client connections allowed (minimum 1, maximum `Integer.MAX_VALUE`, default `Integer.MAX_VALUE`)
 * `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`. Defaults to an AuthManager corresponding to the selected deployment platform, whether explicit or automatic (see below).
-* `CRYOSTAT_PLATFORM`: the platform clients used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the highest priority platform, whether those platforms are specified by the user or automatically detected. Set to the fully-qualified names of the platform detection strategy implementations to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy,io.cryostat.platform.internal.PodmanPlatformStrategy`.
+* `CRYOSTAT_PLATFORM`: the platform clients used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the highest priority platform, whether those platforms are specified by the user or automatically detected. Set to the fully-qualified names of the platform detection strategy implementations to use, ex. `io.cryostat.platform.internal.KubeApiPlatformStrategy,io.cryostat.platform.internal.PodmanPlatformStrategy`.
 * `CRYOSTAT_ENABLE_JDP_BROADCAST`: enable the Cryostat JVM to broadcast itself via JDP (Java Discovery Protocol). Defaults to `true`.
 * `CRYOSTAT_JDP_ADDRESS`: the JDP multicast address to send discovery packets. Defaults to `224.0.23.178`.
 * `CRYOSTAT_JDP_PORT`: the JDP multicast port to send discovery packets. Defaults to `7095`.
 * `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory. Defaults to `/opt/cryostat.d/conf.d`.
-* `CRYOSTAT_DISABLE_BUILTIN_DISCOVERY`: set to `true` to disable built-in target discovery mechanisms (see `CRYOSTAT_PLATFORM`). Custom Target "discovery" remains available, but discovery via JDP, Kubernetes API, or Kubernetes environment variable is disabled and ignored. This will still allow platform detection to automatically select an `AuthManager`. This is intended for use when Cryostat Discovery Plugins are the only desired mechanism for locating target applications. See #936 and [cryostat-agent](https://github.com/cryostatio/cryostat-agent). Defaults to `false`.
+* `CRYOSTAT_DISABLE_BUILTIN_DISCOVERY`: set to `true` to disable built-in target discovery mechanisms (see `CRYOSTAT_PLATFORM`). Custom Target "discovery" remains available, but discovery via JDP, Kubernetes API, or Podman API is disabled and ignored. This will still allow platform detection to automatically select an `AuthManager`. This is intended for use when Cryostat Discovery Plugins are the only desired mechanism for locating target applications. See #936 and [cryostat-agent](https://github.com/cryostatio/cryostat-agent). Defaults to `false`.
 * `CRYOSTAT_K8S_NAMESPACES`: set to a comma-separated list of Namespaces that Cryostat should query to discover target JVM applications with its built-in discovey mechanism.
 
 #### Configuration for Automated Analysis Reports
@@ -181,35 +181,33 @@ overridden with `1`.
 
 ## MONITORING APPLICATIONS
 In order for `cryostat` to be able to monitor JVM application targets the
-targets must have RJMX enabled. `cryostat` has several strategies for
-automatic discovery of potential targets. Each strategy will be tested in order
-until a working strategy is found.
+targets must have RJMX enabled or have the Cryostat Agent installed and
+configured. `cryostat` has several strategies for automatic discovery of
+potential targets.
 
-The primary target discovery mechanism uses the OpenShift/Kubernetes API to list
+The first target discovery mechanism uses the OpenShift/Kubernetes API to list
 service endpoints and expose all discovered services as potential targets. This
 is runtime dynamic, allowing `cryostat` to discover new services which come
 online after `cryostat`, or to detect when known services disappear later.
 This requires the `cryostat` pod to have authorization to list services
 within its own namespace.
 
-The secondary target discovery mechanism is based on Kubernetes environment
-variable service discovery. In this mode, environment variables available to
-`cryostat` (note: environment variables are set once at process creation -
-this implies that this method of service discovery is *static* after startup)
-are examined for the form `FOO_PORT_1234_TCP_ADDR=127.0.0.1`. Such an
-environment variable will cause the discovery of a target at address
-`127.0.0.1`, aliased as `foo`, listening on port `1234`.
-
-Finally, if no supported platform is detected, then `cryostat` will fall
-back to the JDP (Java Discovery Protocol) mechanism. This relies on target JVMs
-being configured with the JVM flags to enable JDP and requires the targets to
-be reachable and in the same subnet as `cryostat`. JDP can be enabled by
-passing the flag `"-Dcom.sun.management.jmxremote.autodiscovery=true"` when
+The second discovery mechanism is JDP (Java Discovery Protocol). This relies on
+target JVMs being configured with the JVM flags to enable JDP and requires the
+targets to be reachable and in the same subnet as `cryostat`. JDP can be enabled
+by passing the flag `"-Dcom.sun.management.jmxremote.autodiscovery=true"` when
 starting target JVMs; for more configuration options, see
 [this document](https://docs.oracle.com/javase/10/management/java-discovery-protocol.htm)
 . Once the targets are properly configured, `cryostat` will automatically
 discover their JMX Service URLs, which includes the RJMX port number for that
 specific target.
+
+The third discovery mechanism is the Podman API. If the Podman API socket is
+available at its default filesystem location then Cryostat will query the
+`libpod/containers` endpoint to determine what target applications may be
+available. Containers must have the Podman label `io.cryostat.connectUrl`
+applied, and the value should be the remote JMX or Cryostat Agent HTTP
+connection URL that Cryostat can use to communicate with the target.
 
 To enable RJMX on port 9091, the following JVM flag should be passed at target
 startup:
