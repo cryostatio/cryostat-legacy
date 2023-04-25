@@ -41,7 +41,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -144,13 +144,12 @@ public abstract class NetworkModule {
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
-            @Named(WebModule.VERTX_EXECUTOR) ExecutorService executor,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
                 agentConnectionFactory,
                 storage,
-                executor,
+                ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
                 maxTargetConnections,

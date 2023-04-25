@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -66,11 +65,8 @@ class AllArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archi
 
     @Inject
     AllArchivedRecordingsFetcher(
-            AuthManager auth,
-            CredentialsManager credentialsManager,
-            RecordingArchiveHelper archiveHelper,
-            Logger logger) {
-        super(auth, credentialsManager);
+            AuthManager auth, RecordingArchiveHelper archiveHelper, Logger logger) {
+        super(auth);
         this.archiveHelper = archiveHelper;
         this.logger = logger;
     }
