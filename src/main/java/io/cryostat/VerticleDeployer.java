@@ -48,20 +48,31 @@ import io.vertx.core.Vertx;
 public class VerticleDeployer {
 
     private final Vertx vertx;
+    private final int poolSize;
     private final Logger logger;
 
     @SuppressFBWarnings(
             value = "EI_EXPOSE_REP2",
             justification = "vertx is externally mutable and that's fine")
-    public VerticleDeployer(Vertx vertx, Logger logger) {
+    public VerticleDeployer(Vertx vertx, int poolSize, Logger logger) {
         this.vertx = vertx;
+        this.poolSize = poolSize;
         this.logger = logger;
     }
 
     public Future deploy(Verticle verticle, boolean worker) {
         String name = verticle.getClass().getName();
-        logger.info("Deploying {} Verticle", name);
-        return vertx.deployVerticle(verticle, new DeploymentOptions().setWorker(worker))
+        DeploymentOptions deploymentOptions = new DeploymentOptions();
+        deploymentOptions.setWorker(worker);
+        if (deploymentOptions.isWorker()) {
+            deploymentOptions.setWorkerPoolName(name + "-worker");
+            deploymentOptions.setWorkerPoolSize(poolSize);
+        }
+        logger.info(
+                "Deploying {} Verticle with options: {}",
+                name,
+                deploymentOptions.toJson().encodePrettily());
+        return vertx.deployVerticle(verticle, deploymentOptions)
                 .onSuccess(id -> logger.info("Deployed {} Verticle [{}]", name, id))
                 .onFailure(
                         t -> {
