@@ -98,6 +98,7 @@ abstract class AbstractPermissionedDataFetcher<T> implements DataFetcher<T>, Per
     // targetId to credentials
     protected Optional<Credentials> getSessionCredentials(
             DataFetchingEnvironment environment, String targetId) {
+        credentialsManager.setSessionCredentials(targetId, null);
         RoutingContext ctx = GraphQLHandler.getRoutingContext(environment.getGraphQlContext());
         if (!ctx.request()
                 .headers()
