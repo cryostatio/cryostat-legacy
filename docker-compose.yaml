@@ -1,0 +1,80 @@
+---
+version: '3.8'
+services:
+  cryostat:
+    image: quay.io/cryostat/cryostat:latest
+    restart: always
+    container_name: cryostat
+    user: '0'
+    stdin_open: true
+    tty: true
+    labels: 
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi
+    deploy:
+      resources:
+       limits:
+         memory: 768M
+    volumes:
+      - ${PWD}/archive:/opt/cryostat.d/recordings.d
+      - ${PWD}/certs:/certs
+      - ${PWD}/clientlib:/clientlib
+      - ${PWD}/conf:/opt/cryostat.d/conf.d
+      - ${PWD}/templates:/opt/cryostat.d/templates.d
+      - ${PWD}/truststore:/truststore
+      - ${PWD}/probes:/opt/cryostat.d/conf.d/probes.d
+      - ${XDG_RUNTIME_DIR}/podman/podman.sock:/run/user/0/podman/podman.sock:Z
+    security_opt:
+      - label=disable
+
+    environment:
+      - CRYOSTAT_ENABLE_JDP_BROADCAST=true
+      - CRYOSTAT_REPORT_GENERATOR=${CRYOSTAT_REPORT_GENERATOR}
+      - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
+      - CRYOSTAT_DISABLE_SSL=false
+      - CRYOSTAT_DISABLE_JMX_AUTH=false
+      - CRYOSTAT_ALLOW_UNTRUSTED_SSL=true
+      - CRYOSTAT_RJMX_USER=smoketest
+      - CRYOSTAT_RJMX_PASS=smoketest
+      - CRYOSTAT_RJMX_PORT=9091
+      - CRYOSTAT_RMI_PORT=9091
+      - CRYOSTAT_CORS_ORIGIN=${CRYOSTAT_CORS_ORIGIN}
+      - CRYOSTAT_WEB_HOST=localhost # TODO: make this configurable
+      - CRYOSTAT_WEB_PORT=8181 # TODO: make this configurable
+      - CRYOSTAT_EXT_WEB_PORT=8181
+      - CRYOSTAT_MAX_WS_CONNECTIONS=${CRYOSTAT_MAX_WS_CONNECTIONS}
+      - CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager
+      - CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS=${CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS}
+      - CRYOSTAT_TARGET_CACHE_TTL=${CRYOSTAT_TARGET_CACHE_TTL}
+      - CRYOSTAT_CONFIG_PATH=/opt/cryostat.d/conf.d
+      - CRYOSTAT_ARCHIVE_PATH=/opt/cryostat.d/recordings.d
+      - CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d
+      - CRYOSTAT_PROBE_TEMPLATE_PATH=/opt/cryostat.d/conf.d/probes.d
+      - CRYOSTAT_CLIENTLIB_PATH=/clientlib
+      - CRYOSTAT_REPORT_GENERATION_MAX_HEAP=200
+      - CRYOSTAT_DISCOVERY_PING_PERIOD=${CRYOSTAT_DISCOVERY_PING_PERIOD}
+      - CRYOSTAT_ACTIVE_REPORTS_CACHE_EXPIRY_SECONDS=${CRYOSTAT_ACTIVE_REPORTS_CACHE_EXPIRY_SECONDS}
+      - CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS=${CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS}
+      - CRYOSTAT_PUSH_MAX_FILES=${CRYOSTAT_PUSH_MAX_FILES}
+      - CRYOSTAT_VERTX_POOL_SIZE=${CRYOSTAT_VERTX_POOL_SIZE}
+      - GRAFANA_DATASOURCE_URL=${GRAFANA_DATASOURCE_URL}
+      - GRAFANA_DASHBOARD_URL=${GRAFANA_DASHBOARD_URL}
+      - KEYSTORE_PATH=${KEYSTORE_PATH:-/certs/cryostat-keystore.p12}
+      - KEYSTORE_PASS=${KEYSTORE_PASS}
+      - KEY_PATH=${KEY_PATH}
+      - CERT_PATH=${CERT_PATH}
+      - CRYOSTAT_JUL_CONFIG=${CRYOSTAT_JUL_CONFIG}
+      - CRYOSTAT_JDBC_DRIVER=${JDBC_DRIVER}
+      - CRYOSTAT_JDBC_URL=${JDBC_URL}
+      - CRYOSTAT_JDBC_USERNAME=${JDBC_USERNAME}
+      - CRYOSTAT_JDBC_PASSWORD=${JDBC_PASSWORD}
+      - CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=smoketest
+      - CRYOSTAT_HIBERNATE_DIALECT=${HIBERNATE_DIALECT}
+      - CRYOSTAT_HBM2DDL=${HBM2DDL}
+      - CRYOSTAT_LOG_DB_QUERIES=true
+      - CRYOSTAT_DEV_MODE=true
+
+    ports:
+      - "9091:9091"
+      - "8181:8181"
+
+  # cryostat-reports:
