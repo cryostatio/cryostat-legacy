@@ -369,7 +369,8 @@ runReportGenerator() {
 }
 
 createPod() {
-    local webPort; local datasourcePort; local grafanaPort;
+    local jmxPort; local webPort; local datasourcePort;  local grafanaPort;
+    jmxPort="$(getPomProperty cryostat.rjmxPort)"
     webPort="$(getPomProperty cryostat.webPort)"
     datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"

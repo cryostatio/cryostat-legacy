@@ -1,10 +1,11 @@
 ---
 version: '3.8'
+name: cryostat
 services:
   cryostat:
     image: quay.io/cryostat/cryostat:latest
-    restart: always
     container_name: cryostat
+    restart: always
     user: '0'
     stdin_open: true
     tty: true
@@ -28,18 +29,18 @@ services:
 
     environment:
       - CRYOSTAT_ENABLE_JDP_BROADCAST=true
-      - CRYOSTAT_REPORT_GENERATOR=${CRYOSTAT_REPORT_GENERATOR}
+      - CRYOSTAT_REPORT_GENERATOR=http://cryostat-reports:10001
       - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
-      - CRYOSTAT_DISABLE_SSL=false
-      - CRYOSTAT_DISABLE_JMX_AUTH=false
+      - CRYOSTAT_DISABLE_SSL=true
+      - CRYOSTAT_DISABLE_JMX_AUTH=${CRYOSTAT_DISABLE_JMX_AUTH}
       - CRYOSTAT_ALLOW_UNTRUSTED_SSL=true
       - CRYOSTAT_RJMX_USER=smoketest
       - CRYOSTAT_RJMX_PASS=smoketest
       - CRYOSTAT_RJMX_PORT=9091
       - CRYOSTAT_RMI_PORT=9091
       - CRYOSTAT_CORS_ORIGIN=${CRYOSTAT_CORS_ORIGIN}
-      - CRYOSTAT_WEB_HOST=localhost # TODO: make this configurable
-      - CRYOSTAT_WEB_PORT=8181 # TODO: make this configurable
+      - CRYOSTAT_WEB_HOST=localhost
+      - CRYOSTAT_WEB_PORT=8181
       - CRYOSTAT_EXT_WEB_PORT=8181
       - CRYOSTAT_MAX_WS_CONNECTIONS=${CRYOSTAT_MAX_WS_CONNECTIONS}
       - CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager
@@ -56,9 +57,10 @@ services:
       - CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS=${CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS}
       - CRYOSTAT_PUSH_MAX_FILES=${CRYOSTAT_PUSH_MAX_FILES}
       - CRYOSTAT_VERTX_POOL_SIZE=${CRYOSTAT_VERTX_POOL_SIZE}
-      - GRAFANA_DATASOURCE_URL=${GRAFANA_DATASOURCE_URL}
-      - GRAFANA_DASHBOARD_URL=${GRAFANA_DASHBOARD_URL}
-      - KEYSTORE_PATH=${KEYSTORE_PATH:-/certs/cryostat-keystore.p12}
+      - GRAFANA_DATASOURCE_URL=http://jfr-datasource:8080
+      - GRAFANA_DASHBOARD_EXT_URL=http://localhost:3000
+      - GRAFANA_DASHBOARD_URL=http://grafana:3000
+      - KEYSTORE_PATH=${KEYSTORE_PATH}
       - KEYSTORE_PASS=${KEYSTORE_PASS}
       - KEY_PATH=${KEY_PATH}
       - CERT_PATH=${CERT_PATH}
@@ -73,8 +75,60 @@ services:
       - CRYOSTAT_LOG_DB_QUERIES=true
       - CRYOSTAT_DEV_MODE=true
 
+    expose:
+      - "9091"
+
     ports:
-      - "9091:9091"
       - "8181:8181"
 
-  # cryostat-reports:
+    depends_on:
+      - cryostat-reports
+      - grafana
+  cryostat-reports:
+    image: ${REPORTS_IMAGE}
+    container_name: cryostat-reports
+    restart: on-failure
+    labels: 
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://localhost:${REPORTS_RJMX_PORT}/jmxrmi \
+
+    deploy:
+      resources:
+       limits:
+        cpus: '1'
+        memory: 512M
+    environment:
+      - JAVA_OPTS=-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${REPORTS_RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${REPORTS_RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
+      - QUARKUS_HTTP_PORT=${REPORTS_HTTP_PORT}
+    expose:
+      - "10000"
+      - "10001"
+
+  jfr-datasource:
+    image: ${DATASOURCE_IMAGE}
+    container_name: jfr-datasource
+    expose:
+      - "8080"
+  
+  grafana:
+    image: ${GRAFANA_IMAGE}
+    container_name: grafana
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-simple-json-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - JFR_DATASOURCE_URL=http://jfr-datasource:8080
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000"
+    depends_on:
+      - jfr-datasource
+
+
+  # testing apps
+
+  vertx-fib:
+    image: quay.io/andrewazores/vertx-fib-demo:0.9.1
+    deploy:
+      mode: replicated
+      replicas: 10
+  
