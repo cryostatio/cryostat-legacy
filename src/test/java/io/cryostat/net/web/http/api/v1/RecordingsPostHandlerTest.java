@@ -474,7 +474,7 @@ class RecordingsPostHandlerTest {
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission."));
     }
 
     @Test
@@ -498,7 +498,7 @@ class RecordingsPostHandlerTest {
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission."));
     }
 
     @Test
@@ -524,7 +524,7 @@ class RecordingsPostHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
+                ex.getPayload(), Matchers.equalTo("Recording name must not be empty."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
@@ -556,7 +556,8 @@ class RecordingsPostHandlerTest {
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getPayload(), Matchers.equalTo("Incorrect recording file name pattern"));
+                ex.getPayload(),
+                Matchers.equalTo("This is not a valid file name for the recording."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
@@ -595,7 +596,8 @@ class RecordingsPostHandlerTest {
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Invalid labels"));
+        MatcherAssert.assertThat(
+                ex.getPayload(), Matchers.equalTo("Invalid metadata labels for the recording."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }

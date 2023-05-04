@@ -164,7 +164,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpException(503, "Recording saving not available");
+            throw new HttpException(503, "Recording saving not available.");
         }
 
         FileUpload upload =
@@ -176,13 +176,13 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
                                 RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
-            throw new HttpException(400, "No recording submission");
+            throw new HttpException(400, "No recording submission.");
         }
 
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Recording name must not be empty");
+            throw new HttpException(400, "Recording name must not be empty.");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -192,7 +192,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         Matcher m = RecordingArchiveHelper.RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Incorrect recording file name pattern");
+            throw new HttpException(400, RecordingArchiveHelper.RECORDING_NAME_ERR_MSG);
         }
 
         MultiMap attrs = ctx.request().formAttributes();
@@ -205,7 +205,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             }
         } catch (IllegalArgumentException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new HttpException(400, "Invalid labels");
+            throw new HttpException(400, "Invalid metadata labels for the recording.");
         }
         Metadata metadata = new Metadata(labels);
 

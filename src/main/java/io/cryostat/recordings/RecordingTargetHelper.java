@@ -318,8 +318,8 @@ public class RecordingTargetHelper {
 
                                 if (updatedDescriptor.isEmpty()) {
                                     throw new SnapshotCreationException(
-                                            "The newly created Snapshot could not be found under"
-                                                    + " its rename");
+                                            "The most recent snapshot of the recording cannot be"
+                                                    + " found after renaming.");
                                 }
 
                                 Metadata metadata =
@@ -357,7 +357,8 @@ public class RecordingTargetHelper {
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
                 throw new SnapshotCreationException(
-                        "The newly-created Snapshot could not be retrieved for verification");
+                        "The most recent snapshot of the recording cannot be retrieved for"
+                                + " verification.");
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {

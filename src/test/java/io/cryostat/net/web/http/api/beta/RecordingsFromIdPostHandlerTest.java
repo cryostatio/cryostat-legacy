@@ -538,7 +538,7 @@ class RecordingsFromIdPostHandlerTest {
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getFailureReason(), Matchers.equalTo("No recording submission"));
+                ex.getFailureReason(), Matchers.equalTo("No recording submission."));
     }
 
     @Test
@@ -565,7 +565,7 @@ class RecordingsFromIdPostHandlerTest {
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getFailureReason(), Matchers.equalTo("No recording submission"));
+                ex.getFailureReason(), Matchers.equalTo("No recording submission."));
     }
 
     @ParameterizedTest()
@@ -587,7 +587,7 @@ class RecordingsFromIdPostHandlerTest {
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getFailureReason(), Matchers.equalTo("maxFiles must be a positive integer"));
+                ex.getFailureReason(), Matchers.equalTo("maxFiles must be a positive integer."));
     }
 
     @Test
@@ -617,7 +617,7 @@ class RecordingsFromIdPostHandlerTest {
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getFailureReason(), Matchers.equalTo("Recording name must not be empty"));
+                ex.getFailureReason(), Matchers.equalTo("Recording name must not be empty."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
@@ -653,7 +653,8 @@ class RecordingsFromIdPostHandlerTest {
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(
-                ex.getFailureReason(), Matchers.equalTo("Incorrect recording file name pattern"));
+                ex.getFailureReason(),
+                Matchers.equalTo("This is not a valid file name for the recording."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
@@ -696,7 +697,9 @@ class RecordingsFromIdPostHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("Invalid labels"));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(),
+                Matchers.equalTo("Invalid metadata labels for the recording."));
 
         verify(recordingArchiveHelper).deleteTempFileUpload(upload);
     }
