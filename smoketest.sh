@@ -123,7 +123,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -141,7 +141,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -160,7 +160,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
