@@ -125,6 +125,9 @@ public class RecordingArchiveHelper {
     private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
     private static final long FS_TIMEOUT_SECONDS = 1;
 
+    public static final String RECORDING_NAME_ERR_MSG =
+            "This is not a valid file name for the recording.";
+
     public static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
     public static final Pattern DATE_TIME_PATTERN =
@@ -1124,8 +1127,9 @@ public class RecordingArchiveHelper {
             handler.handle(
                     makeFailedAsyncResult(
                             new IOException(
-                                    "Recording could not be saved. File already exists and rename"
-                                            + " attempts were exhausted.")));
+                                    "The recording cannot be saved because another recording with"
+                                        + " the same name exists and you have reached the maximum"
+                                        + " attempts allowed for renaming a file.")));
             return;
         }
 
