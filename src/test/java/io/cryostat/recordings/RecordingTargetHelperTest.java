@@ -866,7 +866,8 @@ public class RecordingTargetHelperTest {
                                         new ConnectionDescriptor("fooTarget"), "someRecording"));
         MatcherAssert.assertThat(
                 rnfe.getMessage(),
-                Matchers.equalTo("Recording someRecording not found in target fooTarget"));
+                Matchers.equalTo(
+                        "Recording someRecording was not found in the target [fooTarget]."));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

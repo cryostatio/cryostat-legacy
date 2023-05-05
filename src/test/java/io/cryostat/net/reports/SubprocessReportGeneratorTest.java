@@ -292,7 +292,8 @@ class SubprocessReportGeneratorTest {
                     MatcherAssert.assertThat(
                             ex.getMessage(),
                             Matchers.containsString(
-                                    "Recording /dest/recording.tmp not found in target archives"));
+                                    "Recording /dest/recording.tmp was not found in the target"
+                                            + " [archives]."));
                 });
     }
 

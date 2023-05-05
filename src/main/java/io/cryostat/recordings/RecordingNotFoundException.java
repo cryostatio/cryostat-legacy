@@ -41,7 +41,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingNotFoundException extends Exception {
     public RecordingNotFoundException(String targetId, String recordingName) {
-        super(String.format("Recording %s not found in target %s", recordingName, targetId));
+        super(
+                String.format(
+                        "Recording %s was not found in the target [%s].", recordingName, targetId));
     }
 
     public RecordingNotFoundException(Pair<String, String> key) {
