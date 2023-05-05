@@ -175,7 +175,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
 
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new ApiException(503, "Recording saving not available");
+            throw new ApiException(503, "Recording saving not available.");
         }
 
         String maxFilesParam = ctx.request().getParam("maxFiles", String.valueOf(globalMaxFiles));
@@ -183,10 +183,10 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         try {
             maxFiles = Integer.parseInt(maxFilesParam);
             if (maxFiles <= 0) {
-                throw new ApiException(400, "maxFiles must be a positive integer");
+                throw new ApiException(400, "maxFiles must be a positive integer.");
             }
         } catch (NumberFormatException e) {
-            throw new ApiException(400, "maxFiles must be a positive integer");
+            throw new ApiException(400, "maxFiles must be a positive integer.");
         }
 
         FileUpload upload =
@@ -198,7 +198,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
                                         RecordingArchiveHelper.TEMP_UPLOADS_SUBDIRECTORY),
                                 RecordingArchiveHelper.MULTIFORM_RECORDINGS_KEY);
         if (upload == null) {
-            throw new ApiException(400, "No recording submission");
+            throw new ApiException(400, "No recording submission.");
         }
 
         String jvmId = ctx.pathParam("jvmId");
@@ -221,7 +221,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, "Recording name must not be empty");
+            throw new ApiException(400, "Recording name must not be empty.");
         }
 
         if (fileName.endsWith(".jfr")) {
@@ -231,7 +231,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
         Matcher m = RecordingArchiveHelper.RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, "Incorrect recording file name pattern");
+            throw new ApiException(400, RecordingArchiveHelper.RECORDING_NAME_ERR_MSG);
         }
 
         MultiMap attrs = ctx.request().formAttributes();
@@ -244,7 +244,7 @@ public class RecordingsFromIdPostHandler extends AbstractAuthenticatedRequestHan
             }
         } catch (IllegalArgumentException e) {
             recordingArchiveHelper.deleteTempFileUpload(upload);
-            throw new ApiException(400, "Invalid labels");
+            throw new ApiException(400, "Invalid metadata labels for the recording.");
         }
         Metadata metadata = new Metadata(labels);
 
