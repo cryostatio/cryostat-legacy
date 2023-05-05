@@ -121,10 +121,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -140,10 +139,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -160,10 +158,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --pod cryostat-pod \
         --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.1
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
