@@ -96,33 +96,6 @@ runPostgres() {
 }
 
 runDemoApps() {
-    podman run \
-        --name vertx-fib-demo-1 \
-        --env HTTP_PORT=8081 \
-        --env JMX_PORT=9093 \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
-    podman run \
-        --name vertx-fib-demo-2 \
-        --env HTTP_PORT=8082 \
-        --env JMX_PORT=9094 \
-        --env USE_AUTH=true \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
-    podman run \
-        --name vertx-fib-demo-3 \
-        --env HTTP_PORT=8083 \
-        --env JMX_PORT=9095 \
-        --env USE_SSL=true \
-        --env USE_AUTH=true \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
     local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
         webPort="$(getPomProperty cryostat.itest.webPort)"
@@ -134,6 +107,60 @@ runDemoApps() {
     else
         local protocol="http"
     fi
+
+    podman run \
+        --name vertx-fib-demo-1 \
+        --env HTTP_PORT=8081 \
+        --env JMX_PORT=9093 \
+        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-1" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
+        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8910" \
+        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8910/" \
+        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
+        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+        --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+
+    podman run \
+        --name vertx-fib-demo-2 \
+        --env HTTP_PORT=8082 \
+        --env JMX_PORT=9094 \
+        --env USE_AUTH=true \
+        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-2" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
+        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8911" \
+        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8911/" \
+        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
+        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+        --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+
+    podman run \
+        --name vertx-fib-demo-3 \
+        --env HTTP_PORT=8083 \
+        --env JMX_PORT=9095 \
+        --env USE_SSL=true \
+        --env USE_AUTH=true \
+        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-3" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
+        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8912" \
+        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8912/" \
+        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
+        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
+        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
+        --pod cryostat-pod \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
