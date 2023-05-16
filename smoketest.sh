@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # shellcheck disable=SC3043
 
 set -x
@@ -225,82 +225,6 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
-    # Set maximum value for targets to 50
-    MAX_TARGETS=50
-
-    # test lots of jmx targets (ports start at 49152)
-    JMX_DYNAMIC_PORT=49152
-    # test lots of agents (ports start at 49252) to account for HTTP and JMX ports
-    AGENT_DYNAMIC_PORT=$((JMX_DYNAMIC_PORT + MAX_TARGETS * 2))
-
-    if [ -z "${JMX_TARGETS}" ]; then
-        JMX_TARGETS=0
-    fi
-
-    # set JMX_TARGETS to 50 if it's greater than 50
-    if [ "${JMX_TARGETS}" -gt 50 ]; then
-        JMX_TARGETS=50
-    fi
-
-    # test targets
-    for i in $(seq 1 "${JMX_TARGETS}"); do
-        local httpPort=$((JMX_DYNAMIC_PORT + i))
-        local jmxPort=$((JMX_DYNAMIC_PORT + MAX_TARGETS + i))
-
-        podman run \
-            --name "my-vertx-fib-demo-${i}" \
-            --env HTTP_PORT=${httpPort} \
-            --env JMX_PORT=${jmxPort} \
-            --pod cryostat-pod \
-            --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:${jmxPort}/jmxrmi" \
-            --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
-        PODMAN_ARGS+=(
-            --publish "${httpPort}:${jmxPort}"
-            --publish "${jmxPort}:${webserverPort}"
-        )
-    done
-
-
-    # set AGENT_TARGETS to 50 if it's not already defined
-    if [ -z "${AGENT_TARGETS}" ]; then
-        AGENT_TARGETS=0
-    fi
-
-    # set AGENT_TARGETS to 50 if it's greater than 50
-    if [ "${AGENT_TARGETS}" -gt 50 ]; then
-        AGENT_TARGETS=50
-    fi
-
-    # test agent-targets
-    for i in $(seq 1 "${AGENT_TARGETS}"); do
-        local quarkusPort=$((AGENT_DYNAMIC_PORT + i))
-        local webserverPort=$((AGENT_DYNAMIC_PORT + MAX_TARGETS + i))
-
-        podman run \
-            --name "my-quarkus-test-agent-${i}" \
-            --pod cryostat-pod \
-            --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
-            --env QUARKUS_HTTP_PORT=${quarkusPort} \
-            --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-            --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
-            --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-            --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-            --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-            --env CRYOSTAT_AGENT_WEBSERVER_PORT=${webserverPort} \
-            --env CRYOSTAT_AGENT_CALLBACK="http://localhost:${webserverPort}/" \
-            --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-            --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-            --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-            --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
-            --rm -d quay.io/andrewazores/quarkus-test:latest
-        
-        PODMAN_ARGS+=(
-            --publish "${quarkusPort}:${quarkusPort}"
-            --publish "${webserverPort}:${webserverPort}"
-        )
-    done
-
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
     podman run \
@@ -369,15 +293,16 @@ runReportGenerator() {
 }
 
 createPod() {
-    local jmxPort; local webPort; local datasourcePort;  local grafanaPort;
+    local jmxPort; local webPort; local datasourcePort; local grafanaPort;
     jmxPort="$(getPomProperty cryostat.rjmxPort)"
     webPort="$(getPomProperty cryostat.webPort)"
     datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
-    PODMAN_ARGS+=(
+    podman pod create \
         --replace \
         --hostname cryostat \
         --name cryostat-pod \
+        --publish "${jmxPort}:${jmxPort}" \
         --publish "${webPort}:${webPort}" \
         --publish "${datasourcePort}:${datasourcePort}" \
         --publish "${grafanaPort}:${grafanaPort}" \
@@ -388,9 +313,7 @@ createPod() {
         --publish 8082:8082 \
         --publish 9990:9990 \
         --publish 10001:10001 \
-        --publish 10010:10010 \
-        --publish 10011:10011 \
-    )
+        --publish 10010:10010
     # 5432: postgres
     # 8081: vertx-fib-demo-1 HTTP
     # 8082: vertx-fib-demo-2 HTTP
@@ -399,7 +322,6 @@ createPod() {
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-agent-1 HTTP
     # 10011: quarkus-test-agent-2 HTTP
-    podman pod create "${PODMAN_ARGS[@]}"
 }
 
 destroyPod() {
@@ -416,9 +338,6 @@ elif [ "$1" = "postgres-pgcli" ]; then
     PGPASSWORD=abcd1234 pgcli -h localhost -p 5432 -U postgres
     exit
 fi
-
-PODMAN_ARGS=()
-
 runDemoApps
 runJfrDatasource
 runGrafana

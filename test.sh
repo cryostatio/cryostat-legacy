@@ -3,6 +3,10 @@
 set -x
 set -e
 
+if [ -z "$COMPOSE_ENGINE" ]; then
+    COMPOSE_ENGINE="podman-compose"
+fi
+
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/properties/$1/text()" pom.xml
@@ -13,27 +17,33 @@ getPomProperty() {
     fi
 }
 
-# grafana
+cleanup() {
+    $COMPOSE_ENGINE down
+}
+
+trap cleanup EXIT
+
+
 DIR="$(dirname "$(readlink -f "$0")")"
 host="$(getPomProperty cryostat.itest.webHost)"
-# datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
-# grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
-# export GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}"
-# export GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}"
 
+# grafana
 grafanaStream="$(getPomProperty cryostat.itest.grafana.imageStream)"
 grafanaTag="$(getPomProperty cryostat.itest.grafana.version)"
-export GRAFANA_IMAGE="${grafanaStream}:${grafanaTag}"
+GRAFANA_IMAGE="${grafanaStream}:${grafanaTag}"
 datasourceStream="$(getPomProperty cryostat.itest.jfr-datasource.imageStream)"
 datasourceTag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
-export DATASOURCE_IMAGE="${datasourceStream}:${datasourceTag}"
+DATASOURCE_IMAGE="${datasourceStream}:${datasourceTag}"
+export GRAFANA_IMAGE
+export DATASOURCE_IMAGE
 
 # reports
 reportsStream="$(getPomProperty cryostat.itest.reports.imageStream)"
 reportsTag="$(getPomProperty cryostat.itest.reports.version)"
 REPORTS_RJMX_PORT=10000
 REPORTS_HTTP_PORT="$(getPomProperty cryostat.itest.reports.port)"
-export REPORTS_IMAGE="${reportsStream}:${reportsTag}"
+REPORTS_IMAGE="${reportsStream}:${reportsTag}"
+export REPORTS_IMAGE
 export REPORTS_RJMX_PORT
 export REPORTS_HTTP_PORT
 
@@ -73,6 +83,8 @@ export JDBC_PASSWORD
 export HIBERNATE_DIALECT
 export HBM2DDL
 
-podman-compose up -d
+$COMPOSE_ENGINE up -d
 
-podman-compose logs -t -f --tail 50 cryostat
+$COMPOSE_ENGINE logs -f --tail 50 cryostat
+
+# $COMPOSE_ENGINE scale vertx-fib 10

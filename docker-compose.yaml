@@ -1,6 +1,5 @@
 ---
 version: '3.8'
-name: cryostat
 services:
   cryostat:
     image: quay.io/cryostat/cryostat:latest
@@ -31,8 +30,8 @@ services:
       - CRYOSTAT_ENABLE_JDP_BROADCAST=true
       - CRYOSTAT_REPORT_GENERATOR=http://cryostat-reports:10001
       - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
-      - CRYOSTAT_DISABLE_SSL=true
-      - CRYOSTAT_DISABLE_JMX_AUTH=${CRYOSTAT_DISABLE_JMX_AUTH}
+      - CRYOSTAT_DISABLE_SSL=${CRYOSTAT_DISABLE_SSL:-false}
+      - CRYOSTAT_DISABLE_JMX_AUTH=${CRYOSTAT_DISABLE_JMX_AUTH:-false}
       - CRYOSTAT_ALLOW_UNTRUSTED_SSL=true
       - CRYOSTAT_RJMX_USER=smoketest
       - CRYOSTAT_RJMX_PASS=smoketest
@@ -127,8 +126,10 @@ services:
   # testing apps
 
   vertx-fib:
-    image: quay.io/andrewazores/vertx-fib-demo:0.9.1
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     deploy:
       mode: replicated
-      replicas: 10
+      replicas: ${TEST_APP_REPLICAS:-10}
+      labels:
+        io.cryostat.connectUrl: service:jmx:rmi:///jndi/rmi://localhost:${REPORTS_RJMX_PORT}/jmxrmi
   
