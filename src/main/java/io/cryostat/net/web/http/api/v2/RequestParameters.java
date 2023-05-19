@@ -128,7 +128,7 @@ public class RequestParameters {
             fileUploads.addAll(ctx.fileUploads());
         }
 
-        String body = ctx.getBodyAsString();
+        String body = ctx.body().asString();
 
         return new RequestParameters(
                 acceptableContentType,
