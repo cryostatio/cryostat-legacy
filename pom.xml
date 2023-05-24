@@ -1065,7 +1065,7 @@
                 <goal>yarn</goal>
               </goals>
               <configuration>
-                <arguments>install --immutable --immutable-cache</arguments>
+                <arguments>install --immutable</arguments>
               </configuration>
             </execution>
             <execution>
