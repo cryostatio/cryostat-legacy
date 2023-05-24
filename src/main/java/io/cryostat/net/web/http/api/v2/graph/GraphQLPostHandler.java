@@ -110,7 +110,7 @@ class GraphQLPostHandler implements RequestHandler {
         } catch (InterruptedException | ExecutionException e) {
             throw new ApiException(500, e);
         }
-        JsonObject body = ctx.getBodyAsJson();
+        JsonObject body = ctx.body().asJsonObject();
         logger.info("GraphQL query: {}", body.getString("query"));
         this.handler.handle(ctx);
     }
