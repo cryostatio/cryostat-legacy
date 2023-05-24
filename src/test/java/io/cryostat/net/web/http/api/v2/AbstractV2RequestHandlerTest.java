@@ -69,6 +69,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -109,6 +110,7 @@ class AbstractV2RequestHandlerTest {
         Mockito.lenient().when(req.headers()).thenReturn(headers);
         Mockito.lenient().when(ctx.request()).thenReturn(req);
         Mockito.lenient().when(ctx.response()).thenReturn(resp);
+        Mockito.lenient().when(ctx.body()).thenReturn(Mockito.mock(RequestBody.class));
 
         this.handler = new AuthenticatedHandler(auth, credentialsManager, gson);
     }

@@ -114,7 +114,7 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String mtd = ctx.getBodyAsString();
+        String mtd = ctx.body().asString();
 
         if (mtd == null) {
             throw new HttpException(400, "Unsupported null operation");

@@ -37,9 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +62,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -114,21 +112,22 @@ class TargetRecordingOptionsListGetHandlerTest {
 
     @Test
     void shouldRespondWithRecordingOptionsList() throws Exception {
-        IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
-        when(descriptor.getName()).thenReturn("foo");
-        when(descriptor.getDescription()).thenReturn("Foo Option");
-        when(descriptor.getDefault()).thenReturn("bar");
+        IOptionDescriptor<String> descriptor = Mockito.mock(IOptionDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn("foo");
+        Mockito.when(descriptor.getDescription()).thenReturn("Foo Option");
+        Mockito.when(descriptor.getDefault()).thenReturn("bar");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(connection));
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordingOptions()).thenReturn(options);
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordingOptions()).thenReturn(options);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
@@ -137,6 +136,8 @@ class TargetRecordingOptionsListGetHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
 
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));

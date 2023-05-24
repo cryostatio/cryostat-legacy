@@ -1065,9 +1065,7 @@
                 <goal>yarn</goal>
               </goals>
               <configuration>
-                <arguments>
-                  install --frozen-lockfile
-                </arguments>
+                <arguments>install --immutable</arguments>
               </configuration>
             </execution>
             <execution>

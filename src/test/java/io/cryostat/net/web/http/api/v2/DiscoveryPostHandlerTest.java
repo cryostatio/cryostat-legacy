@@ -60,6 +60,7 @@ import com.google.gson.Gson;
 import com.nimbusds.jwt.JWT;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -156,7 +157,9 @@ class DiscoveryPostHandlerTest {
         void shouldThrowIfBodyJsonInvalid(String json) throws Exception {
             UUID uuid = UUID.randomUUID();
             Mockito.when(ctx.pathParam("id")).thenReturn(uuid.toString());
-            Mockito.when(ctx.getBodyAsString()).thenReturn(json);
+            RequestBody body = Mockito.mock(RequestBody.class);
+            Mockito.when(ctx.body()).thenReturn(body);
+            Mockito.when(body.asString()).thenReturn(json);
 
             ApiException ex =
                     Assertions.assertThrows(

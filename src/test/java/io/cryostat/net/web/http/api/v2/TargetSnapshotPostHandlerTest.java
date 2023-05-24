@@ -64,6 +64,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -113,6 +114,8 @@ class TargetSnapshotPostHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
@@ -182,6 +185,8 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
 
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
                 Mockito.mock(CompletableFuture.class);
@@ -207,6 +212,8 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
@@ -248,6 +255,8 @@ class TargetSnapshotPostHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
 
         IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
         HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
