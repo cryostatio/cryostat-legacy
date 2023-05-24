@@ -118,8 +118,9 @@ class TargetRecordingOptionsListGetHandlerTest {
         Mockito.when(descriptor.getDefault()).thenReturn("bar");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
                                 ((TargetConnectionManager.ConnectedTask<Object>)
