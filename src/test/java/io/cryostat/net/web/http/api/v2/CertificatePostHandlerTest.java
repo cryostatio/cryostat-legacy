@@ -72,6 +72,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -148,6 +149,8 @@ class CertificatePostHandlerTest {
     @Test
     void shouldThrow400IfNoCertInRequest() {
         Mockito.when(ctx.fileUploads()).thenReturn(List.of());
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
@@ -155,6 +158,8 @@ class CertificatePostHandlerTest {
     @Test
     void shouldThrow500IfNoTruststoreDirSet() {
         Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(env.hasEnv(Mockito.any())).thenReturn(false);
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -164,6 +169,8 @@ class CertificatePostHandlerTest {
     @Test
     void shouldThrow409IfCertAlreadyExists() {
         Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");
@@ -181,6 +188,8 @@ class CertificatePostHandlerTest {
     @Test
     void shouldThrowExceptionIfCertIsMalformed() throws Exception {
         Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");
@@ -205,6 +214,8 @@ class CertificatePostHandlerTest {
     @Test
     void shouldAddCertToTruststore() throws Exception {
         Mockito.when(ctx.fileUploads()).thenReturn(List.of(fu));
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
         Mockito.when(fu.uploadedFileName()).thenReturn("/temp/temp.cer");

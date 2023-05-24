@@ -50,6 +50,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
@@ -130,7 +131,9 @@ class TargetRecordingPatchHandlerTest {
     void shouldThrow400InvalidOperations(String mtd) {
         Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
-        Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
+        Mockito.when(body.asString()).thenReturn(mtd);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         resp.putHeader(
@@ -149,7 +152,9 @@ class TargetRecordingPatchHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+        RequestBody body = Mockito.mock(RequestBody.class);
+        Mockito.when(ctx.body()).thenReturn(body);
+        Mockito.when(body.asString()).thenReturn(mtd);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         resp.putHeader(
