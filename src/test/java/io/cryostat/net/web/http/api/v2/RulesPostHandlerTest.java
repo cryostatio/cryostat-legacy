@@ -201,7 +201,8 @@ class RulesPostHandlerTest {
         @Test
         void shouldAcceptMultipartWithBoundary() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-            headers.set(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=---SOMEBOUNDARY1234");
+            headers.set(
+                    HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=---SOMEBOUNDARY1234");
             Mockito.when(params.getHeaders()).thenReturn(headers);
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);

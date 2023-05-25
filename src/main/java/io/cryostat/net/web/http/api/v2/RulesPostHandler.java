@@ -139,15 +139,14 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
         String contentType = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
-        
-        if (contentType == null){
+
+        if (contentType == null) {
             contentType = "";
         }
         if (contentType.contains(";")) {
-            contentType = contentType.substring(0, contentType.indexOf(";"));    
+            contentType = contentType.substring(0, contentType.indexOf(";"));
         }
-        HttpMimeType mime =
-                HttpMimeType.fromString(contentType);
+        HttpMimeType mime = HttpMimeType.fromString(contentType);
         switch (mime) {
             case MULTIPART_FORM:
             case URLENCODED_FORM:
