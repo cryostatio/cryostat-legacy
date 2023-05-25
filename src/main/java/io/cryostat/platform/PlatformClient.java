@@ -60,6 +60,7 @@ public interface PlatformClient {
     default List<ServiceRef> listUniqueReachableServices() {
         Set<String> uniqueIds = new HashSet<>();
         return listDiscoverableServices().stream()
+        .filter((ref)->!ref.getServiceUri().toString().startsWith("http"))
                 .filter((ref) -> ref.getJvmId() != null && uniqueIds.add(ref.getJvmId()))
                 .toList();
     }
