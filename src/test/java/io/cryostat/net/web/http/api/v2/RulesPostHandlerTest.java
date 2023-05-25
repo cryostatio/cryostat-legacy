@@ -199,6 +199,20 @@ class RulesPostHandlerTest {
         }
 
         @Test
+        void shouldAcceptMultipartWithBoundary() {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=---SOMEBOUNDARY1234");
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getFormAttributes()).thenReturn(form);
+            form.set(Rule.Attribute.NAME.getSerialKey(), "multipart");
+            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "false");
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Continuous");
+            IntermediateResponse<String> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
+        }
+
+        @Test
         void unknownFirstMimeShouldThrow() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.set(HttpHeaders.CONTENT_TYPE, "NOTAMIME;text/plain");
