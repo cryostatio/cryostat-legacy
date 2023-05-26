@@ -230,6 +230,7 @@ class RulesPostHandlerTest {
 	        "multipart/form-data; boundary=------somecharacters",
 	        "multipart/form-data; unkown characters",
 	        "multipart/form-data; directive1; directive2",
+                "multipart/form-data;directive"
         })
         void shouldAcceptMultipartWithBoundary(String contentType){
 	        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
