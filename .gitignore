@@ -1,6 +1,7 @@
 .gradle/
 .classpath
 .project
+.vscode
 .factorypath
 .settings/
 **/*.class

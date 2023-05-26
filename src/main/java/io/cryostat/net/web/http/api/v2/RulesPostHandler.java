@@ -60,6 +60,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
@@ -138,11 +139,9 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        String contentType = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        String contentType =
+                StringUtils.defaultString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
 
-        if (contentType == null) {
-            contentType = "";
-        }
         if (contentType.contains(";")) {
             contentType = contentType.substring(0, contentType.indexOf(";"));
         }
