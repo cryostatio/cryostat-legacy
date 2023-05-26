@@ -208,10 +208,15 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
         }
 
-        @Test
-        void unsupportedFirstMimeShouldThrow() {
+        @ParameterizedTest
+        @ValueSource(
+              strings = {
+	        "text/plain;NOTAMIME",
+                "text/plain; another-directive"
+              })
+        void unsupportedFirstMimeShouldThrow(String text) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-            headers.set(HttpHeaders.CONTENT_TYPE, "text/plain;NOTAMIME");
+            headers.set(HttpHeaders.CONTENT_TYPE, text);
             Mockito.when(params.getHeaders()).thenReturn(headers);
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -219,12 +224,12 @@ class RulesPostHandlerTest {
         }
 
         @ParameterizedTest
-        @CsvSource(
-              value = {
+        @ValueSource(
+              strings = {
 	        "multipart/form-data",
 	        "multipart/form-data; boundary=------somecharacters",
 	        "multipart/form-data; unkown characters",
-	        "text/plain; another-directive"
+	        "multipart/form-data; directive1; directive2",
         })
         void shouldAcceptMultipartWithBoundary(String contentType){
 	        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
