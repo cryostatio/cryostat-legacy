@@ -1,10 +1,8 @@
 ---
-version: '3.8'
 services:
   cryostat:
     image: quay.io/cryostat/cryostat:latest
     container_name: cryostat
-    restart: always
     user: '0'
     stdin_open: true
     tty: true
@@ -83,33 +81,105 @@ services:
     depends_on:
       - cryostat-reports
       - grafana
+
+  cryostat-duplicate:
+    image: quay.io/cryostat/cryostat:latest
+    container_name: cryostat-duplicate
+    labels: 
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://cryostat-duplicate:8282/jmxrmi
+    volumes:
+      - ${PWD}/archive:/opt/cryostat.d/recordings.d
+      - ${PWD}/certs:/certs
+      - ${PWD}/clientlib:/clientlib
+      - ${PWD}/conf:/opt/cryostat.d/conf.d
+      - ${PWD}/templates:/opt/cryostat.d/templates.d
+      - ${PWD}/truststore:/truststore
+      - ${PWD}/probes:/opt/cryostat.d/conf.d/probes.d
+      - ${XDG_RUNTIME_DIR}/podman/podman.sock:/run/user/0/podman/podman.sock:Z
+    security_opt:
+      - label=disable
+
+    environment:
+      - CRYOSTAT_ENABLE_JDP_BROADCAST=true
+      - CRYOSTAT_REPORT_GENERATOR=http://cryostat-reports:10001
+      - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
+      - CRYOSTAT_DISABLE_SSL=${CRYOSTAT_DISABLE_SSL:-false}
+      - CRYOSTAT_DISABLE_JMX_AUTH=${CRYOSTAT_DISABLE_JMX_AUTH:-false}
+      - CRYOSTAT_ALLOW_UNTRUSTED_SSL=true
+      - CRYOSTAT_RJMX_USER=smoketest
+      - CRYOSTAT_RJMX_PASS=smoketest
+      - CRYOSTAT_RJMX_PORT=9091
+      - CRYOSTAT_RMI_PORT=9091
+      - CRYOSTAT_CORS_ORIGIN=${CRYOSTAT_CORS_ORIGIN}
+      - CRYOSTAT_WEB_HOST=localhost
+      - CRYOSTAT_WEB_PORT=8282
+      - CRYOSTAT_EXT_WEB_PORT=8282
+      - CRYOSTAT_MAX_WS_CONNECTIONS=${CRYOSTAT_MAX_WS_CONNECTIONS}
+      - CRYOSTAT_AUTH_MANAGER=io.cryostat.net.BasicAuthManager
+      - CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS=${CRYOSTAT_TARGET_MAX_CONCURRENT_CONNECTIONS}
+      - CRYOSTAT_TARGET_CACHE_TTL=${CRYOSTAT_TARGET_CACHE_TTL}
+      - CRYOSTAT_CONFIG_PATH=/opt/cryostat.d/conf.d
+      - CRYOSTAT_ARCHIVE_PATH=/opt/cryostat.d/recordings.d
+      - CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d
+      - CRYOSTAT_PROBE_TEMPLATE_PATH=/opt/cryostat.d/conf.d/probes.d
+      - CRYOSTAT_CLIENTLIB_PATH=/clientlib
+      - CRYOSTAT_REPORT_GENERATION_MAX_HEAP=200
+      - CRYOSTAT_DISCOVERY_PING_PERIOD=${CRYOSTAT_DISCOVERY_PING_PERIOD}
+      - CRYOSTAT_ACTIVE_REPORTS_CACHE_EXPIRY_SECONDS=${CRYOSTAT_ACTIVE_REPORTS_CACHE_EXPIRY_SECONDS}
+      - CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS=${CRYOSTAT_ACTIVE_REPORTS_CACHE_REFRESH_SECONDS}
+      - CRYOSTAT_PUSH_MAX_FILES=${CRYOSTAT_PUSH_MAX_FILES}
+      - CRYOSTAT_VERTX_POOL_SIZE=${CRYOSTAT_VERTX_POOL_SIZE}
+      - GRAFANA_DATASOURCE_URL=http://jfr-datasource:8080
+      - GRAFANA_DASHBOARD_EXT_URL=http://localhost:3000
+      - GRAFANA_DASHBOARD_URL=http://grafana:3000
+      - KEYSTORE_PATH=${KEYSTORE_PATH}
+      - KEYSTORE_PASS=${KEYSTORE_PASS}
+      - KEY_PATH=${KEY_PATH}
+      - CERT_PATH=${CERT_PATH}
+      - CRYOSTAT_JUL_CONFIG=${CRYOSTAT_JUL_CONFIG}
+      - CRYOSTAT_JDBC_DRIVER=${JDBC_DRIVER}
+      - CRYOSTAT_JDBC_URL=${JDBC_URL}
+      - CRYOSTAT_JDBC_USERNAME=${JDBC_USERNAME}
+      - CRYOSTAT_JDBC_PASSWORD=${JDBC_PASSWORD}
+      - CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=smoketest
+      - CRYOSTAT_HIBERNATE_DIALECT=${HIBERNATE_DIALECT}
+      - CRYOSTAT_HBM2DDL=${HBM2DDL}
+      - CRYOSTAT_LOG_DB_QUERIES=true
+      - CRYOSTAT_DEV_MODE=true
+    expose:
+      - "9091"
+    ports:
+      - "8282:8282"
+    depends_on:
+      - cryostat-reports
+      - grafana
+    profiles: ["duplicate"]
   cryostat-reports:
-    image: ${REPORTS_IMAGE}
+    image: ${REPORTS_IMAGE-quay.io/cryostat/cryostat-reports:latest}
     container_name: cryostat-reports
     restart: on-failure
     labels: 
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://localhost:${REPORTS_RJMX_PORT}/jmxrmi \
-
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://cryostat-reports:10000/jmxrmi
     deploy:
       resources:
        limits:
         cpus: '1'
         memory: 512M
     environment:
-      - JAVA_OPTS=-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${REPORTS_RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${REPORTS_RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
-      - QUARKUS_HTTP_PORT=${REPORTS_HTTP_PORT}
+      - JAVA_OPTS=-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${REPORTS_RJMX_PORT-10000} -Dcom.sun.management.jmxremote.rmi.port=${REPORTS_RJMX_PORT-10000} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
+      - QUARKUS_HTTP_PORT=${REPORTS_HTTP_PORT-10001}
     expose:
       - "10000"
       - "10001"
 
   jfr-datasource:
-    image: ${DATASOURCE_IMAGE}
+    image: ${DATASOURCE_IMAGE-quay.io/cryostat/jfr-datasource:latest}
     container_name: jfr-datasource
     expose:
       - "8080"
   
   grafana:
-    image: ${GRAFANA_IMAGE}
+    image: ${GRAFANA_IMAGE-quay.io/cryostat/cryostat-grafana-dashboard:latest}
     container_name: grafana
     environment:
       - GF_INSTALL_PLUGINS=grafana-simple-json-datasource
@@ -122,14 +192,121 @@ services:
     depends_on:
       - jfr-datasource
 
-
-  # testing apps
-
+  # Testing apps
   vertx-fib:
     image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     deploy:
       mode: replicated
-      replicas: ${TEST_APP_REPLICAS:-10}
-      labels:
-        io.cryostat.connectUrl: service:jmx:rmi:///jndi/rmi://localhost:${REPORTS_RJMX_PORT}/jmxrmi
-  
+      replicas: ${CT_JMX_REPLICAS:-1}
+      # labels:
+        # - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://localhost:10000/jmxrmi
+
+  quarkus-agent:
+    image: quay.io/andrewazores/quarkus-test:latest
+
+    deploy:
+      mode: replicated
+      replicas: ${CT_AGENT_REPLICAS:-1}
+
+    environment:
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
+      - QUARKUS_HTTP_PORT=10010
+      - ORG_ACME_CRYOSTATSERVICE_ENABLED=false
+      - CRYOSTAT_AGENT_APP_NAME=quarkus-test-agent
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL=true
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME=false
+      - CRYOSTAT_AGENT_WEBSERVER_HOST=quarkus-agent
+      - CRYOSTAT_AGENT_WEBSERVER_PORT=9977
+      - CRYOSTAT_AGENT_CALLBACK=http://quarkus-agent:9977/
+      - CRYOSTAT_AGENT_BASEURI=${CRYOSTAT_AGENT_BASEURI:-http://cryostat:8181}
+      - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
+      - CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000
+      - CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10
+  scaled-app:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.2
+    container_name: scaled-app
+    labels: 
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://scaled-app:9093/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8081
+    expose:
+      - "9093"
+      - "8081"
+  stopped-app:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.2
+    container_name: stopped-app
+    labels: 
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://stopped-app:9093/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8081
+    expose:
+      - "9093"
+      - "8081"
+  quarkus-agent-one:
+    image: quay.io/andrewazores/quarkus-test:latest
+
+    environment:
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
+      - QUARKUS_HTTP_PORT=10010
+      - ORG_ACME_CRYOSTATSERVICE_ENABLED=false
+      - CRYOSTAT_AGENT_APP_NAME=quarkus-test-agent
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL=true
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME=false
+      - CRYOSTAT_AGENT_WEBSERVER_HOST=quarkus-agent-one
+      - CRYOSTAT_AGENT_WEBSERVER_PORT=9977
+      - CRYOSTAT_AGENT_CALLBACK=http://quarkus-agent-one:9977/
+      - CRYOSTAT_AGENT_BASEURI=${CRYOSTAT_AGENT_BASEURI:-http://cryostat:8181}
+      - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
+      - CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000
+      - CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10
+  quarkus-agent-two:
+    image: quay.io/andrewazores/quarkus-test:latest
+
+    environment:
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
+      - QUARKUS_HTTP_PORT=10010
+      - ORG_ACME_CRYOSTATSERVICE_ENABLED=false
+      - CRYOSTAT_AGENT_APP_NAME=quarkus-test-agent
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL=true
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME=false
+      - CRYOSTAT_AGENT_WEBSERVER_HOST=quarkus-agent-two
+      - CRYOSTAT_AGENT_WEBSERVER_PORT=9977
+      - CRYOSTAT_AGENT_CALLBACK=http://quarkus-agent-two:9977/
+      - CRYOSTAT_AGENT_BASEURI=${CRYOSTAT_AGENT_BASEURI:-http://cryostat:8181}
+      - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
+      - CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000
+      - CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10
+
+# invalid targets:
+
+  invalid-podman:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.2
+    container_name: invalid-jmx
+    labels: 
+      - io.cryostat.connectUrl=invalid:jmx:rmi:///jndi/rmi://invalid-podman:9093/jmxrmi # invalid serviceurl
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8081
+    expose:
+      - "9093"
+      - "8081"
+    profiles: [invalid]
+
+  invalid-agent:
+    image: quay.io/andrewazores/quarkus-test:latest
+    container_name: invalid-agent
+    environment:
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
+      - QUARKUS_HTTP_PORT=10010
+      - CRYOSTAT_AGENT_APP_NAME=quarkus-test-agent
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL=true
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME=false
+      - CRYOSTAT_AGENT_WEBSERVER_HOST=invalid-agent
+      - CRYOSTAT_AGENT_WEBSERVER_PORT=40404
+      - CRYOSTAT_AGENT_CALLBACK=http://invalid-agent-callback:40404/ # invalid callback
+      - CRYOSTAT_AGENT_BASEURI=${CRYOSTAT_AGENT_BASEURI:-http://cryostat:8181}
+      - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
+      - CRYOSTAT_AGENT_REGISTRATION_RETRY_MS=60000
+    profiles: [invalid]
