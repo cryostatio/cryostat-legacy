@@ -1,8 +1,9 @@
 #!/bin/bash
+# shellcheck disable=SC1091
 
 set -e
 
-source $(dirname $0)/.env
+source "$(dirname "$0")/.env"
 
 # handle compose engine
 if [[ -z "${CONTAINER_ENGINE}" ]]; then
@@ -22,11 +23,7 @@ if $COMPOSE_ENGINE stop cryostat; then
     sleep 2 # wait for main script to detect container stopped
     $CONTAINER_ENGINE rm cryostat
     $COMPOSE_ENGINE up -d cryostat
+    echo "Cryostat restarted!"
 else
-    echo "Cryostat failed to stop"
-    exit 1
+    echo "Cryostat failed to stop!"
 fi
-
-# sleep 1
-
-# $COMPOSE_ENGINE start cryostat

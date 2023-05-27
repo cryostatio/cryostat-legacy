@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1091,SC2086
 
 set -e
 
@@ -234,7 +235,7 @@ if [ "$CT_EN_DUPLICATE" = true ]; then
 fi
 
 # export COMPOSE_PROFILES
-$COMPOSE_ENGINE "$PROFILE_ARGS" up -d --remove-orphans
+$COMPOSE_ENGINE $PROFILE_ARGS up -d --remove-orphans
 
 # testing periodically scaling
 if [ "$CT_EN_SCALING" = true ]; then

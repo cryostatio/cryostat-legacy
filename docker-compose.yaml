@@ -71,13 +71,10 @@ services:
       - CRYOSTAT_HBM2DDL=${HBM2DDL}
       - CRYOSTAT_LOG_DB_QUERIES=true
       - CRYOSTAT_DEV_MODE=true
-
     expose:
       - "9091"
-
     ports:
       - "8181:8181"
-
     depends_on:
       - cryostat-reports
       - grafana
