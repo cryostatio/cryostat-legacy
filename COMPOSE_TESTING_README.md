@@ -1,4 +1,4 @@
-# Cryostat compose testing README
+# Cryostat compose testing README (DEPRECATED/needs updates)
 
 The `docker-compose.yaml` file in this directory is used for testing Cryostat that is compatible with the [Compose Specification](https://github.com/compose-spec/compose-spec/blob/master/spec.md). It is used by the `compose-test.bash` script to test various scenarios. The `test-restart.bash` script is used to test restarting the Cryostat container.
 

@@ -1,0 +1,12 @@
+---
+services:
+  vertx-jmx-2:
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.2
+    container_name: vertx-jmx-2
+    deploy:
+      mode: global
+    labels:
+      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx-2:10000/jmxrmi
+    environment:
+      - JMX_PORT=9093
+      - HTTP_PORT=8080

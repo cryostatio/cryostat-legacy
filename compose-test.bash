@@ -5,6 +5,8 @@ set -e
 
 source "$(dirname "$0")/.env"
 
+echo $COMPOSE_FILE
+
 # handle compose engine
 if [[ -z "${CONTAINER_ENGINE}" ]]; then
     CONTAINER_ENGINE="podman"
@@ -24,10 +26,10 @@ if [ -z "$COMPOSE_PROFILES" ]; then
 fi
 
 display_usage() {
-    echo "Usage: $(basename "$0") [-a targets] [-b targets] [-d] [-i] [-r] [-s] [-A]"
+    echo "Usage: $(basename "$0") [-a targets] [-j targets] [-d] [-i] [-r] [-s] [-A]"
     echo "Options:"
     echo "  -a targets  Sets # of agent targets"
-    echo "  -b targets  Sets # of JMX targets"
+    echo "  -j targets  Sets # of JMX targets"
     echo "  -d          Enables Cryostat duplicate"
     echo "  -i          Enables invalid targets"
     echo "  -r          Enables automated rule that matches all targets"
@@ -41,11 +43,9 @@ while getopts ":a:j:dirsA" opt; do
     case $opt in
         a)
             CT_AGENT_REPLICAS=$OPTARG
-            export CT_AGENT_REPLICAS
             ;;
         j)
             CT_JMX_REPLICAS=$OPTARG
-            export CT_JMX_REPLICAS
             ;;
         d)
             CT_EN_DUPLICATE=true
@@ -61,9 +61,7 @@ while getopts ":a:j:dirsA" opt; do
             ;;
         A)
             CT_AGENT_REPLICAS=10
-            export CT_AGENT_REPLICAS
             CT_JMX_REPLICAS=10
-            export CT_JMX_REPLICAS
             CT_EN_DUPLICATE=true
             CT_EN_INVALID=true
             CT_EN_RULES=true
@@ -96,16 +94,13 @@ cleanup() {
     fi
 }
 
-# trap on CTRL+C SIGINT (we don't want restart signals to tear down the test environment)
-trap cleanup INT TERM
+webPort="$(getPomProperty cryostat.itest.webPort)"
 
-port="$(getPomProperty cryostat.itest.webPort)"
-
-# if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
-#     protocol="https"
-# else
-#     protocol="http"
-# fi
+if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
+    protocol="https"
+else
+    protocol="http"
+fi
 
 # grafana
 grafanaStream="$(getPomProperty cryostat.itest.grafana.imageStream)"
@@ -129,7 +124,7 @@ export REPORTS_HTTP_PORT
 
 # agent app configuration
 CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)"
-CRYOSTAT_AGENT_BASEURI="http://cryostat:${port}"
+CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:${webPort}/"
 export CRYOSTAT_AGENT_AUTHORIZATION
 export CRYOSTAT_AGENT_BASEURI
 
@@ -183,11 +178,7 @@ child_process() {
         sleep 5
 
         echo "Stopping stopped-app..."
-        if [ "$CONTAINER_ENGINE" = "podman" ]; then
-            podman-compose stop stopped-app
-        else 
-            docker compose stop stopped-app
-        fi
+        $COMPOSE_ENGINE stop stopped-app
 
         sleep 10
 
@@ -234,8 +225,30 @@ if [ "$CT_EN_DUPLICATE" = true ]; then
     PROFILE_ARGS+="--profile duplicate "
 fi
 
+# trap on CTRL+C SIGINT (we don't want restart signals to tear down the test environment)
+trap cleanup INT TERM
+
 # export COMPOSE_PROFILES
-$COMPOSE_ENGINE $PROFILE_ARGS up -d --remove-orphans
+export COMPOSE_FILE
+
+### vertx-jmx handling
+merged_yaml=""
+
+for ((i=1; i<=CT_JMX_REPLICAS; i++))
+do
+  current_yaml="$(sed "s/vertx-jmx/vertx-jmx-${i}/g" compose-vertx-jmx.yaml)"
+  
+  # Remove "services:" from all but the first iteration
+  if [[ $i -gt 1 ]]; then
+    current_yaml="${current_yaml//services:/}"
+  fi
+  
+  merged_yaml+="$current_yaml"
+done
+
+echo "$merged_yaml"
+
+echo "$merged_yaml" | $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f - up -d --remove-orphans 
 
 # testing periodically scaling
 if [ "$CT_EN_SCALING" = true ]; then
