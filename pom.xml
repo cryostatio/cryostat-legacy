@@ -65,7 +65,7 @@
   <org.apache.maven.plugins.surefire.version>3.0.0</org.apache.maven.plugins.surefire.version>
   <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.12.1</org.apache.maven.plugins.site.version>
-  <org.apache.maven.plugins.info.reports.version>3.4.2</org.apache.maven.plugins.info.reports.version>
+  <org.apache.maven.plugins.info.reports.version>3.4.4</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.2.0</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.3.1</org.apache.maven.plugins.resources.version>
   <org.apache.maven.plugins.assembly.version>3.5.0</org.apache.maven.plugins.assembly.version>
