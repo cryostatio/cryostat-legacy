@@ -81,11 +81,6 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     }
 
     @Override
-    public int getPriority() {
-        return PRIORITY_PLATFORM + 10;
-    }
-
-    @Override
     public boolean isAvailable() {
         logger.trace("Testing {} Availability", getClass().getSimpleName());
         try (KubernetesClient client = createClient()) {

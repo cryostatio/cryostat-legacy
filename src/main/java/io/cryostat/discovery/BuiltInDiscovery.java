@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -68,8 +67,8 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
 
     BuiltInDiscovery(
             DiscoveryStorage storage,
-            SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
-            SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
+            Set<PlatformDetectionStrategy<?>> selectedStrategies,
+            Set<PlatformDetectionStrategy<?>> unselectedStrategies,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.storage = storage;

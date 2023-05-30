@@ -69,11 +69,6 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     }
 
     @Override
-    public int getPriority() {
-        return PRIORITY_PLATFORM + 5;
-    }
-
-    @Override
     public boolean isAvailable() {
         String socketPath = getSocketPath();
         logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);

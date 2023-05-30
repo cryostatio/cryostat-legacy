@@ -59,11 +59,6 @@ public class CustomTargetPlatformStrategy
     }
 
     @Override
-    public int getPriority() {
-        return PRIORITY_DEFAULT;
-    }
-
-    @Override
     public boolean isAvailable() {
         return true;
     }

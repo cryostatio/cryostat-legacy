@@ -39,7 +39,6 @@ package io.cryostat.discovery;
 
 import java.time.Duration;
 import java.util.Set;
-import java.util.SortedSet;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -118,9 +117,9 @@ public abstract class DiscoveryModule {
     static BuiltInDiscovery provideBuiltInDiscovery(
             DiscoveryStorage storage,
             @Named(PlatformModule.SELECTED_PLATFORMS)
-                    SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+                    Set<PlatformDetectionStrategy<?>> selectedStrategies,
             @Named(PlatformModule.UNSELECTED_PLATFORMS)
-                    SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
+                    Set<PlatformDetectionStrategy<?>> unselectedStrategies,
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(
