@@ -142,7 +142,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         String contentType =
                 StringUtils.defaultString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
 
-        if (contentType.contains(";") ) {
+        if (contentType.contains(";")) {
             contentType = contentType.substring(0, contentType.indexOf(";"));
         }
         HttpMimeType mime = HttpMimeType.fromString(contentType);

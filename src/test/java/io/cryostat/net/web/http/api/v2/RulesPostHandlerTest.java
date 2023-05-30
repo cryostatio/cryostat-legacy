@@ -209,12 +209,12 @@ class RulesPostHandlerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"text/plain;NOTAMIME","text/plain; another-directive"})
+        @ValueSource(strings = {"text/plain;NOTAMIME", "text/plain; another-directive"})
         void unsupportedFirstMimeShouldThrow(String text) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.set(HttpHeaders.CONTENT_TYPE, text);
             Mockito.when(params.getHeaders()).thenReturn(headers);
-            ApiException ex =
+            ApiException ex=
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
         }
