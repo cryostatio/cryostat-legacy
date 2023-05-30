@@ -53,7 +53,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformModule;
 import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.recordings.JvmIdHelper;
 import io.cryostat.rules.MatchExpressionEvaluator;
@@ -122,16 +121,10 @@ public abstract class DiscoveryModule {
                     SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
             @Named(PlatformModule.UNSELECTED_PLATFORMS)
                     SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
-            Lazy<CustomTargetPlatformClient> customTargets,
             NotificationFactory notificationFactory,
             Logger logger) {
         return new BuiltInDiscovery(
-                storage,
-                selectedStrategies,
-                unselectedStrategies,
-                customTargets,
-                notificationFactory,
-                logger);
+                storage, selectedStrategies, unselectedStrategies, notificationFactory, logger);
     }
 
     @Provides

@@ -37,62 +37,45 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.Set;
-
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.net.discovery.JvmDiscoveryClient;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.discovery.DiscoveryStorage;
-import io.cryostat.net.NetworkResolver;
-import io.cryostat.net.NoopAuthManager;
-import io.cryostat.net.openshift.OpenShiftAuthManager;
+import io.cryostat.net.AuthManager;
 
-import com.google.gson.Gson;
 import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.ElementsIntoSet;
-import io.vertx.core.Vertx;
 
-@Module
-public abstract class PlatformStrategyModule {
+public class CustomTargetPlatformStrategy
+        implements PlatformDetectionStrategy<CustomTargetPlatformClient> {
 
-    @Provides
-    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            Lazy<DiscoveryStorage> storage) {
-        return new CustomTargetPlatformClient(storage);
-    }
+    private final Logger logger;
+    private final Lazy<? extends AuthManager> authMgr;
+    private final Lazy<CustomTargetPlatformClient> client;
 
-    @Provides
-    static CustomTargetPlatformStrategy provideCustomTargetPlatformStrategy(
+    CustomTargetPlatformStrategy(
             Logger logger,
-            Lazy<NoopAuthManager> noopAuthManager,
+            Lazy<? extends AuthManager> authMgr,
             Lazy<CustomTargetPlatformClient> client) {
-        return new CustomTargetPlatformStrategy(logger, noopAuthManager, client);
+        this.logger = logger;
+        this.authMgr = authMgr;
+        this.client = client;
     }
 
-    @Provides
-    @ElementsIntoSet
-    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
-            Logger logger,
-            Lazy<OpenShiftAuthManager> openShiftAuthManager,
-            Lazy<NoopAuthManager> noopAuthManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            CustomTargetPlatformStrategy customTargets,
-            Vertx vertx,
-            Gson gson,
-            NetworkResolver resolver,
-            Environment env,
-            FileSystem fs) {
-        return Set.of(
-                customTargets,
-                new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs),
-                new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
-                new DefaultPlatformStrategy(
-                        logger, noopAuthManager, () -> new JvmDiscoveryClient(logger)));
+    @Override
+    public int getPriority() {
+        return PRIORITY_DEFAULT;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
+    public CustomTargetPlatformClient getPlatformClient() {
+        logger.info("Selected Default Platform Strategy");
+        return client.get();
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return authMgr.get();
     }
 }

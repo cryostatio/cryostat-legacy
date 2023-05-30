@@ -52,14 +52,12 @@ import javax.inject.Singleton;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.CustomTargetPlatformStrategy;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
@@ -68,13 +66,6 @@ public abstract class PlatformModule {
 
     public static final String SELECTED_PLATFORMS = "SELECTED_PLATFORMS";
     public static final String UNSELECTED_PLATFORMS = "UNSELECTED_PLATFORMS";
-
-    @Provides
-    @Singleton
-    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            Lazy<DiscoveryStorage> storage) {
-        return new CustomTargetPlatformClient(storage);
-    }
 
     @Provides
     @Singleton
@@ -112,10 +103,13 @@ public abstract class PlatformModule {
     @Singleton
     @Named(SELECTED_PLATFORMS)
     static SortedSet<PlatformDetectionStrategy<?>> provideSelectedPlatformStrategies(
-            Set<PlatformDetectionStrategy<?>> platformStrategies, Environment env) {
+            CustomTargetPlatformStrategy customTargets,
+            Set<PlatformDetectionStrategy<?>> platformStrategies,
+            Environment env) {
         // reverse sort, higher priorities should be earlier in the stream
         SortedSet<PlatformDetectionStrategy<?>> selectedStrategies =
                 new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+        selectedStrategies.add(customTargets);
         Predicate<PlatformDetectionStrategy<?>> fn;
         if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
             List<String> platforms =
