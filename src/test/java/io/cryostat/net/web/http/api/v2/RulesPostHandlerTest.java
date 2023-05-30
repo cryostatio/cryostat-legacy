@@ -214,7 +214,7 @@ class RulesPostHandlerTest {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             headers.set(HttpHeaders.CONTENT_TYPE, text);
             Mockito.when(params.getHeaders()).thenReturn(headers);
-            ApiException ex=
+            ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
         }
