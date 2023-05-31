@@ -55,15 +55,20 @@ import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
     static final String TEST_RULE_NAME = "Test_Rule";
 
-    @BeforeAll
-    static void setup() throws Exception {}
+    static final Map<String, String> NULL_RESULT = new HashMap<>();
+
+    static {
+        NULL_RESULT.put("result", null);
+    }
+
+    // @BeforeAll
+    // static void setup() throws Exception {}
 
     @AfterEach
     void cleanup() throws Exception {
@@ -85,7 +90,7 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
                                 "meta",
                                 Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
                                 "data",
-                                new HashMap<>()));
+                                NULL_RESULT));
 
         try {
             JsonObject deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
@@ -142,7 +147,6 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
                         });
         try {
             JsonObject result = response.get(5, TimeUnit.SECONDS);
-            // Process the result
             System.out.println("Received response: " + result.toString());
         } catch (TimeoutException e) {
             response.completeExceptionally(e);
