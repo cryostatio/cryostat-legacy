@@ -93,7 +93,7 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
-CRYOSTAT_DISABLE_SSL="false"
+CRYOSTAT_DISABLE_SSL="true"
 
 docker run \
     --name cryostat \
