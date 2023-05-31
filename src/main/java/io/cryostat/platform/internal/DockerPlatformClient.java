@@ -129,7 +129,6 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     private void queryContainers() {
         doDockerRequest(
                 current -> {
-                    logger.info(current.toString());
                     Set<ContainerSpec> previous = new HashSet<>(containers);
                     Set<ContainerSpec> updated = new HashSet<>(current);
 
@@ -181,7 +180,6 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                                                 return;
                                             }
                                             HttpResponse<String> response = ar.result();
-                                            logger.info("****docker");
                                             successHandler.accept(
                                                     gson.fromJson(
                                                             response.body(),
@@ -241,29 +239,21 @@ public class DockerPlatformClient extends AbstractPlatformClient {
         return descs.stream().map(this::convert).filter(Objects::nonNull).toList();
     }
 
-/*  @Override
+    @Override
     public EnvironmentNode getDiscoveryTree() {
         List<AbstractNode> children = new ArrayList<>();
 
-        Map<String, EnvironmentNode> pods = new HashMap<>();
         for (ContainerSpec container : containers) {
             ServiceRef sr = convert(container);
             if (sr == null) {
                 continue;
             }
             TargetNode target = new TargetNode(BaseNodeType.JVM, sr);
-            String podName = container.PodName;
-            if (StringUtils.isNotBlank(podName)) {
-                pods.computeIfAbsent(podName, n -> new EnvironmentNode(n, DockerNodeType.POD));
-                pods.get(podName).addChildNode(target);
-            } else {
-                children.add(target);
-            }
+            children.add(target);
         }
-        children.addAll(pods.values());
         return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
     }
-*/
+
     static record PortSpec(
             long container_port, String host_ip, long host_port, String protocol, long range) {}
 
@@ -276,32 +266,4 @@ public class DockerPlatformClient extends AbstractPlatformClient {
             List<PortSpec> Ports,
             long StartedAt,
             String State) {}
-
-    @Override
-    public EnvironmentNode getDiscoveryTree() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getDiscoveryTree'");
-    }
-
-/*  public enum DockerNodeType implements NodeType {
-        POD("Pod"),
-        ;
-
-        private final String label;
-
-        DockerNodeType(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-
-        @Override
-        public String getKind() {
-            return label;
-        }
-    }
-*/
 }

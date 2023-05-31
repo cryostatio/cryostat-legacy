@@ -19,7 +19,11 @@ getPomProperty() {
 }
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
+<<<<<<< HEAD
     CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)"
+=======
+    CRYOSTAT_IMAGE=quay.io/cryostat/cryostat:latest
+>>>>>>> d87f911a (docker)
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
@@ -93,7 +97,10 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
+<<<<<<< HEAD
 CRYOSTAT_DISABLE_SSL="true"
+=======
+>>>>>>> d87f911a (docker)
 
 docker run \
     --name cryostat \
@@ -155,4 +162,8 @@ docker run \
     -e CRYOSTAT_HBM2DDL="$CRYOSTAT_HBM2DDL" \
     -e CRYOSTAT_LOG_DB_QUERIES="true" \
     -e CRYOSTAT_DEV_MODE="$CRYOSTAT_DEV_MODE" \
+<<<<<<< HEAD
     --rm -it "$CRYOSTAT_IMAGE" "$@" 2>&1 | tee cryostat-run.log
+=======
+    --rm -it "$CRYOSTAT_IMAGE" "$@" 2>&1 | tee cryostat-run.log
+>>>>>>> d87f911a (docker)

@@ -97,7 +97,6 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     }
 
     private static String getSocketPath() {
-        //long uid = new UnixSystem().getUid();
         String socketPath = String.format("/var/run/docker.sock");
         return socketPath;
     }
