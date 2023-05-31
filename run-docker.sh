@@ -19,11 +19,7 @@ getPomProperty() {
 }
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-<<<<<<< HEAD
-    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)"
-=======
     CRYOSTAT_IMAGE=quay.io/cryostat/cryostat:latest
->>>>>>> d87f911a (docker)
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
