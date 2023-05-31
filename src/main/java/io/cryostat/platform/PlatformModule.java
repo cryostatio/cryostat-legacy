@@ -44,6 +44,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -105,8 +107,6 @@ public abstract class PlatformModule {
             CustomTargetPlatformStrategy customTargets,
             Set<PlatformDetectionStrategy<?>> platformStrategies,
             Environment env) {
-        Set<PlatformDetectionStrategy<?>> selectedStrategies = new HashSet<>();
-        selectedStrategies.add(customTargets);
         Predicate<PlatformDetectionStrategy<?>> fn;
         if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
             List<String> platforms =
@@ -117,8 +117,8 @@ public abstract class PlatformModule {
         } else {
             fn = PlatformDetectionStrategy::isAvailable;
         }
-        platformStrategies.stream().filter(fn).forEach(selectedStrategies::add);
-        return selectedStrategies;
+        return Stream.concat(Stream.of(customTargets), platformStrategies.stream().filter(fn))
+                .collect(Collectors.toSet());
     }
 
     @Provides
