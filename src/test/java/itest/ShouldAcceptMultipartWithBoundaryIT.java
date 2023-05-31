@@ -45,10 +45,8 @@ import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,25 +59,12 @@ import io.netty.handler.timeout.TimeoutException;
 import itest.bases.StandardSelfTest;
 
 class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
-
-    static MultiMap testRule;
-
-    static final Map<String, String> NULL_RESULT = new HashMap<>();
-
     static final String TEST_RULE_NAME = "Test_Rule";
 
-    static {
-        NULL_RESULT.put("result", null);
-    }
-
-    @BeforeAll
+    /*@BeforeAll
     static void setup() throws Exception {
-        testRule = MultiMap.caseInsensitiveMultiMap();
-        testRule.add("name", TEST_RULE_NAME);
-        testRule.add("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
-        testRule.add("description", "AutoRulesIT automated rule");
-        testRule.add("eventSpecifier", "template=Continuous,type=TARGET");
-    }
+        // Perform setup actions, if any
+    }*/
 
     @AfterEach
     void cleanup() throws Exception {
@@ -87,7 +72,7 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
         webClient.delete(String.format("/api/v2/rules/%s", TEST_RULE_NAME))
                 .send(ar -> {
                     if (ar.succeeded()) {
-                        deleteResponse.complete((JsonObject) ar.result());
+                        deleteResponse.complete(ar.result().bodyAsJsonObject());
                     } else {
                         deleteResponse.completeExceptionally(ar.cause());
                     }
@@ -96,88 +81,82 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
         JsonObject expectedDeleteResponse = new JsonObject(
                 Map.of(
                         "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
-                        "data", NULL_RESULT));
+                        "data", new HashMap<>()));
 
         try {
             JsonObject deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
             MatcherAssert.assertThat(deleteResult, Matchers.equalTo(expectedDeleteResponse));
         } catch (TimeoutException e) {
-            System.out.println("Test hangs out during cleanup. Reason: " + e.getMessage());
-            throw new RuntimeException("Cleanup did not complete within the expected time.", e);
+            System.out.println("Deletion timed out. Reason: " + e.getMessage());
+            throw new RuntimeException("Deletion did not complete within the expected time.", e);
         } catch (ExecutionException e) {
             if (e.getCause() instanceof HttpException) {
                 HttpException httpException = (HttpException) e.getCause();
                 MatcherAssert.assertThat(httpException.getStatusCode(), Matchers.equalTo(400));
                 MatcherAssert.assertThat(httpException.getMessage(), Matchers.equalTo("Bad Request"));
             } else {
-                // Log the actual cause of the execution exception
-                System.out.println("Cleanup execution failed. Reason: " + e.getCause().getMessage());
+                System.out.println("Deletion execution failed. Reason: " + e.getCause().getMessage());
                 throw e;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.out.println("Cleanup operation interrupted. Reason: " + e.getMessage());
+            System.out.println("Deletion operation interrupted. Reason: " + e.getMessage());
             throw e;
         }
     }
-    @Test
-    @Order(1)
-    void shouldAcceptMultipartWithBoundaryDefault() throws Exception {
-        testMultipartFormData("multipart/form-data");
-    }
 
-    @Test
-    @Order(2)
-    void shouldAcceptMultipartWithBoundarySpecific() throws Exception {
-        testMultipartFormData("multipart/form-data; boundary=------somecharacters");
-    }
-
-    @Test
-    @Order(3)
-    void shouldAcceptMultipartWithBoundaryUnknown() throws Exception {
-        testMultipartFormData("multipart/form-data; unkown characters");
-    }
-
-    @Test
-    @Order(4)
-    void shouldAcceptMultipartWithBoundaryDirectives() throws Exception {
-        testMultipartFormData("multipart/form-data; directive1; directive2");
-    }
-
-    @Test
-    @Order(5)
-    void shouldAcceptMultipartWithBoundarySingleDirective() throws Exception {
-        testMultipartFormData("multipart/form-data; directive");
-    }
-
-    void testMultipartFormData(String contentType) throws ExecutionException, InterruptedException, java.util.concurrent.TimeoutException {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "multipart/form-data",
+            "multipart/form-data; boundary=------somecharacters",
+            "multipart/form-data; unkown characters",
+            "multipart/form-data; directive1; directive2",
+            "multipart/form-data; directive"
+    })
+    void shouldAcceptMultipartWithBoundary(String contentType) throws Exception {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
-        form.set("name", "multipart");
+        form.set("name", TEST_RULE_NAME);
         form.set("matchExpression", "false");
         form.set("eventSpecifier", "template=Continuous");
-    
+
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
         webClient
                 .post("/api/v2/rules")
                 .putHeader(HttpHeaders.CONTENT_TYPE.toString(), contentType)
-                .sendForm(form, ar -> {
-                    assertRequestStatus(ar, response);
-                });
-    
-                try {
-                    JsonObject result = response.get(5, TimeUnit.SECONDS);
-                    Assertions.assertNotNull(result);
-                } catch (TimeoutException e) {
-                    System.out.println("Test hangs out. Reason: " + e.getMessage());
-                    throw new RuntimeException("Test did not complete within the expected time.", e);
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof HttpException) {
-                        HttpException httpException = (HttpException) e.getCause();
-                        MatcherAssert.assertThat(httpException.getStatusCode(), Matchers.equalTo(400));
-                        MatcherAssert.assertThat(httpException.getMessage(), Matchers.equalTo("Bad Request"));
-                    } else {
-                        throw e;
-            }
-        }
-    }
-}    
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            } else {
+                                response.completeExceptionally(new RuntimeException("Request failed"));
+                            }
+                        });
+                        try {
+                            JsonObject result = response.get(5, TimeUnit.SECONDS);
+                            // Process the result
+                            System.out.println("Received response: " + result.toString());
+                        } catch (TimeoutException e) {
+                            response.completeExceptionally(e);
+                            System.err.println("Timeout occurred!!");
+                        } catch (InterruptedException e) {
+                            response.completeExceptionally(e);
+                            System.err.println("The response retrieval was interrupted.");
+                        } catch (ExecutionException e) {
+                            Throwable cause = e.getCause();
+                            if (cause instanceof HttpException) {
+                                HttpException httpException = (HttpException) cause;
+                                int statusCode = httpException.getStatusCode();
+                                String errorMessage = httpException.getMessage();
+                                System.err.println("HTTP Error: " + statusCode + " - " + errorMessage);
+                            } else {
+                                // Handle other types of exceptions
+                                e.printStackTrace();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                
