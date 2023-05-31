@@ -51,14 +51,14 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
 
     private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
-    private final Vertx vertx;
+    private final Lazy<Vertx> vertx;
     private final Gson gson;
     private final FileSystem fs;
 
     PodmanPlatformStrategy(
             Logger logger,
             Lazy<? extends AuthManager> authMgr,
-            Vertx vertx,
+            Lazy<Vertx> vertx,
             Gson gson,
             FileSystem fs) {
         this.logger = logger;

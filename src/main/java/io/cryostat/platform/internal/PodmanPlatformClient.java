@@ -69,6 +69,7 @@ import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
@@ -82,8 +83,8 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     public static final String REALM = "Podman";
     public static final String CRYOSTAT_LABEL = "io.cryostat.connectUrl";
 
-    private final Vertx vertx;
-    private final WebClient webClient;
+    private final Lazy<Vertx> vertx;
+    private WebClient webClient;
     private final Gson gson;
     private final SocketAddress podmanSocket;
     private final Logger logger;
@@ -91,9 +92,8 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
-    PodmanPlatformClient(Vertx vertx, SocketAddress podmanSocket, Gson gson, Logger logger) {
+    PodmanPlatformClient(Lazy<Vertx> vertx, SocketAddress podmanSocket, Gson gson, Logger logger) {
         this.vertx = vertx;
-        this.webClient = WebClient.create(vertx);
         this.podmanSocket = podmanSocket;
         this.gson = gson;
         this.logger = logger;
@@ -103,16 +103,18 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     public void start() throws Exception {
         super.start();
         queryContainers();
+        logger.info("native transport? {}", vertx.get().isNativeTransportEnabled());
         this.timerId =
-                vertx.setPeriodic(
-                        // TODO make this configurable
-                        10_000, unused -> queryContainers());
+                vertx.get()
+                        .setPeriodic(
+                                // TODO make this configurable
+                                10_000, unused -> queryContainers());
     }
 
     @Override
     public void stop() throws Exception {
         super.stop();
-        vertx.cancelTimer(timerId);
+        vertx.get().cancelTimer(timerId);
     }
 
     @Override
@@ -156,37 +158,41 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private void doPodmanRequest(Consumer<List<ContainerSpec>> successHandler) {
         URI requestPath = URI.create("http://d/v3.0.0/libpod/containers/json");
-        vertx.executeBlocking(
-                promise ->
-                        webClient
-                                .request(
-                                        HttpMethod.GET,
-                                        podmanSocket,
-                                        80,
-                                        "localhost",
-                                        requestPath.toString())
-                                .addQueryParam(
-                                        "filters",
-                                        gson.toJson(Map.of("label", List.of(CRYOSTAT_LABEL))))
-                                // TODO make this configurable?
-                                .timeout(5_000L)
-                                .as(BodyCodec.string())
-                                .send(
-                                        ar -> {
-                                            if (ar.failed()) {
-                                                Throwable t = ar.cause();
-                                                logger.error("Podman API request failed", t);
-                                                promise.fail(t);
-                                                return;
-                                            }
-                                            HttpResponse<String> response = ar.result();
-                                            successHandler.accept(
-                                                    gson.fromJson(
-                                                            response.body(),
-                                                            new TypeToken<
-                                                                    List<ContainerSpec>>() {}));
-                                            promise.complete();
-                                        }));
+        vertx.get()
+                .executeBlocking(
+                        promise ->
+                                webClient()
+                                        .request(
+                                                HttpMethod.GET,
+                                                podmanSocket,
+                                                80,
+                                                "localhost",
+                                                requestPath.toString())
+                                        .addQueryParam(
+                                                "filters",
+                                                gson.toJson(
+                                                        Map.of("label", List.of(CRYOSTAT_LABEL))))
+                                        // TODO make this configurable?
+                                        .timeout(5_000L)
+                                        .as(BodyCodec.string())
+                                        .send(
+                                                ar -> {
+                                                    if (ar.failed()) {
+                                                        Throwable t = ar.cause();
+                                                        logger.error(
+                                                                "Podman API request failed", t);
+                                                        promise.fail(t);
+                                                        return;
+                                                    }
+                                                    HttpResponse<String> response = ar.result();
+                                                    successHandler.accept(
+                                                            gson.fromJson(
+                                                                    response.body(),
+                                                                    new TypeToken<
+                                                                            List<
+                                                                                    ContainerSpec>>() {}));
+                                                    promise.complete();
+                                                }));
     }
 
     private ServiceRef convert(ContainerSpec desc) {
@@ -260,6 +266,13 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
         }
         children.addAll(pods.values());
         return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
+    }
+
+    private WebClient webClient() {
+        if (this.webClient == null) {
+            this.webClient = WebClient.create(this.vertx.get());
+        }
+        return webClient;
     }
 
     static record PortSpec(

@@ -82,6 +82,9 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     public void start(Promise<Void> start) {
         storage.addTargetDiscoveryListener(this);
 
+        logger.info("unselected: {}", unselectedStrategies);
+        logger.info("selected: {}", selectedStrategies);
+
         unselectedStrategies.stream()
                 .map(PlatformDetectionStrategy::getPlatformClient)
                 .forEach(

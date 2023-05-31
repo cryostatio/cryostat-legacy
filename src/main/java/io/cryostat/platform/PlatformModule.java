@@ -117,11 +117,7 @@ public abstract class PlatformModule {
         } else {
             fn = PlatformDetectionStrategy::isAvailable;
         }
-        for (PlatformDetectionStrategy<?> s : platformStrategies) {
-            if (fn.test(s)) {
-                selectedStrategies.add(s);
-            }
-        }
+        platformStrategies.stream().filter(fn).forEach(selectedStrategies::add);
         return selectedStrategies;
     }
 
