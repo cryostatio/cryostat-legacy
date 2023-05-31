@@ -38,17 +38,6 @@
 
 package itest;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.HttpException;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -56,33 +45,47 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.net.web.http.HttpMimeType;
+
 import io.netty.handler.timeout.TimeoutException;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
     static final String TEST_RULE_NAME = "Test_Rule";
 
     @BeforeAll
-    static void setup() throws Exception {
-        
-    }
+    static void setup() throws Exception {}
 
     @AfterEach
     void cleanup() throws Exception {
         CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
-        webClient.delete(String.format("/api/v2/rules/%s", TEST_RULE_NAME))
-                .send(ar -> {
-                    if (ar.succeeded()) {
-                        deleteResponse.complete(ar.result().bodyAsJsonObject());
-                    } else {
-                        deleteResponse.completeExceptionally(ar.cause());
-                    }
-                });
+        webClient
+                .delete(String.format("/api/v2/rules/%s", TEST_RULE_NAME))
+                .send(
+                        ar -> {
+                            if (ar.succeeded()) {
+                                deleteResponse.complete(ar.result().bodyAsJsonObject());
+                            } else {
+                                deleteResponse.completeExceptionally(ar.cause());
+                            }
+                        });
 
-        JsonObject expectedDeleteResponse = new JsonObject(
-                Map.of(
-                        "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
-                        "data", new HashMap<>()));
+        JsonObject expectedDeleteResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                "data",
+                                new HashMap<>()));
 
         try {
             JsonObject deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
@@ -94,9 +97,11 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
             if (e.getCause() instanceof HttpException) {
                 HttpException httpException = (HttpException) e.getCause();
                 MatcherAssert.assertThat(httpException.getStatusCode(), Matchers.equalTo(400));
-                MatcherAssert.assertThat(httpException.getMessage(), Matchers.equalTo("Bad Request"));
+                MatcherAssert.assertThat(
+                        httpException.getMessage(), Matchers.equalTo("Bad Request"));
             } else {
-                System.out.println("Deletion execution failed. Reason: " + e.getCause().getMessage());
+                System.out.println(
+                        "Deletion execution failed. Reason: " + e.getCause().getMessage());
                 throw e;
             }
         } catch (InterruptedException e) {
@@ -105,14 +110,16 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
             throw e;
         }
     }
+
     @ParameterizedTest
-    @ValueSource(strings = {
-            "multipart/form-data",
-            "multipart/form-data; boundary=------somecharacters",
-            "multipart/form-data; unkown characters",
-            "multipart/form-data; directive1; directive2",
-            "multipart/form-data; directive"
-    })
+    @ValueSource(
+            strings = {
+                "multipart/form-data",
+                "multipart/form-data; boundary=------somecharacters",
+                "multipart/form-data; unkown characters",
+                "multipart/form-data; directive1; directive2",
+                "multipart/form-data; directive"
+            })
     void shouldAcceptMultipartWithBoundary(String contentType) throws Exception {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.set("name", TEST_RULE_NAME);
@@ -129,33 +136,33 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
                             if (assertRequestStatus(ar, response)) {
                                 response.complete(ar.result().bodyAsJsonObject());
                             } else {
-                                response.completeExceptionally(new RuntimeException("Request failed"));
+                                response.completeExceptionally(
+                                        new RuntimeException("Request failed"));
                             }
                         });
-                        try {
-                            JsonObject result = response.get(5, TimeUnit.SECONDS);
-                            // Process the result
-                            System.out.println("Received response: " + result.toString());
-                        } catch (TimeoutException e) {
-                            response.completeExceptionally(e);
-                            System.err.println("Timeout occurred!!");
-                        } catch (InterruptedException e) {
-                            response.completeExceptionally(e);
-                            System.err.println("The response retrieval was interrupted.");
-                        } catch (ExecutionException e) {
-                            Throwable cause = e.getCause();
-                            if (cause instanceof HttpException) {
-                                HttpException httpException = (HttpException) cause;
-                                int statusCode = httpException.getStatusCode();
-                                String errorMessage = httpException.getMessage();
-                                System.err.println("HTTP Error: " + statusCode + " - " + errorMessage);
-                            } else {
-                                // Handle other types of exceptions
-                                e.printStackTrace();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                
+        try {
+            JsonObject result = response.get(5, TimeUnit.SECONDS);
+            // Process the result
+            System.out.println("Received response: " + result.toString());
+        } catch (TimeoutException e) {
+            response.completeExceptionally(e);
+            System.err.println("Timeout occurred!!");
+        } catch (InterruptedException e) {
+            response.completeExceptionally(e);
+            System.err.println("The response retrieval was interrupted.");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof HttpException) {
+                HttpException httpException = (HttpException) cause;
+                int statusCode = httpException.getStatusCode();
+                String errorMessage = httpException.getMessage();
+                System.err.println("HTTP Error: " + statusCode + " - " + errorMessage);
+            } else {
+                // Handle other types of exceptions
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
