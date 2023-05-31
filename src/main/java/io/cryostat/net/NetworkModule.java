@@ -165,7 +165,7 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static Vertx provideVertx(Logger logger) {
+    static Vertx provideVertx() {
         return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
     }
 
