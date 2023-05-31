@@ -45,6 +45,7 @@ import io.vertx.ext.web.handler.HttpException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -61,10 +62,10 @@ import itest.bases.StandardSelfTest;
 class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
     static final String TEST_RULE_NAME = "Test_Rule";
 
-    /*@BeforeAll
+    @BeforeAll
     static void setup() throws Exception {
-        // Perform setup actions, if any
-    }*/
+        
+    }
 
     @AfterEach
     void cleanup() throws Exception {
@@ -104,7 +105,6 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
             throw e;
         }
     }
-
     @ParameterizedTest
     @ValueSource(strings = {
             "multipart/form-data",
@@ -120,7 +120,6 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
         form.set("eventSpecifier", "template=Continuous");
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
-
         webClient
                 .post("/api/v2/rules")
                 .putHeader(HttpHeaders.CONTENT_TYPE.toString(), contentType)
