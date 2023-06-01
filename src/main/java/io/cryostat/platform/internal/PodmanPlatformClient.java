@@ -39,6 +39,7 @@ package io.cryostat.platform.internal;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,6 +71,7 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -85,6 +87,8 @@ import org.apache.commons.lang3.StringUtils;
 public class PodmanPlatformClient extends AbstractPlatformClient {
 
     public static final String REALM = "Podman";
+    public static final String DISCOVERY_LABEL = "io.cryostat.discovery";
+    public static final String JMX_URL_LABEL = "io.cryostat.jmxUrl";
     public static final String JMX_HOST_LABEL = "io.cryostat.jmxHost";
     public static final String JMX_PORT_LABEL = "io.cryostat.jmxPort";
 
@@ -194,7 +198,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                         requestPath.toString())
                                 .addQueryParam(
                                         "filters",
-                                        gson.toJson(Map.of("label", List.of(JMX_PORT_LABEL))))
+                                        gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
                                 .timeout(2_000L)
                                 .as(BodyCodec.string())
                                 .send(
@@ -252,18 +256,36 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private ServiceRef convert(ContainerSpec desc) {
         try {
-            int jmxPort = Integer.valueOf(desc.Labels.get(JMX_PORT_LABEL));
-            String hostname = desc.Labels.get(JMX_HOST_LABEL);
-            if (hostname == null) {
-                try {
-                    hostname =
-                            doPodmanInspectRequest(desc).get(2, TimeUnit.SECONDS).Config.Hostname;
-                } catch (InterruptedException | TimeoutException | ExecutionException e) {
-                    logger.warn(e);
-                    return null;
+            JMXServiceURL connectUrl;
+            String hostname;
+            int jmxPort;
+            if (desc.Labels.containsKey(JMX_URL_LABEL)) {
+                connectUrl = new JMXServiceURL(desc.Labels.get(JMX_URL_LABEL));
+                if (URIUtil.isRmiUrl(connectUrl)) {
+                    URI serviceUrl = URIUtil.getRmiTarget(connectUrl);
+                    hostname = serviceUrl.getHost();
+                    jmxPort = serviceUrl.getPort();
+                } else {
+                    hostname = connectUrl.getHost();
+                    jmxPort = connectUrl.getPort();
                 }
+            } else {
+                jmxPort = Integer.valueOf(desc.Labels.get(JMX_PORT_LABEL));
+                hostname = desc.Labels.get(JMX_HOST_LABEL);
+                if (hostname == null) {
+                    try {
+                        hostname =
+                                doPodmanInspectRequest(desc)
+                                        .get(2, TimeUnit.SECONDS)
+                                        .Config
+                                        .Hostname;
+                    } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                        logger.warn(e);
+                        return null;
+                    }
+                }
+                connectUrl = connectionToolkit.get().createServiceURL(hostname, jmxPort);
             }
-            JMXServiceURL connectUrl = connectionToolkit.get().createServiceURL(hostname, jmxPort);
 
             Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             cryostatAnnotations.put(AnnotationKey.REALM, REALM);
@@ -283,7 +305,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             serviceRef.setLabels(desc.Labels);
 
             return serviceRef;
-        } catch (MalformedURLException e) {
+        } catch (URISyntaxException | MalformedURLException e) {
             logger.warn(e);
             return null;
         }

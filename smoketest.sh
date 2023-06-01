@@ -122,6 +122,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9093" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
@@ -141,8 +142,10 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9094" \
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     podman run \
@@ -161,8 +164,8 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
-        --label io.cryostat.jmxHost="localhost" \
-        --label io.cryostat.jmxPort="9095" \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
@@ -271,6 +274,7 @@ runReportGenerator() {
         --name reports \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --cpus 1 \
