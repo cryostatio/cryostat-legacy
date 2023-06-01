@@ -59,11 +59,6 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     }
 
     @Override
-    public int getPriority() {
-        return PRIORITY_PLATFORM + 15;
-    }
-
-    @Override
     protected boolean testAvailability(KubernetesClient client) {
         return super.testAvailability(client) && (((OpenShiftClient) client).isSupported());
     }
