@@ -243,6 +243,13 @@ appended to Cryostat's classpath. This path should be a directory within a
 volume mounted to the Cryostat container and containing library JARs (ex.
 `jboss-client.jar`) in a flat structure.
 
+In the particular case of WildFly `remote+http`, you might do something like
+the following to add this capability:
+
+```bash
+$ podman cp wildfly:/opt/jboss/wildfly/bin/client/jboss-client.jar clientlib/
+```
+
 ## EVENT TEMPLATES
 
 JDK Flight Recorder has event templates, which are preset definition of a set of
