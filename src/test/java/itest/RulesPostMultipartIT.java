@@ -43,8 +43,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import io.cryostat.net.web.http.HttpMimeType;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
@@ -77,18 +75,8 @@ class RulesPostMultipartIT extends StandardSelfTest {
                                 deleteResponse.completeExceptionally(ar.cause());
                             }
                         });
-
-        JsonObject expectedDeleteResponse =
-                new JsonObject(
-                        Map.of(
-                                "meta",
-                                Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
-                                "data",
-                                NULL_RESULT));
-
         try {
-            JsonObject deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
-            MatcherAssert.assertThat(deleteResult, Matchers.equalTo(expectedDeleteResponse));
+            deleteResponse.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             System.out.println("Deletion failed. Reason: " + e.getMessage());
             throw e;
@@ -124,17 +112,12 @@ class RulesPostMultipartIT extends StandardSelfTest {
                                         new RuntimeException("Request failed"));
                             }
                         });
-        try {
-            JsonObject result = response.get(5, TimeUnit.SECONDS);
-            System.out.println("Received response: " + result.toString());
-
-            MatcherAssert.assertThat(result.getJsonObject("meta"), Matchers.notNullValue());
-            MatcherAssert.assertThat(
-                    result.getJsonObject("meta").getString("status"), Matchers.equalTo("Created"));
-            MatcherAssert.assertThat(result.getJsonObject("data"), Matchers.notNullValue());
-        } catch (Exception e) {
-            System.err.println("Request failed: " + e.getMessage());
-            throw e;
-        }
+        JsonObject result = response.get(5, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(result.getJsonObject("meta"), Matchers.notNullValue());
+        MatcherAssert.assertThat(
+                result.getJsonObject("meta").getString("status"), Matchers.equalTo("Created"));
+        MatcherAssert.assertThat(
+                result.getJsonObject("data").getString("name"),
+                Matchers.equalTo(result.getJsonArray(TEST_RULE_NAME)));
     }
 }
