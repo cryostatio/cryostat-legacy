@@ -41,16 +41,13 @@ package itest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
-import io.netty.handler.timeout.TimeoutException;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.handler.HttpException;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -58,7 +55,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
+class RulesPostMultipartIT extends StandardSelfTest {
     static final String TEST_RULE_NAME = "Test_Rule";
 
     static final Map<String, String> NULL_RESULT = new HashMap<>();
@@ -66,9 +63,6 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
     static {
         NULL_RESULT.put("result", null);
     }
-
-    // @BeforeAll
-    // static void setup() throws Exception {}
 
     @AfterEach
     void cleanup() throws Exception {
@@ -95,23 +89,8 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
         try {
             JsonObject deleteResult = deleteResponse.get(5, TimeUnit.SECONDS);
             MatcherAssert.assertThat(deleteResult, Matchers.equalTo(expectedDeleteResponse));
-        } catch (TimeoutException e) {
-            System.out.println("Deletion timed out. Reason: " + e.getMessage());
-            throw new RuntimeException("Deletion did not complete within the expected time.", e);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof HttpException) {
-                HttpException httpException = (HttpException) e.getCause();
-                MatcherAssert.assertThat(httpException.getStatusCode(), Matchers.equalTo(400));
-                MatcherAssert.assertThat(
-                        httpException.getMessage(), Matchers.equalTo("Bad Request"));
-            } else {
-                System.out.println(
-                        "Deletion execution failed. Reason: " + e.getCause().getMessage());
-                throw e;
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println("Deletion operation interrupted. Reason: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Deletion failed. Reason: " + e.getMessage());
             throw e;
         }
     }
@@ -148,25 +127,14 @@ class ShouldAcceptMultipartWithBoundaryIT extends StandardSelfTest {
         try {
             JsonObject result = response.get(5, TimeUnit.SECONDS);
             System.out.println("Received response: " + result.toString());
-        } catch (TimeoutException e) {
-            response.completeExceptionally(e);
-            System.err.println("Timeout occurred!!");
-        } catch (InterruptedException e) {
-            response.completeExceptionally(e);
-            System.err.println("The response retrieval was interrupted.");
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof HttpException) {
-                HttpException httpException = (HttpException) cause;
-                int statusCode = httpException.getStatusCode();
-                String errorMessage = httpException.getMessage();
-                System.err.println("HTTP Error: " + statusCode + " - " + errorMessage);
-            } else {
-                // Handle other types of exceptions
-                e.printStackTrace();
-            }
+
+            MatcherAssert.assertThat(result.getJsonObject("meta"), Matchers.notNullValue());
+            MatcherAssert.assertThat(
+                    result.getJsonObject("meta").getString("status"), Matchers.equalTo("Created"));
+            MatcherAssert.assertThat(result.getJsonObject("data"), Matchers.notNullValue());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Request failed: " + e.getMessage());
+            throw e;
         }
     }
 }
