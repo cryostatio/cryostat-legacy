@@ -122,7 +122,8 @@ podman run \
     --pod cryostat-pod \
     --name cryostat \
     --user 0 \
-    --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
+    --label io.cryostat.jmxHost="localhost" \
+    --label io.cryostat.jmxPort="0" \
     --memory 768M \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/certs",destination=/certs,relabel=shared \

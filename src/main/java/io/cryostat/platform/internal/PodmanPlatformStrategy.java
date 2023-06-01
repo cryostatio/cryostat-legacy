@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
@@ -64,6 +65,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     private final Lazy<? extends AuthManager> authMgr;
     private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Gson gson;
     private final FileSystem fs;
 
@@ -72,12 +74,14 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
             Lazy<? extends AuthManager> authMgr,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.webClient = webClient;
         this.vertx = vertx;
+        this.connectionToolkit = connectionToolkit;
         this.gson = gson;
         this.fs = fs;
     }
@@ -142,7 +146,14 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     @Override
     public PodmanPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        return new PodmanPlatformClient(webClient, vertx, getSocket(), gson, logger);
+        return new PodmanPlatformClient(
+                Executors.newSingleThreadExecutor(),
+                webClient,
+                vertx,
+                getSocket(),
+                connectionToolkit,
+                gson,
+                logger);
     }
 
     @Override
