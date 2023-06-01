@@ -19,7 +19,7 @@ getPomProperty() {
 }
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-    CRYOSTAT_IMAGE=quay.io/cryostat/cryostat:latest
+    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:latest"
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
@@ -92,8 +92,6 @@ fi
 if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
-
-CRYOSTAT_DISABLE_SSL="true"
 
 docker run \
     --name cryostat \
