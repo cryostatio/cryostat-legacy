@@ -46,11 +46,13 @@ import com.sun.security.auth.module.UnixSystem;
 import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.client.WebClient;
 
 class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
 
     private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
+    private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
     private final Gson gson;
     private final FileSystem fs;
@@ -58,11 +60,13 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     PodmanPlatformStrategy(
             Logger logger,
             Lazy<? extends AuthManager> authMgr,
+            Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Gson gson,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
+        this.webClient = webClient;
         this.vertx = vertx;
         this.gson = gson;
         this.fs = fs;
@@ -81,9 +85,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     @Override
     public PodmanPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        String socketPath = getSocketPath();
-        SocketAddress podmanPath = SocketAddress.domainSocketAddress(socketPath);
-        return new PodmanPlatformClient(vertx, podmanPath, gson, logger);
+        return new PodmanPlatformClient(webClient, vertx, getSocket(), gson, logger);
     }
 
     @Override
@@ -95,5 +97,9 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
         long uid = new UnixSystem().getUid();
         String socketPath = String.format("/run/user/%d/podman/podman.sock", uid);
         return socketPath;
+    }
+
+    private static SocketAddress getSocket() {
+        return SocketAddress.domainSocketAddress(getSocketPath());
     }
 }
