@@ -41,20 +41,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 
-import dagger.Lazy;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
@@ -65,22 +61,19 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
     private final DiscoveryStorage storage;
     private final Set<PlatformDetectionStrategy<?>> selectedStrategies;
     private final Set<PlatformDetectionStrategy<?>> unselectedStrategies;
-    private final Lazy<CustomTargetPlatformClient> customTargets;
     private final Set<PlatformClient> enabledClients = new HashSet<>();
     private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     BuiltInDiscovery(
             DiscoveryStorage storage,
-            SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
-            SortedSet<PlatformDetectionStrategy<?>> unselectedStrategies,
-            Lazy<CustomTargetPlatformClient> customTargets,
+            Set<PlatformDetectionStrategy<?>> selectedStrategies,
+            Set<PlatformDetectionStrategy<?>> unselectedStrategies,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.storage = storage;
         this.selectedStrategies = selectedStrategies;
         this.unselectedStrategies = unselectedStrategies;
-        this.customTargets = customTargets;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
@@ -98,12 +91,8 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                         .map(PluginInfo::getId)
                                         .ifPresent(storage::deregister));
 
-        Stream.concat(
-                        // ensure custom targets is always available regardless of other
-                        // configurations
-                        Stream.of(customTargets.get()),
-                        selectedStrategies.stream()
-                                .map(PlatformDetectionStrategy::getPlatformClient))
+        selectedStrategies.stream()
+                .map(PlatformDetectionStrategy::getPlatformClient)
                 .distinct()
                 .forEach(
                         platform -> {
