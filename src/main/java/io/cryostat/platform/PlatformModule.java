@@ -38,13 +38,14 @@
 package io.cryostat.platform;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -52,14 +53,12 @@ import javax.inject.Singleton;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.discovery.DiscoveryStorage;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.discovery.PlatformDiscoveryModule;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.CustomTargetPlatformStrategy;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
@@ -68,13 +67,6 @@ public abstract class PlatformModule {
 
     public static final String SELECTED_PLATFORMS = "SELECTED_PLATFORMS";
     public static final String UNSELECTED_PLATFORMS = "UNSELECTED_PLATFORMS";
-
-    @Provides
-    @Singleton
-    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            Lazy<DiscoveryStorage> storage) {
-        return new CustomTargetPlatformClient(storage);
-    }
 
     @Provides
     @Singleton
@@ -111,11 +103,10 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     @Named(SELECTED_PLATFORMS)
-    static SortedSet<PlatformDetectionStrategy<?>> provideSelectedPlatformStrategies(
-            Set<PlatformDetectionStrategy<?>> platformStrategies, Environment env) {
-        // reverse sort, higher priorities should be earlier in the stream
-        SortedSet<PlatformDetectionStrategy<?>> selectedStrategies =
-                new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+    static Set<PlatformDetectionStrategy<?>> provideSelectedPlatformStrategies(
+            CustomTargetPlatformStrategy customTargets,
+            Set<PlatformDetectionStrategy<?>> platformStrategies,
+            Environment env) {
         Predicate<PlatformDetectionStrategy<?>> fn;
         if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
             List<String> platforms =
@@ -126,22 +117,17 @@ public abstract class PlatformModule {
         } else {
             fn = PlatformDetectionStrategy::isAvailable;
         }
-        for (PlatformDetectionStrategy<?> s : platformStrategies) {
-            if (fn.test(s)) {
-                selectedStrategies.add(s);
-            }
-        }
-        return selectedStrategies;
+        return Stream.concat(Stream.of(customTargets), platformStrategies.stream().filter(fn))
+                .collect(Collectors.toSet());
     }
 
     @Provides
     @Singleton
     @Named(UNSELECTED_PLATFORMS)
-    static SortedSet<PlatformDetectionStrategy<?>> provideUnselectedPlatformStrategies(
-            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+    static Set<PlatformDetectionStrategy<?>> provideUnselectedPlatformStrategies(
+            @Named(SELECTED_PLATFORMS) Set<PlatformDetectionStrategy<?>> selectedStrategies,
             Set<PlatformDetectionStrategy<?>> platformStrategies) {
-        SortedSet<PlatformDetectionStrategy<?>> unselected =
-                new TreeSet<>((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+        Set<PlatformDetectionStrategy<?>> unselected = new HashSet<>();
         unselected.addAll(platformStrategies);
         unselected.removeAll(selectedStrategies);
         return unselected;
@@ -150,7 +136,7 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformDetectionStrategy<?> providePlatformStrategy(
-            @Named(SELECTED_PLATFORMS) SortedSet<PlatformDetectionStrategy<?>> selectedStrategies,
+            @Named(SELECTED_PLATFORMS) Set<PlatformDetectionStrategy<?>> selectedStrategies,
             Set<PlatformDetectionStrategy<?>> strategies) {
         return selectedStrategies.stream()
                 .findFirst()
@@ -161,11 +147,6 @@ public abstract class PlatformModule {
                                                 "No selected platforms found. Available platforms:"
                                                         + " %s",
                                                 strategies.stream()
-                                                        .sorted(
-                                                                (a, b) ->
-                                                                        Integer.compare(
-                                                                                b.getPriority(),
-                                                                                a.getPriority()))
                                                         .map(s -> s.getClass().getCanonicalName())
                                                         .toList())));
     }

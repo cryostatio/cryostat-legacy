@@ -38,62 +38,39 @@
 package io.cryostat.platform.internal;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
-import com.google.gson.Gson;
-import com.sun.security.auth.module.UnixSystem;
 import dagger.Lazy;
-import io.vertx.core.Vertx;
-import io.vertx.core.net.SocketAddress;
 
-class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
+public class CustomTargetPlatformStrategy
+        implements PlatformDetectionStrategy<CustomTargetPlatformClient> {
 
     private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
-    private final Lazy<Vertx> vertx;
-    private final Gson gson;
-    private final FileSystem fs;
+    private final Lazy<CustomTargetPlatformClient> client;
 
-    PodmanPlatformStrategy(
+    CustomTargetPlatformStrategy(
             Logger logger,
             Lazy<? extends AuthManager> authMgr,
-            Lazy<Vertx> vertx,
-            Gson gson,
-            FileSystem fs) {
+            Lazy<CustomTargetPlatformClient> client) {
         this.logger = logger;
         this.authMgr = authMgr;
-        this.vertx = vertx;
-        this.gson = gson;
-        this.fs = fs;
+        this.client = client;
     }
 
     @Override
     public boolean isAvailable() {
-        String socketPath = getSocketPath();
-        logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);
-        // TODO check that the service is actually available on the socket using an HTTP request
-        boolean available = fs.isReadable(fs.pathOf(socketPath));
-        logger.info("{} available? {}", getClass().getSimpleName(), available);
-        return available;
+        return true;
     }
 
     @Override
-    public PodmanPlatformClient getPlatformClient() {
-        logger.info("Selected {} Strategy", getClass().getSimpleName());
-        String socketPath = getSocketPath();
-        SocketAddress podmanPath = SocketAddress.domainSocketAddress(socketPath);
-        return new PodmanPlatformClient(vertx, podmanPath, gson, logger);
+    public CustomTargetPlatformClient getPlatformClient() {
+        logger.info("Selected Default Platform Strategy");
+        return client.get();
     }
 
     @Override
     public AuthManager getAuthManager() {
         return authMgr.get();
-    }
-
-    private static String getSocketPath() {
-        long uid = new UnixSystem().getUid();
-        String socketPath = String.format("/run/user/%d/podman/podman.sock", uid);
-        return socketPath;
     }
 }

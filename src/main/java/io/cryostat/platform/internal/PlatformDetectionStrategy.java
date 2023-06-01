@@ -41,11 +41,6 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.platform.PlatformClient;
 
 public interface PlatformDetectionStrategy<T extends PlatformClient> {
-    int PRIORITY_DEFAULT = 0;
-    int PRIORITY_PLATFORM = 50;
-
-    int getPriority();
-
     boolean isAvailable();
 
     T getPlatformClient();
