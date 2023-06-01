@@ -109,7 +109,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     public void start() throws Exception {
         super.start();
         queryContainers();
-        logger.info("native transport? {}", vertx.get().isNativeTransportEnabled());
         this.timerId =
                 vertx.get()
                         .setPeriodic(
