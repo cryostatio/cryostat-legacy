@@ -305,7 +305,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             serviceRef.setLabels(desc.Labels);
 
             return serviceRef;
-        } catch (URISyntaxException | MalformedURLException e) {
+        } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
             logger.warn(e);
             return null;
         }
