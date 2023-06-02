@@ -116,9 +116,11 @@ public abstract class PlatformStrategyModule {
             Lazy<NoopAuthManager> noopAuthManager,
             @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             FileSystem fs) {
-        return new PodmanPlatformStrategy(logger, noopAuthManager, webClient, vertx, gson, fs);
+        return new PodmanPlatformStrategy(
+                logger, noopAuthManager, webClient, vertx, connectionToolkit, gson, fs);
     }
 
     @Provides

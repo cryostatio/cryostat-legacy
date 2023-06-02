@@ -50,12 +50,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.AbstractPlatformClient;
 import io.cryostat.platform.ServiceRef;
@@ -81,26 +87,35 @@ import org.apache.commons.lang3.StringUtils;
 public class PodmanPlatformClient extends AbstractPlatformClient {
 
     public static final String REALM = "Podman";
-    public static final String CRYOSTAT_LABEL = "io.cryostat.connectUrl";
+    public static final String DISCOVERY_LABEL = "io.cryostat.discovery";
+    public static final String JMX_URL_LABEL = "io.cryostat.jmxUrl";
+    public static final String JMX_HOST_LABEL = "io.cryostat.jmxHost";
+    public static final String JMX_PORT_LABEL = "io.cryostat.jmxPort";
 
+    private final ExecutorService executor;
     private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
-    private final Gson gson;
     private final SocketAddress podmanSocket;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final Gson gson;
     private final Logger logger;
     private long timerId;
 
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
     PodmanPlatformClient(
+            ExecutorService executor,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             SocketAddress podmanSocket,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Logger logger) {
+        this.executor = executor;
         this.webClient = webClient;
         this.vertx = vertx;
         this.podmanSocket = podmanSocket;
+        this.connectionToolkit = connectionToolkit;
         this.gson = gson;
         this.logger = logger;
     }
@@ -134,7 +149,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     }
 
     private void queryContainers() {
-        doPodmanRequest(
+        doPodmanListRequest(
                 current -> {
                     Set<ContainerSpec> previous = new HashSet<>(containers);
                     Set<ContainerSpec> updated = new HashSet<>(current);
@@ -152,99 +167,148 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                     // notifyAsyncTargetDiscovery(EventKind.MODIFIED, sr);
 
                     containers.removeAll(removed);
-                    removed.forEach(
-                            spec -> notifyAsyncTargetDiscovery(EventKind.LOST, convert(spec)));
+                    removed.stream()
+                            .filter(Objects::nonNull)
+                            .forEach(
+                                    spec ->
+                                            notifyAsyncTargetDiscovery(
+                                                    EventKind.LOST, convert(spec)));
 
                     containers.addAll(added);
-                    added.forEach(
-                            spec -> notifyAsyncTargetDiscovery(EventKind.FOUND, convert(spec)));
+                    added.stream()
+                            .filter(Objects::nonNull)
+                            .forEach(
+                                    spec ->
+                                            notifyAsyncTargetDiscovery(
+                                                    EventKind.FOUND, convert(spec)));
                 });
     }
 
-    private void doPodmanRequest(Consumer<List<ContainerSpec>> successHandler) {
+    private void doPodmanListRequest(Consumer<List<ContainerSpec>> successHandler) {
         URI requestPath = URI.create("http://d/v3.0.0/libpod/containers/json");
-        vertx.get()
-                .executeBlocking(
-                        promise ->
-                                webClient
-                                        .get()
-                                        .request(
-                                                HttpMethod.GET,
-                                                podmanSocket,
-                                                80,
-                                                "localhost",
-                                                requestPath.toString())
-                                        .addQueryParam(
-                                                "filters",
-                                                gson.toJson(
-                                                        Map.of("label", List.of(CRYOSTAT_LABEL))))
-                                        // TODO make this configurable?
-                                        .timeout(5_000L)
-                                        .as(BodyCodec.string())
-                                        .send(
-                                                ar -> {
-                                                    if (ar.failed()) {
-                                                        Throwable t = ar.cause();
-                                                        logger.error(
-                                                                "Podman API request failed", t);
-                                                        promise.fail(t);
-                                                        return;
-                                                    }
-                                                    HttpResponse<String> response = ar.result();
-                                                    successHandler.accept(
-                                                            gson.fromJson(
-                                                                    response.body(),
-                                                                    new TypeToken<
-                                                                            List<
-                                                                                    ContainerSpec>>() {}));
-                                                    promise.complete();
-                                                }));
+        executor.submit(
+                () ->
+                        webClient
+                                .get()
+                                .request(
+                                        HttpMethod.GET,
+                                        podmanSocket,
+                                        80,
+                                        "localhost",
+                                        requestPath.toString())
+                                .addQueryParam(
+                                        "filters",
+                                        gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
+                                .timeout(2_000L)
+                                .as(BodyCodec.string())
+                                .send(
+                                        ar -> {
+                                            if (ar.failed()) {
+                                                Throwable t = ar.cause();
+                                                logger.error("Podman API request failed", t);
+                                                return;
+                                            }
+                                            HttpResponse<String> response = ar.result();
+                                            successHandler.accept(
+                                                    gson.fromJson(
+                                                            response.body(),
+                                                            new TypeToken<
+                                                                    List<ContainerSpec>>() {}));
+                                        }));
+    }
+
+    private CompletableFuture<ContainerDetails> doPodmanInspectRequest(ContainerSpec container) {
+        CompletableFuture<ContainerDetails> result = new CompletableFuture<>();
+        URI requestPath =
+                URI.create(
+                        String.format("http://d/v3.0.0/libpod/containers/%s/json", container.Id));
+        executor.submit(
+                () -> {
+                    webClient
+                            .get()
+                            .request(
+                                    HttpMethod.GET,
+                                    podmanSocket,
+                                    80,
+                                    "localhost",
+                                    requestPath.toString())
+                            .addQueryParam(
+                                    "filters",
+                                    gson.toJson(Map.of("label", List.of(JMX_PORT_LABEL))))
+                            .timeout(2_000L)
+                            .as(BodyCodec.string())
+                            .send(
+                                    ar -> {
+                                        if (ar.failed()) {
+                                            Throwable t = ar.cause();
+                                            logger.error("Podman API request failed", t);
+                                            result.completeExceptionally(t);
+                                            return;
+                                        }
+                                        HttpResponse<String> response = ar.result();
+                                        result.complete(
+                                                gson.fromJson(
+                                                        response.body(), ContainerDetails.class));
+                                    });
+                });
+        return result;
     }
 
     private ServiceRef convert(ContainerSpec desc) {
-        String connectUrl = desc.Labels.get(CRYOSTAT_LABEL);
-        URI serviceUrl;
         try {
-            serviceUrl = new URI(connectUrl);
-        } catch (URISyntaxException e) {
+            JMXServiceURL connectUrl;
+            String hostname;
+            int jmxPort;
+            if (desc.Labels.containsKey(JMX_URL_LABEL)) {
+                connectUrl = new JMXServiceURL(desc.Labels.get(JMX_URL_LABEL));
+                if (URIUtil.isRmiUrl(connectUrl)) {
+                    URI serviceUrl = URIUtil.getRmiTarget(connectUrl);
+                    hostname = serviceUrl.getHost();
+                    jmxPort = serviceUrl.getPort();
+                } else {
+                    hostname = connectUrl.getHost();
+                    jmxPort = connectUrl.getPort();
+                }
+            } else {
+                jmxPort = Integer.parseInt(desc.Labels.get(JMX_PORT_LABEL));
+                hostname = desc.Labels.get(JMX_HOST_LABEL);
+                if (hostname == null) {
+                    try {
+                        hostname =
+                                doPodmanInspectRequest(desc)
+                                        .get(2, TimeUnit.SECONDS)
+                                        .Config
+                                        .Hostname;
+                    } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                        logger.warn(e);
+                        return null;
+                    }
+                }
+                connectUrl = connectionToolkit.get().createServiceURL(hostname, jmxPort);
+            }
+
+            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
+            cryostatAnnotations.put(AnnotationKey.REALM, REALM);
+
+            cryostatAnnotations.put(AnnotationKey.HOST, hostname);
+            cryostatAnnotations.put(AnnotationKey.PORT, Integer.toString(jmxPort));
+
+            ServiceRef serviceRef =
+                    new ServiceRef(
+                            null,
+                            URI.create(connectUrl.toString()),
+                            Optional.ofNullable(desc.Names.get(0)).orElse(desc.Id));
+
+            serviceRef.setCryostatAnnotations(cryostatAnnotations);
+            // TODO perform podman inspection query to populate annotations
+            // serviceRef.setPlatformAnnotations();
+            serviceRef.setLabels(desc.Labels);
+
+            return serviceRef;
+        } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
             logger.warn(e);
             return null;
         }
-
-        ServiceRef serviceRef =
-                new ServiceRef(
-                        null, serviceUrl, Optional.ofNullable(desc.Names.get(0)).orElse(desc.Id));
-
-        Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
-        cryostatAnnotations.put(AnnotationKey.REALM, REALM);
-
-        String host = serviceUrl.getHost();
-        int port = serviceUrl.getPort();
-        if ("service".equals(serviceUrl.getScheme())) {
-            try {
-                JMXServiceURL jmx = new JMXServiceURL(serviceUrl.toString());
-                if (URIUtil.isRmiUrl(jmx)) {
-                    serviceUrl = URIUtil.getRmiTarget(jmx);
-                    host = serviceUrl.getHost();
-                    port = serviceUrl.getPort();
-                } else {
-                    host = jmx.getHost();
-                    port = jmx.getPort();
-                }
-            } catch (URISyntaxException | MalformedURLException e) {
-                logger.warn(e);
-                return null;
-            }
-        }
-        cryostatAnnotations.put(AnnotationKey.HOST, host);
-        cryostatAnnotations.put(AnnotationKey.PORT, Integer.toString(port));
-
-        serviceRef.setCryostatAnnotations(cryostatAnnotations);
-        // TODO perform podman inspection query to populate annotations
-        // serviceRef.setPlatformAnnotations();
-        serviceRef.setLabels(desc.Labels);
-
-        return serviceRef;
     }
 
     private List<ServiceRef> convert(Collection<ContainerSpec> descs) {
@@ -288,6 +352,10 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
             List<PortSpec> Ports,
             long StartedAt,
             String State) {}
+
+    static record ContainerDetails(Config Config) {}
+
+    static record Config(String Hostname) {}
 
     public enum PodmanNodeType implements NodeType {
         POD("Pod"),
