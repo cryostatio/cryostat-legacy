@@ -37,6 +37,13 @@
  */
 package io.cryostat.platform.internal;
 
+import java.net.URI;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
@@ -44,13 +51,18 @@ import io.cryostat.net.AuthManager;
 import com.google.gson.Gson;
 import com.sun.security.auth.module.UnixSystem;
 import dagger.Lazy;
+import io.netty.channel.epoll.Epoll;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.codec.BodyCodec;
 
 class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatformClient> {
 
     private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
+    private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
     private final Gson gson;
     private final FileSystem fs;
@@ -58,11 +70,13 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     PodmanPlatformStrategy(
             Logger logger,
             Lazy<? extends AuthManager> authMgr,
+            Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Gson gson,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
+        this.webClient = webClient;
         this.vertx = vertx;
         this.gson = gson;
         this.fs = fs;
@@ -72,18 +86,63 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     public boolean isAvailable() {
         String socketPath = getSocketPath();
         logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);
-        // TODO check that the service is actually available on the socket using an HTTP request
-        boolean available = fs.isReadable(fs.pathOf(socketPath));
+
+        boolean socketExists = fs.isReadable(fs.pathOf(socketPath));
+        boolean nativeEnabled = vertx.get().isNativeTransportEnabled();
+
+        if (!nativeEnabled && !Epoll.isAvailable()) {
+            Epoll.unavailabilityCause().printStackTrace();
+        }
+
+        boolean serviceReachable = false;
+        if (socketExists && nativeEnabled) {
+            serviceReachable = testPodmanApi();
+        }
+
+        boolean available = socketExists && nativeEnabled && serviceReachable;
         logger.info("{} available? {}", getClass().getSimpleName(), available);
         return available;
+    }
+
+    private boolean testPodmanApi() {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        URI requestPath = URI.create("http://d/info");
+        Executors.newSingleThreadExecutor()
+                .submit(
+                        () -> {
+                            webClient
+                                    .get()
+                                    .request(
+                                            HttpMethod.GET,
+                                            getSocket(),
+                                            80,
+                                            "localhost",
+                                            requestPath.toString())
+                                    .timeout(2_000L)
+                                    .as(BodyCodec.none())
+                                    .send(
+                                            ar -> {
+                                                if (ar.failed()) {
+                                                    Throwable t = ar.cause();
+                                                    logger.info("Podman API request failed", t);
+                                                    result.complete(false);
+                                                    return;
+                                                }
+                                                result.complete(true);
+                                            });
+                        });
+        try {
+            return result.get(2, TimeUnit.SECONDS);
+        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+            logger.error(e);
+            return false;
+        }
     }
 
     @Override
     public PodmanPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
-        String socketPath = getSocketPath();
-        SocketAddress podmanPath = SocketAddress.domainSocketAddress(socketPath);
-        return new PodmanPlatformClient(vertx, podmanPath, gson, logger);
+        return new PodmanPlatformClient(webClient, vertx, getSocket(), gson, logger);
     }
 
     @Override
@@ -95,5 +154,9 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
         long uid = new UnixSystem().getUid();
         String socketPath = String.format("/run/user/%d/podman/podman.sock", uid);
         return socketPath;
+    }
+
+    private static SocketAddress getSocket() {
+        return SocketAddress.domainSocketAddress(getSocketPath());
     }
 }

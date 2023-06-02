@@ -39,6 +39,7 @@ package io.cryostat.platform.internal;
 
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
@@ -56,9 +57,19 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
 import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
 
 @Module
 public abstract class PlatformStrategyModule {
+
+    public static final String UNIX_SOCKET_WEBCLIENT = "UNIX_SOCKET_WEBCLIENT";
+
+    @Provides
+    @Singleton
+    @Named(UNIX_SOCKET_WEBCLIENT)
+    static WebClient provideUnixSocketWebClient(Vertx vertx) {
+        return WebClient.create(vertx);
+    }
 
     @Provides
     @Singleton
@@ -103,10 +114,11 @@ public abstract class PlatformStrategyModule {
     static PodmanPlatformStrategy providePodmanPlatformStrategy(
             Logger logger,
             Lazy<NoopAuthManager> noopAuthManager,
+            @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             Gson gson,
             FileSystem fs) {
-        return new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs);
+        return new PodmanPlatformStrategy(logger, noopAuthManager, webClient, vertx, gson, fs);
     }
 
     @Provides

@@ -83,8 +83,8 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     public static final String REALM = "Podman";
     public static final String CRYOSTAT_LABEL = "io.cryostat.connectUrl";
 
+    private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
-    private WebClient webClient;
     private final Gson gson;
     private final SocketAddress podmanSocket;
     private final Logger logger;
@@ -92,7 +92,13 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
-    PodmanPlatformClient(Lazy<Vertx> vertx, SocketAddress podmanSocket, Gson gson, Logger logger) {
+    PodmanPlatformClient(
+            Lazy<WebClient> webClient,
+            Lazy<Vertx> vertx,
+            SocketAddress podmanSocket,
+            Gson gson,
+            Logger logger) {
+        this.webClient = webClient;
         this.vertx = vertx;
         this.podmanSocket = podmanSocket;
         this.gson = gson;
@@ -103,7 +109,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
     public void start() throws Exception {
         super.start();
         queryContainers();
-        logger.info("native transport? {}", vertx.get().isNativeTransportEnabled());
         this.timerId =
                 vertx.get()
                         .setPeriodic(
@@ -161,7 +166,8 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
         vertx.get()
                 .executeBlocking(
                         promise ->
-                                webClient()
+                                webClient
+                                        .get()
                                         .request(
                                                 HttpMethod.GET,
                                                 podmanSocket,
@@ -266,13 +272,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
         }
         children.addAll(pods.values());
         return new EnvironmentNode(REALM, BaseNodeType.REALM, Collections.emptyMap(), children);
-    }
-
-    private WebClient webClient() {
-        if (this.webClient == null) {
-            this.webClient = WebClient.create(this.vertx.get());
-        }
-        return webClient;
     }
 
     static record PortSpec(
