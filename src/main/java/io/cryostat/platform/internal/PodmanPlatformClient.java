@@ -270,7 +270,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                     jmxPort = connectUrl.getPort();
                 }
             } else {
-                jmxPort = Integer.valueOf(desc.Labels.get(JMX_PORT_LABEL));
+                jmxPort = Integer.parseInt(desc.Labels.get(JMX_PORT_LABEL));
                 hostname = desc.Labels.get(JMX_HOST_LABEL);
                 if (hostname == null) {
                     try {
