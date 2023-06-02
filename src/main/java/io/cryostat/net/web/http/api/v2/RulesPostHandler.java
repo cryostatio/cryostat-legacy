@@ -60,6 +60,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
@@ -138,8 +139,13 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        HttpMimeType mime =
-                HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
+        String contentType =
+                StringUtils.defaultString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE));
+
+        if (contentType.contains(";")) {
+            contentType = contentType.substring(0, contentType.indexOf(";"));
+        }
+        HttpMimeType mime = HttpMimeType.fromString(contentType);
         switch (mime) {
             case MULTIPART_FORM:
             case URLENCODED_FORM:

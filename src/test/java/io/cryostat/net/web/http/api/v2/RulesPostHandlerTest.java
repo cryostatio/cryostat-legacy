@@ -208,14 +208,37 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
         }
 
-        @Test
-        void unsupportedFirstMimeShouldThrow() {
+        @ParameterizedTest
+        @ValueSource(strings = {"text/plain;NOTAMIME", "text/plain; another-directive"})
+        void unsupportedFirstMimeShouldThrow(String text) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-            headers.set(HttpHeaders.CONTENT_TYPE, "text/plain;NOTAMIME");
+            headers.set(HttpHeaders.CONTENT_TYPE, text);
             Mockito.when(params.getHeaders()).thenReturn(headers);
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(415));
+        }
+
+        @ParameterizedTest
+        @ValueSource(
+                strings = {
+                    "multipart/form-data",
+                    "multipart/form-data; boundary=------somecharacters",
+                    "multipart/form-data; unkown characters",
+                    "multipart/form-data; directive1; directive2",
+                    "multipart/form-data;directive"
+                })
+        void shouldAcceptMultipartWithBoundary(String contentType) {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            headers.set(HttpHeaders.CONTENT_TYPE, contentType);
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getFormAttributes()).thenReturn(form);
+            form.set(Rule.Attribute.NAME.getSerialKey(), "multipart");
+            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "false");
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Continuous");
+            IntermediateResponse<String> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
         }
 
         @ParameterizedTest
