@@ -96,7 +96,10 @@ fi
 docker run \
     --name cryostat \
     --user 0 \
-    --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
+    --label io.cryostat.discovery="true" \
+    --label io.cryostat.jmxHost="localhost" \
+    --label io.cryostat.jmxPort="0" \
+    --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
     --memory 768M \
     --publish "${CRYOSTAT_WEB_PORT}:${CRYOSTAT_EXT_WEB_PORT}" \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d \

@@ -125,6 +125,20 @@ public abstract class PlatformStrategyModule {
 
     @Provides
     @Singleton
+    static DockerPlatformStrategy provideDockerPlatformStrategy(
+            Logger logger,
+            Lazy<NoopAuthManager> noopAuthManager,
+            @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
+            Lazy<Vertx> vertx,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Gson gson,
+            FileSystem fs) {
+        return new DockerPlatformStrategy(
+                logger, noopAuthManager, webClient, vertx, connectionToolkit, gson, fs);
+    }
+
+    @Provides
+    @Singleton
     static DefaultPlatformStrategy provideDefaultPlatformStrategy(
             Logger logger, Lazy<NoopAuthManager> noopAuthManager) {
         return new DefaultPlatformStrategy(
@@ -134,31 +148,12 @@ public abstract class PlatformStrategyModule {
     @Provides
     @ElementsIntoSet
     static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
-<<<<<<< HEAD
             CustomTargetPlatformStrategy customTargets,
             OpenShiftPlatformStrategy openShift,
             KubeApiPlatformStrategy kubeApi,
             PodmanPlatformStrategy podman,
+            DockerPlatformStrategy docker,
             DefaultPlatformStrategy jdp) {
         return Set.of(customTargets, openShift, kubeApi, podman, jdp);
-=======
-            Logger logger,
-            Lazy<OpenShiftAuthManager> openShiftAuthManager,
-            Lazy<NoopAuthManager> noopAuthManager,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Vertx vertx,
-            Gson gson,
-            NetworkResolver resolver,
-            Environment env,
-            FileSystem fs) {
-        return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, env, fs),
-                new PodmanPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
-                new DockerPlatformStrategy(logger, noopAuthManager, vertx, gson, fs),
-                new DefaultPlatformStrategy(
-                        logger, noopAuthManager, () -> new JvmDiscoveryClient(logger)));
->>>>>>> 3dcbdcef (dockerPlatform)
     }
 }
