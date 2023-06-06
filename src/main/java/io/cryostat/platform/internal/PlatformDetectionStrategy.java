@@ -15,6 +15,8 @@
  */
 package io.cryostat.platform.internal;
 
+import java.util.Map;
+
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.PlatformClient;
 
@@ -24,4 +26,8 @@ public interface PlatformDetectionStrategy<T extends PlatformClient> {
     T getPlatformClient();
 
     AuthManager getAuthManager();
+
+    default Map<String, String> environment() {
+        return Map.of();
+    }
 }

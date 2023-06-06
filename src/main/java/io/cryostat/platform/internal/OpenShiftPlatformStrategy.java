@@ -15,6 +15,11 @@
  */
 package io.cryostat.platform.internal;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -26,6 +31,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
+
+    static final String INSIGHTS_TOKEN_PATH = "/var/run/TODO";
 
     OpenShiftPlatformStrategy(
             Logger logger,
@@ -44,5 +51,24 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     @Override
     protected OpenShiftClient createClient() {
         return super.createClient().adapt(OpenShiftClient.class);
+    }
+
+    @Override
+    public Map<String, String> environment() {
+        Map<String, String> env = new HashMap<>(super.environment());
+        String token = getInsightsToken();
+        if (token != null) {
+            env.put("INSIGHTS_TOKEN", token);
+        }
+        return env;
+    }
+
+    private String getInsightsToken() {
+        try {
+            return fs.readString(Paths.get(INSIGHTS_TOKEN_PATH));
+        } catch (IOException e) {
+            logger.trace(e);
+            return null;
+        }
     }
 }
