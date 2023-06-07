@@ -293,8 +293,7 @@ runReportGenerator() {
 }
 
 createPod() {
-    local jmxPort; local webPort; local datasourcePort; local grafanaPort;
-    jmxPort="$(getPomProperty cryostat.rjmxPort)"
+    local webPort; local datasourcePort; local grafanaPort;
     webPort="$(getPomProperty cryostat.webPort)"
     datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
@@ -302,7 +301,6 @@ createPod() {
         --replace \
         --hostname cryostat \
         --name cryostat-pod \
-        --publish "${jmxPort}:${jmxPort}" \
         --publish "${webPort}:${webPort}" \
         --publish "${datasourcePort}:${datasourcePort}" \
         --publish "${grafanaPort}:${grafanaPort}" \
@@ -310,37 +308,18 @@ createPod() {
         --publish 8081:8081 \
         --publish 8082:8082 \
         --publish 8083:8083 \
-        --publish 9093:9093 \
-        --publish 9094:9094 \
-        --publish 9095:9095 \
-        --publish 9096:9096 \
-        --publish 9999:9999 \
         --publish 8082:8082 \
         --publish 9990:9990 \
-        --publish 9991:9991 \
-        --publish 10000:10000 \
         --publish 10001:10001 \
-        --publish 10010:10010 \
-        --publish 51423:51423
+        --publish 10010:10010
     # 5432: postgres
     # 8081: vertx-fib-demo-1 HTTP
     # 8082: vertx-fib-demo-2 HTTP
     # 8083: vertx-fib-demo-3 HTTP
-    # 9093: vertx-fib-demo-1 RJMX
-    # 9094: vertx-fib-demo-2 RJMX
-    # 9095: vertx-fib-demo-3 RJMX
-    # 9097: quarkus-test-agent-1 RJMX
-    # 9098: quarkus-test-agent-2 RJMX
-    # 8082: Wildfly HTTP
     # 9990: Wildfly Admin Console
-    # 9991: Wildfly RJMX
-    # 9977: quarkus-test-agent-1 Agent-HTTP
-    # 9988: quarkus-test-agent-2 Agent-HTTP
-    # 10000: cryostat-reports RJMX
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-agent-1 HTTP
     # 10011: quarkus-test-agent-2 HTTP
-    # 51423: jmxquarkus RJMX
 }
 
 destroyPod() {
