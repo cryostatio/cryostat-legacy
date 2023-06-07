@@ -154,6 +154,6 @@ public abstract class PlatformStrategyModule {
             PodmanPlatformStrategy podman,
             DockerPlatformStrategy docker,
             DefaultPlatformStrategy jdp) {
-        return Set.of(customTargets, openShift, kubeApi, podman, jdp);
+        return Set.of(customTargets, openShift, kubeApi, podman, docker, jdp);
     }
 }

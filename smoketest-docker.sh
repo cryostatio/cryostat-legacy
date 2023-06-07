@@ -122,7 +122,11 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="9093" \
+        --publish 8081:8081 \
+        --publish 9093:9093 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     docker run \
@@ -139,7 +143,12 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="9094" \
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
+        --publish 8082:8082 \
+        --publish 9094:9092 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     docker run \
@@ -157,7 +166,10 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
+        --publish 8083:8083 \
+        --publish 9095:9095 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
@@ -169,6 +181,7 @@ runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
+        --publish 10009:10009 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     docker run \
@@ -188,6 +201,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
         --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
+        --publish 10010:10010 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     docker run \
@@ -205,12 +219,15 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
+        --publish 10011:10011 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
     docker run \
         --name wildfly \
+        --publish 9990:9990 \
+        --publish 9991:9991 \
         --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
 }
 
@@ -240,6 +257,8 @@ runGrafana() {
     docker run \
         --name grafana \
         --pull "${PULL_IMAGES}" \
+        --publish 10001:10001 \
+        --publish "${port}:${port}" \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -259,8 +278,11 @@ runReportGenerator() {
     docker run \
         --name reports \
         --pull "${PULL_IMAGES}" \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:${RJMX_PORT}/jmxrmi" \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --cpus 1 \
+        --publish "${RJMX_PORT}:${RJMX_PORT}" \
         --memory 512M \
         --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
