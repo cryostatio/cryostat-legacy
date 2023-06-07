@@ -176,11 +176,12 @@ public class DockerPlatformClient extends AbstractPlatformClient {
 
                     containers.addAll(added);
                     added.stream()
+                            .map(spec -> convert(spec))
                             .filter(Objects::nonNull)
                             .forEach(
                                     spec ->
                                             notifyAsyncTargetDiscovery(
-                                                    EventKind.FOUND, convert(spec)));
+                                                    EventKind.FOUND, spec));
                 });
     }
 
@@ -232,9 +233,6 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                                     80,
                                     "localhost",
                                     requestPath.toString())
-                            .addQueryParam(
-                                    "filters",
-                                    gson.toJson(Map.of("label", List.of(JMX_PORT_LABEL))))
                             .timeout(2_000L)
                             .as(BodyCodec.string())
                             .send(

@@ -113,17 +113,7 @@ runDemoApps() {
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
-        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-1" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8910" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8910/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9093" \
         --publish 8081:8081 \
         --publish 9093:9093 \
@@ -134,19 +124,8 @@ runDemoApps() {
         --env HTTP_PORT=8082 \
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
-        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-2" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8911" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8911/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9094" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
         --publish 8082:8082 \
         --publish 9094:9092 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
@@ -157,17 +136,8 @@ runDemoApps() {
         --env JMX_PORT=9095 \
         --env USE_SSL=true \
         --env USE_AUTH=true \
-        --env CRYOSTAT_AGENT_APP_NAME="vertx-fib-demo-3" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="8912" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:8912/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
+        --label io.cryostat.jmxPort="9095" \
         --publish 8083:8083 \
         --publish 9095:9095 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
@@ -179,8 +149,6 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10009 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --publish 10009:10009 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
@@ -189,18 +157,6 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="9977" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9977/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
-        --env CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000 \
-        --env CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10 \
         --publish 10010:10010 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
@@ -209,16 +165,6 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
-        --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
-        --env CRYOSTAT_AGENT_WEBSERVER_PORT="9988" \
-        --env CRYOSTAT_AGENT_CALLBACK="http://localhost:9988/" \
-        --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
-        --env CRYOSTAT_AGENT_TRUST_ALL="true" \
-        --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
         --publish 10011:10011 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
@@ -279,7 +225,6 @@ runReportGenerator() {
         --name reports \
         --pull "${PULL_IMAGES}" \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --cpus 1 \
         --publish "${RJMX_PORT}:${RJMX_PORT}" \
@@ -288,6 +233,11 @@ runReportGenerator() {
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
+
+destroyDocker() {
+     docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1
+}
+trap destroyDocker EXIT
 
 if [ "$1" = "postgres" ]; then
     runPostgres
