@@ -109,6 +109,13 @@ runDemoApps() {
     fi
 
     podman run \
+        --name jmxquarkus \
+        --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxPort="51423" \
+        --rm -d quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
+
+    podman run \
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
@@ -303,6 +310,7 @@ createPod() {
         --publish 8081:8081 \
         --publish 8082:8082 \
         --publish 8083:8083 \
+        --publish 9091:9091 \
         --publish 9093:9093 \
         --publish 9094:9094 \
         --publish 9095:9095 \
@@ -313,7 +321,8 @@ createPod() {
         --publish 9991:9991 \
         --publish 10000:10000 \
         --publish 10001:10001 \
-        --publish 10010:10010
+        --publish 10010:10010 \
+        --publish 51423:51423
     # 5432: postgres
     # 8081: vertx-fib-demo-1 HTTP
     # 8082: vertx-fib-demo-2 HTTP
@@ -332,6 +341,7 @@ createPod() {
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-agent-1 HTTP
     # 10011: quarkus-test-agent-2 HTTP
+    # 51423: jmxquarkus RJMX
 }
 
 destroyPod() {
