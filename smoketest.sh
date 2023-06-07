@@ -310,7 +310,6 @@ createPod() {
         --publish 8081:8081 \
         --publish 8082:8082 \
         --publish 8083:8083 \
-        --publish 9091:9091 \
         --publish 9093:9093 \
         --publish 9094:9094 \
         --publish 9095:9095 \
