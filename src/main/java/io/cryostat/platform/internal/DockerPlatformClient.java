@@ -52,10 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
@@ -251,16 +248,12 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                 jmxPort = Integer.parseInt(desc.Labels.get(JMX_PORT_LABEL));
                 hostname = desc.Labels.get(JMX_HOST_LABEL);
                 if (hostname == null) {
-                    try {
-                        hostname =
-                                doDockerInspectRequest(desc)
-                                        .get(2, TimeUnit.SECONDS)
-                                        .Config
-                                        .Hostname;
-                    } catch (InterruptedException | TimeoutException | ExecutionException e) {
-                        containers.remove(desc);
-                        logger.warn(e);
-                        return null;
+                    if (desc.Names.size() < 1) {
+                        throw new IndexOutOfBoundsException();
+                    }
+                    hostname = desc.Names.get(0);
+                    if (hostname.startsWith("/")) {
+                        hostname = hostname.substring(1);
                     }
                 }
                 connectUrl = connectionToolkit.get().createServiceURL(hostname, jmxPort);
@@ -322,7 +315,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
             List<PortSpec> Ports,
             long StartedAt,
             String State) {}
-    
+
     static record ContainerDetails(Config Config) {}
 
     static record Config(String Hostname) {}

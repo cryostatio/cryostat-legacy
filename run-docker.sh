@@ -93,13 +93,18 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
+dockerCleanUp() {
+    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports cryostat
+    docker network rm -f cryostat-docker
+}
+trap dockerCleanUp EXIT
+
 docker run \
     --name cryostat \
+    --network cryostat-docker \
     --user 0 \
     --label io.cryostat.discovery="true" \
-    --label io.cryostat.jmxHost="localhost" \
-    --label io.cryostat.jmxPort="0" \
-    --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
+    --label io.cryostat.jmxPort="${CRYOSTAT_RJMX_PORT}" \
     --memory 768M \
     --publish "${CRYOSTAT_WEB_PORT}:${CRYOSTAT_EXT_WEB_PORT}" \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d \

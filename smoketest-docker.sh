@@ -24,7 +24,6 @@ runCryostat() {
     host="$(getPomProperty cryostat.itest.webHost)"
     datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
-    jmxPort="$(getPomProperty cryostat.rjmxPort)"
     webPort="$(getPomProperty cryostat.webPort)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
@@ -86,6 +85,7 @@ runPostgres() {
     fi
     docker run \
         --name postgres \
+        --network cryostat-docker \
         --env POSTGRES_USER=postgres \
         --env POSTGRES_PASSWORD=abcd1234 \
         --env POSTGRES_DB=cryostat \
@@ -111,6 +111,7 @@ runDemoApps() {
 
     docker run \
         --name vertx-fib-demo-1 \
+        --network cryostat-docker \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
         --label io.cryostat.discovery="true" \
@@ -121,6 +122,7 @@ runDemoApps() {
 
     docker run \
         --name vertx-fib-demo-2 \
+        --network cryostat-docker \
         --env HTTP_PORT=8082 \
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
@@ -132,6 +134,7 @@ runDemoApps() {
 
     docker run \
         --name vertx-fib-demo-3 \
+        --network cryostat-docker \
         --env HTTP_PORT=8083 \
         --env JMX_PORT=9095 \
         --env USE_SSL=true \
@@ -146,6 +149,7 @@ runDemoApps() {
     # when not properly set up
     docker run \
         --name quarkus-test-agent-0 \
+        --network cryostat-docker \
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10009 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
@@ -154,6 +158,7 @@ runDemoApps() {
 
     docker run \
         --name quarkus-test-agent-1 \
+        --network cryostat-docker \
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
@@ -162,6 +167,7 @@ runDemoApps() {
 
     docker run \
         --name quarkus-test-agent-2 \
+        --network cryostat-docker \
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
@@ -172,6 +178,7 @@ runDemoApps() {
     # manual entry URL: service:jmx:remote+http://localhost:9990
     docker run \
         --name wildfly \
+        --network cryostat-docker \
         --publish 9990:9990 \
         --publish 9991:9991 \
         --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
@@ -186,6 +193,7 @@ runJfrDatasource() {
     fi
     docker run \
         --name jfr-datasource \
+        --network cryostat-docker \
         --pull "${PULL_IMAGES}" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
@@ -202,6 +210,7 @@ runGrafana() {
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     docker run \
         --name grafana \
+        --network cryostat-docker \
         --pull "${PULL_IMAGES}" \
         --publish 10001:10001 \
         --publish "${port}:${port}" \
@@ -223,6 +232,7 @@ runReportGenerator() {
     port="$(getPomProperty cryostat.itest.reports.port)"
     docker run \
         --name reports \
+        --network cryostat-docker \
         --pull "${PULL_IMAGES}" \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
@@ -234,8 +244,10 @@ runReportGenerator() {
         --rm -d "${REPORTS_IMAGE}"
 }
 
+
 dockerCleanUp() {
-    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports
+    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports cryostat
+    docker network rm -f cryostat-docker
 }
 dockerCleanUp
 trap dockerCleanUp EXIT
@@ -247,6 +259,7 @@ elif [ "$1" = "postgres-pgcli" ]; then
     PGPASSWORD=abcd1234 pgcli -h localhost -p 5432 -U postgres
     exit
 fi
+docker network create --driver bridge cryostat-docker
 runDemoApps
 runJfrDatasource
 runGrafana
