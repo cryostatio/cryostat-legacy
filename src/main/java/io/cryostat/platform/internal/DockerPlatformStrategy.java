@@ -40,7 +40,7 @@ package io.cryostat.platform.internal;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -50,7 +50,6 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import com.google.gson.Gson;
-import com.sun.security.auth.module.UnixSystem;
 import dagger.Lazy;
 import io.netty.channel.epoll.Epoll;
 import io.vertx.core.Vertx;
@@ -70,20 +69,20 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     private final FileSystem fs;
 
     DockerPlatformStrategy(
-        Logger logger,
-        Lazy<? extends AuthManager> authMgr,
-        Lazy<WebClient> webClient,
-        Lazy<Vertx> vertx,
-        Lazy<JFRConnectionToolkit> connectionToolkit,
-        Gson gson,
-        FileSystem fs) {
-    this.logger = logger;
-    this.authMgr = authMgr;
-    this.webClient = webClient;
-    this.vertx = vertx;
-    this.connectionToolkit = connectionToolkit;
-    this.gson = gson;
-    this.fs = fs;
+            Logger logger,
+            Lazy<? extends AuthManager> authMgr,
+            Lazy<WebClient> webClient,
+            Lazy<Vertx> vertx,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Gson gson,
+            FileSystem fs) {
+        this.logger = logger;
+        this.authMgr = authMgr;
+        this.webClient = webClient;
+        this.vertx = vertx;
+        this.connectionToolkit = connectionToolkit;
+        this.gson = gson;
+        this.fs = fs;
     }
 
     @Override
@@ -111,7 +110,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     private boolean testDockerApi() {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         URI requestPath = URI.create("http://d/v1.41/info");
-        Executors.newSingleThreadExecutor()
+        ForkJoinPool.commonPool()
                 .submit(
                         () -> {
                             webClient
@@ -147,7 +146,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     public DockerPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new DockerPlatformClient(
-                Executors.newSingleThreadExecutor(),
+                ForkJoinPool.commonPool(),
                 webClient,
                 vertx,
                 getSocket(),

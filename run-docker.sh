@@ -97,6 +97,7 @@ docker run \
     --name cryostat \
     --user 0 \
     --label io.cryostat.discovery="true" \
+    --label io.cryostat.jmxHost="localhost" \
     --label io.cryostat.jmxPort="0" \
     --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
     --memory 768M \

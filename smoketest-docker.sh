@@ -234,10 +234,11 @@ runReportGenerator() {
         --rm -d "${REPORTS_IMAGE}"
 }
 
-destroyDocker() {
-     docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1
+dockerCleanUp() {
+    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports
 }
-trap destroyDocker EXIT
+dockerCleanUp
+trap dockerCleanUp EXIT
 
 if [ "$1" = "postgres" ]; then
     runPostgres

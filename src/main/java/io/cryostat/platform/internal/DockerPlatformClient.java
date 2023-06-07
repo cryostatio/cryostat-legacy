@@ -69,7 +69,6 @@ import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.NodeType;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.util.URIUtil;
 
@@ -79,10 +78,8 @@ import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
-import org.apache.commons.lang3.StringUtils;
 
 public class DockerPlatformClient extends AbstractPlatformClient {
 
@@ -104,7 +101,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
     DockerPlatformClient(
-        ExecutorService executor,
+            ExecutorService executor,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             SocketAddress dockerSocket,
@@ -168,61 +165,44 @@ public class DockerPlatformClient extends AbstractPlatformClient {
 
                     containers.removeAll(removed);
                     removed.stream()
+                            .map(this::convert)
                             .filter(Objects::nonNull)
-                            .forEach(
-                                    spec ->
-                                            notifyAsyncTargetDiscovery(
-                                                    EventKind.LOST, convert(spec)));
+                            .forEach(spec -> notifyAsyncTargetDiscovery(EventKind.LOST, spec));
 
                     containers.addAll(added);
                     added.stream()
-                            .map(spec -> convert(spec))
+                            .map(this::convert)
                             .filter(Objects::nonNull)
-                            .forEach(
-                                    spec ->
-                                            notifyAsyncTargetDiscovery(
-                                                    EventKind.FOUND, spec));
+                            .forEach(spec -> notifyAsyncTargetDiscovery(EventKind.FOUND, spec));
                 });
     }
 
     private void doDockerListRequest(Consumer<List<ContainerSpec>> successHandler) {
         URI requestPath = URI.create("http://d/v1.41/containers/json");
-        executor.submit(
-                () ->
-                        webClient
-                                .get()
-                                .request(
-                                        HttpMethod.GET,
-                                        dockerSocket,
-                                        80,
-                                        "localhost",
-                                        requestPath.toString())
-                                .addQueryParam(
-                                        "filters",
-                                        gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
-                                .timeout(2_000L)
-                                .as(BodyCodec.string())
-                                .send(
-                                        ar -> {
-                                            if (ar.failed()) {
-                                                Throwable t = ar.cause();
-                                                logger.error("Dockre API request failed", t);
-                                                return;
-                                            }
-                                            HttpResponse<String> response = ar.result();
-                                            successHandler.accept(
-                                                    gson.fromJson(
-                                                            response.body(),
-                                                            new TypeToken<
-                                                                    List<ContainerSpec>>() {}));
-                                        }));
+        webClient
+                .get()
+                .request(HttpMethod.GET, dockerSocket, 80, "localhost", requestPath.toString())
+                .addQueryParam("filters", gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
+                .timeout(2_000L)
+                .as(BodyCodec.string())
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                Throwable t = ar.cause();
+                                logger.error("Podman API request failed", t);
+                                return;
+                            }
+                            successHandler.accept(
+                                    gson.fromJson(
+                                            ar.result().body(),
+                                            new TypeToken<List<ContainerSpec>>() {}));
+                        });
     }
 
     private CompletableFuture<ContainerDetails> doDockerInspectRequest(ContainerSpec container) {
         CompletableFuture<ContainerDetails> result = new CompletableFuture<>();
         URI requestPath =
-                URI.create(
-                        String.format("http://d/v1.41/containers/%s/json", container.Id));
+                URI.create(String.format("http://d/v1.41/containers/%s/json", container.Id));
         executor.submit(
                 () -> {
                     webClient
@@ -243,10 +223,10 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                                             result.completeExceptionally(t);
                                             return;
                                         }
-                                        HttpResponse<String> response = ar.result();
                                         result.complete(
                                                 gson.fromJson(
-                                                        response.body(), ContainerDetails.class));
+                                                        ar.result().body(),
+                                                        ContainerDetails.class));
                                     });
                 });
         return result;
@@ -278,6 +258,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                                         .Config
                                         .Hostname;
                     } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                        containers.remove(desc);
                         logger.warn(e);
                         return null;
                     }
@@ -298,12 +279,13 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                             Optional.ofNullable(desc.Names.get(0)).orElse(desc.Id));
 
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
-            // TODO perform podman inspection query to populate annotations
+            // TODO perform docker inspection query to populate annotations
             // serviceRef.setPlatformAnnotations();
             serviceRef.setLabels(desc.Labels);
 
             return serviceRef;
         } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
+            containers.remove(desc);
             logger.warn(e);
             return null;
         }
