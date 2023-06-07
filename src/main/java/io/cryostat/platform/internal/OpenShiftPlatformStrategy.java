@@ -29,10 +29,12 @@ import io.cryostat.net.AuthManager;
 import dagger.Lazy;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
+import org.apache.commons.lang3.StringUtils;
 
 class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
 
-    static final String INSIGHTS_TOKEN_PATH = "/var/run/TODO";
+    static final String INSIGHTS_TOKEN_PATH =
+            "/var/run/secrets/operator.cryostat.io/insights-token/token";
 
     OpenShiftPlatformStrategy(
             Logger logger,
@@ -57,7 +59,7 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
     public Map<String, String> environment() {
         Map<String, String> env = new HashMap<>(super.environment());
         String token = getInsightsToken();
-        if (token != null) {
+        if (StringUtils.isNotBlank(token)) {
             env.put("INSIGHTS_TOKEN", token);
         }
         return env;
@@ -67,7 +69,7 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
         try {
             return fs.readString(Paths.get(INSIGHTS_TOKEN_PATH));
         } catch (IOException e) {
-            logger.trace(e);
+            logger.warn(e);
             return null;
         }
     }
