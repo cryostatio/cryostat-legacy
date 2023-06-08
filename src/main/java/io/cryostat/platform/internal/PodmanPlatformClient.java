@@ -79,7 +79,6 @@ import dagger.Lazy;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
 import org.apache.commons.lang3.StringUtils;
@@ -168,53 +167,38 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
                     containers.removeAll(removed);
                     removed.stream()
+                            .map(this::convert)
                             .filter(Objects::nonNull)
-                            .forEach(
-                                    spec ->
-                                            notifyAsyncTargetDiscovery(
-                                                    EventKind.LOST, convert(spec)));
+                            .forEach(spec -> notifyAsyncTargetDiscovery(EventKind.LOST, spec));
 
                     containers.addAll(added);
                     added.stream()
+                            .map(this::convert)
                             .filter(Objects::nonNull)
-                            .forEach(
-                                    spec ->
-                                            notifyAsyncTargetDiscovery(
-                                                    EventKind.FOUND, convert(spec)));
+                            .forEach(spec -> notifyAsyncTargetDiscovery(EventKind.FOUND, spec));
                 });
     }
 
     private void doPodmanListRequest(Consumer<List<ContainerSpec>> successHandler) {
         URI requestPath = URI.create("http://d/v3.0.0/libpod/containers/json");
-        executor.submit(
-                () ->
-                        webClient
-                                .get()
-                                .request(
-                                        HttpMethod.GET,
-                                        podmanSocket,
-                                        80,
-                                        "localhost",
-                                        requestPath.toString())
-                                .addQueryParam(
-                                        "filters",
-                                        gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
-                                .timeout(2_000L)
-                                .as(BodyCodec.string())
-                                .send(
-                                        ar -> {
-                                            if (ar.failed()) {
-                                                Throwable t = ar.cause();
-                                                logger.error("Podman API request failed", t);
-                                                return;
-                                            }
-                                            HttpResponse<String> response = ar.result();
-                                            successHandler.accept(
-                                                    gson.fromJson(
-                                                            response.body(),
-                                                            new TypeToken<
-                                                                    List<ContainerSpec>>() {}));
-                                        }));
+        webClient
+                .get()
+                .request(HttpMethod.GET, podmanSocket, 80, "localhost", requestPath.toString())
+                .addQueryParam("filters", gson.toJson(Map.of("label", List.of(DISCOVERY_LABEL))))
+                .timeout(2_000L)
+                .as(BodyCodec.string())
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                Throwable t = ar.cause();
+                                logger.error("Podman API request failed", t);
+                                return;
+                            }
+                            successHandler.accept(
+                                    gson.fromJson(
+                                            ar.result().body(),
+                                            new TypeToken<List<ContainerSpec>>() {}));
+                        });
     }
 
     private CompletableFuture<ContainerDetails> doPodmanInspectRequest(ContainerSpec container) {
@@ -232,9 +216,6 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                     80,
                                     "localhost",
                                     requestPath.toString())
-                            .addQueryParam(
-                                    "filters",
-                                    gson.toJson(Map.of("label", List.of(JMX_PORT_LABEL))))
                             .timeout(2_000L)
                             .as(BodyCodec.string())
                             .send(
@@ -245,10 +226,10 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                             result.completeExceptionally(t);
                                             return;
                                         }
-                                        HttpResponse<String> response = ar.result();
                                         result.complete(
                                                 gson.fromJson(
-                                                        response.body(), ContainerDetails.class));
+                                                        ar.result().body(),
+                                                        ContainerDetails.class));
                                     });
                 });
         return result;
@@ -280,6 +261,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
                                         .Config
                                         .Hostname;
                     } catch (InterruptedException | TimeoutException | ExecutionException e) {
+                        containers.remove(desc);
                         logger.warn(e);
                         return null;
                     }
@@ -306,6 +288,7 @@ public class PodmanPlatformClient extends AbstractPlatformClient {
 
             return serviceRef;
         } catch (NumberFormatException | URISyntaxException | MalformedURLException e) {
+            containers.remove(desc);
             logger.warn(e);
             return null;
         }

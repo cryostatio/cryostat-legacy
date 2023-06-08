@@ -40,7 +40,7 @@ package io.cryostat.platform.internal;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -111,7 +111,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     private boolean testPodmanApi() {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         URI requestPath = URI.create("http://d/info");
-        Executors.newSingleThreadExecutor()
+        ForkJoinPool.commonPool()
                 .submit(
                         () -> {
                             webClient
@@ -147,7 +147,7 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
     public PodmanPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new PodmanPlatformClient(
-                Executors.newSingleThreadExecutor(),
+                ForkJoinPool.commonPool(),
                 webClient,
                 vertx,
                 getSocket(),
