@@ -55,12 +55,12 @@ runCryostat() {
         CRYOSTAT_AUTH_MANAGER="io.cryostat.net.BasicAuthManager"
     fi
 
-    GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
-        GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
+    GRAFANA_DATASOURCE_URL="http://jfr-datasource:${datasourcePort}" \
+        GRAFANA_DASHBOARD_URL="http://grafana:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
-        CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
+        CRYOSTAT_REPORT_GENERATOR="http://reports:10001" \
         CRYOSTAT_AUTH_MANAGER="$CRYOSTAT_AUTH_MANAGER" \
         CRYOSTAT_JDBC_URL="$JDBC_URL" \
         CRYOSTAT_JDBC_DRIVER="$JDBC_DRIVER" \
@@ -212,7 +212,7 @@ runGrafana() {
         --name grafana \
         --network cryostat-docker \
         --pull "${PULL_IMAGES}" \
-        --publish 10001:10001 \
+        --publish 3000:3000 \
         --publish "${port}:${port}" \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
@@ -238,6 +238,7 @@ runReportGenerator() {
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --cpus 1 \
         --publish "${RJMX_PORT}:${RJMX_PORT}" \
+        --publish 10001:10001 \
         --memory 512M \
         --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
@@ -249,7 +250,6 @@ dockerCleanUp() {
     docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports cryostat
     docker network rm -f cryostat-docker
 }
-dockerCleanUp
 trap dockerCleanUp EXIT
 
 if [ "$1" = "postgres" ]; then

@@ -93,8 +93,12 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
+if [ ! "$(docker network ls | grep cryostat-docker)" ]; then
+    docker network create --driver bridge cryostat-docker
+fi
+
 dockerCleanUp() {
-    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports cryostat
+    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports
     docker network rm -f cryostat-docker
 }
 trap dockerCleanUp EXIT
