@@ -19,12 +19,10 @@ getPomProperty() {
 }
 
 runCryostat() {
-    local DIR; local host; local datasourcePort; local grafanaPort;
+    local DIR; local datasourcePort; local grafanaPort;
     DIR="$(dirname "$(readlink -f "$0")")"
-    host="$(getPomProperty cryostat.itest.webHost)"
     datasourcePort="$(getPomProperty cryostat.itest.jfr-datasource.port)"
     grafanaPort="$(getPomProperty cryostat.itest.grafana.port)"
-    webPort="$(getPomProperty cryostat.webPort)"
     # credentials `user:pass`
     echo "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1" > "./conf/cryostat-users.properties"
 
@@ -97,18 +95,6 @@ runPostgres() {
 }
 
 runDemoApps() {
-    local webPort;
-    if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-        webPort="$(getPomProperty cryostat.itest.webPort)"
-    else
-        webPort="${CRYOSTAT_WEB_PORT}"
-    fi
-    if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
-        local protocol="https"
-    else
-        local protocol="http"
-    fi
-
     docker run \
         --name vertx-fib-demo-1 \
         --network cryostat-docker \

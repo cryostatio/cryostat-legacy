@@ -93,7 +93,7 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
-if [ ! "$(docker network ls | grep cryostat-docker)" ]; then
+if ! docker network ls | grep -q cryostat-docker ; then
     docker network create --driver bridge cryostat-docker
 fi
 
