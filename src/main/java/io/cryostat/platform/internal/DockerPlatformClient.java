@@ -51,7 +51,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
@@ -85,7 +84,6 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     public static final String JMX_HOST_LABEL = "io.cryostat.jmxHost";
     public static final String JMX_PORT_LABEL = "io.cryostat.jmxPort";
 
-    private final ExecutorService executor;
     private final Lazy<WebClient> webClient;
     private final Lazy<Vertx> vertx;
     private final SocketAddress dockerSocket;
@@ -97,14 +95,12 @@ public class DockerPlatformClient extends AbstractPlatformClient {
     private final CopyOnWriteArrayList<ContainerSpec> containers = new CopyOnWriteArrayList<>();
 
     DockerPlatformClient(
-            ExecutorService executor,
             Lazy<WebClient> webClient,
             Lazy<Vertx> vertx,
             SocketAddress dockerSocket,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Gson gson,
             Logger logger) {
-        this.executor = executor;
         this.webClient = webClient;
         this.vertx = vertx;
         this.dockerSocket = dockerSocket;

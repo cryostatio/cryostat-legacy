@@ -60,6 +60,7 @@ import io.vertx.ext.web.codec.BodyCodec;
 
 class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatformClient> {
 
+    private static final String DOCKER_SOCKET_PATH = "/var/run/docker.sock";
     private final Logger logger;
     private final Lazy<? extends AuthManager> authMgr;
     private final Lazy<WebClient> webClient;
@@ -87,10 +88,10 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
 
     @Override
     public boolean isAvailable() {
-        String socketPath = "/var/run/docker.sock";
-        logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);
+        logger.info(
+                "Testing {} Availability via {}", getClass().getSimpleName(), DOCKER_SOCKET_PATH);
 
-        boolean socketExists = fs.isReadable(fs.pathOf(socketPath));
+        boolean socketExists = fs.isReadable(fs.pathOf(DOCKER_SOCKET_PATH));
         boolean nativeEnabled = vertx.get().isNativeTransportEnabled();
 
         if (!nativeEnabled && !Epoll.isAvailable()) {
@@ -146,13 +147,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     public DockerPlatformClient getPlatformClient() {
         logger.info("Selected {} Strategy", getClass().getSimpleName());
         return new DockerPlatformClient(
-                ForkJoinPool.commonPool(),
-                webClient,
-                vertx,
-                getSocket(),
-                connectionToolkit,
-                gson,
-                logger);
+                webClient, vertx, getSocket(), connectionToolkit, gson, logger);
     }
 
     @Override
@@ -161,6 +156,6 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
     }
 
     private static SocketAddress getSocket() {
-        return SocketAddress.domainSocketAddress("/var/run/docker.sock");
+        return SocketAddress.domainSocketAddress(DOCKER_SOCKET_PATH);
     }
 }
