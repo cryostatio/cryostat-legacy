@@ -96,8 +96,13 @@ if ! docker network ls | grep -q cryostat-docker ; then
     docker network create --driver bridge cryostat-docker
 fi
 
+CONTAINERS="${CONTAINERS:+${CONTAINERS} }cryostat"
+
 dockerCleanUp() {
-    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports
+    # shellcheck disable=SC2086
+    if [ -n "${CONTAINERS}" ]; then
+        docker rm -f ${CONTAINERS}
+    fi
     docker network rm -f cryostat-docker
 }
 trap dockerCleanUp EXIT

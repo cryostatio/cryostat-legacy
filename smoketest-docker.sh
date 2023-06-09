@@ -68,6 +68,7 @@ runCryostat() {
         CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD="smoketest" \
         CRYOSTAT_HBM2DDL="$HBM2DDL" \
         CRYOSTAT_DEV_MODE="true" \
+        CONTAINERS="${CONTAINERS}" \
         exec "$DIR/run-docker.sh"
 }
 
@@ -92,6 +93,7 @@ runPostgres() {
         --mount type=bind,source="$(dirname "$0")/src/test/resources/postgres",destination=/docker-entrypoint-initdb.d,relabel=shared \
         --env PGDATA=/var/lib/postgresql/data/pgdata \
         --rm -d "${POSTGRES_IMAGE}"
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }postgres"
 }
 
 runDemoApps() {
@@ -105,6 +107,7 @@ runDemoApps() {
         --publish 8081:8081 \
         --publish 9093:9093 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-1"
 
     docker run \
         --name vertx-fib-demo-2 \
@@ -117,6 +120,7 @@ runDemoApps() {
         --publish 8082:8082 \
         --publish 9094:9092 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-2"
 
     docker run \
         --name vertx-fib-demo-3 \
@@ -130,6 +134,7 @@ runDemoApps() {
         --publish 8083:8083 \
         --publish 9095:9095 \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-3"
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
@@ -141,6 +146,7 @@ runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --publish 10009:10009 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }quarkus-test-agent-0"
 
     docker run \
         --name quarkus-test-agent-1 \
@@ -150,6 +156,7 @@ runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --publish 10010:10010 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }quarkus-test-agent-1"
 
     docker run \
         --name quarkus-test-agent-2 \
@@ -159,6 +166,7 @@ runDemoApps() {
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
         --publish 10011:10011 \
         --rm -d quay.io/andrewazores/quarkus-test:latest
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }quarkus-test-agent-2"
 
     # copy a jboss-client.jar into /clientlib first
     # manual entry URL: service:jmx:remote+http://localhost:9990
@@ -168,6 +176,7 @@ runDemoApps() {
         --publish 9990:9990 \
         --publish 9991:9991 \
         --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }wildfly"
 }
 
 runJfrDatasource() {
@@ -182,6 +191,7 @@ runJfrDatasource() {
         --network cryostat-docker \
         --pull "${PULL_IMAGES}" \
         --rm -d "${DATASOURCE_IMAGE}"
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }jfr-datasource"
 }
 
 runGrafana() {
@@ -204,6 +214,7 @@ runGrafana() {
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
         --rm -d "${GRAFANA_IMAGE}"
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }grafana"
 }
 
 runReportGenerator() {
@@ -229,11 +240,15 @@ runReportGenerator() {
         --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
+    CONTAINERS="${CONTAINERS:+${CONTAINERS} }reports"
 }
 
 
 dockerCleanUp() {
-    docker rm -f grafana jfr-datasource wildfly quarkus-test-agent-2 quarkus-test-agent-1 quarkus-test-agent-0 vertx-fib-demo-3 vertx-fib-demo-2 vertx-fib-demo-1 reports cryostat
+    # shellcheck disable=SC2086
+    if [ -n "${CONTAINERS}" ]; then
+        docker rm -f ${CONTAINERS}
+    fi
     docker network rm -f cryostat-docker
 }
 trap dockerCleanUp EXIT
