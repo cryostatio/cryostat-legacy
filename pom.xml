@@ -499,6 +499,14 @@
               <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=jfr-datasource-itest</argument>
+              <argument>--health-cmd</argument>
+              <argument>curl --fail http://localhost:${cryostat.itest.jfr-datasource.port}</argument>
+              <argument>--health-startup-interval</argument>
+              <argument>10s</argument>
+              <argument>--health-startup-retries</argument>
+              <argument>3</argument>
+              <argument>--health-start-period</argument>
+              <argument>10s</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.itest.jfr-datasource.imageStream}:${cryostat.itest.jfr-datasource.version}</argument>
@@ -519,6 +527,14 @@
               <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=grafana-itest</argument>
+              <argument>--health-cmd</argument>
+              <argument>wget -q --spider http://localhost:${cryostat.itest.grafana.port}</argument>
+              <argument>--health-startup-interval</argument>
+              <argument>10s</argument>
+              <argument>--health-startup-retries</argument>
+              <argument>3</argument>
+              <argument>--health-start-period</argument>
+              <argument>10s</argument>
               <argument>--env</argument>
               <argument>GF_INSTALL_PLUGINS=grafana-simple-json-datasource</argument>
               <argument>--env</argument>
@@ -542,6 +558,16 @@
               <argument>run</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.containerName}</argument>
+              <argument>--health-cmd</argument>
+              <argument>curl --fail http://localhost:8181/health/liveness</argument>
+              <argument>--health-startup-interval</argument>
+              <argument>10s</argument>
+              <argument>--health-startup-retries</argument>
+              <argument>3</argument>
+              <argument>--health-start-period</argument>
+              <argument>10s</argument>
+              <argument>--requires</argument>
+              <argument>grafana-itest,jfr-datasource-itest</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/conf.d</argument>
               <argument>--mount</argument>
