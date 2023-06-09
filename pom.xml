@@ -503,12 +503,6 @@
               <argument>--name=${cryostat.itest.jfr-datasource.containerName}</argument>
               <argument>--health-cmd</argument>
               <argument>curl --fail http://localhost:${cryostat.itest.jfr-datasource.port}</argument>
-              <argument>--health-startup-interval</argument>
-              <argument>10s</argument>
-              <argument>--health-startup-retries</argument>
-              <argument>3</argument>
-              <argument>--health-start-period</argument>
-              <argument>10s</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.itest.jfr-datasource.imageStream}:${cryostat.itest.jfr-datasource.version}</argument>
@@ -531,12 +525,6 @@
               <argument>--name=${cryostat.itest.grafana.containerName}</argument>
               <argument>--health-cmd</argument>
               <argument>wget -q --spider http://localhost:${cryostat.itest.grafana.port}</argument>
-              <argument>--health-startup-interval</argument>
-              <argument>10s</argument>
-              <argument>--health-startup-retries</argument>
-              <argument>3</argument>
-              <argument>--health-start-period</argument>
-              <argument>10s</argument>
               <argument>--env</argument>
               <argument>GF_INSTALL_PLUGINS=grafana-simple-json-datasource</argument>
               <argument>--env</argument>
@@ -562,12 +550,6 @@
               <argument>--name=${cryostat.itest.containerName}</argument>
               <argument>--health-cmd</argument>
               <argument>curl --fail http://localhost:8181/health/liveness</argument>
-              <argument>--health-startup-interval</argument>
-              <argument>10s</argument>
-              <argument>--health-startup-retries</argument>
-              <argument>3</argument>
-              <argument>--health-start-period</argument>
-              <argument>10s</argument>
               <argument>--requires</argument>
               <argument>${cryostat.itest.grafana.containerName},${cryostat.itest.jfr-datasource.containerName}</argument>
               <argument>--mount</argument>
