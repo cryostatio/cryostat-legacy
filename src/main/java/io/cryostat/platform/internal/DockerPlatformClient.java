@@ -196,39 +196,6 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                         });
     }
 
-    private CompletableFuture<ContainerDetails> doDockerInspectRequest(ContainerSpec container) {
-        CompletableFuture<ContainerDetails> result = new CompletableFuture<>();
-        URI requestPath =
-                URI.create(String.format("http://d/v1.41/containers/%s/json", container.Id));
-        executor.submit(
-                () -> {
-                    webClient
-                            .get()
-                            .request(
-                                    HttpMethod.GET,
-                                    dockerSocket,
-                                    80,
-                                    "localhost",
-                                    requestPath.toString())
-                            .timeout(2_000L)
-                            .as(BodyCodec.string())
-                            .send(
-                                    ar -> {
-                                        if (ar.failed()) {
-                                            Throwable t = ar.cause();
-                                            logger.error("Docker API request failed", t);
-                                            result.completeExceptionally(t);
-                                            return;
-                                        }
-                                        result.complete(
-                                                gson.fromJson(
-                                                        ar.result().body(),
-                                                        ContainerDetails.class));
-                                    });
-                });
-        return result;
-    }
-
     private ServiceRef convert(ContainerSpec desc) {
         try {
             JMXServiceURL connectUrl;
@@ -269,7 +236,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                     new ServiceRef(
                             null,
                             URI.create(connectUrl.toString()),
-                            Optional.ofNullable(desc.Names.get(0)).orElse(desc.Id));
+                            Optional.ofNullable(hostname).orElse(desc.Id));
 
             serviceRef.setCryostatAnnotations(cryostatAnnotations);
             // TODO perform docker inspection query to populate annotations

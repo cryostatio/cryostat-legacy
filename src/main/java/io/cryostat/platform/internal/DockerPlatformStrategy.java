@@ -87,7 +87,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
 
     @Override
     public boolean isAvailable() {
-        String socketPath = getSocketPath();
+        String socketPath = "/var/run/docker.sock";
         logger.info("Testing {} Availability via {}", getClass().getSimpleName(), socketPath);
 
         boolean socketExists = fs.isReadable(fs.pathOf(socketPath));
@@ -160,12 +160,7 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
         return authMgr.get();
     }
 
-    private static String getSocketPath() {
-        String socketPath = String.format("/var/run/docker.sock");
-        return socketPath;
-    }
-
     private static SocketAddress getSocket() {
-        return SocketAddress.domainSocketAddress(getSocketPath());
+        return SocketAddress.domainSocketAddress("/var/run/docker.sock");
     }
 }
