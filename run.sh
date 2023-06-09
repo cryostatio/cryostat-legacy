@@ -1,5 +1,4 @@
 #!/bin/sh
-# shellcheck disable=SC3043
 
 set -x
 set -e
