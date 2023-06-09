@@ -524,7 +524,7 @@
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.grafana.containerName}</argument>
               <argument>--health-cmd</argument>
-              <argument>wget -q --spider http://localhost:${cryostat.itest.grafana.port}</argument>
+              <argument>wget -q --spider http://localhost:${cryostat.itest.grafana.port}/api/health</argument>
               <argument>--env</argument>
               <argument>GF_INSTALL_PLUGINS=grafana-simple-json-datasource</argument>
               <argument>--env</argument>
