@@ -6,7 +6,10 @@ services:
     deploy:
       mode: global
     labels:
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx:9093/jmxrmi
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx:9093/jmxrmi
+      - io.cryostat.jmxPort=9093
+      - io.cryostat.jmxHost=vertx-jmx
     environment:
       - JMX_PORT=9093
       - HTTP_PORT=8080

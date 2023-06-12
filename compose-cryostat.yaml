@@ -7,7 +7,9 @@ services:
     stdin_open: true
     tty: true
     labels: 
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi
+      - io.cryostat.jmxPort=0
+      - io.cryostat.jmxHost=localhost
     deploy:
       resources:
        limits:
@@ -21,12 +23,13 @@ services:
       - ${PWD}/truststore:/truststore
       - ${PWD}/probes:/opt/cryostat.d/conf.d/probes.d
       - ${XDG_RUNTIME_DIR}/podman/podman.sock:/run/user/0/podman/podman.sock:Z
+      - ${XDG_RUNTIME_DIR}/docker.sock:/var/run/docker.sock:Z
     security_opt:
       - label=disable
 
     environment:
       - CRYOSTAT_ENABLE_JDP_BROADCAST=true
-      - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
+      - CRYOSTAT_PLATFORM=io.cryostat.platform.internal.PodmanPlatformStrategy,io.cryostat.platform.internal.DockerPlatformStrategy,io.cryostat.platform.internal.DefaultPlatformStrategy
       - CRYOSTAT_DISABLE_SSL=${CRYOSTAT_DISABLE_SSL}
       - CRYOSTAT_DISABLE_JMX_AUTH=${CRYOSTAT_DISABLE_JMX_AUTH:-false}
       - CRYOSTAT_ALLOW_UNTRUSTED_SSL=true
@@ -76,7 +79,9 @@ services:
     image: quay.io/cryostat/cryostat:latest
     container_name: cryostat-duplicate
     labels: 
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://cryostat-duplicate:8282/jmxrmi
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://cryostat-duplicate:8282/jmxrmi
+      - io.cryostat.jmxPort=8282
+      - io.cryostat.jmxHost=cryostat-duplicate
     volumes:
       - ${PWD}/archive:/opt/cryostat.d/recordings.d
       - ${PWD}/certs:/certs
@@ -146,7 +151,7 @@ services:
     image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     container_name: scaled-app
     labels: 
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://scaled-app:9093/jmxrmi
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://scaled-app:9093/jmxrmi
     environment:
       - JMX_PORT=9093
       - HTTP_PORT=8081
@@ -157,7 +162,7 @@ services:
     image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     container_name: stopped-app
     labels: 
-      - io.cryostat.connectUrl=service:jmx:rmi:///jndi/rmi://stopped-app:9093/jmxrmi
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://stopped-app:9093/jmxrmi
     environment:
       - JMX_PORT=9093
       - HTTP_PORT=8081
@@ -170,7 +175,7 @@ services:
     image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     container_name: invalid-jmx
     labels: 
-      - io.cryostat.connectUrl=invalid:jmx:rmi:///jndi/rmi://invalid-podman:9093/jmxrmi # invalid serviceurl
+      - io.cryostat.jmxUrl=invalid:jmx:rmi:///jndi/rmi://invalid-podman:9093/jmxrmi # invalid serviceurl
     environment:
       - JMX_PORT=9093
       - HTTP_PORT=8081

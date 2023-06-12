@@ -238,9 +238,9 @@ done
 
 if $non_zero_replicas; then
     echo "$merged_yaml" > compose-merged-tmp.yaml
-    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana -f compose-cryostat-jfr-datasource -f compose-merged-tmp.yaml up -d --remove-orphans
+    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-merged-tmp.yaml up -d --remove-orphans
 else
-    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana -f compose-cryostat-jfr-datasource up -d --remove-orphans
+    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml up -d --remove-orphans
 fi
 
 # testing periodically scaling
@@ -267,7 +267,7 @@ wait_on_cryostat() {
 }
 
 loop() {
-    $COMPOSE_ENGINE logs --tail 50 -f cryostat 2>/dev/null
+    $COMPOSE_ENGINE logs --tail 50 -f cryostat 2>&1 | tee cryostat-run.log
     wait_on_cryostat
 }
 
