@@ -194,7 +194,8 @@ class DiscoveryRegistrationHandlerTest {
                     resp.getHeaders(),
                     Matchers.equalTo(Map.of(HttpHeaders.LOCATION, "/api/v2.2/discovery/" + id)));
             MatcherAssert.assertThat(
-                    resp.getBody(), Matchers.equalTo(Map.of("token", token, "id", id.toString())));
+                    resp.getBody(),
+                    Matchers.equalTo(Map.of("token", token, "id", id.toString(), "env", Map.of())));
 
             Mockito.verify(storage)
                     .register(
