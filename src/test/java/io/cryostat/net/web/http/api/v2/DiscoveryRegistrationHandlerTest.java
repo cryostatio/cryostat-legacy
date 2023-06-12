@@ -55,7 +55,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryRegistrationHandlerTest {
-    AbstractV2RequestHandler<Map<String, String>> handler;
+    AbstractV2RequestHandler<Map<String, Object>> handler;
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock DiscoveryStorage storage;
@@ -72,6 +72,8 @@ class DiscoveryRegistrationHandlerTest {
                         credentialsManager,
                         storage,
                         () -> webServer,
+                        // TODO inject some selectedStrategies and test the env map
+                        Set.of(),
                         jwt,
                         UUID::fromString,
                         gson,
@@ -185,7 +187,7 @@ class DiscoveryRegistrationHandlerTest {
                                     Mockito.any(URI.class)))
                     .thenReturn(token);
 
-            IntermediateResponse<Map<String, String>> resp = handler.handle(requestParams);
+            IntermediateResponse<Map<String, Object>> resp = handler.handle(requestParams);
 
             MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(201));
             MatcherAssert.assertThat(
