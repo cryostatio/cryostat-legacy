@@ -17,14 +17,8 @@ getPomProperty() {
     fi
 }
 
-cleanup() {
-    podman pod stop cryostat-pod
-    podman pod rm cryostat-pod
-}
-trap cleanup EXIT
-
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)"
+    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:latest"
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
@@ -98,42 +92,37 @@ if [ ! -d "$(dirname "$0")/probes" ]; then
     mkdir "$(dirname "$0")/probes"
 fi
 
-if ! podman pod exists cryostat-pod; then
-    podman pod create \
-        --hostname cryostat \
-        --name cryostat-pod \
-        --publish "$CRYOSTAT_RJMX_PORT":"$CRYOSTAT_RJMX_PORT" \
-        --publish "$CRYOSTAT_EXT_WEB_PORT":"$CRYOSTAT_WEB_PORT"
+if ! docker network ls | grep -q cryostat-docker ; then
+    docker network create --driver bridge cryostat-docker
 fi
 
-# do: $ podman system service -t 0
-# or do: $ systemctl --user start podman.socket
-# to create the podman.sock to volume-mount into the container
-#
-# to check the podman socket is reachable and connectable within the container:
-# $ podman exec -it cryo /bin/sh
-# sh-4.4# curl -v -s --unix-socket /run/user/0/podman/podman.sock http://d:80/v3.0.0/libpod/info
-#
-# run as root (uid 0) within the container - with rootless podman this means
-# that the process will actually run with your own uid on the host machine,
-# rather than the uid being remapped to something else
-podman run \
-    --pod cryostat-pod \
+CONTAINERS="${CONTAINERS:+${CONTAINERS} }cryostat"
+
+dockerCleanUp() {
+    # shellcheck disable=SC2086
+    if [ -n "${CONTAINERS}" ]; then
+        docker rm -f ${CONTAINERS}
+    fi
+    docker network rm -f cryostat-docker
+}
+trap dockerCleanUp EXIT
+
+docker run \
     --name cryostat \
+    --network cryostat-docker \
     --user 0 \
     --label io.cryostat.discovery="true" \
-    --label io.cryostat.jmxHost="localhost" \
-    --label io.cryostat.jmxPort="0" \
-    --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
+    --label io.cryostat.jmxPort="${CRYOSTAT_RJMX_PORT}" \
     --memory 768M \
-    --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/certs",destination=/certs,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/clientlib",destination=/clientlib,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/conf",destination=/opt/cryostat.d/conf.d,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/truststore",destination=/truststore,relabel=shared \
-    --mount type=bind,source="$(dirname "$0")/probes",destination=/opt/cryostat.d/conf.d/probes.d,relabel=shared \
-    -v "$XDG_RUNTIME_DIR"/podman/podman.sock:/run/user/0/podman/podman.sock:Z \
+    --publish "${CRYOSTAT_WEB_PORT}:${CRYOSTAT_EXT_WEB_PORT}" \
+    --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d \
+    --mount type=bind,source="$(dirname "$0")/certs",destination=/certs \
+    --mount type=bind,source="$(dirname "$0")/clientlib",destination=/clientlib \
+    --mount type=bind,source="$(dirname "$0")/conf",destination=/opt/cryostat.d/conf.d \
+    --mount type=bind,source="$(dirname "$0")/templates",destination=/opt/cryostat.d/templates.d \
+    --mount type=bind,source="$(dirname "$0")/truststore",destination=/truststore \
+    --mount type=bind,source="$(dirname "$0")/probes",destination=/opt/cryostat.d/conf.d/probes.d \
+    -v "$XDG_RUNTIME_DIR"/docker.sock:/var/run/docker.sock:Z \
     --security-opt label=disable \
     -e CRYOSTAT_ENABLE_JDP_BROADCAST="true" \
     -e CRYOSTAT_REPORT_GENERATOR="$CRYOSTAT_REPORT_GENERATOR" \

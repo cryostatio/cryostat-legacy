@@ -125,6 +125,20 @@ public abstract class PlatformStrategyModule {
 
     @Provides
     @Singleton
+    static DockerPlatformStrategy provideDockerPlatformStrategy(
+            Logger logger,
+            Lazy<NoopAuthManager> noopAuthManager,
+            @Named(UNIX_SOCKET_WEBCLIENT) Lazy<WebClient> webClient,
+            Lazy<Vertx> vertx,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Gson gson,
+            FileSystem fs) {
+        return new DockerPlatformStrategy(
+                logger, noopAuthManager, webClient, vertx, connectionToolkit, gson, fs);
+    }
+
+    @Provides
+    @Singleton
     static DefaultPlatformStrategy provideDefaultPlatformStrategy(
             Logger logger, Lazy<NoopAuthManager> noopAuthManager) {
         return new DefaultPlatformStrategy(
@@ -138,7 +152,8 @@ public abstract class PlatformStrategyModule {
             OpenShiftPlatformStrategy openShift,
             KubeApiPlatformStrategy kubeApi,
             PodmanPlatformStrategy podman,
+            DockerPlatformStrategy docker,
             DefaultPlatformStrategy jdp) {
-        return Set.of(customTargets, openShift, kubeApi, podman, jdp);
+        return Set.of(customTargets, openShift, kubeApi, podman, docker, jdp);
     }
 }
