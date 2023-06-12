@@ -2,6 +2,9 @@
 services:
   quarkus-agent:
     image: quay.io/andrewazores/quarkus-test:latest
+    container_name: quarkus-agent
+    deploy:
+      mode: global
     environment:
       - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
       - QUARKUS_HTTP_PORT=10010
@@ -16,5 +19,3 @@ services:
       - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
       - CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000
       - CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10
-
-# be careful adding lines with the string "quarkus-agent", they will be sed'd and replaced

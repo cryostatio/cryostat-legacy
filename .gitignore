@@ -17,3 +17,5 @@ clientlib/
 templates/
 truststore/
 probes/
+
+compose-merged-tmp.yaml

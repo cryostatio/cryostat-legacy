@@ -58,13 +58,13 @@ services:
       - KEY_PATH=${KEY_PATH}
       - CERT_PATH=${CERT_PATH}
       - CRYOSTAT_JUL_CONFIG=${CRYOSTAT_JUL_CONFIG}
-      - CRYOSTAT_JDBC_DRIVER=${JDBC_DRIVER}
-      - CRYOSTAT_JDBC_URL=${JDBC_URL}
-      - CRYOSTAT_JDBC_USERNAME=${JDBC_USERNAME}
+      - CRYOSTAT_JDBC_DRIVER=${JDBC_DRIVER:-org.h2.Driver}
+      - CRYOSTAT_JDBC_URL=${JDBC_URL:-jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar}
+      - CRYOSTAT_JDBC_USERNAME=${JDBC_USERNAME:-cryostat}
       - CRYOSTAT_JDBC_PASSWORD=${JDBC_PASSWORD}
+      - CRYOSTAT_HIBERNATE_DIALECT=${HIBERNATE_DIALECT:-org.hibernate.dialect.H2Dialect}
+      - CRYOSTAT_HBM2DDL=${HBM2DDL:-update}
       - CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=smoketest
-      - CRYOSTAT_HIBERNATE_DIALECT=${HIBERNATE_DIALECT}
-      - CRYOSTAT_HBM2DDL=${HBM2DDL}
       - CRYOSTAT_LOG_DB_QUERIES=true
       - CRYOSTAT_DEV_MODE=true
     expose:
@@ -130,9 +130,9 @@ services:
       - CRYOSTAT_JDBC_DRIVER=org.h2.Driver
       - CRYOSTAT_JDBC_URL=jdbc:h2:mem:cryostat;DB_CLOSE_DELAY=-1;INIT=create domain if not exists jsonb as varchar
       - CRYOSTAT_JDBC_USERNAME=cryostat
-      - CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=smoketest
       - CRYOSTAT_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect
       - CRYOSTAT_HBM2DDL=create
+      - CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=smoketest
       - CRYOSTAT_LOG_DB_QUERIES=true
       - CRYOSTAT_DEV_MODE=true
     expose:

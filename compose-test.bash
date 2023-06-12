@@ -4,8 +4,9 @@
 set -e
 
 source "$(dirname "$0")/.env"
-
-echo $COMPOSE_FILE
+# podman-compose .env files are ignored https://github.com/containers/podman-compose/issues/475
+export COMPOSE_PROJECT_NAME
+export COMPOSE_FILE
 
 # handle compose engine
 if [[ -z "${CONTAINER_ENGINE}" ]]; then
@@ -26,12 +27,13 @@ if [ -z "$COMPOSE_PROFILES" ]; then
 fi
 
 display_usage() {
-    echo "Usage: $(basename "$0") [-a targets] [-j targets] [-d] [-i] [-r] [-s] [-A]"
+    echo "Usage: $(basename "$0") [-a targets] [-j targets] [-d] [-i] [-p] [-r] [-s] [-A]"
     echo "Options:"
     echo "  -a targets  Sets # of agent targets"
     echo "  -j targets  Sets # of JMX targets"
     echo "  -d          Enables Cryostat duplicate"
     echo "  -i          Enables invalid targets"
+    echo "  -p          Enables a postgres database"
     echo "  -r          Enables automated rule that matches all targets"
     echo "  -s          Enables periodic target scaling/restarting"
     echo "  -A          Enables all of the above; Sets targets to 10 each"
@@ -52,6 +54,14 @@ while getopts ":a:j:dirsA" opt; do
             ;;
         i)
             CT_EN_INVALID=true
+            ;;
+        p)
+            export JDBC_URL="jdbc:postgresql://cryostat:5432/cryostat"
+            export JDBC_DRIVER="org.postgresql.Driver"
+            export HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQL95Dialect"
+            export JDBC_USERNAME="postgres"
+            export JDBC_PASSWORD="abcd1234"
+            export HBM2DDL="update"
             ;;
         r)
             CT_EN_RULES=true
@@ -128,42 +138,11 @@ CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:${webPort}/"
 export CRYOSTAT_AGENT_AUTHORIZATION
 export CRYOSTAT_AGENT_BASEURI
 
-# cryostat database
-if [ "$1" = "postgres" ]; then
-    JDBC_URL="jdbc:postgresql://cryostat:5432/cryostat"
-    JDBC_DRIVER="org.postgresql.Driver"
-    HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQL95Dialect"
-    JDBC_USERNAME="postgres"
-    JDBC_PASSWORD="abcd1234"
-    HBM2DDL="update"
-elif [ "$1" = "h2mem" ]; then
-    JDBC_URL="jdbc:h2:mem:cryostat;DB_CLOSE_DELAY=-1;INIT=create domain if not exists jsonb as varchar"
-    JDBC_DRIVER="org.h2.Driver"
-    JDBC_USERNAME="cryostat"
-    JDBC_PASSWORD=""
-    HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
-    HBM2DDL="create"
-else
-    JDBC_URL="jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar"
-    JDBC_DRIVER="org.h2.Driver"
-    JDBC_USERNAME="cryostat"
-    JDBC_PASSWORD=""
-    HIBERNATE_DIALECT="org.hibernate.dialect.H2Dialect"
-    HBM2DDL="update"
-fi
-
 if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname "$0")/certs/cryostat-keystore.p12" ] ; then
     export KEYSTORE_PATH="/certs/cryostat-keystore.p12"
     KEYSTORE_PASS="$(cat "$(dirname "$0")"/certs/keystore.pass)"
     export KEYSTORE_PASS
 fi
-
-export JDBC_URL
-export JDBC_DRIVER
-export JDBC_USERNAME
-export JDBC_PASSWORD
-export HIBERNATE_DIALECT
-export HBM2DDL
 
 child_process() {
     while true; do
@@ -229,26 +208,40 @@ fi
 trap cleanup INT TERM
 
 # export COMPOSE_PROFILES
-export COMPOSE_FILE
 
-### vertx-jmx handling
-merged_yaml=""
+merged_yaml="---
+services:"
 
-for ((i=1; i<=CT_JMX_REPLICAS; i++))
+sections=("vertx-jmx" "quarkus-agent")
+replicas_variables=("CT_JMX_REPLICAS" "CT_AGENT_REPLICAS")
+
+non_zero_replicas=false
+
+# Iterate over the sections
+for ((i=0; i<${#sections[@]}; i++))
 do
-  current_yaml="$(sed "s/vertx-jmx/vertx-jmx-${i}/g" compose-vertx-jmx.yaml)"
-  
-  # Remove "services:" from all but the first iteration
-  if [[ $i -gt 1 ]]; then
-    current_yaml="${current_yaml//services:/}"
-  fi
-  
-  merged_yaml+="$current_yaml"
+    section="${sections[i]}"
+    replicas_var="${replicas_variables[i]}"
+    replicas="${!replicas_var}"
+
+    if (( replicas > 0 )); then
+        non_zero_replicas=true
+
+        for ((j=1; j<=replicas; j++))
+        do
+            current_yaml="$(sed "s/$section/$section-${j}/g" "compose-$section.yaml")"
+            current_yaml="${current_yaml//---/}"; current_yaml="${current_yaml//services:/}"
+            merged_yaml+="$current_yaml"
+        done
+    fi
 done
 
-echo "$merged_yaml"
-
-echo "$merged_yaml" | $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f - up -d --remove-orphans 
+if $non_zero_replicas; then
+    echo "$merged_yaml" > compose-merged-tmp.yaml
+    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana -f compose-cryostat-jfr-datasource -f compose-merged-tmp.yaml up -d --remove-orphans
+else
+    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana -f compose-cryostat-jfr-datasource up -d --remove-orphans
+fi
 
 # testing periodically scaling
 if [ "$CT_EN_SCALING" = true ]; then
@@ -274,9 +267,8 @@ wait_on_cryostat() {
 }
 
 loop() {
-    $COMPOSE_ENGINE logs -f --tail 50 cryostat 2>/dev/null
+    $COMPOSE_ENGINE logs --tail 50 -f cryostat 2>/dev/null
     wait_on_cryostat
 }
 
 loop
-
