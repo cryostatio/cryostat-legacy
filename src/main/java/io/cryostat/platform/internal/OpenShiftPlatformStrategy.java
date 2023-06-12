@@ -27,6 +27,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.lang3.StringUtils;
@@ -65,6 +66,10 @@ class OpenShiftPlatformStrategy extends KubeApiPlatformStrategy {
         return env;
     }
 
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification =
+                    "file path is well-known and absolute, injected by the Cryostat Operator")
     private String getInsightsToken() {
         try {
             return fs.readString(Paths.get(INSIGHTS_TOKEN_PATH));
