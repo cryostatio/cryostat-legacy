@@ -41,7 +41,7 @@ display_usage() {
 
 
 # Parse command-line options
-while getopts ":a:j:dirsA" opt; do
+while getopts ":a:j:diprsA" opt; do
     case $opt in
         a)
             CT_AGENT_REPLICAS=$OPTARG
@@ -70,7 +70,9 @@ while getopts ":a:j:dirsA" opt; do
             CT_EN_SCALING=true
             ;;
         A)
+            # shellcheck disable=SC2034
             CT_AGENT_REPLICAS=10
+            # shellcheck disable=SC2034
             CT_JMX_REPLICAS=10
             CT_EN_DUPLICATE=true
             CT_EN_INVALID=true
