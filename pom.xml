@@ -49,9 +49,11 @@
   <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
   <cryostat.itest.containerName>cryostat-itest</cryostat.itest.containerName>
+  <cryostat.itest.grafana.containerName>grafana-itest</cryostat.itest.grafana.containerName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
   <cryostat.itest.grafana.version>latest</cryostat.itest.grafana.version>
+  <cryostat.itest.jfr-datasource.containerName>jfr-datasource-itest</cryostat.itest.jfr-datasource.containerName>
   <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
   <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
   <cryostat.itest.jfr-datasource.version>latest</cryostat.itest.jfr-datasource.version>
@@ -498,7 +500,9 @@
               <argument>run</argument>
               <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
-              <argument>--name=jfr-datasource-itest</argument>
+              <argument>--name=${cryostat.itest.jfr-datasource.containerName}</argument>
+              <argument>--health-cmd</argument>
+              <argument>curl --fail http://localhost:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.itest.jfr-datasource.imageStream}:${cryostat.itest.jfr-datasource.version}</argument>
@@ -518,7 +522,9 @@
               <argument>run</argument>
               <argument>--pull=${cryostat.itest.pullImages}</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
-              <argument>--name=grafana-itest</argument>
+              <argument>--name=${cryostat.itest.grafana.containerName}</argument>
+              <argument>--health-cmd</argument>
+              <argument>wget -q --spider http://localhost:${cryostat.itest.grafana.port}/api/health</argument>
               <argument>--env</argument>
               <argument>GF_INSTALL_PLUGINS=grafana-simple-json-datasource</argument>
               <argument>--env</argument>
@@ -542,6 +548,10 @@
               <argument>run</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.containerName}</argument>
+              <argument>--health-cmd</argument>
+              <argument>curl --fail http://localhost:8181/health/liveness</argument>
+              <argument>--requires</argument>
+              <argument>${cryostat.itest.grafana.containerName},${cryostat.itest.jfr-datasource.containerName}</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/conf.d</argument>
               <argument>--mount</argument>
@@ -617,7 +627,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until sleep 5; curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health/liveness; do sleep 2; done</argument>
+              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -634,7 +644,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}; do sleep 2; done</argument>
+              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.jfr-datasource.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -651,7 +661,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}; do sleep 2; done</argument>
+              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.grafana.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
