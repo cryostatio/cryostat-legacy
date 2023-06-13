@@ -631,7 +631,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect ${cryostat.itest.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -648,7 +648,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.jfr-datasource.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect ${cryostat.itest.jfr-datasource.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.jfr-datasource.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -665,7 +665,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.grafana.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect ${cryostat.itest.grafana.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --format '{{.Names}} {{.Status}}' | grep ${cryostat.itest.grafana.containerName}; do sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
