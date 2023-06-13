@@ -1,0 +1,10 @@
+---
+services:
+  jmxquarkus:
+    image: quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
+    container_name: jmxquarkus
+    labels: 
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxPort=51423
+    deploy:
+      mode: global

@@ -9,7 +9,9 @@ services:
     restart: on-failure
     labels: 
       - io.cryostat.discovery=true
-      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://cryostat-reports:${REPORTS_HTTP_PORT-10001}/jmxrmi
+      - io.cryostat.jmxPort=${REPORTS_RJMX_PORT-10000}
+      - io.cryostat.jmxHost=cryostat-reports
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://cryostat-reports:${REPORTS_RJMX_PORT-10000}/jmxrmi
     deploy:
       resources:
        limits:
