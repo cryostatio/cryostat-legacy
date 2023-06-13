@@ -96,33 +96,6 @@ runPostgres() {
 }
 
 runDemoApps() {
-    podman run \
-        --name vertx-fib-demo-1 \
-        --env HTTP_PORT=8081 \
-        --env JMX_PORT=9093 \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
-    podman run \
-        --name vertx-fib-demo-2 \
-        --env HTTP_PORT=8082 \
-        --env JMX_PORT=9094 \
-        --env USE_AUTH=true \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
-    podman run \
-        --name vertx-fib-demo-3 \
-        --env HTTP_PORT=8083 \
-        --env JMX_PORT=9095 \
-        --env USE_SSL=true \
-        --env USE_AUTH=true \
-        --pod cryostat-pod \
-        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.9.1
-
     local webPort;
     if [ -z "$CRYOSTAT_WEB_PORT" ]; then
         webPort="$(getPomProperty cryostat.itest.webPort)"
@@ -135,13 +108,10 @@ runDemoApps() {
         local protocol="http"
     fi
 
-<<<<<<< HEAD
-=======
     podman run \
         --name jmxquarkus \
         --pod cryostat-pod \
-        --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxPort="51423" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:51423/jmxrmi" \
         --rm -d quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
 
     podman run \
@@ -158,9 +128,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
-        --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
-        --label io.cryostat.jmxPort="9093" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9093/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
 
     podman run \
@@ -178,10 +146,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
-        --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
-        --label io.cryostat.jmxPort="9094" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
 
     podman run \
@@ -200,11 +165,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
-        --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
 
->>>>>>> f0884a60 (test(smoketest): add native image sample app (#1525))
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
     podman run \
