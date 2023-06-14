@@ -108,6 +108,9 @@ jobs:
     - name: Print itest logs
       if: failure()
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
+    - name: Print itest container logs
+      if: failure()
+      run: ls -1dt target/cryostat-*.server.log | head -n1 | xargs cat
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
