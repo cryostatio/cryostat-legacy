@@ -84,7 +84,7 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     needs: [build-image]
-    if: ${{ inputs.skip-itests && inputs.skip-itests != 'false' }}
+    if: ${{ ! inputs.skip-itests }}
     steps:
     - name: Install qemu
       run: |
