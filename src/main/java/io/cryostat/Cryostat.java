@@ -135,7 +135,7 @@ class Cryostat extends AbstractVerticle {
             if (!(cause instanceof Exception)) {
                 cause = new RuntimeException(cause);
             }
-            logger.error((RuntimeException) cause);
+            logger.error((Exception) cause);
         }
         logger.info("{} shutting down...", instanceName());
         client.vertx().close().onComplete(n -> logger.info("Shutdown complete"));
