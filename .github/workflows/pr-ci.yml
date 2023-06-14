@@ -44,7 +44,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-    needs: [build-and-test]
+    needs: [code-analysis, build-and-test]
     steps:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
