@@ -10,6 +10,10 @@ on:
       build-arch:
         required: true
         type: string
+      skip-itests:
+        required: false
+        type: boolean
+        default: false
     outputs:
       image-version:
         description: the Cryostat application version that will be built
@@ -80,6 +84,7 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     needs: [build-image]
+    if: ${{ inputs.skip-itests && inputs.skip-itests != 'false' }}
     steps:
     - name: Install qemu
       run: |
