@@ -20,7 +20,7 @@ on:
 
 jobs:
   build-and-test:
-    uses: ./.github/workflows/ci-jobs.yml
+    uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: amd64
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}

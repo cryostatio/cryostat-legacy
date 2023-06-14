@@ -13,13 +13,13 @@ on:
 
 jobs:
   build-and-test-amd64:
-    uses: ./.github/workflows/ci-jobs.yml
+    uses: ./.github/workflows/ci-build-image.yml
     secrets: inherit
     with:
       build-arch: amd64
     if: github.repository_owner == 'cryostatio'
   build-and-test-arm64:
-    uses: ./.github/workflows/ci-jobs.yml
+    uses: ./.github/workflows/ci-build-image.yml
     secrets: inherit
     with:
       build-arch: arm64
