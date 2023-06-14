@@ -12,21 +12,29 @@ on:
       - cryostat-v[0-9]+.[0-9]+
 
 jobs:
+  code-analysis:
+    uses: ./.github/workflows/ci-code-analysis.yml
+    with:
+      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
+      checkout-ref: ${{ github.event.pull_request.head.ref }}
+    secrets: inherit
+    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
   build-and-test-amd64:
-    uses: ./.github/workflows/ci-jobs.yml
+    uses: ./.github/workflows/ci-build-image.yml
     secrets: inherit
     with:
       build-arch: amd64
     if: github.repository_owner == 'cryostatio'
   build-and-test-arm64:
-    uses: ./.github/workflows/ci-jobs.yml
+    uses: ./.github/workflows/ci-build-image.yml
     secrets: inherit
     with:
       build-arch: arm64
+      skip-itests: true
     if: github.repository_owner == 'cryostatio'
   push-to-quay:
     runs-on: ubuntu-latest
-    needs: [build-and-test-amd64, build-and-test-arm64]
+    needs: [code-analysis, build-and-test-amd64, build-and-test-arm64]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
