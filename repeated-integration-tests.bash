@@ -42,14 +42,6 @@ if [ -z "${PULL_IMAGES}" ]; then
     PULL_IMAGES="always"
 fi
 
-function cleanup() {
-    if podman pod exists "${POD_NAME}"; then
-        "${MVN}" exec:exec@destroy-pod
-    fi
-}
-trap cleanup EXIT
-cleanup
-
 STARTFLAGS=(
     "-DfailIfNoTests=true"
     "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
@@ -82,6 +74,14 @@ if command -v ansi2txt >/dev/null; then
 else
     PIPECLEANER="cat"
 fi
+
+function cleanup() {
+    if podman pod exists "${POD_NAME}"; then
+        "${MVN}" "${STOPFLAGS[@]}"
+    fi
+}
+trap cleanup EXIT
+cleanup
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
