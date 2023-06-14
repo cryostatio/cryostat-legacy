@@ -135,7 +135,7 @@ public class BuiltInDiscovery extends AbstractVerticle implements Consumer<Targe
                                 platform.load(promise);
                                 enabledClients.add(platform);
                             } catch (Exception e) {
-                                start.fail(e);
+                                logger.warn(e);
                             }
                         });
         start.tryComplete();
