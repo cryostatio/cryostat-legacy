@@ -64,6 +64,7 @@ STARTFLAGS=(
     "exec:exec@wait-for-cryostat"
     "failsafe:integration-test"
     "failsafe:verify"
+    "exec:exec@capture-oci-logs"
 )
 
 if [ -n "$2" ]; then
