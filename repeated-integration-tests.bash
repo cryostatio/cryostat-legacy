@@ -59,9 +59,9 @@ STARTFLAGS=(
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
     "exec:exec@start-cryostat"
-    "exec:exec@wait-for-cryostat"
     "exec:exec@wait-for-jfr-datasource"
     "exec:exec@wait-for-grafana"
+    "exec:exec@wait-for-cryostat"
     "failsafe:integration-test"
     "failsafe:verify"
 )
