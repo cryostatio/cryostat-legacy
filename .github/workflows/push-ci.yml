@@ -30,7 +30,6 @@ jobs:
     secrets: inherit
     with:
       build-arch: arm64
-      skip-itests: true
     if: github.repository_owner == 'cryostatio'
   push-to-quay:
     runs-on: ubuntu-latest
