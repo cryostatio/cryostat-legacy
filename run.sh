@@ -121,6 +121,7 @@ podman run \
     --pod cryostat-pod \
     --name cryostat \
     --user 0 \
+    --health-cmd 'curl -k --fail "http://localhost:${CRYOSTAT_WEB_PORT}/health/liveness" || curl -k --fail "https://localhost:${CRYOSTAT_WEB_PORT}/health/liveness"' \
     --label io.cryostat.discovery="true" \
     --label io.cryostat.jmxHost="localhost" \
     --label io.cryostat.jmxPort="0" \
