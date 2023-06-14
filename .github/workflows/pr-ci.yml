@@ -28,9 +28,12 @@ jobs:
     if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
 
   build-and-test:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     uses: ./.github/workflows/ci-build-image.yml
     with:
-      build-arch: amd64
+      build-arch: ${{ matrix.arch }}
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
     secrets: inherit
@@ -38,6 +41,9 @@ jobs:
 
   push-to-ghcr:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     needs: [build-and-test]
     steps:
     - name: Fail if needs-triage label applied
@@ -48,20 +54,20 @@ jobs:
       run: exit 1
     - uses: actions/download-artifact@v3
       with:
-        name: cryostat-amd64
+        name: cryostat-${{ matrix.arch }}
       if: github.repository_owner == 'cryostatio'
     - name: Load cryostat image
-      run: podman load -i cryostat-amd64.tar
+      run: podman load -i cryostat-${{ matrix.arch }}.tar
       if: github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
-      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
+      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
       if: github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
-        tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
+        tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.GHCR_PR_TOKEN }}
