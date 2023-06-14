@@ -19,6 +19,14 @@ on:
       - cryostat-v[0-9]+.[0-9]+
 
 jobs:
+  code-analysis:
+    uses: ./.github/workflows/ci-code-analysis.yml
+    with:
+      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
+      checkout-ref: ${{ github.event.pull_request.head.ref }}
+    secrets: inherit
+    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+
   build-and-test:
     uses: ./.github/workflows/ci-build-image.yml
     with:
