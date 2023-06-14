@@ -36,6 +36,7 @@ jobs:
     needs: [code-analysis, build-and-test-amd64, build-and-test-arm64]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
+    if: always() && github.repository_owner == 'cryostatio'
     steps:
     - uses: actions/download-artifact@v3
       with:

@@ -45,6 +45,7 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     needs: [code-analysis, build-and-test]
+    if: always() && github.repository_owner == 'cryostatio'
     steps:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
