@@ -72,8 +72,13 @@ class DockerPlatformStrategy implements PlatformDetectionStrategy<DockerPlatform
         boolean socketExists = fs.isReadable(fs.pathOf(DOCKER_SOCKET_PATH));
         boolean nativeEnabled = vertx.get().isNativeTransportEnabled();
 
-        if (!nativeEnabled && !Epoll.isAvailable()) {
-            Epoll.unavailabilityCause().printStackTrace();
+        try {
+            if (!nativeEnabled && !Epoll.isAvailable()) {
+                Epoll.unavailabilityCause().printStackTrace();
+            }
+        } catch (NoClassDefFoundError noClassDefFoundError) {
+            logger.warn(new UnsupportedOperationException(noClassDefFoundError));
+            return false;
         }
 
         boolean serviceReachable = false;

@@ -72,8 +72,13 @@ class PodmanPlatformStrategy implements PlatformDetectionStrategy<PodmanPlatform
         boolean socketExists = fs.isReadable(fs.pathOf(socketPath));
         boolean nativeEnabled = vertx.get().isNativeTransportEnabled();
 
-        if (!nativeEnabled && !Epoll.isAvailable()) {
-            Epoll.unavailabilityCause().printStackTrace();
+        try {
+            if (!nativeEnabled && !Epoll.isAvailable()) {
+                Epoll.unavailabilityCause().printStackTrace();
+            }
+        } catch (NoClassDefFoundError noClassDefFoundError) {
+            logger.warn(new UnsupportedOperationException(noClassDefFoundError));
+            return false;
         }
 
         boolean serviceReachable = false;
