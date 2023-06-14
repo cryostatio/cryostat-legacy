@@ -36,6 +36,7 @@ jobs:
       build-arch: ${{ matrix.arch }}
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
+      skip-itests: ${{ matrix.arch != 'amd64' }}
     secrets: inherit
     if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
 
