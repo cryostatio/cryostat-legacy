@@ -628,10 +628,10 @@
           <configuration>
             <executable>timeout</executable>
             <arguments>
-              <argument>15m</argument>
+              <argument>2m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until if ! podman inspect --type container ${cryostat.itest.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect --type container ${cryostat.itest.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.containerName}; do podman ps --filter name=${cryostat.itest.containerName}; podman logs --timestamps --since 5s ${cryostat.itest.containerName}; sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -645,10 +645,10 @@
           <configuration>
             <executable>timeout</executable>
             <arguments>
-              <argument>15m</argument>
+              <argument>2m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until if ! podman inspect --type container ${cryostat.itest.jfr-datasource.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.jfr-datasource.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.jfr-datasource.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect --type container ${cryostat.itest.jfr-datasource.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.jfr-datasource.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.jfr-datasource.containerName}; do podman ps --filter name=${cryostat.itest.jfr-datasource.containerName}; podman logs --timestamps --since 5s ${cryostat.itest.jfr-datasource.containerName}; sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -662,10 +662,10 @@
           <configuration>
             <executable>timeout</executable>
             <arguments>
-              <argument>15m</argument>
+              <argument>2m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until if ! podman inspect --type container ${cryostat.itest.grafana.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.grafana.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.grafana.containerName}; do sleep 5; done</argument>
+              <argument>until if ! podman inspect --type container ${cryostat.itest.grafana.containerName} > /dev/null; then exit 1; fi ; podman ps --filter health=healthy --filter name=${cryostat.itest.grafana.containerName} --format '{{.Names}} {{.Status}}' | tee /dev/stderr | grep ${cryostat.itest.grafana.containerName}; do podman ps --filter name=${cryostat.itest.grafana.containerName}; podman logs --timestamps --since 5s ${cryostat.itest.grafana.containerName}; sleep 5; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>

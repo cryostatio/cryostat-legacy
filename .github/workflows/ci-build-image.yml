@@ -45,10 +45,13 @@ jobs:
     needs: [get-pom-properties]
     steps:
     - name: Install qemu
+      if: ${{ inputs.build-arch != 'amd64' }}
+      continue-on-error: true
       run: |
         sudo apt-get update
         sudo apt-get install -y qemu-user-static
     - uses: actions/checkout@v2
+      if: always()
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}
@@ -87,10 +90,13 @@ jobs:
     if: ${{ ! inputs.skip-itests }}
     steps:
     - name: Install qemu
+      if: ${{ inputs.build-arch != 'amd64' }}
+      continue-on-error: true
       run: |
         sudo apt-get update
         sudo apt-get install -y qemu-user-static
     - uses: actions/checkout@v2
+      if: always()
       with:
         repository: ${{ inputs.checkout-repo }}
         ref: ${{ inputs.checkout-ref }}

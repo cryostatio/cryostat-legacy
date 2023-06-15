@@ -18,7 +18,7 @@ jobs:
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
     secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    if: github.repository_owner == 'cryostatio'
   build-and-test-amd64:
     uses: ./.github/workflows/ci-build-image.yml
     secrets: inherit
@@ -37,6 +37,7 @@ jobs:
     needs: [code-analysis, build-and-test-amd64, build-and-test-arm64]
     env:
       CRYOSTAT_IMG: quay.io/cryostat/cryostat
+    if: always() && github.repository_owner == 'cryostatio'
     steps:
     - uses: actions/download-artifact@v3
       with:
