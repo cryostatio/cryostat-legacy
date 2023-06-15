@@ -44,21 +44,25 @@ jobs:
         name: cryostat-amd64
       if: github.repository_owner == 'cryostatio'
     - name: Load cryostat-amd64 image
-      run: podman load -i cryostat-amd64.tar
+      run: |
+          podman load -i cryostat-amd64.tar
+          podman tag quay.io/cryostat/cryostat:latest $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64
       if: github.repository_owner == 'cryostatio'
     - uses: actions/download-artifact@v3
       with:
         name: cryostat-arm64
       if: github.repository_owner == 'cryostatio'
     - name: Load cryostat-arm64 image
-      run: podman load -i cryostat-arm64.tar
+      run: |
+          podman load -i cryostat-arm64.tar
+          podman tag quay.io/cryostat/cryostat:latest $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
       if: github.repository_owner == 'cryostatio'
     - name: Create OCI Manifest
       id: create-manifest
       env:
         IMAGE_VERSION: ${{ needs.build-and-test-amd64.outputs.image-version }}
       run: |
-        podman manifest create $CRYOSTAT_IMG:$IMAGE_VERSION $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64 $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
+        podman manifest create $CRYOSTAT_IMG:$IMAGE_VERSION containers-storage:$CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64 containers-storage:$CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
         if [ "$GITHUB_REF" == "refs/heads/main" ]; then
           podman tag \
           ${{ env.CRYOSTAT_IMG }}:$IMAGE_VERSION \
