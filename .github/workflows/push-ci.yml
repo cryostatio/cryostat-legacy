@@ -58,7 +58,7 @@ jobs:
       env:
         IMAGE_VERSION: ${{ needs.build-and-test-amd64.outputs.image-version }}
       run: |
-        podman create manifest $CRYOSTAT_IMG:$IMAGE_VERSION $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64 $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
+        podman manifest create $CRYOSTAT_IMG:$IMAGE_VERSION $CRYOSTAT_IMG:$IMAGE_VERSION-linux-amd64 $CRYOSTAT_IMG:$IMAGE_VERSION-linux-arm64
         if [ "$GITHUB_REF" == "refs/heads/main" ]; then
           podman tag \
           ${{ env.CRYOSTAT_IMG }}:$IMAGE_VERSION \
