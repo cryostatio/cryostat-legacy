@@ -528,14 +528,17 @@ public class CredentialsV2_2IT extends ExternalTargetsTest {
         List<Podman.ImageSpec> specs = new ArrayList<>();
         specs.add(
                 new Podman.ImageSpec(
+                        "vertx-fib-demo-1",
                         FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9094), "USE_AUTH", "true")));
         specs.add(
                 new Podman.ImageSpec(
+                        "vertx-fib-demo-2",
                         FIB_DEMO_IMAGESPEC,
                         Map.of("JMX_PORT", String.valueOf(9095), "USE_AUTH", "true")));
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
+        for (int i = 0; i < specs.size(); i++) {
+            Podman.ImageSpec spec = specs.get(i);
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec));
         }
         CompletableFuture.allOf(
                         CONTAINERS.stream()
