@@ -30,11 +30,11 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             Pair.of("admin", "adminpass123");
 
     static final int DISCOVERY_POLL_PERIOD_MS =
-            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.period", "2500"));
+            Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.period", "2500"));
     static final int STABILITY_COUNT =
-            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.count", "1"));
+            Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.count", "1"));
     static final int DISCOVERY_BASE_MS =
-            Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.timeout", "20000"));
+            Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.timeout", "20000"));
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
 
