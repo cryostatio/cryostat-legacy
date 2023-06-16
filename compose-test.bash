@@ -79,6 +79,7 @@ while getopts ":a:j:diprsA" opt; do
             CT_JMX_REPLICAS=10
             CT_EN_DUPLICATE=true
             CT_EN_INVALID=true
+            CT_EN_POSTGRES=true
             CT_EN_RULES=true
             CT_EN_SCALING=true
             ;;
@@ -217,7 +218,7 @@ fi
 # testing invalid targets
 
 PROFILE_ARGS=""
-if [ "$CT_EN_SCALED" = true ]; then
+if [ "$CT_EN_SCALING" = true ]; then
     PROFILE_ARGS+="--profile scaled "
 fi
 

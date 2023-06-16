@@ -1,6 +1,6 @@
 # Cryostat compose testing README (DEPRECATED/needs updates)
 
-The `docker-compose.yaml` file in this directory is used for testing Cryostat that is compatible with the [Compose Specification](https://github.com/compose-spec/compose-spec/blob/master/spec.md). It is used by the `compose-test.bash` script to test various scenarios. The `test-restart.bash` script is used to test restarting the Cryostat container.
+There are multiple yaml files in the base directory used for testing Cryostat that is compatible with the [Compose Specification](https://github.com/compose-spec/compose-spec/blob/master/spec.md). It is used by the `compose-test.bash` script to test various scenarios. The `test-restart.bash` script is used to test restarting the Cryostat container.
 
 Read the Cryostat CONFIGURATION section of the main [README](./README.md) for more information on Cryostat-specific environment variables.
 
@@ -17,7 +17,7 @@ Read the Cryostat CONFIGURATION section of the main [README](./README.md) for mo
 - **CONTAINER_ENGINE**: The container engine to use for the compose file. Defaults to `podman`. Set to `docker` to use `docker compose` instead.
 
 ### Testing scenarios
-The `CT` prefix stands for "Cryostat Test".
+The `CT` prefix stands for *Cryostat Test* or *Compose Test*.
 
 - **CT_EN_RULES**: Use to test automated rules. Creates an enabled automated rule that will trigger on Cryostat startup that matches all targets.
 
@@ -27,6 +27,8 @@ The `CT` prefix stands for "Cryostat Test".
 
 - **CT_EN_DUPLICATE**: Use to test an environment with two instances of Cryostat. The second instance will be available at `localhost:8282`.
 
+- **CT_EN_POSTGRES**: Use to test a Cryostat instance with a *Postgres* database. The database will be available at `localhost:5432`.
+
 - **CT_JMX_REPLICAS**: Set the number of replicas for the JMX test app. Defaults to 1.
 
 - **CT_AGENT_REPLICAS**: Set the number of replicas for the Agent test app. Defaults to 1.
@@ -35,12 +37,13 @@ The `CT` prefix stands for "Cryostat Test".
 
 - **compose-test.bash**: Runs the compose test with the default variables. The following options are available:
     * `-a targets`: Sets the number of agent targets.
-    * `-b targets`: Sets the number of JMX targets.
+    * `-j targets`: Sets the number of JMX targets.
     * `-d`: Enables Cryostat duplicate.
     * `-i`: Enables invalid targets.
+    * `-p`: Enables *Postgres* database.
     * `-r`: Enables automated rule that matches all targets.
     * `-s`: Enables periodic target scaling/restarting.
-    * `-A`: Enables all of the above; Sets targets to 10 each.
+    * `-A`: Enables all of the above; Sets number of external targets to 10 each.
 
-- **test-restart.bash**: Restarts the Cryostat container, but keeps the other containers running. Requires the `compose-test.bash` being beforehand with the Cryostat container instance running.
+- **test-restart.bash**: Restarts the Cryostat container, but keeps the other containers running. It assumes that the `compose-test.bash` script is currently being executed and that an instance of the Cryostat container is already running."
 
