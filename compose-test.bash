@@ -26,6 +26,14 @@ if [ -z "$COMPOSE_PROFILES" ]; then
     COMPOSE_PROFILES=""
 fi
 
+compose_files=(
+    "compose-cryostat.yaml"
+    "compose-cryostat-reports.yaml"
+    "compose-cryostat-grafana.yaml"
+    "compose-jfr-datasource.yaml"
+    "compose-jmxquarkus.yaml"
+)
+
 display_usage() {
     echo "Usage: $(basename "$0") [-a targets] [-j targets] [-d] [-i] [-p] [-r] [-s] [-A]"
     echo "Options:"
@@ -56,12 +64,7 @@ while getopts ":a:j:diprsA" opt; do
             CT_EN_INVALID=true
             ;;
         p)
-            export JDBC_URL="jdbc:postgresql://cryostat:5432/cryostat"
-            export JDBC_DRIVER="org.postgresql.Driver"
-            export HIBERNATE_DIALECT="org.hibernate.dialect.PostgreSQL95Dialect"
-            export JDBC_USERNAME="postgres"
-            export JDBC_PASSWORD="abcd1234"
-            export HBM2DDL="update"
+            CT_EN_POSTGRES=true
             ;;
         r)
             CT_EN_RULES=true
@@ -110,8 +113,6 @@ cleanup() {
     rm -f "$tmp_yaml"
 }
 
-webPort="$(getPomProperty cryostat.itest.webPort)"
-
 if [ -z "$CRYOSTAT_DISABLE_SSL" ]; then
     protocol="https"
 else
@@ -140,9 +141,26 @@ export REPORTS_HTTP_PORT
 
 # agent app configuration
 CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)"
-CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:${webPort}/"
+CRYOSTAT_AGENT_BASEURI="${protocol}://cryostat:8181/"
 export CRYOSTAT_AGENT_AUTHORIZATION
 export CRYOSTAT_AGENT_BASEURI
+
+# postgres
+if [ "$CT_EN_POSTGRES" = true ]; then
+    if [ ! -d "$(dirname "$0")/conf/postgres" ]; then
+        mkdir "$(dirname "$0")/conf/postgres"
+    fi
+    if [ -z "${POSTGRES_IMAGE}" ]; then
+        postgresStream="$(getPomProperty postgres.image)"
+        postgresTag="$(getPomProperty postgres.version)"
+        POSTGRES_IMAGE="${postgresStream}:${postgresTag}"
+        export POSTGRES_IMAGE
+    fi
+    compose_files+=("compose-postgres.yaml")
+fi
+
+CRYOSTAT_LIVENESS_PATH="${protocol}://cryostat:8181/health/liveness"
+export CRYOSTAT_LIVENESS_PATH
 
 if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname "$0")/certs/cryostat-keystore.p12" ] ; then
     export KEYSTORE_PATH="/certs/cryostat-keystore.p12"
@@ -217,8 +235,6 @@ fi
 # trap on CTRL+C SIGINT (we don't want restart signals to tear down the test environment)
 trap compose_down INT TERM
 
-# export COMPOSE_PROFILES
-
 merged_yaml="---
 services:"
 
@@ -246,15 +262,20 @@ do
     fi
 done
 
-
 if $non_zero_replicas; then
     trap cleanup EXIT
     tmp_yaml=$(mktemp)
     echo "$merged_yaml" >> "$tmp_yaml"
-    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-jmxquarkus.yaml -f $tmp_yaml up -d --remove-orphans
-else
-    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-jmxquarkus.yaml up -d --remove-orphans
+    compose_files+=("$tmp_yaml")
 fi
+
+# handle compose_files arguments
+COMPOSE_ARGS=""
+for file in "${compose_files[@]}"; do
+    COMPOSE_ARGS+=" -f $file"
+done
+
+$COMPOSE_ENGINE $PROFILE_ARGS $COMPOSE_ARGS up -d --remove-orphans
 
 # testing periodically scaling
 if [ "$CT_EN_SCALING" = true ]; then
@@ -280,7 +301,7 @@ wait_on_cryostat() {
 }
 
 loop() {
-    $COMPOSE_ENGINE logs --tail 50 -f cryostat 2>&1 | tee cryostat-run.log
+    $COMPOSE_ENGINE logs --tail 100 -f cryostat 2>&1 | tee cryostat-run.log
     wait_on_cryostat
 }
 
