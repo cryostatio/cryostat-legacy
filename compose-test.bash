@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC1091,SC2086
 
-set -e
+set -ex
 
 source "$(dirname "$0")/.env"
 # podman-compose .env files are ignored https://github.com/containers/podman-compose/issues/475
@@ -107,7 +107,7 @@ compose_down() {
 }
 
 cleanup() {
-    rm -f compose-merged-tmp.yaml
+    rm -f "$tmp_yaml"
 }
 
 webPort="$(getPomProperty cryostat.itest.webPort)"
@@ -246,11 +246,12 @@ do
     fi
 done
 
-trap cleanup EXIT
 
 if $non_zero_replicas; then
-    echo "$merged_yaml" > compose-merged-tmp.yaml
-    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-jmxquarkus.yaml -f compose-merged-tmp.yaml up -d --remove-orphans
+    trap cleanup EXIT
+    tmp_yaml=$(mktemp)
+    echo "$merged_yaml" >> "$tmp_yaml"
+    $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-jmxquarkus.yaml -f $tmp_yaml up -d --remove-orphans
 else
     $COMPOSE_ENGINE $PROFILE_ARGS -f compose-cryostat.yaml -f compose-cryostat-reports.yaml -f compose-cryostat-grafana.yaml -f compose-jfr-datasource.yaml -f compose-jmxquarkus.yaml up -d --remove-orphans
 fi
