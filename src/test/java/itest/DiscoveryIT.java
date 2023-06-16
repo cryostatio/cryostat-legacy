@@ -48,12 +48,13 @@ class DiscoveryIT extends ExternalTargetsTest {
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
-        }
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
+                            "vertx-fib-demo-" + i,
+                            FIB_DEMO_IMAGESPEC,
+                            Map.of("JMX_PORT", String.valueOf(9093 + i)));
+            specs.add(spec);
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec));
         }
         CompletableFuture.allOf(
                         CONTAINERS.stream()
@@ -67,7 +68,7 @@ class DiscoveryIT extends ExternalTargetsTest {
     @AfterAll
     static void cleanup() throws Exception {
         for (String id : CONTAINERS) {
-            Podman.kill(id);
+            Podman.stop(id);
         }
     }
 
@@ -98,7 +99,7 @@ class DiscoveryIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 rootNode, Matchers.hasProperty("children", Matchers.not(Matchers.empty())));
 
-        // with two child Realms: JDP and Custom Targets
+        // with two child Realms: the Agent instance and Custom Targets
         List<Node> realms = rootNode.children;
         MatcherAssert.assertThat(
                 realms,
@@ -108,9 +109,15 @@ class DiscoveryIT extends ExternalTargetsTest {
                 Matchers.allOf(
                         Matchers.hasItem(
                                 Matchers.hasProperty("name", Matchers.equalTo("Custom Targets"))),
-                        Matchers.hasItem(Matchers.hasProperty("name", Matchers.equalTo("JDP")))));
+                        Matchers.hasItem(
+                                Matchers.hasProperty(
+                                        "name", Matchers.equalTo("vertx-fib-demo-0")))));
         MatcherAssert.assertThat(realms, Matchers.hasSize(2));
-        Node jdp = realms.stream().filter(node -> "JDP".equals(node.name)).findFirst().get();
+        Node agent =
+                realms.stream()
+                        .filter(node -> "vertx-fib-demo-0".equals(node.name))
+                        .findFirst()
+                        .get();
         Node customTargets =
                 realms.stream()
                         .filter(node -> "Custom Targets".equals(node.name))
@@ -123,15 +130,15 @@ class DiscoveryIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(customTargets.target, Matchers.nullValue());
 
-        // JDP should have no labels and should not be a target, but it should have children
-        MatcherAssert.assertThat(jdp.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
-        MatcherAssert.assertThat(jdp.target, Matchers.nullValue());
+        // Agent should have no labels and should not be a target, but it should have children
+        MatcherAssert.assertThat(agent.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
+        MatcherAssert.assertThat(agent.target, Matchers.nullValue());
         MatcherAssert.assertThat(
-                jdp.children,
+                agent.children,
                 Matchers.everyItem(Matchers.hasProperty("nodeType", Matchers.equalTo("JVM"))));
 
-        // There should be 2 JDP JVMs and both should be targets without further children
-        List<Node> jvms = jdp.children;
+        // There should be 1 Agent target JVM
+        List<Node> jvms = agent.children;
         MatcherAssert.assertThat(
                 jvms, Matchers.everyItem(Matchers.hasProperty("target", Matchers.notNullValue())));
         MatcherAssert.assertThat(
@@ -139,22 +146,6 @@ class DiscoveryIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 jvms,
                 Matchers.hasItems(
-                        Matchers.allOf(
-                                Matchers.hasProperty(
-                                        "name",
-                                        Matchers.equalTo(
-                                                "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi")),
-                                Matchers.hasProperty(
-                                        "target",
-                                        Matchers.hasProperty(
-                                                "connectUrl",
-                                                Matchers.equalTo(
-                                                        "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi"))),
-                                Matchers.hasProperty(
-                                        "target",
-                                        Matchers.hasProperty(
-                                                "alias",
-                                                Matchers.equalTo("io.cryostat.Cryostat")))),
                         Matchers.allOf(
                                 Matchers.hasProperty(
                                         "name",
@@ -169,47 +160,8 @@ class DiscoveryIT extends ExternalTargetsTest {
                                 Matchers.hasProperty(
                                         "target",
                                         Matchers.hasProperty(
-                                                "alias",
-                                                Matchers.equalTo("es.andrewazor.demo.Main"))))));
-        MatcherAssert.assertThat(jvms, Matchers.hasSize(2));
-
-        // The 2 JDP JVMs should have the expected Cryostat annotations applied
-        Node cryostat =
-                jvms.stream()
-                        .filter(node -> "io.cryostat.Cryostat".equals(node.target.alias))
-                        .findFirst()
-                        .get();
-        MatcherAssert.assertThat(cryostat.target.annotations.platform, Matchers.equalTo(Map.of()));
-        MatcherAssert.assertThat(
-                cryostat.target.annotations.cryostat,
-                Matchers.equalTo(
-                        Map.of(
-                                "REALM",
-                                "JDP",
-                                "HOST",
-                                Podman.POD_NAME,
-                                "PORT",
-                                "9091",
-                                "JAVA_MAIN",
-                                "io.cryostat.Cryostat")));
-        Node demoApp =
-                jvms.stream()
-                        .filter(node -> "es.andrewazor.demo.Main".equals(node.target.alias))
-                        .findFirst()
-                        .get();
-        MatcherAssert.assertThat(demoApp.target.annotations.platform, Matchers.equalTo(Map.of()));
-        MatcherAssert.assertThat(
-                demoApp.target.annotations.cryostat,
-                Matchers.equalTo(
-                        Map.of(
-                                "REALM",
-                                "JDP",
-                                "HOST",
-                                Podman.POD_NAME,
-                                "PORT",
-                                "9093",
-                                "JAVA_MAIN",
-                                "es.andrewazor.demo.Main")));
+                                                "alias", Matchers.equalTo("vertx-fib-demo-0"))))));
+        MatcherAssert.assertThat(jvms, Matchers.hasSize(1));
     }
 
     // public getters in the classes below are needed for Hamcrest Matchers.hasProperty calls

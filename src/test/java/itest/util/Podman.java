@@ -20,9 +20,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,17 +44,22 @@ public abstract class Podman {
     public static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(60);
 
     public static final String POD_NAME;
+    public static final int CRYOSTAT_WEB_PORT;
 
     public static final ExecutorService POOL = Executors.newCachedThreadPool();
 
     static {
         Environment env = new Environment();
         POD_NAME = env.getProperty("cryostatPodName");
+        CRYOSTAT_WEB_PORT = Integer.parseInt(env.getProperty("cryostat.itest.webPort", "8181"));
     }
 
     public static String run(ImageSpec imageSpec) throws Exception {
         List<String> args = new ArrayList<>();
         args.add("run");
+        if (StringUtils.isNotBlank(imageSpec.name)) {
+            args.add("--name=" + imageSpec.name);
+        }
         args.add("--quiet");
         args.add("--pod=" + POD_NAME);
         args.add("--detach");
@@ -70,6 +77,25 @@ public abstract class Podman {
         args.add(imageSpec.imageSpec);
 
         return runCommand(args.toArray(new String[0])).out();
+    }
+
+    public static String runAppWithAgent(int agentHttpPort, ImageSpec spec) throws Exception {
+        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
+
+        augmentedEnvs.put("CRYOSTAT_AGENT_APP_NAME", spec.name);
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
+        augmentedEnvs.put(
+                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
+        augmentedEnvs.put(
+                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
+        augmentedEnvs.put("CRYOSTAT_AGENT_TRUST_ALL", "true");
+        augmentedEnvs.put("CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", "true");
+
+        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
+        return run(augmentedSpec);
     }
 
     public static Future<Void> waitForContainerState(String id, String state) {
@@ -112,8 +138,8 @@ public abstract class Podman {
         return cf;
     }
 
-    public static String kill(String id) throws Exception {
-        return runCommand("kill", id).out();
+    public static String stop(String id) throws Exception {
+        return runCommand("stop", id).out();
     }
 
     private static CommandOutput runCommand(String... args) throws Exception {
@@ -182,14 +208,20 @@ public abstract class Podman {
     }
 
     public static class ImageSpec {
-        public final Map<String, String> envs;
+        public final String name;
         public final String imageSpec;
+        public final Map<String, String> envs;
 
         public ImageSpec(String imageSpec) {
-            this(imageSpec, Collections.emptyMap());
+            this(UUID.randomUUID().toString(), imageSpec, Collections.emptyMap());
         }
 
         public ImageSpec(String imageSpec, Map<String, String> envs) {
+            this(UUID.randomUUID().toString(), imageSpec, envs);
+        }
+
+        public ImageSpec(String name, String imageSpec, Map<String, String> envs) {
+            this.name = name;
             this.imageSpec = imageSpec;
             this.envs = Collections.unmodifiableMap(envs);
         }

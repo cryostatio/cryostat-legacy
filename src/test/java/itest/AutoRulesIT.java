@@ -67,7 +67,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     static void cleanup() throws ITestCleanupFailedException {
         for (String id : CONTAINERS) {
             try {
-                Podman.kill(id);
+                Podman.stop(id);
             } catch (Exception e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to kill container instance with ID %s", id), e);
@@ -270,7 +270,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        waitForDiscovery(CONTAINERS.size()); // wait for JDP to discover new container(s)
+        waitForDiscovery(CONTAINERS.size()); // wait for Cryostat to discover new container(s)
         Thread.sleep(3_000L); // wait for rule activation
 
         CompletableFuture<JsonArray> response = new CompletableFuture<>();
@@ -707,7 +707,7 @@ class AutoRulesIT extends ExternalTargetsTest {
             }
 
             // tear down the target
-            Podman.kill(containerId);
+            Podman.stop(containerId);
             CONTAINERS.remove(containerId);
             waitForDiscovery(CONTAINERS.size());
         }

@@ -45,27 +45,26 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
     }
 
     public static void waitForDiscovery(int expectedTargets) throws Exception {
-        // Repeatedly query targets, waiting until we have discovered the expected number JDP
-        // (expectedTargets, + 1 for Cryostat itself).
+        // Repeatedly query targets, waiting until we have discovered the expected number
         long startTime = System.currentTimeMillis();
         int successes = 0;
         while (true) {
             int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
-            if (numTargets == expectedTargets + 1) {
+            if (numTargets == expectedTargets) {
                 System.out.println(
                         String.format(
                                 "expected target count (%d) observed, counting success %d/%d",
-                                expectedTargets + 1, ++successes, STABILITY_COUNT));
+                                expectedTargets, ++successes, STABILITY_COUNT));
                 if (successes >= STABILITY_COUNT) {
                     System.out.println("discovery complete");
                     break;
                 }
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
-            } else if (numTargets < expectedTargets + 1) {
+            } else if (numTargets < expectedTargets) {
                 System.err.println(
                         String.format(
                                 "%d/%d targets found - waiting for discovery to complete",
-                                numTargets, expectedTargets + 1));
+                                numTargets, expectedTargets));
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception("discovery failed - timed out");
                 }
@@ -76,13 +75,13 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                     throw new Exception(
                             String.format(
                                     "%d targets found - too many (expected %d) after timeout!",
-                                    numTargets, expectedTargets + 1));
+                                    numTargets, expectedTargets));
                 }
                 System.err.println(
                         String.format(
-                                "%d targets found - too many (expected %d)! Waiting to see if JDP"
-                                        + " settles...",
-                                numTargets, expectedTargets + 1));
+                                "%d targets found - too many (expected %d)! Waiting to see if"
+                                        + " discovery settles...",
+                                numTargets, expectedTargets));
                 successes = 0;
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
             }

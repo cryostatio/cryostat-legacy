@@ -79,7 +79,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
     static void cleanup() throws ITestCleanupFailedException {
         for (String id : CONTAINERS) {
             try {
-                Podman.kill(id);
+                Podman.stop(id);
             } catch (Exception e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to kill container instance with ID %s", id), e);

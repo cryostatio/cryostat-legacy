@@ -69,7 +69,7 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
     @AfterAll
     static void cleanup() throws Exception {
         for (String id : CONTAINERS) {
-            Podman.kill(id);
+            Podman.stop(id);
         }
         CONTAINERS.clear();
     }

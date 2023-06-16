@@ -593,6 +593,8 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
               <argument>--env</argument>
+              <argument>CRYOSTAT_DISABLE_BUILTIN_DISCOVERY=true</argument>
+              <argument>--env</argument>
               <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_RJMX_PORT=9091</argument>
