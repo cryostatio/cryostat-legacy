@@ -19,11 +19,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.json.JsonArray;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterAll;
 
 public abstract class ExternalTargetsTest extends StandardSelfTest {
 
     protected static final String FIB_DEMO_IMAGESPEC = "quay.io/andrewazores/vertx-fib-demo:0.13.0";
+
+    public static final Pair<String, String> VERTX_FIB_CREDENTIALS =
+            Pair.of("admin", "adminpass123");
 
     static final int DISCOVERY_POLL_PERIOD_MS =
             Integer.parseInt(System.getProperty("cryostat.itest.jdp.poll.period", "2500"));
