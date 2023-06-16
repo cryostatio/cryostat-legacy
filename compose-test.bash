@@ -99,11 +99,15 @@ getPomProperty() {
     fi
 }
 
-cleanup() {
+compose_down() {
     $COMPOSE_ENGINE down --remove-orphans
     if [ -n "$child_pid" ]; then
         kill "$child_pid"
     fi
+}
+
+cleanup() {
+    rm -f compose-merged-tmp.yaml
 }
 
 webPort="$(getPomProperty cryostat.itest.webPort)"
@@ -195,6 +199,10 @@ fi
 # testing invalid targets
 
 PROFILE_ARGS=""
+if [ "$CT_EN_SCALED" = true ]; then
+    PROFILE_ARGS+="--profile scaled "
+fi
+
 if [ "$CT_EN_INVALID" = true ]; then
     # COMPOSE_PROFILES+=(",invalid")
     PROFILE_ARGS+="--profile invalid "
@@ -207,7 +215,7 @@ if [ "$CT_EN_DUPLICATE" = true ]; then
 fi
 
 # trap on CTRL+C SIGINT (we don't want restart signals to tear down the test environment)
-trap cleanup INT TERM
+trap compose_down INT TERM
 
 # export COMPOSE_PROFILES
 
@@ -237,6 +245,8 @@ do
         done
     fi
 done
+
+trap cleanup EXIT
 
 if $non_zero_replicas; then
     echo "$merged_yaml" > compose-merged-tmp.yaml

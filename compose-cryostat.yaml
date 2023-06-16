@@ -159,6 +159,8 @@ services:
     expose:
       - "9093"
       - "8081"
+    profiles: ["scaled"]
+
   stopped-app:
     image: quay.io/andrewazores/vertx-fib-demo:0.12.2
     container_name: stopped-app
@@ -170,6 +172,7 @@ services:
     expose:
       - "9093"
       - "8081"
+    profiles: ["scaled"]
 
 # invalid targets:
   invalid-podman:
