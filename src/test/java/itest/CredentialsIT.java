@@ -18,17 +18,20 @@ package itest;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -40,10 +43,12 @@ import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.http.JvmIdWebRequest;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -55,12 +60,31 @@ public class CredentialsIT extends ExternalTargetsTest {
     static final Map<String, String> NULL_RESULT = new HashMap<>();
 
     final String jmxServiceUrl =
-            String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
-    final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
+            String.format("service:jmx:rmi:///jndi/rmi://%s:9095/jmxrmi", Podman.POD_NAME);
+    final String jmxServiceUrlEncoded = URLEncodedUtils.formatSegments(jmxServiceUrl);
     final String requestUrl = String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded);
 
     static {
         NULL_RESULT.put("result", null);
+    }
+
+    @BeforeAll
+    static void setup() throws Exception {
+        Set<Podman.ImageSpec> specs = new HashSet<>();
+        Podman.ImageSpec spec =
+                new Podman.ImageSpec(
+                        "vertx-fib-demo",
+                        FIB_DEMO_IMAGESPEC,
+                        Map.of("JMX_PORT", String.valueOf(9093)));
+        specs.add(spec);
+        CONTAINERS.add(Podman.runAppWithAgent(10_000, spec));
+        CompletableFuture.allOf(
+                        CONTAINERS.stream()
+                                .map(id -> Podman.waitForContainerState(id, "running"))
+                                .collect(Collectors.toList())
+                                .toArray(new CompletableFuture[0]))
+                .join();
+        waitForDiscovery(1);
     }
 
     @AfterAll
@@ -237,8 +261,10 @@ public class CredentialsIT extends ExternalTargetsTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("username", "admin");
         form.add("password", "adminpass123");
+        String targetAppJmxUrl = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi";
+        String urlFormattedTargetJmxUrl = URLEncodedUtils.formatSegments(targetAppJmxUrl);
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", SELF_REFERENCE_TARGET_ID))
+                .post(String.format("/api/v2/targets/%s/credentials", urlFormattedTargetJmxUrl))
                 .sendForm(
                         form,
                         ar -> {
@@ -275,23 +301,8 @@ public class CredentialsIT extends ExternalTargetsTest {
                             }
                         });
 
-        List<ServiceRef> expectedList = new ArrayList<ServiceRef>();
-        URI expectedURI =
-                new URIBuilder("service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi").build();
+        URI expectedURI = new URIBuilder(targetAppJmxUrl).build();
         String expectedJvmId = JvmIdWebRequest.jvmIdRequest(expectedURI);
-        ServiceRef expectedServiceRef =
-                new ServiceRef(expectedJvmId, expectedURI, "io.cryostat.Cryostat");
-        expectedServiceRef.setCryostatAnnotations(
-                Map.of(
-                        AnnotationKey.REALM,
-                        "JDP",
-                        AnnotationKey.HOST,
-                        "cryostat-itests",
-                        AnnotationKey.PORT,
-                        "9091",
-                        AnnotationKey.JAVA_MAIN,
-                        "io.cryostat.Cryostat"));
-        expectedList.add(expectedServiceRef);
 
         JsonObject response = getResponse2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(response.getJsonObject("meta"), Matchers.notNullValue());
@@ -310,12 +321,19 @@ public class CredentialsIT extends ExternalTargetsTest {
                         response.getJsonObject("data").getValue("result").toString(),
                         new TypeToken<List<ServiceRef>>() {}.getType());
 
-        MatcherAssert.assertThat(actualList, Matchers.equalTo(expectedList));
+        MatcherAssert.assertThat(
+                actualList,
+                Matchers.hasItems(
+                        Matchers.allOf(
+                                Matchers.hasProperty(
+                                        "alias", Matchers.equalTo(Optional.of("vertx-fib-demo"))),
+                                Matchers.hasProperty("serviceUri", Matchers.equalTo(expectedURI)),
+                                Matchers.hasProperty("jvmId", Matchers.equalTo(expectedJvmId)))));
 
         // Delete credentials to clean up
         CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
         webClient
-                .delete(String.format("/api/v2/targets/%s/credentials", SELF_REFERENCE_TARGET_ID))
+                .delete(String.format("/api/v2/targets/%s/credentials", urlFormattedTargetJmxUrl))
                 .send(
                         ar -> {
                             if (ar.succeeded()) {
