@@ -15,9 +15,7 @@
  */
 package itest;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +41,6 @@ import itest.util.Podman;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -62,7 +59,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
     static final String RECORDING_NAME = "Test_Recording";
 
     static final int NUM_EXT_CONTAINERS = 1;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
@@ -72,18 +68,6 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
         updatedLabels = new ConcurrentHashMap<>(responseLabels);
         updatedLabels.put("KEY", "updatedValue");
-    }
-
-    @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.stop(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
-        }
     }
 
     @Test

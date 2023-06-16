@@ -15,14 +15,12 @@
  */
 package itest;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -32,7 +30,6 @@ import itest.util.Podman;
 import itest.util.http.V2Response;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +39,6 @@ class DiscoveryIT extends ExternalTargetsTest {
             new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
     static final int NUM_EXT_CONTAINERS = 1;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
@@ -56,20 +52,7 @@ class DiscoveryIT extends ExternalTargetsTest {
             specs.add(spec);
             CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec));
         }
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
-    }
-
-    @AfterAll
-    static void cleanup() throws Exception {
-        for (String id : CONTAINERS) {
-            Podman.stop(id);
-        }
     }
 
     @Test

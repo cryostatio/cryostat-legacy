@@ -15,19 +15,15 @@
  */
 package itest;
 
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -39,8 +35,6 @@ public class JmxAuthIT extends ExternalTargetsTest {
     private static final Matcher<Integer> SC_OK_RANGE =
             Matchers.both(Matchers.greaterThanOrEqualTo(200)).and(Matchers.lessThan(300));
     private static final Matcher<Integer> SC_JMX_AUTH_FAIL = Matchers.equalTo(427);
-
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     final String jmxServiceUrl =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
@@ -54,18 +48,6 @@ public class JmxAuthIT extends ExternalTargetsTest {
                                 FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
         waitForDiscovery(1);
-    }
-
-    @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.stop(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
-        }
     }
 
     @Test

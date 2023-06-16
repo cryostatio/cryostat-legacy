@@ -15,8 +15,6 @@
  */
 package itest;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -28,7 +26,6 @@ import itest.util.Podman;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -48,7 +45,6 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
             URLEncodedUtils.formatSegments(BAD_TARGET_CONNECT_URL);
 
     static final int NUM_EXT_CONTAINERS = 1;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
@@ -64,14 +60,6 @@ public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
         CONTAINERS.add(id);
         Podman.waitForContainerState(id, "running");
         waitForDiscovery(1);
-    }
-
-    @AfterAll
-    static void cleanup() throws Exception {
-        for (String id : CONTAINERS) {
-            Podman.stop(id);
-        }
-        CONTAINERS.clear();
     }
 
     @Test

@@ -45,11 +45,9 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -65,7 +63,6 @@ class GraphQLIT extends ExternalTargetsTest {
     private final ExecutorService worker = ForkJoinPool.commonPool();
 
     static final int NUM_EXT_CONTAINERS = 8;
-    static final List<String> CONTAINERS = new ArrayList<>();
 
     static final String TEST_RECORDING_NAME = "archivedRecording";
 
@@ -87,18 +84,6 @@ class GraphQLIT extends ExternalTargetsTest {
                                 .toArray(new CompletableFuture[0]))
                 .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
-    }
-
-    @AfterAll
-    static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
-            try {
-                Podman.stop(id);
-            } catch (Exception e) {
-                throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
-            }
-        }
     }
 
     @Test

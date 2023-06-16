@@ -15,10 +15,14 @@
  */
 package itest.bases;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.json.JsonArray;
+import itest.util.ITestCleanupFailedException;
+import itest.util.Podman;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterAll;
 
@@ -38,10 +42,25 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
 
+    protected static final List<String> CONTAINERS = new ArrayList<>();
+
     @AfterAll
-    static void waitForExternalTargetsRemoval() throws Exception {
-        // if the subclass doesn't clean itself up then this will time out and fail
-        waitForDiscovery(0);
+    static void cleanup() throws ITestCleanupFailedException {
+        for (String id : CONTAINERS) {
+            try {
+                Podman.stop(id);
+            } catch (Exception e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to kill container instance with ID %s", id), e);
+            }
+        }
+        try {
+            waitForDiscovery(0);
+        } catch (Exception e) {
+            throw new ITestCleanupFailedException(
+                    "Failed waiting for external targets to disappear", e);
+        }
+        CONTAINERS.clear();
     }
 
     public static void waitForDiscovery(int expectedTargets) throws Exception {
