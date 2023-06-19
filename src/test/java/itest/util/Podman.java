@@ -25,10 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import io.cryostat.core.sys.Environment;
@@ -94,46 +92,6 @@ public abstract class Podman {
 
     public static String runAppWithAgent(int agentHttpPort, ImageSpec spec) throws Exception {
         return runAppWithAgent(agentHttpPort, spec, true);
-    }
-
-    public static Future<Void> waitForContainerState(String id, String state) {
-        CompletableFuture<Void> cf = new CompletableFuture<>();
-
-        POOL.submit(
-                () -> {
-                    try {
-                        long start = System.currentTimeMillis();
-                        long elapsed = 0;
-                        String fmtState = String.format("\"%s\"", Objects.requireNonNull(state));
-                        while (elapsed < STARTUP_TIMEOUT.toMillis()) {
-                            String out =
-                                    runCommand(
-                                                    "container",
-                                                    "inspect",
-                                                    "--format=\"{{.State.Status}}\"",
-                                                    id)
-                                            .out();
-                            if (fmtState.trim().equalsIgnoreCase(out)) {
-                                break;
-                            }
-                            long now = System.currentTimeMillis();
-                            long delta = now - start;
-                            elapsed += delta;
-                            Thread.sleep(2_000L);
-                        }
-                        if (elapsed >= STARTUP_TIMEOUT.toMillis()) {
-                            throw new PodmanException(
-                                    String.format(
-                                            "Container %s did not reach %s state in %ds",
-                                            id, fmtState, STARTUP_TIMEOUT.toSeconds()));
-                        }
-                        cf.complete(null);
-                    } catch (Exception e) {
-                        cf.completeExceptionally(e);
-                    }
-                });
-
-        return cf;
     }
 
     public static String stop(String id) throws Exception {
