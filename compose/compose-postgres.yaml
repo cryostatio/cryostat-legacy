@@ -1,0 +1,39 @@
+---
+services:
+  cryostat:
+    environment:
+      - CRYOSTAT_JDBC_URL=jdbc:postgresql://postgres:5432/cryostat
+      - CRYOSTAT_JDBC_DRIVER=org.postgresql.Driver
+      - CRYOSTAT_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQL95Dialect
+      - CRYOSTAT_JDBC_USERNAME=postgres
+      - CRYOSTAT_JDBC_PASSWORD=abcd1234
+      - CRYOSTAT_HBM2DDL=update
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: ${POSTGRES_IMAGE:-docker.io/postgres:13-bullseye}
+    container_name: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=abcd1234
+      - POSTGRES_DB=cryostat
+      - PGPASSWORD=abcd1234
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: echo "Q" | nc -w 1 localhost 5432 >/dev/null 2>&1 || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgresql:
+    driver: local

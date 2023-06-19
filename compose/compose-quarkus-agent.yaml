@@ -1,0 +1,21 @@
+---
+services:
+  quarkus-agent:
+    image: quay.io/andrewazores/quarkus-test:latest
+    container_name: quarkus-agent
+    deploy:
+      mode: global
+    environment:
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar
+      - QUARKUS_HTTP_PORT=10010
+      - ORG_ACME_CRYOSTATSERVICE_ENABLED=false
+      - CRYOSTAT_AGENT_APP_NAME=quarkus-test-agent
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL=true
+      - CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME=false
+      - CRYOSTAT_AGENT_WEBSERVER_HOST=quarkus-agent
+      - CRYOSTAT_AGENT_WEBSERVER_PORT=9977
+      - CRYOSTAT_AGENT_CALLBACK=http://quarkus-agent:9977/
+      - CRYOSTAT_AGENT_BASEURI=${CRYOSTAT_AGENT_BASEURI:-http://cryostat:8181}
+      - CRYOSTAT_AGENT_AUTHORIZATION=${CRYOSTAT_AGENT_AUTHORIZATION}
+      - CRYOSTAT_AGENT_HARVESTER_PERIOD_MS=60000
+      - CRYOSTAT_AGENT_HARVESTER_MAX_FILES=10

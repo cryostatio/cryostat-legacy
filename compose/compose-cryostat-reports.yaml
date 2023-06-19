@@ -1,0 +1,23 @@
+---
+services:
+  cryostat:
+    environment:
+      - CRYOSTAT_REPORT_GENERATOR=http://cryostat-reports:${REPORTS_HTTP_PORT-10001}
+  cryostat-reports:
+    image: ${REPORTS_IMAGE-quay.io/cryostat/cryostat-reports:latest}
+    container_name: cryostat-reports
+    restart: unless-stopped
+    labels: 
+      - io.cryostat.discovery=true
+      - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://cryostat-reports:${REPORTS_RJMX_PORT-10000}/jmxrmi
+    deploy:
+      resources:
+       limits:
+        cpus: '1'
+        memory: 512M
+    environment:
+      - JAVA_OPTS=-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${REPORTS_RJMX_PORT-10000} -Dcom.sun.management.jmxremote.rmi.port=${REPORTS_RJMX_PORT-10000} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
+      - QUARKUS_HTTP_PORT=${REPORTS_HTTP_PORT-10001}
+    expose:
+      - "10000"
+      - "10001"

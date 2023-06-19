@@ -1,0 +1,18 @@
+---
+services:
+  cryostat:
+    environment:
+      - GRAFANA_DASHBOARD_EXT_URL=http://localhost:3000
+      - GRAFANA_DASHBOARD_URL=http://grafana:3000
+  grafana:
+    image: ${GRAFANA_IMAGE-quay.io/cryostat/cryostat-grafana-dashboard:latest}
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-simple-json-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - JFR_DATASOURCE_URL=http://jfr-datasource:8080
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000"
