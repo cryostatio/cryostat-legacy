@@ -54,67 +54,48 @@ public abstract class Podman {
         CRYOSTAT_WEB_PORT = Integer.parseInt(env.getProperty("cryostat.itest.webPort", "8181"));
     }
 
-    public static String run(ImageSpec imageSpec) throws Exception {
+    public static String runAppWithAgent(int agentHttpPort, ImageSpec spec, boolean preferJmx)
+            throws Exception {
+        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
+
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_APP_NAME", spec.name);
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
+        augmentedEnvs.putIfAbsent("CRYOSTAT_AGENT_TRUST_ALL", "true");
+        augmentedEnvs.putIfAbsent(
+                "CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", String.valueOf(preferJmx));
+
+        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
         List<String> args = new ArrayList<>();
         args.add("run");
-        if (StringUtils.isNotBlank(imageSpec.name)) {
-            args.add("--name=" + imageSpec.name);
+        if (StringUtils.isNotBlank(augmentedSpec.name)) {
+            args.add("--name=" + augmentedSpec.name);
         }
         args.add("--quiet");
         args.add("--pod=" + POD_NAME);
         args.add("--detach");
         args.add("--rm");
 
-        imageSpec
-                .envs
-                .entrySet()
+        augmentedSpec.envs.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .forEach(
                         env -> {
                             args.add("--env");
-                            args.add(env.getKey() + "=" + env.getValue());
+                            args.add(env);
                         });
-
-        args.add(imageSpec.imageSpec);
+        args.add(augmentedSpec.imageSpec);
 
         return runCommand(args.toArray(new String[0])).out();
     }
 
     public static String runAppWithAgent(int agentHttpPort, ImageSpec spec) throws Exception {
-        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
-
-        augmentedEnvs.put("CRYOSTAT_AGENT_APP_NAME", spec.name);
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
-        augmentedEnvs.put(
-                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
-        augmentedEnvs.put(
-                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
-        augmentedEnvs.put("CRYOSTAT_AGENT_TRUST_ALL", "true");
-        augmentedEnvs.put("CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", "true");
-
-        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
-        return run(augmentedSpec);
-    }
-
-    public static String runAppWithAgentHttp(int agentHttpPort, ImageSpec spec) throws Exception {
-        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
-
-        augmentedEnvs.put("CRYOSTAT_AGENT_APP_NAME", spec.name);
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
-        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
-        augmentedEnvs.put(
-                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
-        augmentedEnvs.put(
-                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
-        augmentedEnvs.put("CRYOSTAT_AGENT_TRUST_ALL", "true");
-        augmentedEnvs.put("CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", "false");
-
-        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
-        return run(augmentedSpec);
+        return runAppWithAgent(agentHttpPort, spec, true);
     }
 
     public static Future<Void> waitForContainerState(String id, String state) {

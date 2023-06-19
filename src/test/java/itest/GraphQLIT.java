@@ -77,7 +77,7 @@ class GraphQLIT extends ExternalTargetsTest {
                             FIB_DEMO_IMAGESPEC,
                             Map.of("JMX_PORT", String.valueOf(9093 + i)));
             specs.add(spec);
-            CONTAINERS.add(Podman.runAppWithAgentHttp(10_000 + i, spec));
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec, false));
         }
         waitForDiscovery(NUM_EXT_CONTAINERS);
     }
