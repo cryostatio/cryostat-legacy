@@ -46,21 +46,24 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
 
     @AfterAll
     static void cleanup() throws ITestCleanupFailedException {
-        for (String id : CONTAINERS) {
+        try {
+            for (String id : CONTAINERS) {
+                try {
+                    Podman.stop(id);
+                } catch (Exception e) {
+                    throw new ITestCleanupFailedException(
+                            String.format("Failed to kill container instance with ID %s", id), e);
+                }
+            }
             try {
-                Podman.stop(id);
+                waitForDiscovery(0);
             } catch (Exception e) {
                 throw new ITestCleanupFailedException(
-                        String.format("Failed to kill container instance with ID %s", id), e);
+                        "Failed waiting for external targets to disappear", e);
             }
+        } finally {
+            CONTAINERS.clear();
         }
-        try {
-            waitForDiscovery(0);
-        } catch (Exception e) {
-            throw new ITestCleanupFailedException(
-                    "Failed waiting for external targets to disappear", e);
-        }
-        CONTAINERS.clear();
     }
 
     public static void waitForDiscovery(int expectedTargets) throws Exception {
