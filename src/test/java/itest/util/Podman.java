@@ -87,7 +87,7 @@ public abstract class Podman {
                         });
         args.add(augmentedSpec.imageSpec);
 
-        return runCommand(args.toArray(new String[0])).out();
+        return runCommand(args.toArray(new String[0])).out().strip();
     }
 
     public static String runAppWithAgent(int agentHttpPort, ImageSpec spec) throws Exception {
