@@ -75,6 +75,11 @@ public abstract class Podman {
         args.add("--name=" + augmentedSpec.name);
         args.add("--quiet");
         args.add("--pod=" + POD_NAME);
+        args.add("--health-cmd");
+        args.add(
+                String.format(
+                        "curl --fail http://localhost:%d",
+                        Integer.parseInt(spec.envs.getOrDefault("HTTP_PORT", "8081"))));
         args.add("--detach");
         args.add("--rm");
 
@@ -98,7 +103,7 @@ public abstract class Podman {
         return runCommand("stop", id).out();
     }
 
-    private static CommandOutput runCommand(String... args) throws Exception {
+    public static CommandOutput runCommand(String... args) throws Exception {
         Process proc = null;
         try {
             List<String> argsList = new ArrayList<>();
@@ -112,7 +117,7 @@ public abstract class Podman {
                 System.out.println(co.out());
             }
             if (StringUtils.isNotBlank(co.err())) {
-                System.out.println(co.err());
+                System.err.println(co.err());
             }
             if (co.exitValue() != 0) {
                 throw new PodmanException(co);

@@ -93,6 +93,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                     throw new Exception("discovery failed - timed out");
                 }
                 successes = 0;
+                Podman.runCommand("ps", "--all");
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
             } else {
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
