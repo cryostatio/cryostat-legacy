@@ -107,11 +107,16 @@ class DiscoveryIT extends ExternalTargetsTest {
                         .findFirst()
                         .get();
 
-        // Custom Targets should have no children or labels, and should not be a target
-        // TODO define a custom target and ensure it appears in this part of the response
-        MatcherAssert.assertThat(customTargets.children, Matchers.empty());
+        MatcherAssert.assertThat(customTargets.children, Matchers.hasSize(1));
         MatcherAssert.assertThat(customTargets.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
         MatcherAssert.assertThat(customTargets.target, Matchers.nullValue());
+        Node selfCustomTarget = customTargets.getChildren().get(0);
+        MatcherAssert.assertThat(selfCustomTarget.name, Matchers.equalTo(SELF_REFERENCE_JMX_URL));
+        MatcherAssert.assertThat(selfCustomTarget.nodeType, Matchers.equalTo("CustomTarget"));
+        MatcherAssert.assertThat(
+                selfCustomTarget.target.alias, Matchers.equalTo("io.cryostat.Cryostat"));
+        MatcherAssert.assertThat(
+                selfCustomTarget.target.connectUrl, Matchers.equalTo(SELF_REFERENCE_JMX_URL));
 
         // Agent should have no labels and should not be a target, but it should have children
         MatcherAssert.assertThat(agent.labels.keySet(), Matchers.equalTo(Set.of("REALM")));
