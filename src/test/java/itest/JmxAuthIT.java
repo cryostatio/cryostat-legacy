@@ -43,8 +43,10 @@ public class JmxAuthIT extends ExternalTargetsTest {
     @BeforeAll
     static void setup() throws Exception {
         CONTAINERS.add(
-                Podman.run(
+                Podman.runAppWithAgent(
+                        10_000,
                         new Podman.ImageSpec(
+                                "vertx-fib-demo",
                                 FIB_DEMO_IMAGESPEC,
                                 Map.of("JMX_PORT", "9093", "USE_AUTH", "true"))));
         waitForDiscovery(1);
