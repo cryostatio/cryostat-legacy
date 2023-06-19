@@ -61,7 +61,6 @@ public abstract class StandardSelfTest {
         form.add("connectUrl", SELF_REFERENCE_JMX_URL);
         form.add("alias", "io.cryostat.Cryostat");
 
-        System.out.println("Defining self-entry as custom target...");
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         ForkJoinPool.commonPool()
                 .submit(
@@ -76,13 +75,11 @@ public abstract class StandardSelfTest {
                                             });
                         });
         JsonObject obj = response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        System.out.println(String.format("Defined self-entry as custom target: %s", obj));
     }
 
     @AfterAll
     public static void removeSelfCustomTarget()
             throws InterruptedException, ExecutionException, TimeoutException {
-        System.out.println("Deleting self-entry custom target...");
         CompletableFuture<Void> response = new CompletableFuture<>();
         ForkJoinPool.commonPool()
                 .submit(
@@ -98,7 +95,6 @@ public abstract class StandardSelfTest {
                                             });
                         });
         response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        System.out.println("Deleted self-entry custom target.");
     }
 
     public static CompletableFuture<JsonObject> expectNotification(
