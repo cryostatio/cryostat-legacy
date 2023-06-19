@@ -74,9 +74,7 @@ public abstract class Podman {
         ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
         List<String> args = new ArrayList<>();
         args.add("run");
-        if (StringUtils.isNotBlank(augmentedSpec.name)) {
-            args.add("--name=" + augmentedSpec.name);
-        }
+        args.add("--name=" + augmentedSpec.name);
         args.add("--quiet");
         args.add("--pod=" + POD_NAME);
         args.add("--detach");
@@ -221,8 +219,8 @@ public abstract class Podman {
         }
 
         public ImageSpec(String name, String imageSpec, Map<String, String> envs) {
-            this.name = name;
-            this.imageSpec = imageSpec;
+            this.name = Objects.requireNonNull(name);
+            this.imageSpec = Objects.requireNonNull(imageSpec);
             this.envs = Collections.unmodifiableMap(envs);
         }
     }
