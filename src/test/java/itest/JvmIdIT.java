@@ -18,8 +18,6 @@ package itest;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import itest.bases.ExternalTargetsTest;
 import itest.util.Podman;
@@ -38,19 +36,14 @@ public class JvmIdIT extends ExternalTargetsTest {
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            specs.add(
+            Podman.ImageSpec spec =
                     new Podman.ImageSpec(
-                            FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093 + i))));
+                            "vertx-fib-demo-" + i,
+                            FIB_DEMO_IMAGESPEC,
+                            Map.of("JMX_PORT", String.valueOf(9093 + i)));
+            specs.add(spec);
+            CONTAINERS.add(Podman.runAppWithAgent(10_000 + i, spec));
         }
-        for (Podman.ImageSpec spec : specs) {
-            CONTAINERS.add(Podman.run(spec));
-        }
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
     }
 
