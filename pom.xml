@@ -469,6 +469,34 @@
           </configuration>
         </execution>
         <execution>
+          <id>print-podman-version</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>podman</executable>
+            <arguments>
+              <argument>version</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>print-podman-info</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>podman</executable>
+            <arguments>
+              <argument>info</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
           <id>create-pod</id>
           <phase>pre-integration-test</phase>
           <goals>

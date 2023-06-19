@@ -45,6 +45,8 @@ STARTFLAGS=(
     "-Dcryostat.itest.imageTag=${ITEST_IMG_VERSION}"
     "-Dcryostat.itest.pullImages=${PULL_IMAGES}"
     "build-helper:regex-property@image-tag-to-lower"
+    "exec:exec@print-podman-version"
+    "exec:exec@print-podman-info"
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
