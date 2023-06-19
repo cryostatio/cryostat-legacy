@@ -98,6 +98,25 @@ public abstract class Podman {
         return run(augmentedSpec);
     }
 
+    public static String runAppWithAgentHttp(int agentHttpPort, ImageSpec spec) throws Exception {
+        Map<String, String> augmentedEnvs = new HashMap<>(spec.envs);
+
+        augmentedEnvs.put("CRYOSTAT_AGENT_APP_NAME", spec.name);
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL", "true");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME", "false");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_HOST", "localhost");
+        augmentedEnvs.put("CRYOSTAT_AGENT_WEBSERVER_PORT", String.valueOf(agentHttpPort));
+        augmentedEnvs.put(
+                "CRYOSTAT_AGENT_CALLBACK", String.format("http://localhost:%d/", agentHttpPort));
+        augmentedEnvs.put(
+                "CRYOSTAT_AGENT_BASEURI", String.format("http://localhost:%d/", CRYOSTAT_WEB_PORT));
+        augmentedEnvs.put("CRYOSTAT_AGENT_TRUST_ALL", "true");
+        augmentedEnvs.put("CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX", "false");
+
+        ImageSpec augmentedSpec = new ImageSpec(spec.imageSpec, augmentedEnvs);
+        return run(augmentedSpec);
+    }
+
     public static Future<Void> waitForContainerState(String id, String state) {
         CompletableFuture<Void> cf = new CompletableFuture<>();
 
