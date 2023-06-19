@@ -72,6 +72,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
         expectedTargets += 1;
         long startTime = System.currentTimeMillis();
         int successes = 0;
+        int iterations = 1;
         while (true) {
             int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets == expectedTargets) {
@@ -83,7 +84,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                     System.out.println("discovery complete");
                     break;
                 }
-                Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
+                Thread.sleep(DISCOVERY_POLL_PERIOD_MS * iterations);
             } else if (numTargets < expectedTargets) {
                 System.err.println(
                         String.format(
@@ -94,7 +95,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 }
                 successes = 0;
                 Podman.runCommand("ps", "--all");
-                Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
+                Thread.sleep(DISCOVERY_POLL_PERIOD_MS * iterations);
             } else {
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception(
@@ -108,8 +109,9 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                                         + " discovery settles...",
                                 numTargets, expectedTargets));
                 successes = 0;
-                Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
+                Thread.sleep(DISCOVERY_POLL_PERIOD_MS * iterations);
             }
+            iterations *= 2;
         }
         System.out.println(
                 String.format(
