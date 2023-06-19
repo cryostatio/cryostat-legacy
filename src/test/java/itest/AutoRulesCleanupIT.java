@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -32,6 +31,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.Podman;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -48,7 +48,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
 
     final String jmxServiceUrl =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
-    final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
+    final String jmxServiceUrlEncoded = URLEncodedUtils.formatSegments(jmxServiceUrl).substring(1);
 
     final String ruleName = "myrule";
     final String recordingName = "auto_myrule";
@@ -60,14 +60,11 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
     @BeforeAll
     static void setup() throws Exception {
         Podman.ImageSpec spec =
-                new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", String.valueOf(9093)));
-        CONTAINERS.add(Podman.run(spec));
-        CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
-                .join();
+                new Podman.ImageSpec(
+                        "vertx-fib-demo",
+                        FIB_DEMO_IMAGESPEC,
+                        Map.of("JMX_PORT", String.valueOf(9093)));
+        CONTAINERS.add(Podman.runAppWithAgent(10_000, spec));
         waitForDiscovery(CONTAINERS.size());
     }
 
@@ -99,9 +96,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
 
         form.add("enabled", "true");
         form.add("name", ruleName);
-        form.add(
-                "matchExpression",
-                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        form.add("matchExpression", "/^vertx-fib-demo/.test(target.alias)");
         form.add("description", "");
         form.add("eventSpecifier", "template=Continuous,type=TARGET");
         form.add("initialDelaySeconds", "0");
@@ -158,7 +153,7 @@ class AutoRulesCleanupIT extends ExternalTargetsTest {
                                 "eventSpecifier",
                                 "template=Continuous,type=TARGET",
                                 "matchExpression",
-                                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
+                                "/^vertx-fib-demo/.test(target.alias)",
                                 "archivalPeriodSeconds",
                                 0,
                                 "initialDelaySeconds",
