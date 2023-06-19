@@ -45,7 +45,7 @@ import org.junit.jupiter.api.BeforeAll;
 
 public abstract class StandardSelfTest {
 
-    private static final String SELF_REFERENCE_JMX_URL =
+    public static final String SELF_REFERENCE_JMX_URL =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
 
     public static final String SELF_REFERENCE_TARGET_ID =
