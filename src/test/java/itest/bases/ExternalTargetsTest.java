@@ -64,7 +64,9 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
     }
 
     public static void waitForDiscovery(int expectedTargets) throws Exception {
-        // Repeatedly query targets, waiting until we have discovered the expected number
+        // Repeatedly query targets, waiting until we have discovered the expected number (plus 1
+        // for Cryostat itself as a custom target)
+        expectedTargets += 1;
         long startTime = System.currentTimeMillis();
         int successes = 0;
         while (true) {

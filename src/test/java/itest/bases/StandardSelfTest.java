@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,15 +40,66 @@ import io.vertx.ext.web.handler.HttpException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 public abstract class StandardSelfTest {
 
+    private static final String SELF_REFERENCE_JMX_URL =
+            String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+
     public static final String SELF_REFERENCE_TARGET_ID =
-            URLEncodedUtils.formatSegments(
-                    String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME));
+            URLEncodedUtils.formatSegments(SELF_REFERENCE_JMX_URL);
 
     public static final int REQUEST_TIMEOUT_SECONDS = 30;
     public static final WebClient webClient = Utils.getWebClient();
+
+    @BeforeAll
+    public static void defineSelfCustomTarget()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("connectUrl", SELF_REFERENCE_JMX_URL);
+        form.add("alias", "io.cryostat.Cryostat");
+
+        System.out.println("Defining self-entry as custom target...");
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        ForkJoinPool.commonPool()
+                .submit(
+                        () -> {
+                            webClient
+                                    .post("/api/v2/targets")
+                                    .sendForm(
+                                            form,
+                                            ar -> {
+                                                assertRequestStatus(ar, response);
+                                                response.complete(ar.result().bodyAsJsonObject());
+                                            });
+                        });
+        JsonObject obj = response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        System.out.println(String.format("Defined self-entry as custom target: %s", obj));
+    }
+
+    @AfterAll
+    public static void removeSelfCustomTarget()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        System.out.println("Deleting self-entry custom target...");
+        CompletableFuture<Void> response = new CompletableFuture<>();
+        ForkJoinPool.commonPool()
+                .submit(
+                        () -> {
+                            webClient
+                                    .delete(
+                                            String.format(
+                                                    "/api/v2/targets/%s", SELF_REFERENCE_TARGET_ID))
+                                    .send(
+                                            ar -> {
+                                                assertRequestStatus(ar, response);
+                                                response.complete(null);
+                                            });
+                        });
+        response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        System.out.println("Deleted self-entry custom target.");
+    }
 
     public static CompletableFuture<JsonObject> expectNotification(
             String category, long timeout, TimeUnit unit)
