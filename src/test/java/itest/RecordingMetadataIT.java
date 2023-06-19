@@ -351,8 +351,12 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
 
         try {
             String containerId =
-                    Podman.run(
-                            new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093")));
+                    Podman.runAppWithAgent(
+                            10_000,
+                            new Podman.ImageSpec(
+                                    "vertx-fib-demo",
+                                    FIB_DEMO_IMAGESPEC,
+                                    Map.of("JMX_PORT", "9093")));
             // add a new target
             CONTAINERS.add(containerId);
             waitForDiscovery(NUM_EXT_CONTAINERS); // wait for JDP to discover new container(s)
@@ -406,8 +410,12 @@ public class RecordingMetadataIT extends ExternalTargetsTest {
             waitForDiscovery(0);
 
             containerId =
-                    Podman.run(
-                            new Podman.ImageSpec(FIB_DEMO_IMAGESPEC, Map.of("JMX_PORT", "9093")));
+                    Podman.runAppWithAgent(
+                            10_000,
+                            new Podman.ImageSpec(
+                                    "vertx-fib-demo",
+                                    FIB_DEMO_IMAGESPEC,
+                                    Map.of("JMX_PORT", "9093")));
             CONTAINERS.add(containerId);
 
             waitForDiscovery(NUM_EXT_CONTAINERS);
