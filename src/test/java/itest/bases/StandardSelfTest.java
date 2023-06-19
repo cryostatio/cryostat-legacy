@@ -61,7 +61,7 @@ public abstract class StandardSelfTest {
         form.add("connectUrl", SELF_REFERENCE_JMX_URL);
         form.add("alias", "io.cryostat.Cryostat");
 
-        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        CompletableFuture<Void> response = new CompletableFuture<>();
         ForkJoinPool.commonPool()
                 .submit(
                         () -> {
@@ -71,10 +71,10 @@ public abstract class StandardSelfTest {
                                             form,
                                             ar -> {
                                                 assertRequestStatus(ar, response);
-                                                response.complete(ar.result().bodyAsJsonObject());
+                                                response.complete(null);
                                             });
                         });
-        JsonObject obj = response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        response.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @AfterAll
