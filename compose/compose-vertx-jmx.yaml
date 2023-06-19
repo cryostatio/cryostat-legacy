@@ -1,14 +1,12 @@
 ---
 services:
   vertx-jmx:
-    image: quay.io/andrewazores/vertx-fib-demo:0.12.3
+    image: quay.io/andrewazores/vertx-fib-demo:0.12.4
     container_name: vertx-jmx
     deploy:
       mode: global
     labels:
       - io.cryostat.discovery=true
-      - io.cryostat.jmxPort=9093
-      - io.cryostat.jmxHost=vertx-jmx
       - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://vertx-jmx:9093/jmxrmi
     environment:
       - JMX_PORT=9093

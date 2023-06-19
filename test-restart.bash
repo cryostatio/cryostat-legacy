@@ -4,6 +4,7 @@
 set -e
 
 source "$(dirname "$0")/.env"
+export COMPOSE_FILE
 
 # handle compose engine
 if [[ -z "${CONTAINER_ENGINE}" ]]; then

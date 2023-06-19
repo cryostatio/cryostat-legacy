@@ -6,5 +6,6 @@ services:
   jfr-datasource:
     image: ${DATASOURCE_IMAGE-quay.io/cryostat/jfr-datasource:latest}
     container_name: jfr-datasource
+    restart: unless-stopped
     expose:
       - "8080"

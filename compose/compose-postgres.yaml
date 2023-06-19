@@ -11,7 +11,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
   postgres:
     image: ${POSTGRES_IMAGE:-docker.io/postgres:13-bullseye}
     container_name: postgres
@@ -27,11 +26,14 @@ services:
     expose:
       - "5432"
     volumes:
-      - ${PWD}/conf/postgres:/var/lib/postgresql/data/pgdata
-      - ${PWD}/src/test/resources/postgres:/docker-entrypoint-initdb.d
+      - postgresql:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: echo "Q" | nc -w 1 localhost 5432 >/dev/null 2>&1 || exit 1
       interval: 5s
       timeout: 5s
       retries: 5
+
+volumes:
+  postgresql:
+    driver: local

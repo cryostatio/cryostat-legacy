@@ -6,11 +6,9 @@ services:
   cryostat-reports:
     image: ${REPORTS_IMAGE-quay.io/cryostat/cryostat-reports:latest}
     container_name: cryostat-reports
-    restart: on-failure
+    restart: unless-stopped
     labels: 
       - io.cryostat.discovery=true
-      - io.cryostat.jmxPort=${REPORTS_RJMX_PORT-10000}
-      - io.cryostat.jmxHost=cryostat-reports
       - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://cryostat-reports:${REPORTS_RJMX_PORT-10000}/jmxrmi
     deploy:
       resources:

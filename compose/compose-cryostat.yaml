@@ -9,8 +9,6 @@ services:
     labels: 
       - io.cryostat.discovery=true
       - io.cryostat.jmxUrl=service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi
-      - io.cryostat.jmxPort=0
-      - io.cryostat.jmxHost=localhost
     deploy:
       resources:
        limits:

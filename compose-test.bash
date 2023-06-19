@@ -27,11 +27,11 @@ if [ -z "$COMPOSE_PROFILES" ]; then
 fi
 
 compose_files=(
-    "compose-cryostat.yaml"
-    "compose-cryostat-reports.yaml"
-    "compose-cryostat-grafana.yaml"
-    "compose-jfr-datasource.yaml"
-    "compose-jmxquarkus.yaml"
+    "compose/compose-cryostat.yaml"
+    "compose/compose-cryostat-reports.yaml"
+    "compose/compose-cryostat-grafana.yaml"
+    "compose/compose-jfr-datasource.yaml"
+    "compose/compose-jmxquarkus.yaml"
 )
 
 display_usage() {
@@ -148,16 +148,13 @@ export CRYOSTAT_AGENT_BASEURI
 
 # postgres
 if [ "$CT_EN_POSTGRES" = true ]; then
-    if [ ! -d "$(dirname "$0")/conf/postgres" ]; then
-        mkdir "$(dirname "$0")/conf/postgres"
-    fi
     if [ -z "${POSTGRES_IMAGE}" ]; then
         postgresStream="$(getPomProperty postgres.image)"
         postgresTag="$(getPomProperty postgres.version)"
         POSTGRES_IMAGE="${postgresStream}:${postgresTag}"
         export POSTGRES_IMAGE
     fi
-    compose_files+=("compose-postgres.yaml")
+    compose_files+=("compose/compose-postgres.yaml")
 fi
 
 CRYOSTAT_LIVENESS_PATH="${protocol}://cryostat:8181/health/liveness"
@@ -256,7 +253,7 @@ do
 
         for ((j=1; j<=replicas; j++))
         do
-            current_yaml="$(sed "s/$section/$section-${j}/g" "compose-$section.yaml")"
+            current_yaml="$(sed "s/$section/$section-${j}/g" "compose/compose-$section.yaml")"
             current_yaml="${current_yaml//---/}"; current_yaml="${current_yaml//services:/}"
             merged_yaml+="$current_yaml"
         done
