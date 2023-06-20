@@ -38,7 +38,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
     static final int STABILITY_COUNT =
             Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.count", "1"));
     static final int DISCOVERY_BASE_MS =
-            Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.timeout", "30000"));
+            Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.timeout", "60000"));
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
     static final int DISCOVERY_BACKOFF_TERM =
