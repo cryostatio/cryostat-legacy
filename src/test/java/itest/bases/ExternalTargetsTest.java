@@ -41,6 +41,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             Integer.parseInt(System.getProperty("cryostat.itest.discovery.poll.timeout", "30000"));
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
+    static final int DISCOVERY_BACKOFF_TERM =
+            Integer.parseInt(System.getProperty("cryostat.itest.discovery.backoff.term", "2"));
 
     protected static final List<String> CONTAINERS = new ArrayList<>();
 
@@ -111,7 +113,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 successes = 0;
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS * iterations);
             }
-            iterations *= 2;
+            iterations *= DISCOVERY_BACKOFF_TERM;
         }
         System.out.println(
                 String.format(
