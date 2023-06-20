@@ -63,6 +63,10 @@ if [ -n "$2" ]; then
     STARTFLAGS+=("-Dit.test=$2")
 fi
 
+if [ -n "${RANDOM_SEED}" ]; then
+    STARTFLAGS+=("-Dfailsafe.runOrder.random.seed=${RANDOM_SEED}")
+fi
+
 STOPFLAGS=(
     "exec:exec@destroy-pod"
 )
