@@ -599,20 +599,6 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_JMX_CREDENTIALS_DB_PASSWORD=${cryostat.itest.jmx.db-passwd}</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_JDBC_URL=jdbc:h2:file:/opt/cryostat.d/conf.d/h2;INIT=create domain if not exists jsonb as varchar</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_JDBC_DRIVER=org.h2.Driver</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_JDBC_USERNAME=sa</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_JDBC_PASSWORD=""</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_HBM2DDL=update</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_LOG_DB_QUERIES=true</argument>
-              <argument>--env</argument>
               <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=false</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_BUILTIN_DISCOVERY=true</argument>
