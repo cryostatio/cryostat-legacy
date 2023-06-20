@@ -613,15 +613,17 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_LOG_DB_QUERIES=true</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=true</argument>
+              <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=false</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_DISABLE_BUILTIN_DISCOVERY=true</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_DISCOVERY_PING_PERIOD=5000</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TARGET_CACHE_TTL=30</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_DISABLE_BUILTIN_DISCOVERY=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
