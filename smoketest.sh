@@ -321,6 +321,11 @@ createPod() {
         --publish 8082:8082 \
         --publish 8083:8083 \
         --publish 8082:8082 \
+        --publish 8910:8910 \
+        --publish 8911:8911 \
+        --publish 8912:8912 \
+        --publish 8082:8082 \
+        --publish 8082:8082 \
         --publish 9990:9990 \
         --publish 10001:10001 \
         --publish 10010:10010
@@ -328,6 +333,9 @@ createPod() {
     # 8081: vertx-fib-demo-1 HTTP
     # 8082: vertx-fib-demo-2 HTTP
     # 8083: vertx-fib-demo-3 HTTP
+    # 8910: vertx-fib-demo-1 Agent HTTP
+    # 8911: vertx-fib-demo-2 Agent HTTP
+    # 8912: vertx-fib-demo-3 Agent HTTP
     # 9990: Wildfly Admin Console
     # 10001: cryostat-reports HTTP
     # 10010: quarkus-test-agent-1 HTTP
