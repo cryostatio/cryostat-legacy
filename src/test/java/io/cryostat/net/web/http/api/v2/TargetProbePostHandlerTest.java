@@ -190,7 +190,7 @@ public class TargetProbePostHandlerTest {
                         + " <name>handleAuthenticated</name>"
                         + " <descriptor>(Lio/vertx/ext/web/RoutingContext;)V</descriptor> </method>"
                         + " </event> </events> </jfragent>";
-            Mockito.when(templateService.getTemplate(Mockito.anyString()))
+            Mockito.when(templateService.getTemplateContent(Mockito.anyString()))
                     .thenReturn(templateContent);
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
