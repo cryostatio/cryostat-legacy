@@ -166,7 +166,7 @@ class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
                 getConnectionDescriptorFromParams(requestParams),
                 connection -> {
                     AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    String templateContent = probeTemplateService.getTemplate(probeTemplate);
+                    String templateContent = probeTemplateService.getTemplateContent(probeTemplate);
                     helper.defineEventProbes(templateContent);
                     ProbeTemplate template = new ProbeTemplate();
                     template.deserialize(

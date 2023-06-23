@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
@@ -48,6 +49,7 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -128,13 +130,12 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             for (FileUpload u : requestParams.getFileUploads()) {
                 String templateName = requestParams.getPathParams().get("probetemplateName");
                 Path path = fs.pathOf(u.uploadedFileName());
-                if (!"probeTemplate".equals(u.name())) {
+                if (!u.name().equals("probeTemplate")) {
                     fs.deleteIfExists(path);
                     continue;
                 }
                 try (InputStream is = fs.newInputStream(path)) {
-                    probeTemplateService.addTemplate(is, templateName);
-                    String template = probeTemplateService.getTemplate(templateName);
+                    ProbeTemplate template = probeTemplateService.addTemplate(is, templateName);
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
@@ -142,11 +143,9 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                             .message(
                                     Map.of(
                                             "probeTemplate",
-                                            u.uploadedFileName(),
-                                            "templateName",
                                             templateName,
                                             "templateContent",
-                                            template))
+                                            template.serialize()))
                             .build()
                             .send();
                 } finally {
@@ -156,6 +155,9 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
         } catch (ProbeValidationException pve) {
             logger.error(pve.getMessage());
             throw new ApiException(400, pve.getMessage(), pve);
+        } catch (FileAlreadyExistsException faee) {
+            logger.error(faee.getMessage());
+            throw new ApiException(400, faee.getMessage(), faee);
         } catch (Exception e) {
             logger.error(e.getMessage());
             throw new ApiException(500, e.getMessage(), e);
