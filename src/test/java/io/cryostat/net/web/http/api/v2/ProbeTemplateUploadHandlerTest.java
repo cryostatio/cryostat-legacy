@@ -41,6 +41,7 @@ import static org.mockito.Mockito.lenient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeTemplate;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -202,7 +204,7 @@ public class ProbeTemplateUploadHandlerTest {
         }
 
         @Test
-        void shouldProcessGoodRequest() throws Exception {
+        void shouldRespond400IfFileExists() throws Exception {
             FileUpload upload = Mockito.mock(FileUpload.class);
             Mockito.when(upload.name()).thenReturn("probeTemplate");
             Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
@@ -215,22 +217,51 @@ public class ProbeTemplateUploadHandlerTest {
             Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
             InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
+
+            Mockito.doThrow(FileAlreadyExistsException.class)
+                    .when(templateService)
+                    .addTemplate(stream, "foo.xml");
+
+            ApiException ex =
+                    Assertions.assertThrows(
+                            ApiException.class, () -> handler.handle(requestParams));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            Mockito.verify(fs).deleteIfExists(uploadPath);
+        }
+
+        @Test
+        void shouldProcessGoodRequest() throws Exception {
+            String templateName = "foo.xml";
+            FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
+            Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+
+            Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
+            Mockito.when(requestParams.getPathParams())
+                    .thenReturn(Map.of("probetemplateName", templateName));
+
+            Path uploadPath = Mockito.mock(Path.class);
+            Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
+
+            InputStream stream = Mockito.mock(InputStream.class);
             Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
-            Mockito.when(templateService.getTemplate(Mockito.anyString()))
-                    .thenReturn("someContent");
+
+            ProbeTemplate template = Mockito.mock(ProbeTemplate.class);
+            String templateContent = "someContent";
+            Mockito.when(templateService.addTemplate(stream, templateName)).thenReturn(template);
+            Mockito.when(template.serialize()).thenReturn(templateContent);
 
             IntermediateResponse<Void> response = handler.handle(requestParams);
 
-            Mockito.verify(templateService).addTemplate(stream, "foo.xml");
+            Mockito.verify(templateService).addTemplate(stream, templateName);
             Mockito.verify(notificationBuilder)
                     .message(
                             Map.of(
                                     "probeTemplate",
-                                    "/file-uploads/abcd-1234",
-                                    "templateName",
-                                    "foo.xml",
+                                    templateName,
                                     "templateContent",
-                                    "someContent"));
+                                    templateContent));
             Mockito.verifyNoMoreInteractions(templateService);
             Mockito.verify(fs).deleteIfExists(uploadPath);
 
