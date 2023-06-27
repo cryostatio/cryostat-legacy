@@ -151,24 +151,28 @@ class TargetNodesFetcherTest {
                         .thenReturn(CompletableFuture.completedFuture(true));
 
                 when(filter.contains(Mockito.any())).thenReturn(false);
-                when(filter.contains(FilterInput.Key.NAME)).thenReturn(true);
-                when(filter.get(FilterInput.Key.NAME)).thenReturn("foo");
+                when(filter.contains(FilterInput.Key.NAMES)).thenReturn(true);
+                when(filter.get(FilterInput.Key.NAMES)).thenReturn(List.of("foo", "bar", "baz"));
 
                 TargetNode target1 = Mockito.mock(TargetNode.class);
                 TargetNode target2 = Mockito.mock(TargetNode.class);
                 TargetNode target3 = Mockito.mock(TargetNode.class);
+                TargetNode target4 = Mockito.mock(TargetNode.class);
+                TargetNode target5 = Mockito.mock(TargetNode.class);
 
                 when(target1.getName()).thenReturn("foo");
                 when(target2.getName()).thenReturn("foobar");
                 when(target3.getName()).thenReturn("foo");
+                when(target4.getName()).thenReturn("bar");
+                when(target5.getName()).thenReturn("baz");
 
                 when(recurseFetcher.get(Mockito.any()))
-                        .thenReturn(List.of(target1, target2, target3));
+                        .thenReturn(List.of(target1, target2, target3, target4, target5));
 
                 List<TargetNode> nodes = fetcher.get(env);
 
                 MatcherAssert.assertThat(nodes, Matchers.notNullValue());
-                MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(target1, target3));
+                MatcherAssert.assertThat(nodes, Matchers.hasItems(target1, target4, target5));
             }
         }
     }

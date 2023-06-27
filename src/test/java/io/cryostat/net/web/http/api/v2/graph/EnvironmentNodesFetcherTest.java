@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2.graph;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -173,6 +174,39 @@ class EnvironmentNodesFetcherTest {
             MatcherAssert.assertThat(
                     nodes,
                     Matchers.containsInAnyOrder(leftChildNode, rightChildNode, leftGrandchildNode));
+        }
+    }
+
+    @Test
+    void shouldReturnFilteredEnvironmentNodesByNames() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            EnvironmentNode northAmericaNode =
+                    new EnvironmentNode("North America", BaseNodeType.REALM);
+            EnvironmentNode earthNode = new EnvironmentNode("Earth", BaseNodeType.REALM);
+            EnvironmentNode marsNode = new EnvironmentNode("Mars", BaseNodeType.REALM);
+
+            EnvironmentNode universe =
+                    new EnvironmentNode(
+                            "Universe",
+                            BaseNodeType.UNIVERSE,
+                            Collections.emptyMap(),
+                            Set.of(northAmericaNode, earthNode, marsNode));
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.NAMES)).thenReturn(true);
+            when(filter.get(FilterInput.Key.NAMES)).thenReturn(Arrays.asList("Earth", "Mars"));
+
+            when(rootNodeFetcher.get(env)).thenReturn(universe);
+
+            List<EnvironmentNode> nodes = fetcher.get(env);
+
+            MatcherAssert.assertThat(nodes, Matchers.notNullValue());
+            MatcherAssert.assertThat(nodes, Matchers.containsInAnyOrder(earthNode, marsNode));
         }
     }
 }

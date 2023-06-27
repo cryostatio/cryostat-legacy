@@ -110,6 +110,13 @@ class TargetNodesFetcher extends AbstractPermissionedDataFetcher<List<TargetNode
                             .filter(n -> Objects.equals(n.getName(), nodeName))
                             .collect(Collectors.toList());
         }
+        if (filter.contains(FilterInput.Key.NAMES)) {
+            List<String> names = filter.get(FilterInput.Key.NAMES);
+            result =
+                    result.stream()
+                            .filter(n -> names.contains(n.getName()))
+                            .collect(Collectors.toList());
+        }
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {

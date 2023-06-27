@@ -10,6 +10,7 @@ scalar Float
 input EnvironmentNodeFilterInput {
     id: Int
     name: String
+    names: [String]
     nodeType: String
     labels: [String]
 }
@@ -17,6 +18,7 @@ input EnvironmentNodeFilterInput {
 input TargetNodesFilterInput {
     id: Int
     name: String
+    names: [String]
     labels: [String]
     annotations: [String]
 }
@@ -24,12 +26,14 @@ input TargetNodesFilterInput {
 input DescendantTargetsFilterInput {
     id: Int
     name: String
+    names: [String]
     labels: [String]
     annotations: [String]
 }
 
 input ActiveRecordingFilterInput {
     name: String
+    names: [String]
     state: String
     continuous: Boolean
     toDisk: Boolean
@@ -42,6 +46,7 @@ input ActiveRecordingFilterInput {
 
 input ArchivedRecordingFilterInput {
     name: String
+    names: [String]
     labels: [String]
     sourceTarget: String
     sizeBytesGreaterThanEqual: Long

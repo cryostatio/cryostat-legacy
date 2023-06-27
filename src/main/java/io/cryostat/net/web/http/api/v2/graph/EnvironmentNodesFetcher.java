@@ -103,6 +103,11 @@ class EnvironmentNodesFetcher extends AbstractPermissionedDataFetcher<List<Envir
             nodes = filter(nodes, n -> Objects.equals(n.getName(), nodeName));
         }
 
+        if (filter.contains(FilterInput.Key.NAMES)) {
+            List<String> names = filter.get(FilterInput.Key.NAMES);
+            nodes = filter(nodes, n -> names.contains(n.getName()));
+        }
+
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {

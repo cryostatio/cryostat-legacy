@@ -99,6 +99,14 @@ class ArchivedRecordingsFetcher extends AbstractPermissionedDataFetcher<Archived
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
+        if (filter.contains(FilterInput.Key.NAMES)) {
+            List<String> names = filter.get(FilterInput.Key.NAMES);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> names.contains(r.getName()))
+                            .collect(Collectors.toList());
+        }
+
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {

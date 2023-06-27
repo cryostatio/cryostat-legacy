@@ -100,6 +100,14 @@ class ActiveRecordingsFetcher extends AbstractPermissionedDataFetcher<Active> {
                             .filter(r -> Objects.equals(r.getName(), recordingName))
                             .collect(Collectors.toList());
         }
+        if (filter.contains(FilterInput.Key.NAMES)) {
+            List<String> recordingNames = filter.get(FilterInput.Key.NAMES);
+            recordings =
+                    recordings.stream()
+                            .filter(r -> recordingNames.contains(r.getName()))
+                            .collect(Collectors.toList());
+        }
+
         if (filter.contains(FilterInput.Key.LABELS)) {
             List<String> labels = filter.get(FilterInput.Key.LABELS);
             for (String label : labels) {
