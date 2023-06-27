@@ -284,4 +284,36 @@ class ActiveRecordingsFetcherTest {
             MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(1L));
         }
     }
+
+    @Test
+    void shouldReturnRecordingsFilteredByNames() throws Exception {
+        try (MockedStatic<FilterInput> staticFilter = Mockito.mockStatic(FilterInput.class)) {
+            staticFilter.when(() -> FilterInput.from(env)).thenReturn(filter);
+            when(env.getGraphQlContext()).thenReturn(graphCtx);
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+            GraphRecordingDescriptor recording1 = Mockito.mock(GraphRecordingDescriptor.class);
+            GraphRecordingDescriptor recording2 = Mockito.mock(GraphRecordingDescriptor.class);
+            GraphRecordingDescriptor recording3 = Mockito.mock(GraphRecordingDescriptor.class);
+            when(recording1.getName()).thenReturn("Recording1");
+            when(recording2.getName()).thenReturn("Recording2");
+            when(recording3.getName()).thenReturn("Recording3");
+
+            when(filter.contains(Mockito.any())).thenReturn(false);
+            when(filter.contains(FilterInput.Key.NAMES)).thenReturn(true);
+            when(filter.get(FilterInput.Key.NAMES)).thenReturn(List.of("Recording1", "Recording3"));
+
+            Recordings source = Mockito.mock(Recordings.class);
+            source.active = List.of(recording1, recording2, recording3);
+
+            when(env.getSource()).thenReturn(source);
+
+            Active active = fetcher.get(env);
+
+            MatcherAssert.assertThat(active, Matchers.notNullValue());
+            MatcherAssert.assertThat(active.data, Matchers.contains(recording1, recording3));
+            MatcherAssert.assertThat(active.aggregate.count, Matchers.equalTo(2L));
+        }
+    }
 }

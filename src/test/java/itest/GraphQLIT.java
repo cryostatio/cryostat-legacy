@@ -37,7 +37,12 @@
  */
 package itest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +58,13 @@ import java.util.stream.Collectors;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.ITestCleanupFailedException;
@@ -62,6 +72,7 @@ import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -77,6 +88,8 @@ class GraphQLIT extends ExternalTargetsTest {
 
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
+
+    static final String TEST_RECORDING_NAME = "archivedRecording";
 
     @BeforeAll
     static void setup() throws Exception {
@@ -588,6 +601,423 @@ class GraphQLIT extends ExternalTargetsTest {
         }
     }
 
+    @Test
+    @Order(9)
+    void testQueryForSpecificTargetsByNames() throws Exception {
+        CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
+
+        String query =
+                String.format(
+                        "query { targetNodes(filter: { names:"
+                            + " [\"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\","
+                            + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi\"] }) {"
+                            + " name nodeType } }");
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        new JsonObject().put("query", query),
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                TargetNodesQueryResponse.class));
+                            }
+                        });
+        TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        List<TargetNode> targetNodes = actual.data.targetNodes;
+
+        int expectedSize = 2;
+
+        assertThat(targetNodes.size(), is(expectedSize));
+
+        TargetNode target1 = new TargetNode();
+        target1.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
+        target1.nodeType = "JVM";
+        TargetNode target2 = new TargetNode();
+        target2.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi";
+        target2.nodeType = "JVM";
+
+        assertThat(targetNodes, hasItem(target1));
+        assertThat(targetNodes, hasItem(target2));
+    }
+
+    @Test
+    @Order(10)
+    public void testQueryForFilteredActiveRecordingsByNames() throws Exception {
+        // Check preconditions
+        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assertions.assertTrue(listResp.isEmpty());
+
+        // Create two new recordings
+        CompletableFuture<Void> createRecordingFuture1 = new CompletableFuture<>();
+        MultiMap form1 = MultiMap.caseInsensitiveMultiMap();
+        form1.add("recordingName", "Recording1");
+        form1.add("duration", "5");
+        form1.add("events", "template=ALL");
+        webClient
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .sendForm(
+                        form1,
+                        ar -> {
+                            if (assertRequestStatus(ar, createRecordingFuture1)) {
+                                createRecordingFuture1.complete(null);
+                            }
+                        });
+        createRecordingFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        CompletableFuture<Void> createRecordingFuture2 = new CompletableFuture<>();
+        MultiMap form2 = MultiMap.caseInsensitiveMultiMap();
+        form2.add("recordingName", "Recording2");
+        form2.add("duration", "5");
+        form2.add("events", "template=ALL");
+        webClient
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .sendForm(
+                        form2,
+                        ar -> {
+                            if (assertRequestStatus(ar, createRecordingFuture2)) {
+                                createRecordingFuture2.complete(null);
+                            }
+                        });
+        createRecordingFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        // GraphQL Query to filter Active recordings by names
+        CompletableFuture<TargetNodesQueryResponse> resp2 = new CompletableFuture<>();
+        String query =
+                "query { targetNodes (filter: {name:"
+                    + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\"}){ recordings"
+                    + " {active(filter: { names: [\"Recording1\", \"Recording2\",\"Recording3\"] })"
+                    + " {data {name}}}}}";
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        new JsonObject().put("query", query),
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                TargetNodesQueryResponse.class));
+                            }
+                        });
+
+        TargetNodesQueryResponse graphqlResp = resp2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        List<String> filterNames = Arrays.asList("Recording1", "Recording2");
+
+        List<ActiveRecording> filteredRecordings =
+                graphqlResp.data.targetNodes.stream()
+                        .flatMap(targetNode -> targetNode.recordings.active.data.stream())
+                        .filter(recording -> filterNames.contains(recording.name))
+                        .collect(Collectors.toList());
+
+        MatcherAssert.assertThat(filteredRecordings.size(), Matchers.equalTo(2));
+        ActiveRecording r1 = new ActiveRecording();
+        r1.name = "Recording1";
+        ActiveRecording r2 = new ActiveRecording();
+        r2.name = "Recording2";
+
+        assertThat(filteredRecordings, hasItem(r1));
+        assertThat(filteredRecordings, hasItem(r2));
+
+        // Delete recordings
+        for (ActiveRecording recording : filteredRecordings) {
+            String recordingName = recording.name;
+            CompletableFuture<Void> deleteRecordingFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, recordingName))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRecordingFuture)) {
+                                    deleteRecordingFuture.complete(null);
+                                }
+                            });
+            deleteRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
+        // Verify no recordings available
+        CompletableFuture<JsonArray> listRespFuture4 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture4)) {
+                                listRespFuture4.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        listResp = listRespFuture4.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        MatcherAssert.assertThat(
+                "list should have size 0 after deleting recordings",
+                listResp.size(),
+                Matchers.equalTo(0));
+    }
+
+    @Test
+    @Order(11)
+    public void shouldReturnArchivedRecordingsFilteredByNames() throws Exception {
+        // Check preconditions
+        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assertions.assertTrue(listResp.isEmpty());
+
+        // Create a new recording
+        CompletableFuture<Void> createRecordingFuture = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("duration", "5");
+        form.add("events", "template=ALL");
+        webClient
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, createRecordingFuture)) {
+                                createRecordingFuture.complete(null);
+                            }
+                        });
+        createRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        // Archive the recording
+        CompletableFuture<Void> archiveRecordingFuture = new CompletableFuture<>();
+        webClient
+                .patch(
+                        String.format(
+                                "/api/v1/targets/%s/recordings/%s",
+                                SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME))
+                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.PLAINTEXT.mime())
+                .sendBuffer(
+                        Buffer.buffer("SAVE"),
+                        ar -> {
+                            if (assertRequestStatus(ar, archiveRecordingFuture)) {
+                                archiveRecordingFuture.complete(null);
+                            } else {
+
+                                archiveRecordingFuture.completeExceptionally(
+                                        new RuntimeException("Archive request failed"));
+                            }
+                        });
+
+        archiveRecordingFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        // retrieve to match the exact name
+        CompletableFuture<JsonArray> archivedRecordingsFuture2 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/recordings"))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, archivedRecordingsFuture2)) {
+                                archivedRecordingsFuture2.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray retrivedArchivedRecordings =
+                archivedRecordingsFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject retrievedArchivedrecordings = retrivedArchivedRecordings.getJsonObject(0);
+        String retrievedArchivedRecordingsName = retrievedArchivedrecordings.getString("name");
+
+        // GraphQL Query to filter Archived recordings by names
+        CompletableFuture<TargetNodesQueryResponse> resp2 = new CompletableFuture<>();
+
+        String query =
+                "query { targetNodes {"
+                        + "recordings {"
+                        + "archived(filter: { names: [\""
+                        + retrievedArchivedRecordingsName
+                        + "\",\"someOtherName\"] }) {"
+                        + "data {"
+                        + "name"
+                        + "}"
+                        + "}"
+                        + "}"
+                        + "}"
+                        + "}";
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        new JsonObject().put("query", query),
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                TargetNodesQueryResponse.class));
+                            }
+                        });
+
+        TargetNodesQueryResponse graphqlResp = resp2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        List<ArchivedRecording> archivedRecordings2 =
+                graphqlResp.data.targetNodes.stream()
+                        .flatMap(targetNode -> targetNode.recordings.archived.data.stream())
+                        .collect(Collectors.toList());
+
+        int filteredRecordingsCount = archivedRecordings2.size();
+        Assertions.assertEquals(
+                1, filteredRecordingsCount, "Number of filtered recordings should be 1");
+
+        ArchivedRecording archivedRecording = archivedRecordings2.get(0);
+        String filteredName = archivedRecording.name;
+        Assertions.assertEquals(
+                filteredName,
+                retrievedArchivedRecordingsName,
+                "Filtered name should match the archived recording name");
+
+        // Delete archived recording by name
+        for (ArchivedRecording archrecording : archivedRecordings2) {
+            String nameMatch = archrecording.name;
+
+            CompletableFuture<Void> deleteFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/beta/recordings/%s/%s",
+                                    SELF_REFERENCE_TARGET_ID, nameMatch))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteFuture)) {
+                                    deleteFuture.complete(null);
+                                } else {
+                                    deleteFuture.completeExceptionally(
+                                            new RuntimeException("Delete request failed"));
+                                }
+                            });
+
+            deleteFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
+
+        // Retrieve the list of updated archived recordings to verify that the targeted recordings
+        // have been deleted
+        CompletableFuture<JsonArray> updatedArchivedRecordingsFuture = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/recordings")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, updatedArchivedRecordingsFuture)) {
+                                updatedArchivedRecordingsFuture.complete(
+                                        ar.result().bodyAsJsonArray());
+                            }
+                        });
+
+        JsonArray updatedArchivedRecordings =
+                updatedArchivedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        // Assert that the targeted recordings have been deleted
+        boolean recordingsDeleted =
+                updatedArchivedRecordings.stream()
+                        .noneMatch(
+                                json -> {
+                                    JsonObject recording = (JsonObject) json;
+                                    return recording.getString("name").equals(TEST_RECORDING_NAME);
+                                });
+
+        Assertions.assertTrue(
+                recordingsDeleted, "The targeted archived recordings should be deleted");
+
+        // Clean up what we created
+        CompletableFuture<Void> deleteRespFuture1 = new CompletableFuture<>();
+        webClient
+                .delete(
+                        String.format(
+                                "/api/v1/targets/%s/recordings/%s",
+                                SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, deleteRespFuture1)) {
+                                deleteRespFuture1.complete(null);
+                            }
+                        });
+
+        deleteRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        CompletableFuture<JsonArray> savedRecordingsFuture = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/recordings")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, savedRecordingsFuture)) {
+                                savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+
+        JsonArray savedRecordings =
+                savedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        for (Object savedRecording : savedRecordings) {
+            String recordingName = ((JsonObject) savedRecording).getString("name");
+            if (recordingName.matches("archivedRecordings")) {
+                CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
+                webClient
+                        .delete(
+                                String.format(
+                                        "/api/beta/recordings/%s/%s",
+                                        SELF_REFERENCE_TARGET_ID, recordingName))
+                        .send(
+                                ar -> {
+                                    if (assertRequestStatus(ar, deleteRespFuture2)) {
+                                        deleteRespFuture2.complete(null);
+                                    }
+                                });
+
+                deleteRespFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    @Order(12)
+    public void testQueryforFilteredEnvironmentNodesByNames() throws Exception {
+        CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
+
+        String query =
+                "query { environmentNodes(filter: { names: [\"anotherName1\","
+                        + " \"JDP\",\"anotherName2\"] }) { name nodeType } }";
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        new JsonObject().put("query", query),
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                EnvironmentNodesResponse.class));
+                            }
+                        });
+
+        EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        List<EnvironmentNode> environmentNodes = actual.data.environmentNodes;
+
+        Assertions.assertEquals(1, environmentNodes.size(), "The list filtered should be 1");
+
+        boolean nameExists = false;
+        for (EnvironmentNode environmentNode : environmentNodes) {
+            if (environmentNode.name.matches("JDP")) {
+                nameExists = true;
+                break;
+            }
+        }
+        Assertions.assertTrue(nameExists, "Name not found");
+    }
+
     static class Target {
         String alias;
         String serviceUri;
@@ -835,6 +1265,7 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     static class TargetNodes {
+
         List<TargetNode> targetNodes;
 
         @Override
