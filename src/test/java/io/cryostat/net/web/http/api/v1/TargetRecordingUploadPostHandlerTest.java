@@ -44,11 +44,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -186,7 +186,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(conn));
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService svc = Mockito.mock(CryostatFlightRecorderService.class);
         Mockito.when(conn.getService()).thenReturn(svc);
         Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
@@ -217,7 +217,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(conn));
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService svc = Mockito.mock(CryostatFlightRecorderService.class);
         IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(conn.getService()).thenReturn(svc);
@@ -288,7 +288,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(conn));
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService svc = Mockito.mock(CryostatFlightRecorderService.class);
         IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(conn.getService()).thenReturn(svc);
@@ -362,7 +362,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(conn));
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService svc = Mockito.mock(CryostatFlightRecorderService.class);
         IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(conn.getService()).thenReturn(svc);
@@ -436,7 +436,7 @@ class TargetRecordingUploadPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(conn));
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService svc = Mockito.mock(CryostatFlightRecorderService.class);
         IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(conn.getService()).thenReturn(svc);

@@ -45,11 +45,11 @@ import java.util.Set;
 
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
@@ -129,7 +129,7 @@ class TargetEventsGetHandlerTest {
     @Test
     void shouldRespondWithEventsList() throws Exception {
         JFRConnection connection = Mockito.mock(JFRConnection.class);
-        IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService service = Mockito.mock(CryostatFlightRecorderService.class);
 
         IEventTypeInfo event1 = Mockito.mock(IEventTypeInfo.class);
         IEventTypeID eventTypeId1 = Mockito.mock(IEventTypeID.class);

@@ -50,9 +50,9 @@ import javax.management.remote.JMXServiceURL;
 import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
@@ -134,7 +134,7 @@ public class AgentConnection implements JFRConnection {
     }
 
     @Override
-    public IFlightRecorderService getService()
+    public CryostatFlightRecorderService getService()
             throws ConnectionException, IOException, ServiceNotAvailableException {
         return new AgentJFRService(client, logger);
     }

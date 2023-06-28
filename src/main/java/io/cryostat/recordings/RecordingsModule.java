@@ -55,6 +55,7 @@ import io.cryostat.MainModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
+import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
