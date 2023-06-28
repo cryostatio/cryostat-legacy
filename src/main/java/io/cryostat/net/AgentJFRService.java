@@ -39,6 +39,7 @@ package io.cryostat.net;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,10 @@ import io.cryostat.core.EventOptionsBuilder.EventOptionException;
 import io.cryostat.core.EventOptionsBuilder.EventTypeException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
+import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
+
+import org.jsoup.nodes.Document;
 
 class AgentJFRService implements CryostatFlightRecorderService {
 
@@ -232,8 +236,6 @@ class AgentJFRService implements CryostatFlightRecorderService {
         throw new UnimplementedException();
     }
 
-    public static class UnimplementedException extends IllegalStateException {}
-
     @Override
     public IRecordingDescriptor start(
             IConstrainedMap<String> recordingOptions,
@@ -243,6 +245,28 @@ class AgentJFRService implements CryostatFlightRecorderService {
                     ConnectionException, IOException, FlightRecorderException,
                     ServiceNotAvailableException, QuantityConversionException, EventOptionException,
                     EventTypeException {
+        // TODO if template is custom, load the Document model from LocalStorageTemplateService
+        // and send that XML directly to the Agent with the request. If it is a target template,
+        // fire a request to the Agent including just that template name, so that the Agent knows
+        // it can load the template from its local filesysem.
         throw new UnimplementedException();
     }
+
+    @Override
+    public IRecordingDescriptor start(
+            IConstrainedMap<String> recordingOptions, Template eventTemplate)
+            throws io.cryostat.core.FlightRecorderException, FlightRecorderException,
+                    ConnectionException, IOException, FlightRecorderException,
+                    ServiceNotAvailableException, QuantityConversionException, EventOptionException,
+                    EventTypeException {
+        return CryostatFlightRecorderService.super.start(recordingOptions, eventTemplate);
+    }
+
+    @Override
+    public IRecordingDescriptor start(IConstrainedMap<String> recordingOptions, Document template)
+            throws FlightRecorderException, ParseException, IOException {
+        throw new UnimplementedException();
+    }
+
+    public static class UnimplementedException extends IllegalStateException {}
 }
