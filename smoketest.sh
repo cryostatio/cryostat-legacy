@@ -113,6 +113,7 @@ runDemoApps() {
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxPort="51423" \
+        --env QUARKUS_HTTP_PORT=10012 \
         --rm -d quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
 
     podman run \
