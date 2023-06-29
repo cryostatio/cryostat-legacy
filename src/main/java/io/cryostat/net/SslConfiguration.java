@@ -65,7 +65,6 @@ public class SslConfiguration {
 
         if (env.hasEnv(Variables.DISABLE_SSL)) {
             String disableSslValue = env.getEnv(Variables.DISABLE_SSL);
-            logger.info("++-" + disableSslValue);
             boolean disableSsl = Boolean.parseBoolean(disableSslValue); // Parse the value as a boolean
             if (disableSsl) {
                 strategy = new NoSslStrategy();
