@@ -141,7 +141,7 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
 fi
 
-if [ "$CRYOSTAT_DISABLE_SSL" = "true" ]; then
+if [ "$CRYOSTAT_DISABLE_SSL" = "true" ] || ["$CRYOSTAT_DISABLE_SSL" = "TRUE"]; then
     banner "SSL Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
