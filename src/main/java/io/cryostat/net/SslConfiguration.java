@@ -65,7 +65,7 @@ public class SslConfiguration {
 
         if (env.hasEnv(Variables.DISABLE_SSL)) {
             String disableSslValue = env.getEnv(Variables.DISABLE_SSL);
-            if ("true".equalsIgnoreCase(disableSslValue.toLowerCase())) {
+            if ("true".equals(disableSslValue) || "TRUE".equals(disableSslValue)) {
                 strategy = new NoSslStrategy();
                 logger.info("Selected NoSSL strategy");
                 return;
