@@ -65,8 +65,7 @@ public class SslConfiguration {
 
         if (env.hasEnv(Variables.DISABLE_SSL)) {
             String disableSslValue = env.getEnv(Variables.DISABLE_SSL);
-            boolean disableSsl = Boolean.parseBoolean(disableSslValue); // Parse the value as a boolean
-            if (disableSsl) {
+            if ("true".equalsIgnoreCase(disableSslValue)) {
                 strategy = new NoSslStrategy();
                 logger.info("Selected NoSSL strategy");
                 return;
@@ -115,7 +114,7 @@ public class SslConfiguration {
         }
 
         strategy = new NoSslStrategy();
-        logger.info("++-Selecteeeeeeeeeed NoSSL strategy");
+        logger.info("Selected NoSSL strategy");
     }
 
     // Test-only constructor
