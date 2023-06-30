@@ -115,7 +115,7 @@ jobs:
       with:
         step: restore
     - name: Run integration tests
-      run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest ITEST_IMG_VERSION=latest bash repeated-integration-tests.bash
+      run: POD_NAME=cryostat-itests CONTAINER_NAME=cryostat-itest bash repeated-integration-tests.bash
     - name: Print itest logs
       if: failure()
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat

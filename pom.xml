@@ -550,6 +550,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
+              <argument>--pull=never</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.containerName}</argument>
               <argument>--health-cmd</argument>
@@ -614,7 +615,7 @@
               <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${cryostat.imageStream}:${cryostat.imageVersionLower}</argument>
+              <argument>${cryostat.imageStream}:${cryostat.imageVersionLower}-${build.os}-${build.arch}</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
