@@ -24,7 +24,7 @@ cleanup() {
 trap cleanup EXIT
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)"
+    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:$(${MVN} validate help:evaluate -o -B -q -DforceStdout -Dexpression=cryostat.imageVersionLower)-$(getPomProperty build.os)-$(getPomProperty build.arch)"
 fi
 
 printf "\n\nRunning %s ...\n\n", "$CRYOSTAT_IMAGE"
