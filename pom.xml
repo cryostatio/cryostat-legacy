@@ -550,6 +550,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
+              <argument>--pull=never</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=${cryostat.itest.containerName}</argument>
               <argument>--health-cmd</argument>
