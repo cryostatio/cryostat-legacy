@@ -33,8 +33,7 @@ if [ -z "${CONTAINER_NAME}" ]; then
 fi
 
 if [ -z "${ITEST_IMG_VERSION}" ]; then
-    ITEST_IMG_VERSION="$(getPomProperty version)"
-    ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
+    ITEST_IMG_VERSION="latest"
 fi
 
 if [ -z "${PULL_IMAGES}" ]; then
@@ -43,7 +42,7 @@ fi
 
 STARTFLAGS=(
     "-DfailIfNoTests=true"
-    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
+    "-Dcryostat.itest.imageTag=${ITEST_IMG_VERSION}"
     "-Dcryostat.itest.pullImages=${PULL_IMAGES}"
     "build-helper:regex-property@image-tag-to-lower"
     "exec:exec@create-pod"
