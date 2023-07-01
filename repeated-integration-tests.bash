@@ -18,10 +18,9 @@ fi
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/$1/text()" pom.xml
-    elif command -v mvnd > /dev/null 2>&1 ; then
-        mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
     else
-        mvn help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+        mvn help:help > /dev/null 2>&1
+        "${MVN}" help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
     fi
 }
 
