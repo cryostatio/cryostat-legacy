@@ -89,6 +89,10 @@ jobs:
     needs: [build-image]
     if: ${{ ! inputs.skip-itests }}
     steps:
+    - name: Install xpath
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxml-xpath-perl
     - name: Install qemu
       if: ${{ inputs.build-arch != 'amd64' }}
       continue-on-error: true
