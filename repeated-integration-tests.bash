@@ -33,8 +33,7 @@ if [ -z "${CONTAINER_NAME}" ]; then
 fi
 
 if [ -z "${ITEST_IMG_VERSION}" ]; then
-    ITEST_IMG_VERSION="$(getPomProperty version)"
-    ITEST_IMG_VERSION="${ITEST_IMG_VERSION,,}" # lowercase
+    ITEST_IMG_VERSION="latest"
 fi
 
 if [ -z "${PULL_IMAGES}" ]; then
