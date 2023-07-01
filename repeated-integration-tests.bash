@@ -43,7 +43,7 @@ fi
 
 STARTFLAGS=(
     "-DfailIfNoTests=true"
-    "-Dcryostat.imageVersion=${ITEST_IMG_VERSION}"
+    "-Dcryostat.itest.imageTag=${ITEST_IMG_VERSION}"
     "-Dcryostat.itest.pullImages=${PULL_IMAGES}"
     "build-helper:regex-property@image-tag-to-lower"
     "exec:exec@create-pod"

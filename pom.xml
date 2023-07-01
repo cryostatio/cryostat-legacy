@@ -51,6 +51,7 @@
   <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
   <cryostat.itest.containerName>cryostat-itest</cryostat.itest.containerName>
+  <cryostat.itest.imageTag>${cryostat.imageVersionLower}-${build.os}-${build.arch}</cryostat.itest.imageTag>
   <cryostat.itest.grafana.containerName>grafana-itest</cryostat.itest.grafana.containerName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
@@ -615,7 +616,7 @@
               <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${cryostat.imageStream}:${cryostat.imageVersionLower}-${build.os}-${build.arch}</argument>
+              <argument>${cryostat.imageStream}:${cryostat.itest.imageTag}</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
