@@ -10,10 +10,9 @@ fi
 getPomProperty() {
     if command -v xpath > /dev/null 2>&1 ; then
         xpath -q -e "project/properties/$1/text()" pom.xml
-    elif command -v mvnd > /dev/null 2>&1 ; then
-        mvnd help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
     else
-        mvn help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
+        "${MVN}" help:help > /dev/null 2>&1
+        "${MVN}" build-helper:regex-property@image-tag-to-lower help:evaluate -o -B -q -DforceStdout -Dexpression="$1"
     fi
 }
 
