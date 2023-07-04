@@ -64,9 +64,9 @@ public class SslConfiguration {
         this.logger = logger;
 
         if ("true".equals(env.getEnv(Variables.DISABLE_SSL))) {
-                strategy = new NoSslStrategy();
-                logger.info("Selected NoSSL strategy");
-                return; 
+            strategy = new NoSslStrategy();
+            logger.info("Selected NoSSL strategy");
+            return;
         }
 
         {
