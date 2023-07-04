@@ -96,7 +96,14 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                     throw new Exception("discovery failed - timed out");
                 }
                 successes = 0;
-                Podman.runCommand("ps", "--all");
+                Podman.runCommand(
+                        "pod",
+                        "ps",
+                        "--filter",
+                        String.format("name=%s", Podman.POD_NAME),
+                        "--ctr-names",
+                        "--ctr-status",
+                        "--noheading");
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS * iterations);
             } else {
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
