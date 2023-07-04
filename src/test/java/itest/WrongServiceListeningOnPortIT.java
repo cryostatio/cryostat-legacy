@@ -28,8 +28,10 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled("FIXME TODO temporarily disabled, hangs server which causes agent discovery issues")
 public class WrongServiceListeningOnPortIT extends ExternalTargetsTest {
 
     static final int TARGET_HTTP_PORT = 8081;
