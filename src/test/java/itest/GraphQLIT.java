@@ -15,10 +15,6 @@
  */
 package itest;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -614,19 +610,17 @@ class GraphQLIT extends ExternalTargetsTest {
         TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         List<TargetNode> targetNodes = actual.data.targetNodes;
 
-        int expectedSize = 2;
-
-        assertThat(targetNodes.size(), is(expectedSize));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasSize(2));
 
         TargetNode target1 = new TargetNode();
         target1.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi";
-        target1.nodeType = "JVM";
+        target1.nodeType = "CustomTarget";
         TargetNode target2 = new TargetNode();
         target2.name = "service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi";
-        target2.nodeType = "JVM";
+        target2.nodeType = "CustomTarget";
 
-        assertThat(targetNodes, hasItem(target1));
-        assertThat(targetNodes, hasItem(target2));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasItem(target1));
+        MatcherAssert.assertThat(targetNodes, Matchers.hasItem(target2));
     }
 
     @Test
@@ -714,8 +708,8 @@ class GraphQLIT extends ExternalTargetsTest {
         ActiveRecording r2 = new ActiveRecording();
         r2.name = "Recording2";
 
-        assertThat(filteredRecordings, hasItem(r1));
-        assertThat(filteredRecordings, hasItem(r2));
+        MatcherAssert.assertThat(filteredRecordings, Matchers.hasItem(r1));
+        MatcherAssert.assertThat(filteredRecordings, Matchers.hasItem(r2));
 
         // Delete recordings
         for (ActiveRecording recording : filteredRecordings) {
@@ -976,7 +970,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
         String query =
                 "query { environmentNodes(filter: { names: [\"anotherName1\","
-                        + " \"JDP\",\"anotherName2\"] }) { name nodeType } }";
+                        + " \"Custom Targets\",\"anotherName2\"] }) { name nodeType } }";
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -993,16 +987,12 @@ class GraphQLIT extends ExternalTargetsTest {
         EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         List<EnvironmentNode> environmentNodes = actual.data.environmentNodes;
 
-        Assertions.assertEquals(1, environmentNodes.size(), "The list filtered should be 1");
+        MatcherAssert.assertThat(environmentNodes.size(), Matchers.equalTo(1));
 
-        boolean nameExists = false;
-        for (EnvironmentNode environmentNode : environmentNodes) {
-            if (environmentNode.name.matches("JDP")) {
-                nameExists = true;
-                break;
-            }
-        }
-        Assertions.assertTrue(nameExists, "Name not found");
+        Assertions.assertTrue(
+                environmentNodes.stream()
+                        .map(node -> node.name)
+                        .anyMatch(name -> "Custom Targets".equals(name)));
     }
 
     static class Target {
