@@ -181,7 +181,7 @@ public class DockerPlatformClient extends AbstractPlatformClient {
                         ar -> {
                             if (ar.failed()) {
                                 Throwable t = ar.cause();
-                                logger.error("Podman API request failed", t);
+                                logger.error("Docker API request failed", t);
                                 return;
                             }
                             successHandler.accept(
