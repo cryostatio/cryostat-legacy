@@ -6,7 +6,7 @@
 * [ ] Resolved all conflicts, if any
 * [ ] Rebased your branch PR on top of the latest upstream `main` branch
 * [ ] Attached at least one of the following labels to the PR: `[chore, ci, docs, feat, fix, test]`
-* [ ] Signed all commits using a GPG signature: [Link to GPG commit signature verification](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+* [ ] Signed all commits using a GPG signature: [Link to GPG commit signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#gpg-commit-signature-verification)
 
 **To sign MOST RECENT commit** `git commit --amend --gpg-sign`
 
