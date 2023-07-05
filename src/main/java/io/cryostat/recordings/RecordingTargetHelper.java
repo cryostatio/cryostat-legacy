@@ -572,7 +572,11 @@ public class RecordingTargetHelper {
                                                                                 connection, name));
                                                 return linked;
                                             }
-                                            return null;
+                                            throw new IllegalStateException(
+                                                    String.format(
+                                                            "Could not find expected recording"
+                                                                    + " named \"%s\" in target %s",
+                                                            recordingName, targetId));
                                         });
                         promise.complete(linkedDesc);
                     } catch (Exception e) {
