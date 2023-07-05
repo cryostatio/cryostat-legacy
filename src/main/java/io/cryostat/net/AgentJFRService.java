@@ -253,7 +253,6 @@ class AgentJFRService implements CryostatFlightRecorderService {
                     QuantityConversionException, EventOptionException, EventTypeException {
         StartRecordingRequest req;
         String recordingName = recordingOptions.get("name").toString();
-        logger.info("recordingName: {}", recordingName);
         long duration =
                 (Optional.ofNullable(
                                         (ITypedQuantity)
@@ -261,7 +260,6 @@ class AgentJFRService implements CryostatFlightRecorderService {
                                                         RecordingOptionsBuilder.KEY_DURATION))
                                 .orElse(UnitLookup.MILLISECOND.quantity(0)))
                         .longValueIn(UnitLookup.MILLISECOND);
-        logger.info("duration: {}", duration);
         long maxSize =
                 (Optional.ofNullable(
                                         (ITypedQuantity)
@@ -269,7 +267,6 @@ class AgentJFRService implements CryostatFlightRecorderService {
                                                         RecordingOptionsBuilder.KEY_MAX_SIZE))
                                 .orElse(UnitLookup.BYTE.quantity(0)))
                         .longValueIn(UnitLookup.BYTE);
-        logger.info("maxSize: {}", maxSize);
         long maxAge =
                 (Optional.ofNullable(
                                         (ITypedQuantity)
@@ -277,7 +274,6 @@ class AgentJFRService implements CryostatFlightRecorderService {
                                                         RecordingOptionsBuilder.KEY_MAX_AGE))
                                 .orElse(UnitLookup.MILLISECOND.quantity(0)))
                         .longValueIn(UnitLookup.MILLISECOND);
-        logger.info("maxAge: {}", maxAge);
         if (preferredTemplateType.equals(TemplateType.CUSTOM)) {
             req =
                     new StartRecordingRequest(

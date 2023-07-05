@@ -131,7 +131,6 @@ public class AgentClient {
     }
 
     Future<IRecordingDescriptor> startRecording(StartRecordingRequest req) {
-        logger.info("requesting recording start:\n{}", gson.toJson(req));
         Future<HttpResponse<String>> f =
                 invoke(
                         HttpMethod.POST,
@@ -143,7 +142,6 @@ public class AgentClient {
                     int statusCode = resp.statusCode();
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         String body = resp.body();
-                        logger.info("Received recording start response:\n{}", body);
                         return gson.fromJson(body, SerializableRecordingDescriptor.class)
                                 .toJmcForm();
                     } else if (statusCode == 403) {
