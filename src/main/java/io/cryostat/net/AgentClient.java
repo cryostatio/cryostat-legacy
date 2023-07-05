@@ -47,16 +47,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 
-import javax.management.ObjectName;
 import javax.script.ScriptException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IConstraint;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
-import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.flightrecorder.configuration.internal.EventTypeIDV2;
@@ -67,11 +64,15 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.MBeanMetrics;
+import io.cryostat.core.serialization.SerializableRecordingDescriptor;
+import io.cryostat.net.AgentJFRService.StartRecordingRequest;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -129,19 +130,42 @@ public class AgentClient {
                 .map(s -> gson.fromJson(s, MBeanMetrics.class));
     }
 
+    Future<IRecordingDescriptor> startRecording(StartRecordingRequest req) {
+        logger.info("requesting recording start:\n{}", gson.toJson(req));
+        Future<HttpResponse<String>> f =
+                invoke(
+                        HttpMethod.POST,
+                        "/recordings",
+                        Buffer.buffer(gson.toJson(req)),
+                        BodyCodec.string());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        String body = resp.body();
+                        logger.info("Received recording start response:\n{}", body);
+                        return gson.fromJson(body, SerializableRecordingDescriptor.class)
+                                .toJmcForm();
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
     Future<List<IRecordingDescriptor>> activeRecordings() {
-        Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/recordings", BodyCodec.jsonArray());
+        Future<HttpResponse<String>> f = invoke(HttpMethod.GET, "/recordings", BodyCodec.string());
         return f.map(HttpResponse::body)
                 .map(
-                        arr ->
-                                arr.stream()
-                                        .map(
-                                                o ->
-                                                        (IRecordingDescriptor)
-                                                                new AgentRecordingDescriptor(
-                                                                        (JsonObject) o))
-                                        .toList());
+                        s ->
+                                (List<SerializableRecordingDescriptor>)
+                                        gson.fromJson(
+                                                s,
+                                                new TypeToken<
+                                                        List<
+                                                                SerializableRecordingDescriptor>>() {}.getType()))
+                .map(arr -> arr.stream().map(SerializableRecordingDescriptor::toJmcForm).toList());
     }
 
     Future<Collection<? extends IEventTypeInfo>> eventTypes() {
@@ -212,6 +236,11 @@ public class AgentClient {
     }
 
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
+        return invoke(mtd, path, null, codec);
+    }
+
+    private <T> Future<HttpResponse<T>> invoke(
+            HttpMethod mtd, String path, Buffer payload, BodyCodec<T> codec) {
         return Future.fromCompletionStage(
                 CompletableFuture.supplyAsync(
                                 () -> {
@@ -250,10 +279,17 @@ public class AgentClient {
                                     }
 
                                     try {
-                                        return req.send()
-                                                .toCompletionStage()
-                                                .toCompletableFuture()
-                                                .get();
+                                        if (payload != null) {
+                                            return req.sendBuffer(payload)
+                                                    .toCompletionStage()
+                                                    .toCompletableFuture()
+                                                    .get();
+                                        } else {
+                                            return req.send()
+                                                    .toCompletionStage()
+                                                    .toCompletableFuture()
+                                                    .get();
+                                        }
                                     } catch (InterruptedException | ExecutionException e) {
                                         logger.error(e);
                                         throw new RuntimeException(e);

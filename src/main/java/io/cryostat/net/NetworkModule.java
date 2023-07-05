@@ -119,8 +119,12 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentConnection.Factory provideAgentConnectionFactory(
-            AgentClient.Factory clientFactory, JvmIdHelper idHelper, Logger logger) {
-        return new AgentConnection.Factory(clientFactory, idHelper, logger);
+            AgentClient.Factory clientFactory,
+            JvmIdHelper idHelper,
+            FileSystem fs,
+            Environment env,
+            Logger logger) {
+        return new AgentConnection.Factory(clientFactory, idHelper, fs, env, logger);
     }
 
     @Provides
