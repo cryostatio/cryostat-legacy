@@ -29,6 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -36,6 +38,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -48,13 +51,9 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-
-import dagger.Lazy;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
@@ -114,6 +113,7 @@ public class RecordingTargetHelper {
                 connection -> connection.getService().getAvailableRecordings());
     }
 
+    /* // original code 
     public IRecordingDescriptor startRecording(
             boolean restart,
             ConnectionDescriptor connectionDescriptor,
@@ -182,7 +182,90 @@ public class RecordingTargetHelper {
 
                     return desc;
                 });
+    } */
+
+    // first save
+    // my edited
+    public IRecordingDescriptor startRecording(
+        String restart, // Deprecated: Use replace parameter instead
+        String replace,
+        ConnectionDescriptor connectionDescriptor,
+        IConstrainedMap<String> recordingOptions,
+        String templateName,
+        TemplateType templateType,
+        Metadata metadata,
+        boolean archiveOnStop)
+        throws Exception {
+    String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
+    boolean restartRecording = shouldRestartRecording(replace, restart);
+
+    return targetConnectionManager.executeConnectedTask(
+            connectionDescriptor,
+            connection -> {
+                TemplateType preferredTemplateType =
+                        getPreferredTemplateType(connection, templateName, templateType);
+                Optional<IRecordingDescriptor> previous = getDescriptorByName(connection, recordingName);
+                if (previous.isPresent()) {
+                    if (!restartRecording) {
+                        throw new IllegalArgumentException(
+                                String.format(
+                                        "Recording with name \"%s\" already exists",
+                                        recordingName));
+                    } else {
+                        connection.getService().close(previous.get());
+                    }
+                }
+                IRecordingDescriptor desc =
+                        connection.getService().start(
+                                recordingOptions,
+                                enableEvents(connection, templateName, preferredTemplateType));
+                String targetId = connectionDescriptor.getTargetId();
+
+                Map<String, String> labels = metadata.getLabels();
+                labels.put("template.name", templateName);
+                labels.put("template.type", preferredTemplateType.name());
+                Metadata updatedMetadata = new Metadata(labels);
+                updatedMetadata =
+                        recordingMetadataManager
+                                .setRecordingMetadata(connectionDescriptor, recordingName, updatedMetadata)
+                                .get();
+                HyperlinkedSerializableRecordingDescriptor linkedDesc =
+                        new HyperlinkedSerializableRecordingDescriptor(
+                                desc,
+                                webServer.get().getDownloadURL(connection, desc.getName()),
+                                webServer.get().getReportURL(connection, desc.getName()),
+                                updatedMetadata,
+                                archiveOnStop);
+                this.issueNotification(targetId, linkedDesc, CREATION_NOTIFICATION_CATEGORY);
+
+                Object fixedDuration = recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
+                if (fixedDuration != null) {
+                    Long delay = Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
+                    scheduleRecordingTasks(recordingName, delay, connectionDescriptor, archiveOnStop);
+                }
+
+                return desc;
+            });
+}
+
+private boolean shouldRestartRecording(String replace, String restart) {
+    if (replace != null) {
+        switch (replace) {
+            case "always":
+                return true;
+            case "stopped":
+                return restart == null || restart.equals("true");
+            case "never":
+            default:
+                return false;
+        }
     }
+    // Default behavior if 'replace' is not specified
+    return restart != null && restart.equals("true");
+}
+
+
+    // end of edited //
 
     /**
      * The returned {@link InputStream}, if any, is only readable while the remote connection
