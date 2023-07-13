@@ -29,6 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -36,6 +38,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -48,13 +51,9 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
-
-import dagger.Lazy;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
@@ -199,6 +198,8 @@ public class RecordingTargetHelper {
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
         boolean restartRecording = shouldRestartRecording(replace, restart);
+         System.out.println("++==Restart value: " + restart); // Log the value of restart 
+          System.out.println("++==Replace value: " + replace);
 
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
@@ -260,18 +261,40 @@ public class RecordingTargetHelper {
     }
 
     private boolean shouldRestartRecording(String replace, String restart) {
-        if (replace != null) {
+        System.out.println("++replace: " + replace);
+        System.out.println("++restart: " + restart);
+    
+        if (replace != null && !replace.isEmpty()) {
             switch (replace) {
                 case "always":
+                    System.out.println("++replace is 'always'");
                     return true;
                 case "stopped":
-                    return restart == null || restart.equals("true");
+                    System.out.println("replace is 'stopped'");
+                    // Check if the recording is stopped
+                    boolean isStopped = isRecordingStopped(replace);
+                    System.out.println("++isStopped: " + isStopped);
+                    return isStopped;
                 case "never":
-                default:
+                    System.out.println("++replace is 'never'");
                     return false;
             }
         }
-        // Default behavior if 'replace' is not specified
+    
+        // Handle restart parameter (deprecated)
+        if (restart != null && !restart.isEmpty()) {  // Check 'restart' parameter here
+        System.out.println("++Handling restart parameter");
+        boolean isStopped = isRecordingStopped(restart);
+        System.out.println("++isStopped: " + isStopped);
+        return isStopped;
+    }
+    // if neither restart nor replace is specified, default to never
+    System.out.println("++Defaulting to 'never'");
+        return false;
+    }
+    
+    private boolean isRecordingStopped(String restart) {
+        // If restart is null or "true", consider the recording as stopped
         return restart != null && restart.equals("true");
     }
 

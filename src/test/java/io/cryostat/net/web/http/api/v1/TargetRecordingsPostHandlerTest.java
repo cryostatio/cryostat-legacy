@@ -21,12 +21,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.google.gson.Gson;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
@@ -43,8 +57,6 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-
-import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -52,18 +64,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingsPostHandlerTest {
@@ -172,6 +172,7 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("maxAge", "50");
         attrs.add("maxSize", "64");
         attrs.add("archiveOnStop", "false");
+
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         resp.putHeader(
@@ -181,7 +182,8 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -201,13 +203,18 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+     
+
+        ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
+
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
 
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
+                
 
         ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -221,6 +228,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
@@ -228,7 +236,9 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
+System.out.println("++ 260 replace value: "+replaceCaptor.getValue());
+
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -285,7 +295,8 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -293,6 +304,7 @@ class TargetRecordingsPostHandlerTest {
                                 Mockito.any(),
                                 Mockito.anyBoolean()))
                 .thenReturn(descriptor);
+               
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
@@ -307,15 +319,27 @@ class TargetRecordingsPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        attrs.add("restart", "true");
+        attrs.add("replace", "always");
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
+        // getting restart value
+        System.out.println("++Restart value: " + attrs.get("restart")); // Verify restart value before invoking handler
+
+
         handler.handle(ctx);
+
+        System.out.println("+++Restart value: " + attrs.get("restart")); // Verify restart value after invoking handler
+
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+
+        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+
+                ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
+
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -335,14 +359,20 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture(),
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
+                        
+        ;
+        
+       
+System.out.println("+++"+restartCaptor.getValue());
+MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(true));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -389,7 +419,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -552,7 +583,8 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -572,7 +604,10 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+
+                ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
+
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -592,6 +627,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
@@ -599,7 +635,9 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
+                        System.out.println("++658 replace value: "+replaceCaptor.getValue());
+
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -625,3 +663,4 @@ class TargetRecordingsPostHandlerTest {
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"archiveOnStop\":true,\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 }
+// first save 

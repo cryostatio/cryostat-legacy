@@ -28,6 +28,10 @@ import javax.inject.Provider;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -42,10 +46,6 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
         extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
@@ -157,7 +157,8 @@ class StartRecordingOnTargetMutator
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
-                                    restart,
+                                    null,
+                                    "always",
                                     cd,
                                     builder.build(),
                                     (String) settings.get("template"),
