@@ -28,10 +28,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -46,6 +42,10 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import graphql.schema.DataFetchingEnvironment;
 
 class StartRecordingOnTargetMutator
         extends AbstractPermissionedDataFetcher<HyperlinkedSerializableRecordingDescriptor> {
@@ -110,13 +110,17 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    boolean restart = false;
+                    String restart = "false";
+                    String replace = "never";
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
                     if (settings.containsKey("restart")) {
-                        restart = Boolean.TRUE.equals(settings.get("restart"));
+                        restart = (String) settings.get("restart");
+                    }
+                    if (settings.containsKey("replace")) {
+                        restart = (String) settings.get("replace");
                     }
                     if (settings.containsKey("duration")) {
                         builder =
@@ -157,8 +161,8 @@ class StartRecordingOnTargetMutator
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
-                                    null,
-                                    "always",
+                                    restart,
+                                    replace,
                                     cd,
                                     builder.build(),
                                     (String) settings.get("template"),

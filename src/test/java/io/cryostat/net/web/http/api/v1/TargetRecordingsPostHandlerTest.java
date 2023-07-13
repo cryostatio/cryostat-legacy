@@ -21,26 +21,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.google.gson.Gson;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
@@ -57,6 +43,8 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -64,6 +52,18 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingsPostHandlerTest {
@@ -204,17 +204,14 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
         ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
-     
 
         ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
-
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
 
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-                
 
         ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -236,9 +233,9 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-System.out.println("++ 260 replace value: "+replaceCaptor.getValue());
-
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
+
+        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -304,7 +301,6 @@ System.out.println("++ 260 replace value: "+replaceCaptor.getValue());
                                 Mockito.any(),
                                 Mockito.anyBoolean()))
                 .thenReturn(descriptor);
-               
 
         Mockito.when(recordingMetadataManager.getMetadata(Mockito.any(), Mockito.anyString()))
                 .thenReturn(new Metadata());
@@ -319,27 +315,18 @@ System.out.println("++ 260 replace value: "+replaceCaptor.getValue());
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
+        attrs.add("restart", "true"); // deprecated use replace
         attrs.add("replace", "always");
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
-        // getting restart value
-        System.out.println("++Restart value: " + attrs.get("restart")); // Verify restart value before invoking handler
-
-
         handler.handle(ctx);
-
-        System.out.println("+++Restart value: " + attrs.get("restart")); // Verify restart value after invoking handler
-
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
 
-
-
         ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
 
-                ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
-
+        ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -366,13 +353,10 @@ System.out.println("++ 260 replace value: "+replaceCaptor.getValue());
                         templateTypeCaptor.capture(),
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
-                        
-        ;
-        
-       
-System.out.println("+++"+restartCaptor.getValue());
-MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
 
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("true"));
+
+        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -606,8 +590,7 @@ MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
 
         ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
 
-                ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
-
+        ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -635,9 +618,9 @@ MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-                        System.out.println("++658 replace value: "+replaceCaptor.getValue());
-
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
+
+        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -663,4 +646,3 @@ MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"archiveOnStop\":true,\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 }
-// first save 

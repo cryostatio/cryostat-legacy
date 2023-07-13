@@ -30,7 +30,6 @@ import java.util.function.Consumer;
 
 import javax.script.ScriptException;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -52,8 +51,10 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
+
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
 

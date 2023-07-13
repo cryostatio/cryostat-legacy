@@ -26,15 +26,9 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -53,11 +47,17 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.HttpException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -151,9 +151,13 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
                                                 .name(recordingName);
-                                boolean restart = false;
+                                String restart = "false";
+                                String replace = "never";
                                 if (attrs.contains("restart")) {
-                                    restart = Boolean.parseBoolean(attrs.get("restart"));
+                                    restart = attrs.get("restart");
+                                }
+                                if (attrs.contains("replace")) {
+                                    replace = attrs.get("replace");
                                 }
                                 if (attrs.contains("duration")) {
                                     builder =
@@ -199,8 +203,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
-                                                null,
-                                                "always",
+                                                restart,
+                                                replace,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),
