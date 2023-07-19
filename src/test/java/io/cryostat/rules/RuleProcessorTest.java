@@ -474,7 +474,7 @@ class RuleProcessorTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-         Assertions.assertTrue(restartCaptor.getValue());
+        Assertions.assertTrue(restartCaptor.getValue());
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
 
