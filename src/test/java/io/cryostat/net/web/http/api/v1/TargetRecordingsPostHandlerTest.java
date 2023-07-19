@@ -235,7 +235,7 @@ class TargetRecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
 
-        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
+        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo(null));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -620,7 +620,7 @@ class TargetRecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
 
-        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
+        MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo(null));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(

@@ -115,7 +115,7 @@ public class RecordingTargetHelper {
     }
 
     public IRecordingDescriptor startRecording(
-            Boolean restart, // Deprecated: Use replace parameter instead
+            boolean restart, // Deprecated: Use replace parameter instead
             String replace,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
@@ -185,23 +185,19 @@ public class RecordingTargetHelper {
                 });
     }
 
-    private boolean shouldRestartRecording(Boolean restart, String replace) {
+    private boolean shouldRestartRecording(boolean restart, String replace) {
         if (replace != null) {
             switch (replace) {
                 case "always":
                     return true;
                 case "stopped":
-                    return restart != null && restart.equals(true);
+                    return true;
                 case "never":
                     return false;
             }
         }
-        // Handle restart parameter (deprecated)
-        if (restart != null) {
-            return restart.equals(true);
-        }
-        // if neither restart nor replace is specified, default to never
-        return false;
+        // If neither restart nor replace is specified, default to never
+        return restart;
     }
 
     private boolean isRecordingStopped(IRecordingDescriptor recording) {

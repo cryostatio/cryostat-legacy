@@ -151,8 +151,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
                                                 .name(recordingName);
-                                Boolean restart = false;
-                                String replace = "never";
+                                boolean restart = false;
+                                String replace = null;
                                 if (attrs.contains("restart")) {
                                     restart = Boolean.parseBoolean(attrs.get("restart"));
                                 }
