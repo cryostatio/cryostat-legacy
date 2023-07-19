@@ -115,7 +115,7 @@ public class RecordingTargetHelper {
     }
 
     public IRecordingDescriptor startRecording(
-            String restart, // Deprecated: Use replace parameter instead
+            Boolean restart, // Deprecated: Use replace parameter instead
             String replace,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
@@ -125,7 +125,7 @@ public class RecordingTargetHelper {
             boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
-        boolean restartRecording = shouldRestartRecording(replace, restart);
+        boolean restartRecording = shouldRestartRecording(restart, replace);
 
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
@@ -140,7 +140,7 @@ public class RecordingTargetHelper {
                                     String.format(
                                             "Recording with name \"%s\" already exists",
                                             recordingName));
-                        } else {
+                        } else if (isRecordingStopped(previous.get())) {
                             connection.getService().close(previous.get());
                         }
                     }
@@ -185,31 +185,27 @@ public class RecordingTargetHelper {
                 });
     }
 
-    private boolean shouldRestartRecording(String replace, String restart) {
+    private boolean shouldRestartRecording(Boolean restart, String replace) {
         if (replace != null) {
             switch (replace) {
                 case "always":
                     return true;
                 case "stopped":
-                    // Check if the recording is stopped
-                    boolean isStopped = isRecordingStopped(replace);
-                    return isStopped;
+                    return restart != null && restart.equals(true);
                 case "never":
                     return false;
             }
         }
         // Handle restart parameter (deprecated)
         if (restart != null) {
-            boolean isStopped = isRecordingStopped(restart);
-            return isStopped;
+            return restart.equals(true);
         }
         // if neither restart nor replace is specified, default to never
         return false;
     }
 
-    private boolean isRecordingStopped(String restart) {
-        // If restart is null or "true", consider the recording as stopped
-        return restart != null && restart.equals("true");
+    private boolean isRecordingStopped(IRecordingDescriptor recording) {
+        return recording.getState() == IRecordingDescriptor.RecordingState.STOPPED;
     }
 
     /**

@@ -110,17 +110,17 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    String restart = "false";
+                    Boolean restart = false;
                     String replace = "never";
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
                     if (settings.containsKey("restart")) {
-                        restart = (String) settings.get("restart");
+                        restart = Boolean.TRUE.equals(settings.get("restart"));
                     }
                     if (settings.containsKey("replace")) {
-                        restart = (String) settings.get("replace");
+                        replace = (String) settings.get("replace");
                     }
                     if (settings.containsKey("duration")) {
                         builder =

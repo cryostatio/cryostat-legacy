@@ -182,7 +182,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(),
+                                Mockito.anyBoolean(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -203,7 +203,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -233,7 +233,7 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
 
         MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
 
@@ -292,7 +292,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(),
+                                Mockito.anyBoolean(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -324,7 +324,7 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
 
-        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -354,7 +354,7 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("true"));
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(true));
 
         MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("always"));
 
@@ -403,7 +403,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(),
+                                Mockito.anyBoolean(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -567,7 +567,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.any(),
+                                Mockito.anyBoolean(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -588,7 +588,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<String> restartCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         ArgumentCaptor<String> replaceCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -618,7 +618,7 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo("false"));
+        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
 
         MatcherAssert.assertThat(replaceCaptor.getValue(), Matchers.equalTo("never"));
 

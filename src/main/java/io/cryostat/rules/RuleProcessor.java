@@ -383,7 +383,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     RecordingTargetHelper.parseEventSpecifierToTemplate(
                                             rule.getEventSpecifier());
                             return recordingTargetHelper.startRecording(
-                                    "true",
+                                    true,
                                     "always",
                                     connectionDescriptor,
                                     builder.build(),

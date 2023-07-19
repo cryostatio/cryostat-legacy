@@ -730,7 +730,7 @@ public class RecordingTargetHelperTest {
                         });
 
         recordingTargetHelper.startRecording(
-                "false",
+                false,
                 "never",
                 connectionDescriptor,
                 recordingOptions,
