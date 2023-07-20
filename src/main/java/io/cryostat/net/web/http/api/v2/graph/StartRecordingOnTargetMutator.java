@@ -110,7 +110,7 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    Boolean restart = false;
+                    boolean restart = false;
                     String replace = "never";
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
