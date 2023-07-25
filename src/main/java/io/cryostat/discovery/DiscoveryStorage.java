@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.script.ScriptException;
 
@@ -65,6 +66,7 @@ import io.cryostat.platform.discovery.BaseNodeType;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.JvmIdHelper;
+import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
@@ -96,9 +98,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Gson gson;
     private final WebClient http;
     private final Logger logger;
-    private long timerId = -1L;
+    private long pluginPruneTimerId = -1L;
+    private long targetRetryTimeId = -1L;
 
-    private final Map<TargetNode, UUID> targetsToUpdate = new HashMap<>();
+    private final Map<TargetNode, UUID> nonConnectableTargets = new HashMap<>();
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
@@ -143,14 +146,61 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                                                 + " deployed")))
                 .onFailure(future::fail);
 
-        this.timerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
+        this.pluginPruneTimerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
+        this.targetRetryTimeId =
+                getVertx()
+                        .setPeriodic(
+                                15_000,
+                                i -> {
+                                    ForkJoinPool.commonPool()
+                                            .execute(
+                                                    () -> {
+                                                        Map<TargetNode, UUID> copy =
+                                                                new HashMap<>(
+                                                                        nonConnectableTargets);
+                                                        for (var entry : copy.entrySet()) {
+                                                            TargetNode targetNode = entry.getKey();
+                                                            try {
+                                                                ServiceRef sr =
+                                                                        jvmIdHelper
+                                                                                .get()
+                                                                                .resolveId(
+                                                                                        targetNode
+                                                                                                .getTarget());
+                                                                if (StringUtils.isBlank(
+                                                                        sr.getJvmId())) {
+                                                                    continue;
+                                                                }
+                                                                nonConnectableTargets.remove(
+                                                                        targetNode);
+                                                                UUID id = entry.getValue();
+                                                                PluginInfo plugin =
+                                                                        getById(id).orElseThrow();
+                                                                EnvironmentNode original =
+                                                                        gson.fromJson(
+                                                                                plugin.getSubtree(),
+                                                                                EnvironmentNode
+                                                                                        .class);
+                                                                update(id, original.getChildren());
+                                                            } catch (JvmIdGetException e) {
+                                                                logger.info(
+                                                                        "Retain null jvmId for node"
+                                                                                + " [{}]",
+                                                                        targetNode);
+                                                            } catch (JsonSyntaxException e) {
+                                                                throw new RuntimeException(e);
+                                                            }
+                                                        }
+                                                    });
+                                });
         this.credentialsManager
                 .get()
                 .addListener(
                         event -> {
                             switch (event.getEventType()) {
                                 case ADDED:
-                                    Map<TargetNode, UUID> copy = new HashMap<>(targetsToUpdate);
+                                    Map<TargetNode, UUID> copy =
+                                            new HashMap<>(nonConnectableTargets);
                                     for (var entry : copy.entrySet()) {
                                         try {
                                             if (matchExpressionEvaluator
@@ -158,7 +208,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                                     .applies(
                                                             event.getPayload(),
                                                             entry.getKey().getTarget())) {
-                                                targetsToUpdate.remove(entry.getKey());
+                                                nonConnectableTargets.remove(entry.getKey());
                                                 UUID id = entry.getValue();
                                                 PluginInfo plugin = getById(id).orElseThrow();
                                                 EnvironmentNode original =
@@ -183,7 +233,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void stop() {
-        getVertx().cancelTimer(timerId);
+        getVertx().cancelTimer(pluginPruneTimerId);
+        getVertx().cancelTimer(targetRetryTimeId);
     }
 
     private CompositeFuture pingPrune() {
@@ -316,6 +367,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
                 } catch (Exception e) {
+                    nonConnectableTargets.putIfAbsent((TargetNode) child, id);
                     // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
                     if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                             || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
@@ -323,7 +375,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         continue;
                     }
                     logger.info("Update node [{}] with null jvmId", child.getName());
-                    targetsToUpdate.putIfAbsent((TargetNode) child, id);
                 }
                 child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 modifiedChildren.add(child);
