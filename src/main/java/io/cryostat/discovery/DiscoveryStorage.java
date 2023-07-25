@@ -45,11 +45,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Predicate;
 
 import javax.script.ScriptException;
 
@@ -149,48 +151,40 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.targetRetryTimeId =
                 getVertx()
                         .setPeriodic(
+                                // TODO make this configurable, use an exponential backoff, have a
+                                // maximum retry policy, etc.
                                 15_000,
                                 i -> {
                                     ForkJoinPool.commonPool()
                                             .execute(
-                                                    () -> {
-                                                        Map<TargetNode, UUID> copy =
-                                                                new HashMap<>(
-                                                                        nonConnectableTargets);
-                                                        for (var entry : copy.entrySet()) {
-                                                            TargetNode targetNode = entry.getKey();
-                                                            try {
-                                                                ServiceRef sr =
-                                                                        jvmIdHelper
-                                                                                .get()
-                                                                                .resolveId(
-                                                                                        targetNode
-                                                                                                .getTarget());
-                                                                if (StringUtils.isBlank(
-                                                                        sr.getJvmId())) {
-                                                                    continue;
-                                                                }
-                                                                nonConnectableTargets.remove(
-                                                                        targetNode);
-                                                                UUID id = entry.getValue();
-                                                                PluginInfo plugin =
-                                                                        getById(id).orElseThrow();
-                                                                EnvironmentNode original =
-                                                                        gson.fromJson(
-                                                                                plugin.getSubtree(),
-                                                                                EnvironmentNode
-                                                                                        .class);
-                                                                update(id, original.getChildren());
-                                                            } catch (JvmIdGetException e) {
-                                                                logger.info(
-                                                                        "Retain null jvmId for node"
-                                                                                + " [{}]",
-                                                                        targetNode);
-                                                            } catch (JsonSyntaxException e) {
-                                                                throw new RuntimeException(e);
-                                                            }
-                                                        }
-                                                    });
+                                                    () ->
+                                                            testNonConnectedTargets(
+                                                                    entry -> {
+                                                                        TargetNode targetNode =
+                                                                                entry.getKey();
+                                                                        try {
+                                                                            String id =
+                                                                                    jvmIdHelper
+                                                                                            .get()
+                                                                                            .resolveId(
+                                                                                                    targetNode
+                                                                                                            .getTarget())
+                                                                                            .getJvmId();
+                                                                            return StringUtils
+                                                                                    .isNotBlank(id);
+                                                                        } catch (
+                                                                                JvmIdGetException
+                                                                                        e) {
+                                                                            logger.info(
+                                                                                    """
+                                                                                    Retain null jvmId for node [{}]
+                                                                                    """,
+                                                                                    targetNode
+                                                                                            .getName());
+                                                                            logger.info(e);
+                                                                            return false;
+                                                                        }
+                                                                    }));
                                 });
         this.credentialsManager
                 .get()
@@ -198,28 +192,19 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         event -> {
                             switch (event.getEventType()) {
                                 case ADDED:
-                                    Map<TargetNode, UUID> copy =
-                                            new HashMap<>(nonConnectableTargets);
-                                    for (var entry : copy.entrySet()) {
-                                        try {
-                                            if (matchExpressionEvaluator
-                                                    .get()
-                                                    .applies(
-                                                            event.getPayload(),
-                                                            entry.getKey().getTarget())) {
-                                                nonConnectableTargets.remove(entry.getKey());
-                                                UUID id = entry.getValue();
-                                                PluginInfo plugin = getById(id).orElseThrow();
-                                                EnvironmentNode original =
-                                                        gson.fromJson(
-                                                                plugin.getSubtree(),
-                                                                EnvironmentNode.class);
-                                                update(id, original.getChildren());
-                                            }
-                                        } catch (JsonSyntaxException | ScriptException e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    }
+                                    testNonConnectedTargets(
+                                            entry -> {
+                                                try {
+                                                    return matchExpressionEvaluator
+                                                            .get()
+                                                            .applies(
+                                                                    event.getPayload(),
+                                                                    entry.getKey().getTarget());
+                                                } catch (ScriptException e) {
+                                                    logger.error(e);
+                                                    return false;
+                                                }
+                                            });
                                     break;
                                 case REMOVED:
                                     break;
@@ -228,6 +213,24 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             event.getEventType().toString());
                             }
                         });
+    }
+
+    private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
+        Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
+        for (var entry : copy.entrySet()) {
+            try {
+                if (predicate.test(entry)) {
+                    nonConnectableTargets.remove(entry.getKey());
+                    UUID id = entry.getValue();
+                    PluginInfo plugin = getById(id).orElseThrow();
+                    EnvironmentNode original =
+                            gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+                    update(id, original.getChildren());
+                }
+            } catch (JsonSyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override
