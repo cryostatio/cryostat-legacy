@@ -155,36 +155,25 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                 // maximum retry policy, etc.
                                 15_000,
                                 i -> {
-                                    ForkJoinPool.commonPool()
-                                            .execute(
-                                                    () ->
-                                                            testNonConnectedTargets(
-                                                                    entry -> {
-                                                                        TargetNode targetNode =
-                                                                                entry.getKey();
-                                                                        try {
-                                                                            String id =
-                                                                                    jvmIdHelper
-                                                                                            .get()
-                                                                                            .resolveId(
-                                                                                                    targetNode
-                                                                                                            .getTarget())
-                                                                                            .getJvmId();
-                                                                            return StringUtils
-                                                                                    .isNotBlank(id);
-                                                                        } catch (
-                                                                                JvmIdGetException
-                                                                                        e) {
-                                                                            logger.info(
-                                                                                    """
-                                                                                    Retain null jvmId for node [{}]
-                                                                                    """,
-                                                                                    targetNode
-                                                                                            .getName());
-                                                                            logger.info(e);
-                                                                            return false;
-                                                                        }
-                                                                    }));
+                                    testNonConnectedTargets(
+                                            entry -> {
+                                                TargetNode targetNode = entry.getKey();
+                                                try {
+                                                    String id =
+                                                            jvmIdHelper
+                                                                    .get()
+                                                                    .resolveId(
+                                                                            targetNode.getTarget())
+                                                                    .getJvmId();
+                                                    return StringUtils.isNotBlank(id);
+                                                } catch (JvmIdGetException e) {
+                                                    logger.info(
+                                                            "Retain null jvmId for node [{}]",
+                                                            targetNode.getName());
+                                                    logger.info(e);
+                                                    return false;
+                                                }
+                                            });
                                 });
         this.credentialsManager
                 .get()
@@ -216,21 +205,26 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
-        Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
-        for (var entry : copy.entrySet()) {
-            try {
-                if (predicate.test(entry)) {
-                    nonConnectableTargets.remove(entry.getKey());
-                    UUID id = entry.getValue();
-                    PluginInfo plugin = getById(id).orElseThrow();
-                    EnvironmentNode original =
-                            gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
-                    update(id, original.getChildren());
-                }
-            } catch (JsonSyntaxException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        ForkJoinPool.commonPool()
+                .execute(
+                        () -> {
+                            Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
+                            for (var entry : copy.entrySet()) {
+                                try {
+                                    if (predicate.test(entry)) {
+                                        nonConnectableTargets.remove(entry.getKey());
+                                        UUID id = entry.getValue();
+                                        PluginInfo plugin = getById(id).orElseThrow();
+                                        EnvironmentNode original =
+                                                gson.fromJson(
+                                                        plugin.getSubtree(), EnvironmentNode.class);
+                                        update(id, original.getChildren());
+                                    }
+                                } catch (JsonSyntaxException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        });
     }
 
     @Override
