@@ -58,7 +58,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -366,17 +365,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 ServiceRef ref = ((TargetNode) child).getTarget();
                 try {
                     ref = jvmIdHelper.get().resolveId(ref);
+                    child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 } catch (Exception e) {
-                    nonConnectableTargets.putIfAbsent((TargetNode) child, id);
-                    // if Exception is of SSL or JMX Auth, ignore warning and use null jvmId
-                    if (!(AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
-                            || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e))) {
-                        logger.info("Ignoring target node [{}]", child.getName());
-                        continue;
-                    }
                     logger.info("Update node [{}] with null jvmId", child.getName());
+                    logger.info(e);
+                    nonConnectableTargets.putIfAbsent((TargetNode) child, id);
                 }
-                child = new TargetNode(child.getNodeType(), ref, child.getLabels());
                 modifiedChildren.add(child);
             } else if (child instanceof EnvironmentNode) {
                 modifiedChildren.add(
