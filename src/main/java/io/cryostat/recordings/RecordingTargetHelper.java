@@ -142,7 +142,7 @@ public class RecordingTargetHelper {
                                             recordingName));
                         } else if (isRecordingStopped(previous.get())) {
                             connection.getService().close(previous.get());
-                        }else{
+                        } else {
                             // if recording exists and still running, do nothing.
                             return previous.get();
                         }
