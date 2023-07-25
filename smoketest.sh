@@ -117,6 +117,17 @@ runDemoApps() {
         --rm -d quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
 
     podman run \
+        --name vertx-fib-demo-0 \
+        --env HTTP_PORT=8079 \
+        --env JMX_PORT=9089 \
+        --env START_DELAY=60 \
+        --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="9093" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+
+    podman run \
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
