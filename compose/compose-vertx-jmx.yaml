@@ -1,7 +1,7 @@
 ---
 services:
   vertx-jmx:
-    image: quay.io/andrewazores/vertx-fib-demo:0.12.4
+    image: quay.io/andrewazores/vertx-fib-demo:0.13.0
     container_name: vertx-jmx
     deploy:
       mode: global
