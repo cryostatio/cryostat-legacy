@@ -142,6 +142,9 @@ public class RecordingTargetHelper {
                                             recordingName));
                         } else if (isRecordingStopped(previous.get())) {
                             connection.getService().close(previous.get());
+                        }else{
+                            // if recording exists and still running, do nothing.
+                            return previous.get();
                         }
                     }
                     IRecordingDescriptor desc =
