@@ -51,6 +51,7 @@ Build Requirements:
 
 Run Requirements:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
+- `systemctl --user enable --now podman.socket` to enable the user podman.socket for podman discovery
 
 ## BUILD
 
