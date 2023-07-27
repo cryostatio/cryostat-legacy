@@ -1,85 +1,170 @@
 name: CI build and push (PR)
 
 concurrency:
-  group: pr-${{ github.event.number }}
+  group: ci-${{ github.run_id }}
   cancel-in-progress: true
 
 on:
-  pull_request_target:
+  issue_comment:
     types:
-      - opened
-      - reopened
-      - synchronize
-      - labeled
-      - unlabeled
-    branches:
-      - main
-      - v[0-9]+
-      - v[0-9]+.[0-9]+
-      - cryostat-v[0-9]+.[0-9]+
+      - created
 
 jobs:
+  check-before-build:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    steps:
+    - name: Fail if needs-triage label applied 
+      if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
+      run: exit 1
+    - name: Show warning if permission is denied
+      if: |
+        !(github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'OWNER')
+        && !contains(github.event.issue.labels.*.name, 'safe-to-test')
+      uses: thollander/actions-comment-pull-request@v2
+      with:
+        message: |-
+          You do not have permission to run the /build_test command. Please ask Cryostat @reviewers 
+          to resolve the issue.
+    - name: Fail if command permission is not allowed
+      if: |
+        !(github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'OWNER')
+        && !contains(github.event.issue.labels.*.name, 'safe-to-test')
+      run: exit 1
+    - name: Show warning if safe-to-test applied and permission denied
+      if: |
+        !(github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.issue.user.name == github.event.comment.user.name)
+      uses: thollander/actions-comment-pull-request@v2
+      with:
+        message: |-
+          You do not have permission to run the /build_test command. Please ask Cryostat @reviewers 
+          to resolve the issue.
+    - name: Fail if safe-to-test applied and command permission is not allowed
+      if: |
+        !(github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.issue.user.name == github.event.comment.user.name)
+      run: exit 1
+    - name: React to comment
+      uses: actions/github-script@v4
+      with:
+        script: |
+            const {owner, repo} = context.issue
+            github.reactions.createForIssueComment({
+              owner,
+              repo,
+              comment_id: context.payload.comment.id,
+              content: "+1",
+            });  
+
+  checkout-branch: 
+    runs-on: ubuntu-latest
+    needs: [check-before-build]
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs: 
+      PR_head_ref: ${{ fromJSON(steps.comment-branch.outputs.result).ref }}
+      PR_head_sha: ${{ fromJSON(steps.comment-branch.outputs.result).sha }}
+      PR_repo: ${{ fromJSON(steps.comment-branch.outputs.result).repo.full_name }}
+    steps:
+    - uses: actions/github-script@v4
+      id: comment-branch
+      with:
+        script: |
+          const result = await github.pulls.get ({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number
+          })
+          return result.data.head
+
   code-analysis:
+    needs: [checkout-branch]
     uses: ./.github/workflows/ci-code-analysis.yml
     with:
-      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      checkout-ref: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
-
+      checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
+      checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref }}
+      
   build-and-test:
+    needs: [code-analysis, checkout-branch]
     strategy:
       matrix:
         arch: [amd64, arm64]
     uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: ${{ matrix.arch }}
-      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      checkout-ref: ${{ github.event.pull_request.head.ref }}
+      checkout-repo: ${{ needs.checkout-branch.outputs.PR_repo }}
+      checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
-    secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
 
   push-to-ghcr:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [amd64, arm64]
-    needs: [code-analysis, build-and-test]
-    if: always() && github.repository_owner == 'cryostatio'
+    outputs: 
+      amd64_image: ${{ steps.amd64_image.outputs.image }}
+      arm64_image: ${{ steps.arm64_image.outputs.image }}
+    needs: [build-and-test, checkout-branch]
+    env:
+      head_sha: ${{ needs.checkout-branch.outputs.PR_head_sha}}
     steps:
-    - name: Fail if needs-triage label applied
-      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
-      run: exit 1
-    - name: Fail if safe-to-test label NOT applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
-      run: exit 1
     - uses: actions/download-artifact@v3
       with:
         name: cryostat-${{ matrix.arch }}
-      if: github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat-${{ matrix.arch }}.tar
-      if: github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
-      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
-      if: github.repository_owner == 'cryostatio'
+      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
     - name: Push PR test image to ghcr.io
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
-        tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
+        tags: pr-${{ github.event.number }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
         registry: ghcr.io/${{ github.repository_owner }}
-        username: ${{ github.event.pull_request.user.login }}
-        password: ${{ secrets.GHCR_PR_TOKEN }}
-      if: github.repository_owner == 'cryostatio'
-    - name: Comment test image link
-      uses: thollander/actions-comment-pull-request@v1
+        username: ${{ github.event.comment.user.login }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Store images as output amd64
+      if: ${{ matrix.arch == 'amd64' }}
+      id: amd64_image
+      run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
+    - name: Store images as output
+      if: ${{ matrix.arch == 'arm64' }}
+      id: arm64_image
+      run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
+
+  comment-image:
+    runs-on: ubuntu-latest
+    needs: [push-to-ghcr]
+    env:
+      amd64_image: ${{ needs.push-to-ghcr.outputs.amd64_image }}
+      arm64_image: ${{ needs.push-to-ghcr.outputs.arm64_image }}
+    steps:
+    - name: Create markdown table
+      id: md-table
+      uses: petems/csv-to-md-table-action@v3.0.0
+      with: 
+        csvinput: |
+          ARCH, IMAGE
+          AMD64, ${{ env.amd64_image }}
+          ARM64, ${{ env.arm64_image }}
+    - uses: thollander/actions-comment-pull-request@v2
       with:
         message: |-
-          Test image available:
+          ${{ steps.md-table.outputs.markdown-table }}
+
+          To run smoketest:
           ```
-          $ CRYOSTAT_IMAGE=${{ steps.push-to-ghcr.outputs.registry-path }} sh smoketest.sh
+          # amd64          
+          CRYOSTAT_IMAGE=${{ amd64_image }} sh smoketest.sh
+
+          # or arm64
+          CRYOSTAT_IMAGE=${{ arm64_image }} sh smoketest.sh
           ```
-      if: github.repository_owner == 'cryostatio'
