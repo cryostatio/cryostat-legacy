@@ -124,7 +124,7 @@ runDemoApps() {
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
-        --label io.cryostat.jmxPort="9093" \
+        --label io.cryostat.jmxPort="9089" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
 
     podman run \
