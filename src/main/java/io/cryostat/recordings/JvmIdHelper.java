@@ -119,7 +119,6 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
     }
 
     private boolean observe(ServiceRef sr) {
-        logger.info("Observing new target: {}", sr);
         if (StringUtils.isBlank(sr.getJvmId())) {
             return false;
         }
@@ -133,6 +132,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         if (observe(sr)) {
             return sr;
         }
+        logger.info("Observing new target: {}", sr);
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
         try {
