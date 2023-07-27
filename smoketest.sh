@@ -120,9 +120,7 @@ runDemoApps() {
         --env JMX_PORT=9089 \
         --env START_DELAY=60 \
         --pod cryostat-pod \
-        --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
-        --label io.cryostat.jmxPort="9089" \
+        --label io.cryostat.connectUrl="service:jmx:rmi:///jndi/rmi://localhost:9089/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
 
     podman run \
