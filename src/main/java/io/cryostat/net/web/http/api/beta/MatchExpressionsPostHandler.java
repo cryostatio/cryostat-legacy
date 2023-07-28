@@ -149,7 +149,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
             if (StringUtils.isBlank(matchExpression)) {
                 throw new ApiException(400, "'matchExpression' is required.");
             }
-            expressionEvaluator.evaluates(matchExpression);
+            expressionEvaluator.validate(matchExpression);
             if (targets != null) {
                 Set<ServiceRef> matched =
                         expressionManager.resolveMatchingTargets(

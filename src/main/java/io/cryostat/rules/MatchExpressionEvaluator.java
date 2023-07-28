@@ -38,7 +38,6 @@
 package io.cryostat.rules;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -83,7 +82,7 @@ public class MatchExpressionEvaluator {
                 e -> {
                     switch (e.getEventType()) {
                         case REMOVED:
-                            invalidate(e.getPayload());
+                            invalidateCache(e.getPayload());
                             break;
                         default:
                             // ignore
@@ -94,7 +93,7 @@ public class MatchExpressionEvaluator {
                 e -> {
                     switch (e.getEventType()) {
                         case REMOVED:
-                            invalidate(e.getPayload().getMatchExpression());
+                            invalidateCache(e.getPayload().getMatchExpression());
                             break;
                         default:
                             // ignore
@@ -120,7 +119,7 @@ public class MatchExpressionEvaluator {
         }
     }
 
-    private void invalidate(String matchExpression) {
+    private void invalidateCache(String matchExpression) {
         var it = cache.asMap().keySet().iterator();
         while (it.hasNext()) {
             Pair<String, ServiceRef> entry = it.next();
@@ -130,13 +129,9 @@ public class MatchExpressionEvaluator {
         }
     }
 
-    public void evaluates(String matchExpression) throws ScriptException {
-        try {
-            ServiceRef dummyRef = new ServiceRef("jvmId", new URI("file:///foo/bar"), "alias");
-            compute(matchExpression, dummyRef);
-        } catch (URISyntaxException e) {
-            logger.error(e);
-        }
+    public void validate(String matchExpression) throws ScriptException {
+        ServiceRef dummyRef = new ServiceRef("jvmId", URI.create("file:///foo/bar"), "alias");
+        compute(matchExpression, dummyRef);
     }
 
     public boolean applies(String matchExpression, ServiceRef serviceRef) throws ScriptException {
