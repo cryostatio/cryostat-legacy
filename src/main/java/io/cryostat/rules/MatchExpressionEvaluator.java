@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -125,6 +127,15 @@ public class MatchExpressionEvaluator {
             if (Objects.equals(matchExpression, entry.getKey())) {
                 cache.invalidate(entry);
             }
+        }
+    }
+
+    public void evaluates(String matchExpression) throws ScriptException {
+        try {
+            ServiceRef dummyRef = new ServiceRef("jvmId", new URI("file:///foo/bar"), "alias");
+            compute(matchExpression, dummyRef);
+        } catch (URISyntaxException e) {
+            logger.error(e);
         }
     }
 
