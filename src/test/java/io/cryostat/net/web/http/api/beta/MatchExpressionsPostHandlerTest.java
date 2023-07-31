@@ -56,12 +56,12 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpression;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionManager;
 import io.cryostat.rules.MatchExpressionManager.MatchedMatchExpression;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
@@ -84,6 +84,7 @@ class MatchExpressionsPostHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock MatchExpressionManager expressionManager;
+    @Mock MatchExpressionEvaluator expressionEvaluator;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification.Builder notificationBuilder;
     @Mock Notification notification;
@@ -111,7 +112,12 @@ class MatchExpressionsPostHandlerTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new MatchExpressionsPostHandler(
-                        auth, credentialsManager, expressionManager, notificationFactory, gson);
+                        auth,
+                        credentialsManager,
+                        expressionManager,
+                        expressionEvaluator,
+                        notificationFactory,
+                        gson);
     }
 
     @Nested
@@ -161,10 +167,9 @@ class MatchExpressionsPostHandlerTest {
             Optional<MatchExpression> opt = Mockito.mock(Optional.class);
             MatchExpression expr = Mockito.mock(MatchExpression.class);
             int id = 10;
-            String matchExpression = "target.alias == \"foo\"";
-            MultiMap form = MultiMap.caseInsensitiveMultiMap();
-            form.set("matchExpression", matchExpression);
-            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
+            Mockito.when(requestParams.getBody())
+                    .thenReturn("{\"matchExpression\": \"target.alias == 'foo'\"}");
+            String matchExpression = "target.alias == 'foo'";
             Mockito.when(expressionManager.addMatchExpression(Mockito.anyString())).thenReturn(id);
             Mockito.when(expressionManager.get(id)).thenReturn(opt);
             Mockito.when(opt.get()).thenReturn(expr);
@@ -184,16 +189,15 @@ class MatchExpressionsPostHandlerTest {
 
         @Test
         void shouldDryRunWithMatchedTargets() throws Exception {
-            int id = 10;
-            String matchExpression = "target.alias == \"foo\"";
-            String stringifiedTargets =
-                    "[{\"alias\":\"foo\",\"connectUrl\":\"service:jmx:rmi:///jndi/rmi://localhost:9091/jmxrmi\"}]";
-            MultiMap form = MultiMap.caseInsensitiveMultiMap();
-            form.set("matchExpression", matchExpression);
-            form.set("targets", stringifiedTargets);
+            String matchExpression = "target.alias == 'foo'";
+
+            Mockito.when(requestParams.getBody())
+                    .thenReturn(
+                            "{\"matchExpression\": \"target.alias == 'foo'\", \"targets\":"
+                                + " [{\"alias\":\"foo\",\"connectUrl\":\"service:jmx:rmi:///jndi/rmi://localhost:9091/jmxrmi\"}]}");
+
             ServiceRef target = Mockito.mock(ServiceRef.class);
 
-            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
             Mockito.when(
                             expressionManager.resolveMatchingTargets(
                                     Mockito.anyString(), Mockito.any()))
@@ -215,9 +219,8 @@ class MatchExpressionsPostHandlerTest {
         @NullAndEmptySource
         @ValueSource(strings = {"invalid", "==", "", " "})
         void shouldRespond400IfMatchExpressionInvalid(String matchExpression) throws Exception {
-            MultiMap form = MultiMap.caseInsensitiveMultiMap();
-            form.set("matchExpression", matchExpression);
-            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
+            Mockito.when(requestParams.getBody())
+                    .thenReturn(String.format("{\"matchExpression\": %s", matchExpression));
             Mockito.lenient()
                     .when(expressionManager.addMatchExpression(Mockito.anyString()))
                     .thenThrow(MatchExpressionValidationException.class);

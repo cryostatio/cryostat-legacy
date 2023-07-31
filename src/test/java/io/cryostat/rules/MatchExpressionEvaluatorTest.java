@@ -95,12 +95,16 @@ class MatchExpressionEvaluatorTest {
         this.platformAnnotations = Map.of("annotation1", "someAnnotation");
         this.cryostatAnnotations = Map.of(AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat");
 
-        Mockito.when(serviceRef.getServiceUri()).thenReturn(this.serviceUri);
-        Mockito.when(serviceRef.getJvmId()).thenReturn(this.jvmId);
-        Mockito.when(serviceRef.getAlias()).thenReturn(Optional.of(this.alias));
-        Mockito.when(serviceRef.getLabels()).thenReturn(this.labels);
-        Mockito.when(serviceRef.getPlatformAnnotations()).thenReturn(this.platformAnnotations);
-        Mockito.when(serviceRef.getCryostatAnnotations()).thenReturn(this.cryostatAnnotations);
+        Mockito.lenient().when(serviceRef.getServiceUri()).thenReturn(this.serviceUri);
+        Mockito.lenient().when(serviceRef.getJvmId()).thenReturn(this.jvmId);
+        Mockito.lenient().when(serviceRef.getAlias()).thenReturn(Optional.of(this.alias));
+        Mockito.lenient().when(serviceRef.getLabels()).thenReturn(this.labels);
+        Mockito.lenient()
+                .when(serviceRef.getPlatformAnnotations())
+                .thenReturn(this.platformAnnotations);
+        Mockito.lenient()
+                .when(serviceRef.getCryostatAnnotations())
+                .thenReturn(this.cryostatAnnotations);
     }
 
     @Nested
@@ -276,6 +280,12 @@ class MatchExpressionEvaluatorTest {
         void shouldThrowExceptionOnNonBooleanExpressionEval(String expr) throws Exception {
             Assertions.assertThrows(
                     ScriptException.class, () -> ruleMatcher.applies(expr, serviceRef));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"1", "null", "target.alias", "\"a string\""})
+        void shouldThrowExceptionOnInvalidExpressionValidate(String expr) throws Exception {
+            Assertions.assertThrows(ScriptException.class, () -> ruleMatcher.validate(expr));
         }
     }
 }
