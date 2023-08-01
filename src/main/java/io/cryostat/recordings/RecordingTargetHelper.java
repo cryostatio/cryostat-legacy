@@ -143,8 +143,10 @@ public class RecordingTargetHelper {
                         } else if (isRecordingStopped(previous.get())) {
                             connection.getService().close(previous.get());
                         } else {
-                            // if recording exists and still running, do nothing.
-                            return previous.get();
+                            // If recording exists and still running, stop and close it before
+                            // starting a new one
+                            connection.getService().stop(previous.get());
+                            connection.getService().close(previous.get());
                         }
                     }
                     IRecordingDescriptor desc =

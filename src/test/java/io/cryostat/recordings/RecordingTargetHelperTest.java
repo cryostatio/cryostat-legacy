@@ -840,15 +840,15 @@ public class RecordingTargetHelperTest {
                 metadata,
                 false);
 
+        Mockito.verify(service).close(existingRecording);
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
 
-        // Verify that the notification is not sent since the recording already exists and no new
-        // recording is created
+        // Verify notification not sent because recording exists and no new recording is created
         Mockito.verify(notification, Mockito.times(0)).send();
     }
 
     @Test
-    void shouldDoNothingWhenRecordingExistsAndIsRunning() throws Exception {
+    void shouldStopAndRecreateIfRecordingExistsAndIsRunning() throws Exception {
         String recordingName = "existingRecording";
         String targetId = "fooTarget";
         String duration = "5000ms";
@@ -873,7 +873,25 @@ public class RecordingTargetHelperTest {
         List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
         Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
 
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
         Mockito.when(existingRecording.getState()).thenReturn(RecordingState.RUNNING);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
 
         recordingTargetHelper.startRecording(
                 false,
@@ -885,10 +903,9 @@ public class RecordingTargetHelperTest {
                 metadata,
                 false);
 
-        Mockito.verify(service, Mockito.never()).start(Mockito.any(), Mockito.any());
-
-        // Verify that the notification is not sent since no new recording is created
-        Mockito.verify(notification, Mockito.times(0)).send();
+        Mockito.verify(service).stop(existingRecording);
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
     }
 
     @Test
@@ -947,11 +964,9 @@ public class RecordingTargetHelperTest {
                 metadata,
                 false);
 
+        Mockito.verify(service).close(existingRecording);
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
         Mockito.verify(notification).send();
-
-        // Verify that service.createRecording is never called since the recording already exists
-        // and should not be recreated
         Mockito.verifyNoMoreInteractions(recordingOptions);
     }
 
