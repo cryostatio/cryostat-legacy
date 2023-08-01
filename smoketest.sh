@@ -235,6 +235,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
+        --env CRYOSTAT_AGENT_API_WRITES_ENABLED="true" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first

@@ -34,10 +34,10 @@ import java.util.concurrent.ExecutionException;
 
 import javax.management.remote.JMXServiceURL;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
@@ -91,7 +91,7 @@ class RecordingArchiveHelperTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
     @Mock Vertx vertx;
     @Mock io.vertx.core.file.FileSystem vertxFs;
 

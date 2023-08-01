@@ -21,12 +21,12 @@ import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
@@ -120,7 +120,7 @@ class TargetRecordingsGetHandlerTest {
     @Test
     void shouldRespondWithRecordingsList() throws Exception {
         JFRConnection connection = Mockito.mock(JFRConnection.class);
-        IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
+        CryostatFlightRecorderService service = Mockito.mock(CryostatFlightRecorderService.class);
 
         Mockito.when(
                         connectionManager.executeConnectedTask(
