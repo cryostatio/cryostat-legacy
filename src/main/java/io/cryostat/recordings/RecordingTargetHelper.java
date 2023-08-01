@@ -36,6 +36,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -167,12 +168,7 @@ public class RecordingTargetHelper {
                     IRecordingDescriptor desc =
                             connection
                                     .getService()
-                                    .start(
-                                            recordingOptions,
-                                            enableEvents(
-                                                    connection,
-                                                    templateName,
-                                                    preferredTemplateType));
+                                    .start(recordingOptions, templateName, preferredTemplateType);
                     String targetId = connectionDescriptor.getTargetId();
 
                     Map<String, String> labels = metadata.getLabels();
@@ -595,7 +591,11 @@ public class RecordingTargetHelper {
                                                                                 connection, name));
                                                 return linked;
                                             }
-                                            return null;
+                                            throw new IllegalStateException(
+                                                    String.format(
+                                                            "Could not find expected recording"
+                                                                    + " named \"%s\" in target %s",
+                                                            recordingName, targetId));
                                         });
                         promise.complete(linkedDesc);
                     } catch (Exception e) {

@@ -25,12 +25,12 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
@@ -82,7 +82,7 @@ class TargetRecordingsPostHandlerTest {
     Gson gson = MainModule.provideGson(logger);
 
     @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
     @Mock TemplateService templateService;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;

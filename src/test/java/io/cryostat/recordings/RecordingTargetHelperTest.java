@@ -33,15 +33,14 @@ import java.util.concurrent.Future;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
-import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
@@ -90,7 +89,7 @@ public class RecordingTargetHelperTest {
     @Mock Logger logger;
 
     @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
 
     @BeforeEach
     void setup() {
@@ -710,13 +709,10 @@ public class RecordingTargetHelperTest {
         Mockito.when(service.getAvailableRecordings())
                 .thenReturn(Collections.emptyList(), List.of(recordingDescriptor));
 
-        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(recordingDescriptor);
-
-        TemplateService templateService = Mockito.mock(TemplateService.class);
-        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
-                .thenReturn(Optional.of(events));
+        Mockito.when(
+                        service.start(
+                                Mockito.any(), Mockito.eq(templateName), Mockito.eq(templateType)))
+                .thenReturn(recordingDescriptor);
 
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
@@ -739,7 +735,8 @@ public class RecordingTargetHelperTest {
                 metadata,
                 false);
 
-        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(service)
+                .start(Mockito.any(), Mockito.eq(templateName), Mockito.eq(templateType));
 
         HyperlinkedSerializableRecordingDescriptor linkedDesc =
                 new HyperlinkedSerializableRecordingDescriptor(recordingDescriptor, null, null);
