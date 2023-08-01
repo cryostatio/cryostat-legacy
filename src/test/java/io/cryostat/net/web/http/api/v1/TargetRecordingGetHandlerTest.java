@@ -50,10 +50,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
@@ -100,7 +99,7 @@ class TargetRecordingGetHandlerTest {
 
     @Mock Logger logger;
     @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
 
     @BeforeEach
     void setup() {

@@ -50,14 +50,16 @@ import javax.management.remote.JMXServiceURL;
 import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.IDException;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.MBeanMetrics;
 import io.cryostat.core.sys.Clock;
-import io.cryostat.core.templates.RemoteTemplateService;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
+import io.cryostat.core.templates.MergedTemplateService;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.recordings.JvmIdHelper;
 
@@ -67,11 +69,20 @@ public class AgentConnection implements JFRConnection {
 
     private final AgentClient client;
     private final JvmIdHelper idHelper;
+    private final FileSystem fs;
+    private final Environment env;
     private final Logger logger;
 
-    AgentConnection(AgentClient client, JvmIdHelper idHelper, Logger logger) {
+    AgentConnection(
+            AgentClient client,
+            JvmIdHelper idHelper,
+            FileSystem fs,
+            Environment env,
+            Logger logger) {
         this.client = client;
         this.idHelper = idHelper;
+        this.fs = fs;
+        this.env = env;
         this.logger = logger;
     }
 
@@ -134,14 +145,14 @@ public class AgentConnection implements JFRConnection {
     }
 
     @Override
-    public IFlightRecorderService getService()
+    public CryostatFlightRecorderService getService()
             throws ConnectionException, IOException, ServiceNotAvailableException {
-        return new AgentJFRService(client, logger);
+        return new AgentJFRService(client, (MergedTemplateService) getTemplateService(), logger);
     }
 
     @Override
     public TemplateService getTemplateService() {
-        return new RemoteTemplateService(this);
+        return new MergedTemplateService(this, fs, env);
     }
 
     @Override
@@ -163,16 +174,25 @@ public class AgentConnection implements JFRConnection {
     public static class Factory {
         private final AgentClient.Factory clientFactory;
         private final JvmIdHelper idHelper;
+        private final FileSystem fs;
+        private final Environment env;
         private final Logger logger;
 
-        Factory(AgentClient.Factory clientFactory, JvmIdHelper idHelper, Logger logger) {
+        Factory(
+                AgentClient.Factory clientFactory,
+                JvmIdHelper idHelper,
+                FileSystem fs,
+                Environment env,
+                Logger logger) {
             this.clientFactory = clientFactory;
             this.idHelper = idHelper;
+            this.fs = fs;
+            this.env = env;
             this.logger = logger;
         }
 
         AgentConnection createConnection(URI agentUri) {
-            return new AgentConnection(clientFactory.create(agentUri), idHelper, logger);
+            return new AgentConnection(clientFactory.create(agentUri), idHelper, fs, env, logger);
         }
     }
 }

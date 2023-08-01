@@ -37,7 +37,9 @@
  */
 package io.cryostat.net;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -48,34 +50,51 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IDescribedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.common.unit.IQuantity;
+import org.openjdk.jmc.common.unit.ITypedQuantity;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.flightrecorder.configuration.internal.DefaultValueMap;
+import org.openjdk.jmc.flightrecorder.configuration.internal.KnownEventOptions;
+import org.openjdk.jmc.flightrecorder.configuration.internal.KnownRecordingOptions;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.ConnectionException;
+import org.openjdk.jmc.rjmx.ServiceNotAvailableException;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.core.EventOptionsBuilder.EventOptionException;
+import io.cryostat.core.EventOptionsBuilder.EventTypeException;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
+import io.cryostat.core.templates.MergedTemplateService;
+import io.cryostat.core.templates.Template;
+import io.cryostat.core.templates.TemplateType;
 
-class AgentJFRService implements IFlightRecorderService {
+import org.jsoup.nodes.Document;
+
+class AgentJFRService implements CryostatFlightRecorderService {
 
     private final AgentClient client;
+    private final MergedTemplateService templateService;
     private final Logger logger;
 
-    AgentJFRService(AgentClient client, Logger logger) {
+    AgentJFRService(AgentClient client, MergedTemplateService templateService, Logger logger) {
         this.client = client;
+        this.templateService = templateService;
         this.logger = logger;
     }
 
     @Override
     public IDescribedMap<EventOptionID> getDefaultEventOptions() {
-        return new DefaultValueMap<>(Map.of());
+        return KnownEventOptions.OPTION_DEFAULTS_V2;
     }
 
     @Override
     public IDescribedMap<String> getDefaultRecordingOptions() {
-        return new DefaultValueMap<>(Map.of());
+        return KnownRecordingOptions.OPTION_DEFAULTS_V2;
     }
 
     @Override
@@ -107,8 +126,7 @@ class AgentJFRService implements IFlightRecorderService {
     @Override
     public Map<String, IOptionDescriptor<?>> getAvailableRecordingOptions()
             throws FlightRecorderException {
-        // TODO Auto-generated method stub
-        return Map.of();
+        return KnownRecordingOptions.DESCRIPTORS_BY_KEY_V2;
     }
 
     @Override
@@ -225,5 +243,84 @@ class AgentJFRService implements IFlightRecorderService {
         throw new UnimplementedException();
     }
 
+    @Override
+    public IRecordingDescriptor start(
+            IConstrainedMap<String> recordingOptions,
+            String templateName,
+            TemplateType preferredTemplateType)
+            throws io.cryostat.core.FlightRecorderException, FlightRecorderException,
+                    ConnectionException, IOException, ServiceNotAvailableException,
+                    QuantityConversionException, EventOptionException, EventTypeException {
+        StartRecordingRequest req;
+        String recordingName = recordingOptions.get("name").toString();
+        long duration =
+                (Optional.ofNullable(
+                                        (ITypedQuantity)
+                                                recordingOptions.get(
+                                                        RecordingOptionsBuilder.KEY_DURATION))
+                                .orElse(UnitLookup.MILLISECOND.quantity(0)))
+                        .longValueIn(UnitLookup.MILLISECOND);
+        long maxSize =
+                (Optional.ofNullable(
+                                        (ITypedQuantity)
+                                                recordingOptions.get(
+                                                        RecordingOptionsBuilder.KEY_MAX_SIZE))
+                                .orElse(UnitLookup.BYTE.quantity(0)))
+                        .longValueIn(UnitLookup.BYTE);
+        long maxAge =
+                (Optional.ofNullable(
+                                        (ITypedQuantity)
+                                                recordingOptions.get(
+                                                        RecordingOptionsBuilder.KEY_MAX_AGE))
+                                .orElse(UnitLookup.MILLISECOND.quantity(0)))
+                        .longValueIn(UnitLookup.MILLISECOND);
+        if (preferredTemplateType.equals(TemplateType.CUSTOM)) {
+            req =
+                    new StartRecordingRequest(
+                            recordingName,
+                            null,
+                            templateService
+                                    .getXml(templateName, preferredTemplateType)
+                                    .orElseThrow()
+                                    .outerHtml(),
+                            duration,
+                            maxSize,
+                            maxAge);
+        } else {
+            req =
+                    new StartRecordingRequest(
+                            recordingName, templateName, null, duration, maxSize, maxAge);
+        }
+        try {
+            return client.startRecording(req).toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new io.cryostat.core.FlightRecorderException(e);
+        }
+    }
+
+    @Override
+    public IRecordingDescriptor start(
+            IConstrainedMap<String> recordingOptions, Template eventTemplate)
+            throws io.cryostat.core.FlightRecorderException, FlightRecorderException,
+                    ConnectionException, IOException, FlightRecorderException,
+                    ServiceNotAvailableException, QuantityConversionException, EventOptionException,
+                    EventTypeException {
+        return CryostatFlightRecorderService.super.start(recordingOptions, eventTemplate);
+    }
+
+    @Override
+    public IRecordingDescriptor start(IConstrainedMap<String> recordingOptions, Document template)
+            throws FlightRecorderException, ParseException, IOException {
+        throw new UnimplementedException();
+    }
+
     public static class UnimplementedException extends IllegalStateException {}
+
+    static record StartRecordingRequest(
+            String name,
+            String localTemplateName,
+            String template,
+            long duration,
+            long maxSize,
+            long maxAge) {}
 }

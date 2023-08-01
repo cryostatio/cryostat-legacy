@@ -45,11 +45,11 @@ import java.util.Optional;
 import java.util.Random;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -161,7 +161,7 @@ class TargetRecordingGetHandlerTest {
         @Mock RoutingContext ctx;
         @Mock JWT token;
         @Mock JFRConnection conn;
-        @Mock IFlightRecorderService svc;
+        @Mock CryostatFlightRecorderService svc;
 
         @Test
         void shouldRespond404IfNotFound() throws Exception {

@@ -45,11 +45,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -81,7 +81,7 @@ class TargetRecordingOptionsListGetHandlerTest {
     @Mock AuthManager auth;
     @Mock CredentialsManager credentialsManager;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock IFlightRecorderService service;
+    @Mock CryostatFlightRecorderService service;
     @Mock JFRConnection connection;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);

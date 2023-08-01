@@ -41,6 +41,7 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import io.cryostat.core.serialization.SerializableRecordingDescriptor;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
