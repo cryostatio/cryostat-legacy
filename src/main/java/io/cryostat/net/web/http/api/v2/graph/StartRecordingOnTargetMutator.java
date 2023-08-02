@@ -42,6 +42,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -110,17 +111,20 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    boolean restart = false;
-                    String replace = "never";
+                    replacementPolicy replace = replacementPolicy.NEVER;
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
-                    if (settings.containsKey("restart")) {
-                        restart = Boolean.TRUE.equals(settings.get("restart"));
-                    }
+
                     if (settings.containsKey("replace")) {
-                        replace = (String) settings.get("replace");
+                        String replaceValue = (String) settings.get("replace");
+                        try {
+                            replace = replacementPolicy.valueOf(replaceValue.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            // Handles invalid value for "replace"
+                            replace = replacementPolicy.NEVER;
+                        }
                     }
                     if (settings.containsKey("duration")) {
                         builder =
@@ -161,7 +165,6 @@ class StartRecordingOnTargetMutator
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
-                                    restart,
                                     replace,
                                     cd,
                                     builder.build(),

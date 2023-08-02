@@ -114,9 +114,15 @@ public class RecordingTargetHelper {
                 connection -> connection.getService().getAvailableRecordings());
     }
 
+    public enum replacementPolicy {
+        ALWAYS,
+        STOPPED,
+        NEVER
+    }
+
     public IRecordingDescriptor startRecording(
-            boolean restart, // Deprecated: Use replace parameter instead
-            String replace,
+            // boolean restart, // is now completely removed
+            replacementPolicy replace,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
@@ -125,7 +131,7 @@ public class RecordingTargetHelper {
             boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
-        boolean restartRecording = shouldRestartRecording(restart, replace);
+        boolean restartRecording = shouldRestartRecording(replace);
 
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
@@ -143,8 +149,8 @@ public class RecordingTargetHelper {
                         } else if (isRecordingStopped(previous.get())) {
                             connection.getService().close(previous.get());
                         } else {
-                            // If recording exists and still running, stop and close it before
-                            // starting a new one
+                            // If recording exists and running, stop and close it before starting a
+                            // new one
                             connection.getService().stop(previous.get());
                             connection.getService().close(previous.get());
                         }
@@ -190,19 +196,19 @@ public class RecordingTargetHelper {
                 });
     }
 
-    private boolean shouldRestartRecording(boolean restart, String replace) {
+    private boolean shouldRestartRecording(replacementPolicy replace) {
         if (replace != null) {
             switch (replace) {
-                case "always":
+                case ALWAYS:
                     return true;
-                case "stopped":
+                case STOPPED:
                     return true;
-                case "never":
+                case NEVER:
                     return false;
             }
         }
         // If neither restart nor replace is specified, default to never
-        return restart;
+        return false;
     }
 
     private boolean isRecordingStopped(IRecordingDescriptor recording) {

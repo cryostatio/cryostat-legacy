@@ -47,6 +47,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -151,14 +152,28 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
                                                 .name(recordingName);
-                                boolean restart = false;
-                                String replace = null;
-                                if (attrs.contains("restart")) {
-                                    restart = Boolean.parseBoolean(attrs.get("restart"));
+
+                                String replace = attrs.get("replace");
+                                replacementPolicy rPolicy;
+                                if (StringUtils.isBlank(replace)) {
+                                    rPolicy =
+                                            replacementPolicy
+                                                    .NEVER; // Default to "never" if not provided
+                                } else {
+                                    switch (replace.toLowerCase()) {
+                                        case "always":
+                                            rPolicy = replacementPolicy.ALWAYS;
+                                            break;
+                                        case "stopped":
+                                            rPolicy = replacementPolicy.STOPPED;
+                                            break;
+                                        case "never":
+                                        default:
+                                            rPolicy = replacementPolicy.NEVER;
+                                            break;
+                                    }
                                 }
-                                if (attrs.contains("replace")) {
-                                    replace = attrs.get("replace");
-                                }
+
                                 if (attrs.contains("duration")) {
                                     builder =
                                             builder.duration(
@@ -203,8 +218,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
-                                                restart,
-                                                replace,
+                                                rPolicy,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),
