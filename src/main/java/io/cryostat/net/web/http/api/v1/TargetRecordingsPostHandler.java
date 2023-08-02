@@ -47,7 +47,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -154,22 +154,22 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 .name(recordingName);
 
                                 String replace = attrs.get("replace");
-                                replacementPolicy rPolicy;
+                                ReplacementPolicy replacementPolicy;
                                 if (StringUtils.isBlank(replace)) {
-                                    rPolicy =
-                                            replacementPolicy
+                                    replacementPolicy =
+                                            ReplacementPolicy
                                                     .NEVER; // Default to "never" if not provided
                                 } else {
                                     switch (replace.toLowerCase()) {
                                         case "always":
-                                            rPolicy = replacementPolicy.ALWAYS;
+                                            replacementPolicy = ReplacementPolicy.ALWAYS;
                                             break;
                                         case "stopped":
-                                            rPolicy = replacementPolicy.STOPPED;
+                                            replacementPolicy = ReplacementPolicy.STOPPED;
                                             break;
                                         case "never":
                                         default:
-                                            rPolicy = replacementPolicy.NEVER;
+                                            replacementPolicy = ReplacementPolicy.NEVER;
                                             break;
                                     }
                                 }
@@ -218,7 +218,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
-                                                rPolicy,
+                                                replacementPolicy,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),

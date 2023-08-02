@@ -46,7 +46,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
@@ -188,8 +188,8 @@ class RuleProcessorTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(30);
         Mockito.verify(recordingOptionsBuilder).maxSize(1234);
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -217,7 +217,7 @@ class RuleProcessorTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(replacementPolicy.ALWAYS));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -443,8 +443,8 @@ class RuleProcessorTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(30);
         Mockito.verify(recordingOptionsBuilder).maxSize(1234);
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -472,7 +472,7 @@ class RuleProcessorTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(replacementPolicy.ALWAYS));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
 
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
@@ -513,8 +513,8 @@ class RuleProcessorTest {
 
         Mockito.verify(recordingOptionsBuilder, never()).name("auto_Test_Rule");
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);

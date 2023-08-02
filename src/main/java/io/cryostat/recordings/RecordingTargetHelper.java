@@ -114,7 +114,7 @@ public class RecordingTargetHelper {
                 connection -> connection.getService().getAvailableRecordings());
     }
 
-    public enum replacementPolicy {
+    public enum ReplacementPolicy {
         ALWAYS,
         STOPPED,
         NEVER
@@ -122,7 +122,7 @@ public class RecordingTargetHelper {
 
     public IRecordingDescriptor startRecording(
             // boolean restart, // is now completely removed
-            replacementPolicy replace,
+            ReplacementPolicy replace,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
@@ -196,7 +196,7 @@ public class RecordingTargetHelper {
                 });
     }
 
-    private boolean shouldRestartRecording(replacementPolicy replace) {
+    private boolean shouldRestartRecording(ReplacementPolicy replace) {
         if (replace != null) {
             switch (replace) {
                 case ALWAYS:

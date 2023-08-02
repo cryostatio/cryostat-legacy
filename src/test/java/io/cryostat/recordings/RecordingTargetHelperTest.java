@@ -53,8 +53,8 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
-import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
 
 import io.vertx.core.Vertx;
 import org.hamcrest.MatcherAssert;
@@ -731,7 +731,7 @@ public class RecordingTargetHelperTest {
                         });
 
         recordingTargetHelper.startRecording(
-                replacementPolicy.NEVER,
+                ReplacementPolicy.NEVER,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,
@@ -831,7 +831,7 @@ public class RecordingTargetHelperTest {
         Mockito.doNothing().when(notification).send();
 
         recordingTargetHelper.startRecording(
-                replacementPolicy.ALWAYS,
+                ReplacementPolicy.ALWAYS,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,
@@ -893,7 +893,7 @@ public class RecordingTargetHelperTest {
         Mockito.doNothing().when(notification).send();
 
         recordingTargetHelper.startRecording(
-                replacementPolicy.ALWAYS,
+                ReplacementPolicy.ALWAYS,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,
@@ -953,7 +953,7 @@ public class RecordingTargetHelperTest {
         Mockito.doNothing().when(notification).send();
 
         recordingTargetHelper.startRecording(
-                replacementPolicy.STOPPED,
+                ReplacementPolicy.STOPPED,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,

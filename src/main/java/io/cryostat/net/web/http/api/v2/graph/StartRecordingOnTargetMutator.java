@@ -42,7 +42,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -111,7 +111,7 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    replacementPolicy replace = replacementPolicy.NEVER;
+                    ReplacementPolicy replace = ReplacementPolicy.NEVER;
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
@@ -120,10 +120,10 @@ class StartRecordingOnTargetMutator
                     if (settings.containsKey("replace")) {
                         String replaceValue = (String) settings.get("replace");
                         try {
-                            replace = replacementPolicy.valueOf(replaceValue.toUpperCase());
+                            replace = ReplacementPolicy.valueOf(replaceValue.toUpperCase());
                         } catch (IllegalArgumentException e) {
                             // Handles invalid value for "replace"
-                            replace = replacementPolicy.NEVER;
+                            replace = ReplacementPolicy.NEVER;
                         }
                     }
                     if (settings.containsKey("duration")) {

@@ -43,7 +43,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.recordings.RecordingTargetHelper.replacementPolicy;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -203,8 +203,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -232,7 +232,7 @@ class TargetRecordingsPostHandlerTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(replacementPolicy.NEVER));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.NEVER));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -319,8 +319,8 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -348,7 +348,7 @@ class TargetRecordingsPostHandlerTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(replacementPolicy.ALWAYS));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -579,8 +579,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<replacementPolicy> replaceCaptor =
-                ArgumentCaptor.forClass(replacementPolicy.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -608,7 +608,7 @@ class TargetRecordingsPostHandlerTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(replacementPolicy.NEVER));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.NEVER));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
