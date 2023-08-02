@@ -141,7 +141,6 @@ public class RecordingTargetHelper {
             boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
-        // boolean restartRecording = shouldRestartRecording(replace);
 
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
