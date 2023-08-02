@@ -154,25 +154,8 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 .name(recordingName);
 
                                 String replace = attrs.get("replace");
-                                ReplacementPolicy replacementPolicy;
-                                if (StringUtils.isBlank(replace)) {
-                                    replacementPolicy =
-                                            ReplacementPolicy
-                                                    .NEVER; // Default to "never" if not provided
-                                } else {
-                                    switch (replace.toLowerCase()) {
-                                        case "always":
-                                            replacementPolicy = ReplacementPolicy.ALWAYS;
-                                            break;
-                                        case "stopped":
-                                            replacementPolicy = ReplacementPolicy.STOPPED;
-                                            break;
-                                        case "never":
-                                        default:
-                                            replacementPolicy = ReplacementPolicy.NEVER;
-                                            break;
-                                    }
-                                }
+                                ReplacementPolicy replacementPolicy =
+                                        ReplacementPolicy.fromString(replace);
 
                                 if (attrs.contains("duration")) {
                                     builder =

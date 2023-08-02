@@ -119,12 +119,7 @@ class StartRecordingOnTargetMutator
 
                     if (settings.containsKey("replace")) {
                         String replaceValue = (String) settings.get("replace");
-                        try {
-                            replace = ReplacementPolicy.valueOf(replaceValue.toUpperCase());
-                        } catch (IllegalArgumentException e) {
-                            // Handles invalid value for "replace"
-                            replace = ReplacementPolicy.NEVER;
-                        }
+                        replace = ReplacementPolicy.fromString(replaceValue);
                     }
                     if (settings.containsKey("duration")) {
                         builder =

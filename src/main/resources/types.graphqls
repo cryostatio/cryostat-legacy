@@ -7,7 +7,7 @@ scalar Long
 scalar Int
 scalar Float
 
-enum ReplacementPolicy{
+enum ReplacementPolicy {
     AlWAYS
     STOPPED
     NEVER
