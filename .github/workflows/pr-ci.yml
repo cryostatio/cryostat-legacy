@@ -8,6 +8,13 @@ on:
   issue_comment:
     types:
       - created
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
     branches:
       - main
       - v[0-9]+
@@ -24,7 +31,7 @@ jobs:
       with:
         username: ${{ github.actor }}
         team: 'cryostat/reviewers'
-        GITHUB_TOKEN: ${{ secrets.PAT }}
+        GITHUB_TOKEN: ${{ secrets.READ_ORG_TOKEN }}
     - name: Fail if not a Cryostat reviewer
       if: ${{ steps.checkMember.outputs.isTeamMember == 'false' }}
       run: exit 1
