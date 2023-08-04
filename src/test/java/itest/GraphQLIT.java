@@ -19,6 +19,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
+import com.google.gson.Gson;
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.ExternalTargetsTest;
+import itest.util.ITestCleanupFailedException;
+import itest.util.Podman;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,20 +45,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.web.http.HttpMimeType;
-
-import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
-import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -56,6 +54,8 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+
 
 @TestMethodOrder(OrderAnnotation.class)
 class GraphQLIT extends ExternalTargetsTest {
@@ -995,6 +995,30 @@ class GraphQLIT extends ExternalTargetsTest {
         }
         Assertions.assertTrue(nameExists, "Name not found");
     }
+
+    // new added test
+
+    /* @Order(13) // Add a new order for this test
+    void testReplaceAlwaysOnStoppedRecording() throws Exception {
+                System.out.println("++This is a test");
+
+        // check if any recordings exist
+        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assertions.assertFalse(listResp.isEmpty());
+        System.out.println("++Recording status before Step 4: " + listResp.encodePrettily());
+        System.out.println("++This is a test");
+
+     } */
+
 
     static class Target {
         String alias;
