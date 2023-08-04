@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.io.InputStream;
 
 import javax.script.ScriptException;
 
@@ -144,6 +145,25 @@ public class AgentClient {
                         String body = resp.body();
                         return gson.fromJson(body, SerializableRecordingDescriptor.class)
                                 .toJmcForm();
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
+    Future<Buffer> openStream(long id) {
+        Future<HttpResponse<Buffer>> f =
+                invoke(
+                        HttpMethod.GET,
+                        "/recordings/" + id,
+                        BodyCodec.buffer());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return resp.body();
                     } else if (statusCode == 403) {
                         throw new UnsupportedOperationException();
                     } else {

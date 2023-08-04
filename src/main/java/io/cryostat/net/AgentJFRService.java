@@ -37,6 +37,8 @@
  */
 package io.cryostat.net;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -72,6 +74,8 @@ import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.templates.MergedTemplateService;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
+import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 
 import org.jsoup.nodes.Document;
 
@@ -208,20 +212,29 @@ class AgentJFRService implements CryostatFlightRecorderService {
     }
 
     @Override
-    public InputStream openStream(IRecordingDescriptor arg0, boolean arg1)
+    public InputStream openStream(IRecordingDescriptor descriptor, boolean removeOnClose)
             throws FlightRecorderException {
-        throw new UnimplementedException();
+        Future<Buffer> f = client.openStream(descriptor.getId());
+        try {
+            Buffer b = f.toCompletionStage().toCompletableFuture().get();
+            return new BufferedInputStream(
+                    new ByteArrayInputStream(b.getBytes())
+                    );
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            throw new FlightRecorderException("Failed to open remote recording stream", e);
+        }
     }
 
     @Override
-    public InputStream openStream(IRecordingDescriptor arg0, IQuantity arg1, boolean arg2)
+    public InputStream openStream(IRecordingDescriptor descriptor, IQuantity lastPartDuration, boolean removeOnClose)
             throws FlightRecorderException {
         throw new UnimplementedException();
     }
 
     @Override
     public InputStream openStream(
-            IRecordingDescriptor arg0, IQuantity arg1, IQuantity arg2, boolean arg3)
+            IRecordingDescriptor descriptor, IQuantity startTime, IQuantity endTime, boolean removeOnClose)
             throws FlightRecorderException {
         throw new UnimplementedException();
     }
