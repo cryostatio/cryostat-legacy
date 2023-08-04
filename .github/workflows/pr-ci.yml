@@ -31,7 +31,7 @@ jobs:
       with:
         username: ${{ github.actor }}
         team: 'cryostat/reviewers'
-        GITHUB_TOKEN: ${{ secrets.READ_ORG_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Fail if not a Cryostat reviewer
       if: ${{ steps.checkMember.outputs.isTeamMember == 'false' }}
       run: exit 1
@@ -103,14 +103,9 @@ jobs:
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.GHCR_PR_TOKEN }}
-    - name: store image amd64
-      id: amd64_image
+    - name: Store images as output
+      id: ${{ matrix.arch }}_image
       run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
-      if: matrix.arch == 'amd64'
-    - name: store image arm64
-      id: arm64_image
-      run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
-      if: matrix.arch == 'arm64'
 
   comment-image:
     needs: [push-to-ghcr]
@@ -119,11 +114,14 @@ jobs:
     - name: Create markdown table
       uses: petems/csv-to-md-table-action@master
       id: md-table
+      env:
+        amd64_image: ${{ needs.push-to-ghcr.outputs.amd64_image }}
+        arm64_image: ${{ needs.push-to-ghcr.outputs.arm64_image }}
       with: 
         csvinput: |
           ARCH, IMAGE
-          AMD64, ${{ needs.push-to-ghcr.outputs.amd64_image }}
-          ARM64, ${{ needs.push-to-ghcr.outputs.arm64_image }}
+          AMD64, $amd64_image
+          ARM64, $arm64_image
     - uses: thollander/actions-comment-pull-request@v1
       with:
         message: |-
