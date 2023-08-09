@@ -1,11 +1,14 @@
 name: CI build and push (PR)
 
 concurrency:
-  group: pr-${{ github.event.number }}
+  group: ci-${{ github.run_id }}
   cancel-in-progress: true
 
 on:
-  pull_request_target:
+  issue_comment:
+    types:
+      - created
+  pull_request:
     types:
       - opened
       - reopened
@@ -19,15 +22,47 @@ on:
       - cryostat-v[0-9]+.[0-9]+
 
 jobs:
-  code-analysis:
-    uses: ./.github/workflows/ci-code-analysis.yml
-    with:
-      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      checkout-ref: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+  check-before-build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    steps:
+    - name: Fail if needs-triage label applied
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
+      run: exit 1
+    - uses: thollander/actions-comment-pull-request@v1
+      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      with:
+        message: |-
+          The safe-to-test label has not been applied. Please apply it yourself or ask a reviewer to apply it 
+          before running the build_test command again. 
+    - name: Fail if safe-to-test label NOT applied
+      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      run: exit 1
 
+  code-analysis:
+    runs-on: ubuntu-latest
+    needs: [check-before-build]
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    steps:
+    - name: React to comment
+      uses: actions/github-script@v4
+      with:
+        script: |
+            const {owner, repo} = context.issue
+            github.reactions.createForIssueComment({
+              owner,
+              repo,
+              comment_id: context.payload.comment.id,
+              content: "+1",
+            });  
+    - uses: ./.github/workflows/ci-code-analysis.yml
+      with:
+        checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
+        checkout-ref: ${{ github.event.pull_request.head.ref }}
+      secrets: inherit
+      
   build-and-test:
+    needs: [check-before-build]
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -38,32 +73,26 @@ jobs:
       checkout-ref: ${{ github.event.pull_request.head.ref }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
     secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
   push-to-ghcr:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [amd64, arm64]
-    needs: [code-analysis, build-and-test]
-    if: always() && github.repository_owner == 'cryostatio'
+    outputs: 
+      amd64_image: ${{ steps.amd64_image.outputs.image }}
+      arm64_image: ${{ steps.arm64_image.outputs.image }}
+    needs: [code-analysis, build-and-test, check-before-build]
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
-    - name: Fail if needs-triage label applied
-      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
-      run: exit 1
-    - name: Fail if safe-to-test label NOT applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
-      run: exit 1
     - uses: actions/download-artifact@v3
       with:
         name: cryostat-${{ matrix.arch }}
-      if: github.repository_owner == 'cryostatio'
     - name: Load cryostat image
       run: podman load -i cryostat-${{ matrix.arch }}.tar
-      if: github.repository_owner == 'cryostatio'
     - name: Tag cryostat image
       run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
-      if: github.repository_owner == 'cryostatio'
     - name: Push PR test image to ghcr.io
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
@@ -73,13 +102,30 @@ jobs:
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.GHCR_PR_TOKEN }}
-      if: github.repository_owner == 'cryostatio'
-    - name: Comment test image link
-      uses: thollander/actions-comment-pull-request@v1
+    - name: Store images as output
+      id: ${{ matrix.arch }}_image
+      run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
+
+  comment-image:
+    needs: [push-to-ghcr]
+    if: agithub.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    steps:
+    - name: Create markdown table
+      uses: petems/csv-to-md-table-action@master
+      id: md-table
+      env:
+        amd64_image: ${{ needs.push-to-ghcr.outputs.amd64_image }}
+        arm64_image: ${{ needs.push-to-ghcr.outputs.arm64_image }}
+      with: 
+        csvinput: |
+          ARCH, IMAGE
+          AMD64, $amd64_image
+          ARM64, $arm64_image
+    - uses: thollander/actions-comment-pull-request@v1
       with:
         message: |-
-          Test image available:
+          ${{ steps.md-table.outputs.markdown-table }}
+          To run smoketest:
           ```
-          $ CRYOSTAT_IMAGE=${{ steps.push-to-ghcr.outputs.registry-path }} sh smoketest.sh
+          CRYOSTAT_IMAGE=${PULL_REQUEST_IMAGE} sh smoketest.sh
           ```
-      if: github.repository_owner == 'cryostatio'
