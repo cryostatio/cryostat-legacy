@@ -7,10 +7,6 @@ on:
       checkout-ref:
         required: false
         type: string
-    secrets:
-      GH_PKGS_READ_TOKEN:
-        required: true
-        description: read-only token for pulling artifacts from GitHub Packages
 
 jobs:
   spotless:

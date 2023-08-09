@@ -24,7 +24,7 @@ on:
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
@@ -42,7 +42,7 @@ jobs:
   code-analysis:
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: React to comment
       uses: actions/github-script@v4
@@ -73,7 +73,7 @@ jobs:
       checkout-ref: ${{ github.event.pull_request.head.ref }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
     secrets: inherit
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test') && steps.checkMember.outputs.isTeamMember == 'true'
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
   push-to-ghcr:
     runs-on: ubuntu-latest
@@ -84,7 +84,7 @@ jobs:
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
     needs: [code-analysis, build-and-test, check-before-build]
-    if: always() && github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -108,7 +108,7 @@ jobs:
 
   comment-image:
     needs: [push-to-ghcr]
-    if: always() && github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: agithub.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: Create markdown table
       uses: petems/csv-to-md-table-action@master
