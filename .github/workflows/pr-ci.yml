@@ -26,6 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
+    - name: get PR labels
+      id: pr-labels
+      uses: joerick/pr-labels-action@v1.0.8
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
       run: exit 1
