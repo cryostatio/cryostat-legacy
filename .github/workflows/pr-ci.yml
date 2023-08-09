@@ -8,38 +8,23 @@ on:
   issue_comment:
     types:
       - created
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - labeled
-      - unlabeled
-    branches:
-      - main
-      - v[0-9]+
-      - v[0-9]+.[0-9]+
-      - cryostat-v[0-9]+.[0-9]+
 
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
-    - name: get PR labels
-      id: pr-labels
-      uses: joerick/pr-labels-action@v1.0.8
     - name: Fail if needs-triage label applied
-      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
+      if: ${{ contains(github.event.issue.pull_request.labels.*.name, 'needs-triage') }}
       run: exit 1
     - uses: thollander/actions-comment-pull-request@v1
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ !contains(github.event.issue.pull_request.labels.*.name, 'safe-to-test') }}
       with:
         message: |-
           The safe-to-test label has not been applied. Please apply it yourself or ask a reviewer to apply it 
           before running the build_test command again. 
     - name: Fail if safe-to-test label NOT applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ !contains(github.event.issue.pull_request.labels.*.name, 'safe-to-test') }}
       run: exit 1
 
   code-analysis:
