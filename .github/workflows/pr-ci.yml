@@ -30,13 +30,13 @@ jobs:
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
       run: exit 1
     - uses: thollander/actions-comment-pull-request@v1
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ "!contains(github.event.pull_request.labels.*.name", 'safe-to-test')" }}
       with:
         message: |-
           The safe-to-test label has not been applied. Please apply it yourself or ask a reviewer to apply it 
           before running the build_test command again. 
     - name: Fail if safe-to-test label NOT applied
-      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      if: ${{ "!contains(github.event.pull_request.labels.*.name, 'safe-to-test')" }}
       run: exit 1
 
   code-analysis:
