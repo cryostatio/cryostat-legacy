@@ -8,7 +8,7 @@ scalar Int
 scalar Float
 
 enum ReplacementPolicy {
-    AlWAYS
+    ALWAYS
     STOPPED
     NEVER
 }

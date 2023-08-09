@@ -18,19 +18,8 @@ package itest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.*;
 
-import com.google.gson.Gson;
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.bases.ExternalTargetsTest;
-import itest.util.ITestCleanupFailedException;
-import itest.util.Podman;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,6 +34,20 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.web.http.HttpMimeType;
+
+import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.ExternalTargetsTest;
+import itest.util.ITestCleanupFailedException;
+import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -54,8 +57,6 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-
 
 @TestMethodOrder(OrderAnnotation.class)
 class GraphQLIT extends ExternalTargetsTest {
@@ -997,28 +998,1142 @@ class GraphQLIT extends ExternalTargetsTest {
     }
 
     // new added test
-
-    /* @Order(13) // Add a new order for this test
+    @Test
+    @Order(13)
     void testReplaceAlwaysOnStoppedRecording() throws Exception {
-                System.out.println("++This is a test");
-
-        // check if any recordings exist
-        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
-        webClient
-                .get(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, listRespFuture1)) {
-                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
                             }
                         });
-        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        Assertions.assertFalse(listResp.isEmpty());
-        System.out.println("++Recording status before Step 4: " + listResp.encodePrettily());
-        System.out.println("++This is a test");
 
-     } */
+        Thread.sleep(5000); // Sleep to setup notification listening before query resolves
 
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Stop the Recording
+        CompletableFuture<StartRecordingMutationResponse> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { doStop(recording:"
+                        + " { name: \"test\", duration: 30, template: \"Profiling\", templateType:"
+                        + " \"TARGET\"}) { name state }} }");
+
+        Future<JsonObject> f2 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording created  is STOPPED
+        JsonObject notification2 = f2.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording2 =
+                notification2.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording2.getString("name"));
+        Assertions.assertEquals("STOPPED", notificationRecording2.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<StartRecordingMutationResponse> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name state}}"
+                    + " }");
+
+        Future<JsonObject> f3 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveR ecording is Recreated
+        JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording3 =
+                notification3.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording3.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(14)
+    void testReplaceNeverOnStoppedRecording() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Stop the Recording
+        CompletableFuture<StartRecordingMutationResponse> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { doStop(recording:"
+                        + " { name: \"test\", duration: 30, template: \"Profiling\", templateType:"
+                        + " \"TARGET\"}) { name state }} }");
+
+        Future<JsonObject> f2 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording created  is STOPPED
+        JsonObject notification2 = f2.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording2 =
+                notification2.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording2.getString("name"));
+        Assertions.assertEquals("STOPPED", notificationRecording2.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<JsonObject> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name state}}"
+                    + " }");
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(ar.result().bodyAsJsonObject());
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure the response indicates that the recording already exists
+        JsonObject response3 = resp3.get(5, TimeUnit.SECONDS);
+        JsonArray errors = response3.getJsonArray("errors");
+        JsonObject error = errors.getJsonObject(0);
+
+        Assertions.assertTrue(
+                error.getString("message").contains("Recording with name \"test\" already exists"),
+                "Expected error message to contain 'Recording with name \"test\" already exists'");
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(15)
+    void testReplaceStoppedOnStoppedRecording() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Stop the Recording
+        CompletableFuture<StartRecordingMutationResponse> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) { doStop(recording:"
+                        + " { name: \"test\", duration: 30, template: \"Profiling\", templateType:"
+                        + " \"TARGET\"}) { name state }} }");
+
+        Future<JsonObject> f2 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording created  is STOPPED
+        JsonObject notification2 = f2.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording2 =
+                notification2.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording2.getString("name"));
+        Assertions.assertEquals("STOPPED", notificationRecording2.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<StartRecordingMutationResponse> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name state}}"
+                    + " }");
+
+        Future<JsonObject> f3 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure Active Recording is Recreated
+        JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording3 =
+                notification3.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording3.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure Active Recording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(16)
+    void testReplaceStoppedOnRunningRecording() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000); // Sleep to setup notification listening before query resolves
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure Active Recording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<StartRecordingMutationResponse> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name state}}"
+                    + " }");
+
+        Future<JsonObject> f3 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure Active Recording is Recreated
+        JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording3 =
+                notification3.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording3.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(17)
+    void testReplaceNeverOnRunningRecording() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<JsonObject> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name state}}"
+                    + " }");
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(ar.result().bodyAsJsonObject());
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure the response indicates that the recording already exists
+        JsonObject response3 = resp3.get(5, TimeUnit.SECONDS);
+        JsonArray errors = response3.getJsonArray("errors");
+        JsonObject error = errors.getJsonObject(0);
+
+        Assertions.assertTrue(
+                error.getString("message").contains("Recording with name \"test\" already exists"),
+                "Expected error message to contain 'Recording with name \"test\" already exists'");
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(18)
+    void testReplaceAlwaysOnRunningRecording() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                        + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Restart the recording
+        CompletableFuture<StartRecordingMutationResponse> resp3 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name state}}"
+                    + " }");
+
+        Future<JsonObject> f3 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp3)) {
+                                resp3.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveR ecording is Recreated
+        JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording3 =
+                notification3.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording3.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp4 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp4)) {
+                                resp4.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification4 = resp4.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification4.getString("name"));
+        Assertions.assertNull(notification4.getString("state"));
+    }
+
+    @Test
+    @Order(19)
+    void testStartRecordingwithReplaceNever() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name state}}"
+                    + " }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification2 = resp2.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification2.getString("name"));
+        Assertions.assertNull(notification2.getString("state"));
+    }
+
+    @Test
+    @Order(20)
+    void testStartRecordingwithReplaceAlways() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name state}}"
+                    + " }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification2 = resp2.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification2.getString("name"));
+        Assertions.assertNull(notification2.getString("state"));
+    }
+
+    @Test
+    @Order(21)
+    void testStartRecordingwithReplaceStopped() throws Exception {
+        CountDownLatch latch = new CountDownLatch(3);
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        JsonObject query = new JsonObject();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                    + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name state}}"
+                    + " }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is Created
+        JsonObject notification = f.get(5, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        Assertions.assertEquals("test", notificationRecording.getString("name"));
+        Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+        // Delete the Recording
+        CompletableFuture<JsonObject> resp2 = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { annotations: \\\"PORT == 9093\\\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp2)) {
+                                resp2.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        // Ensure ActiveRecording is deleted
+        JsonObject notification2 = resp2.get(5, TimeUnit.SECONDS);
+
+        Assertions.assertNull(notification2.getString("name"));
+        Assertions.assertNull(notification2.getString("state"));
+    }
 
     static class Target {
         String alias;
