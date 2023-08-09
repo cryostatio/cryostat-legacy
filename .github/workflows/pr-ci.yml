@@ -100,8 +100,13 @@ jobs:
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.pull_request.user.login }}
         password: ${{ secrets.GHCR_PR_TOKEN }}
+    - name: Store images as output amd64
+      if: ${{ matrix.arch }} == 'amd64'
+      id: amd64_image
+      run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
     - name: Store images as output
-      id: ${{ matrix.arch }}_image
+      if: ${{ matrix.arch }} == 'arm64'
+      id: arm64_image
       run: echo "image=${{ steps.push-to-ghcr.outputs.registry-path }}" >> "$GITHUB_OUTPUT"
 
   comment-image:
