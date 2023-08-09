@@ -24,7 +24,7 @@ on:
 jobs:
   check-before-build:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
