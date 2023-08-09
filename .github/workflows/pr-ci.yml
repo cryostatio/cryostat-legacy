@@ -59,7 +59,6 @@ jobs:
       with:
         checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
         checkout-ref: ${{ github.event.pull_request.head.ref }}
-      secrets: inherit
       
   build-and-test:
     needs: [check-before-build]
@@ -72,7 +71,6 @@ jobs:
       checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
       checkout-ref: ${{ github.event.pull_request.head.ref }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
-    secrets: inherit
     if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
   push-to-ghcr:
