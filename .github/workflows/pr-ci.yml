@@ -22,8 +22,26 @@ on:
       - cryostat-v[0-9]+.[0-9]+
 
 jobs:
+  check-before-build:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    steps:
+    - name: Fail if needs-triage label applied
+      if: ${{ contains(github.event.pull_request.labels.*.name, 'needs-triage') }}
+      run: exit 1
+    - uses: thollander/actions-comment-pull-request@v1
+      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      with:
+        message: |-
+          The safe-to-test label has not been applied. Please apply it yourself or ask a reviewer to apply it 
+          before running the build_test command again. 
+    - name: Fail if safe-to-test label NOT applied
+      if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe-to-test') }}
+      run: exit 1
+
   code-analysis:
     runs-on: ubuntu-latest
+    needs: [check-before-build]
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: React to comment
@@ -43,6 +61,7 @@ jobs:
         checkout-ref: ${{ github.event.pull_request.head.ref }}
       
   build-and-test:
+    needs: [check-before-build]
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -62,7 +81,7 @@ jobs:
     outputs: 
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
-    needs: [code-analysis, build-and-test]
+    needs: [code-analysis, build-and-test, check-before-build]
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - uses: actions/download-artifact@v3
