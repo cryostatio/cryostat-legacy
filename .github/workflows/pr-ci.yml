@@ -46,6 +46,8 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+    outputs: 
+      PR_head_ref: ${{ steps.comment-branch.outputs.head_ref }}
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: Get PR command branch
@@ -58,19 +60,19 @@ jobs:
     - name: Run code analysis
       uses: ./.github/workflows/ci-code-analysis.yml
       with:
-        checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-        checkout-ref: ${{ github.event.pull_request.head.ref }}
+        checkout-repo: ${{ github.event.issue.repository_url }}
+        checkout-ref: ${{ steps.comment-branch.outputs.head_ref }}
       
   build-and-test:
-    needs: [check-before-build]
+    needs: [code-analysis]
     strategy:
       matrix:
         arch: [amd64, arm64]
     uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: ${{ matrix.arch }}
-      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      checkout-ref: ${{ github.event.pull_request.head.ref }}
+      checkout-repo: ${{ github.event.issue.repository_url }}
+      checkout-ref: ${{ needs.code-analysis.outputs.PR_head_ref }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
