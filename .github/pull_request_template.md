@@ -14,10 +14,10 @@ _______________________________________________
 Fixes: #<issue number>
 
 ## Description of the change:
-*This change adds allows a match expression example to be copied to the clipboard...*
+*This change allows an environment variable to be configured so that...*
 
 ## Motivation for the change:
-*This change is helpful because users may want to copy the example for easier use...*
+*This change is helpful because users may want to...*
 
 ## How to manually test:
 1. *Run CRYOSTAT_IMAGE=quay.io... sh smoketest.sh...*

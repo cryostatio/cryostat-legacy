@@ -1,0 +1,18 @@
+name: ✨ Feature request
+description: Improve an existing feature or add a new one.
+title: '[Request] <title>'
+labels: [feat, needs-triage]
+
+body:
+  - type: textarea
+    attributes:
+      label: Describe the feature
+      description: A clear and concise description of what the feature is. 
+      placeholder: A nice feature that I'd like to suggest...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Anything other information?
+    validations:
+      required: false
