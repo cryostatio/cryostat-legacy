@@ -48,6 +48,7 @@ jobs:
       pull-requests: read
     outputs: 
       PR_head_ref: ${{ steps.comment-branch.outputs.head_ref }}
+      PR_head_sha: ${{ steps.comment-branch.outputs.head_sha }}
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - name: Get PR command branch
@@ -77,8 +78,8 @@ jobs:
     uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: ${{ matrix.arch }}
-      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
-      checkout-ref: ${{ github.event.pull_request.head.ref }}
+      checkout-repo: ${{ github.repository }}
+      checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref  }}
       skip-itests: true
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
@@ -90,7 +91,7 @@ jobs:
     outputs: 
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
-    needs: [code-analysis, build-and-test, check-before-build]
+    needs: [code-analysis, build-and-test, checkout-branch]
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
     - uses: actions/download-artifact@v3
@@ -99,15 +100,15 @@ jobs:
     - name: Load cryostat image
       run: podman load -i cryostat-${{ matrix.arch }}.tar
     - name: Tag cryostat image
-      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
+      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ needs.checkout-branch.outputs.PR_head_sha }}-linux-${{ matrix.arch }}
     - name: Push PR test image to ghcr.io
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
-        tags: pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}-linux-${{ matrix.arch }}
+        tags: pr-${{ github.event.number }}-${{ needs.checkout-branch.outputs.PR_head_sha }}-linux-${{ matrix.arch }}
         registry: ghcr.io/${{ github.repository_owner }}
-        username: ${{ github.event.pull_request.user.login }}
+        username: ${{ github.event.issue_comment.comment.user.login }}
         password: ${{ secrets.GITHUB_TOKEN}}
     - name: Store images as output amd64
       if: ${{ matrix.arch }} == 'amd64'
