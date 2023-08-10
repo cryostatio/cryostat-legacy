@@ -33,7 +33,7 @@ body:
     attributes:
       label: Environment
       description: |
-        examples:
+        Examples:
           - **OS**: Ubuntu 20.04
           - **Environment**: OpenShift 4.11
           - **Version**: Cryostat 2.3.0
