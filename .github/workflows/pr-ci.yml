@@ -65,7 +65,7 @@ jobs:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     uses: ./.github/workflows/ci-code-analysis.yml
     with:
-      checkout-repo: ${{ github.event.repository.name }}
+      checkout-repo: ${{ github.event.issue.repository_url }}
       checkout-ref: ${{ needs.checkout-branch.outputs.PR_head_ref }}
       
   build-and-test:
