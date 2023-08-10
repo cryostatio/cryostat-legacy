@@ -17,7 +17,8 @@ jobs:
     - name: Fail if needs-triage label applied
       if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
       run: exit 1
-    - uses: thollander/actions-comment-pull-request@v1
+    - name: Comment if safe-to-test label NOT applied
+      uses: thollander/actions-comment-pull-request@v1
       if: ${{ !contains(github.event.issue.labels.*.name, 'safe-to-test') }}
       with:
         message: |-
@@ -47,17 +48,17 @@ jobs:
       pull-requests: read
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
     steps:
-    - uses: xt0rted/pull-request-comment-branch@v2
+    - name: Get PR command branch
+      uses: xt0rted/pull-request-comment-branch@v2
       id: comment-branch
-    - uses: actions/checkout@v2
-      if: success()
+    - name: Checkout PR command branch 
+      uses: actions/checkout@v3
       with:
         ref: ${{ steps.comment-branch.outputs.head_ref }}
-    - run: git rev-parse --abbrev-ref HEAD
-    - run: git rev-parse --verify HEAD
-    - uses: ./.github/workflows/ci-code-analysis.yml
+    - name: Run code analysis
+      uses: ./.github/workflows/ci-code-analysis.yml
       with:
-        checkout-repo: ${{ github.event.issue.head.repo.full_name }}
+        checkout-repo: ${{ context.repo.repo }}
         checkout-ref: ${{ steps.comment-branch.outputs.head_ref }}
       
   build-and-test:
