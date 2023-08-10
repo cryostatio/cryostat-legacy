@@ -58,7 +58,7 @@ jobs:
     - name: Run code analysis
       uses: ./.github/workflows/ci-code-analysis.yml
       with:
-        checkout-repo: ${{ context.repo.repo }}
+        checkout-repo: ${{ github.event.issue.repository }}
         checkout-ref: ${{ steps.comment-branch.outputs.head_ref }}
       
   build-and-test:
