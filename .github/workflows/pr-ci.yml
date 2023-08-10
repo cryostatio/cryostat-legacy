@@ -40,28 +40,12 @@ jobs:
             });  
 
   code-analysis:
-    runs-on: ubuntu-latest
     needs: [check-before-build]
-    permissions:
-      contents: read
-      issues: read
-      pull-requests: read
-    outputs: 
-      PR_head_ref: ${{ steps.comment-branch.outputs.head_ref }}
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
-    steps:
-    - name: Get PR command branch
-      uses: xt0rted/pull-request-comment-branch@v2
-      id: comment-branch
-    - name: Checkout PR command branch 
-      uses: actions/checkout@v3
-      with:
-        ref: ${{ steps.comment-branch.outputs.head_ref }}
-    - name: Run code analysis
-      uses: ./.github/workflows/ci-code-analysis.yml
-      with:
-        checkout-repo: ${{ github.event.issue.repository_url }}
-        checkout-ref: ${{ steps.comment-branch.outputs.head_ref }}
+    uses: ./.github/workflows/ci-code-analysis.yml
+    with:
+      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
+      checkout-ref: ${{ github.event.pull_request.head.ref }}
       
   build-and-test:
     needs: [code-analysis]
@@ -71,8 +55,8 @@ jobs:
     uses: ./.github/workflows/ci-build-image.yml
     with:
       build-arch: ${{ matrix.arch }}
-      checkout-repo: ${{ github.event.issue.repository_url }}
-      checkout-ref: ${{ needs.code-analysis.outputs.PR_head_ref }}
+      checkout-repo: ${{ github.event.pull_request.head.repo.full_name }}
+      checkout-ref: ${{ github.event.pull_request.head.ref }}
       skip-itests: ${{ matrix.arch != 'amd64' }}
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
 
