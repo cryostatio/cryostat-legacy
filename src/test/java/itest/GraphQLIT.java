@@ -82,10 +82,10 @@ class GraphQLIT extends ExternalTargetsTest {
             CONTAINERS.add(Podman.run(spec));
         }
         CompletableFuture.allOf(
-                        CONTAINERS.stream()
-                                .map(id -> Podman.waitForContainerState(id, "running"))
-                                .collect(Collectors.toList())
-                                .toArray(new CompletableFuture[0]))
+                CONTAINERS.stream()
+                        .map(id -> Podman.waitForContainerState(id, "running"))
+                        .collect(Collectors.toList())
+                        .toArray(new CompletableFuture[0]))
                 .join();
         waitForDiscovery(NUM_EXT_CONTAINERS);
     }
@@ -177,22 +177,20 @@ class GraphQLIT extends ExternalTargetsTest {
         TargetNode cryostat = new TargetNode();
         Target cryostatTarget = new Target();
         cryostatTarget.alias = "io.cryostat.Cryostat";
-        cryostatTarget.serviceUri =
-                String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+        cryostatTarget.serviceUri = String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
         cryostat.name = cryostatTarget.serviceUri;
         cryostat.target = cryostatTarget;
         cryostat.nodeType = "JVM";
         Annotations cryostatAnnotations = new Annotations();
-        cryostatAnnotations.cryostat =
-                Map.of(
-                        "REALM",
-                        "JDP",
-                        "JAVA_MAIN",
-                        "io.cryostat.Cryostat",
-                        "HOST",
-                        Podman.POD_NAME,
-                        "PORT",
-                        "9091");
+        cryostatAnnotations.cryostat = Map.of(
+                "REALM",
+                "JDP",
+                "JAVA_MAIN",
+                "io.cryostat.Cryostat",
+                "HOST",
+                Podman.POD_NAME,
+                "PORT",
+                "9091");
         cryostatAnnotations.platform = Map.of();
         cryostatTarget.annotations = cryostatAnnotations;
         cryostat.labels = Map.of();
@@ -200,9 +198,8 @@ class GraphQLIT extends ExternalTargetsTest {
 
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             int port = 9093 + i;
-            String uri =
-                    String.format(
-                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
+            String uri = String.format(
+                    "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, port);
             String mainClass = "es.andrewazor.demo.Main";
             TargetNode ext = new TargetNode();
             Target target = new Target();
@@ -212,16 +209,15 @@ class GraphQLIT extends ExternalTargetsTest {
             ext.target = target;
             ext.nodeType = "JVM";
             Annotations annotations = new Annotations();
-            annotations.cryostat =
-                    Map.of(
-                            "REALM",
-                            "JDP",
-                            "JAVA_MAIN",
-                            mainClass,
-                            "HOST",
-                            Podman.POD_NAME,
-                            "PORT",
-                            Integer.toString(port));
+            annotations.cryostat = Map.of(
+                    "REALM",
+                    "JDP",
+                    "JAVA_MAIN",
+                    mainClass,
+                    "HOST",
+                    Podman.POD_NAME,
+                    "PORT",
+                    Integer.toString(port));
             annotations.platform = Map.of();
             target.annotations = annotations;
             ext.labels = Map.of();
@@ -253,8 +249,7 @@ class GraphQLIT extends ExternalTargetsTest {
         TargetNodesQueryResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         MatcherAssert.assertThat(actual.data.targetNodes, Matchers.hasSize(1));
 
-        String uri =
-                String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, 9093);
+        String uri = String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi", Podman.POD_NAME, 9093);
         TargetNode ext = new TargetNode();
         ext.name = uri;
         ext.nodeType = "JVM";
@@ -270,31 +265,29 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                    + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
-                    + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
-                    + " metadata: { labels: [ { key: \"newLabel\", value: \"someValue\"} ] }  }) {"
-                    + " name state duration archiveOnStop }} }");
-        Map<String, String> expectedLabels =
-                Map.of(
-                        "template.name",
-                        "Profiling",
-                        "template.type",
-                        "TARGET",
-                        "newLabel",
-                        "someValue");
-        Future<JsonObject> f =
-                worker.submit(
-                        () -> {
-                            try {
-                                return expectNotification(
-                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                        .get();
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            } finally {
-                                latch.countDown();
-                            }
-                        });
+                        + " doStartRecording(recording: { name: \"graphql-itest\", duration: 30,"
+                        + " template: \"Profiling\", templateType: \"TARGET\", archiveOnStop: true,"
+                        + " metadata: { labels: [ { key: \"newLabel\", value: \"someValue\"} ] }  }) {"
+                        + " name state duration archiveOnStop }} }");
+        Map<String, String> expectedLabels = Map.of(
+                "template.name",
+                "Profiling",
+                "template.type",
+                "TARGET",
+                "newLabel",
+                "someValue");
+        Future<JsonObject> f = worker.submit(
+                () -> {
+                    try {
+                        return expectNotification(
+                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                .get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
 
         Thread.sleep(5000); // Sleep to setup notification listening before query resolves
 
@@ -317,8 +310,7 @@ class GraphQLIT extends ExternalTargetsTest {
         // Ensure ActiveRecordingCreated notification emitted matches expected values
         JsonObject notification = f.get(5, TimeUnit.SECONDS);
 
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
+        JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
         MatcherAssert.assertThat(
                 notificationRecording.getString("name"), Matchers.equalTo("graphql-itest"));
         MatcherAssert.assertThat(
@@ -329,8 +321,8 @@ class GraphQLIT extends ExternalTargetsTest {
                         String.format(
                                 "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                 Podman.POD_NAME, 9093)));
-        Map<String, Object> notificationLabels =
-                notificationRecording.getJsonObject("metadata").getJsonObject("labels").getMap();
+        Map<String, Object> notificationLabels = notificationRecording.getJsonObject("metadata").getJsonObject("labels")
+                .getMap();
         for (var entry : expectedLabels.entrySet()) {
             MatcherAssert.assertThat(
                     notificationLabels, Matchers.hasEntry(entry.getKey(), entry.getValue()));
@@ -586,12 +578,11 @@ class GraphQLIT extends ExternalTargetsTest {
     void testQueryForSpecificTargetsByNames() throws Exception {
         CompletableFuture<TargetNodesQueryResponse> resp = new CompletableFuture<>();
 
-        String query =
-                String.format(
-                        "query { targetNodes(filter: { names:"
-                            + " [\"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\","
-                            + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi\"] }) {"
-                            + " name nodeType } }");
+        String query = String.format(
+                "query { targetNodes(filter: { names:"
+                        + " [\"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\","
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9093/jmxrmi\"] }) {"
+                        + " name nodeType } }");
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -673,11 +664,10 @@ class GraphQLIT extends ExternalTargetsTest {
 
         // GraphQL Query to filter Active recordings by names
         CompletableFuture<TargetNodesQueryResponse> resp2 = new CompletableFuture<>();
-        String query =
-                "query { targetNodes (filter: {name:"
-                    + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\"}){ recordings"
-                    + " {active(filter: { names: [\"Recording1\", \"Recording2\",\"Recording3\"] })"
-                    + " {data {name}}}}}";
+        String query = "query { targetNodes (filter: {name:"
+                + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\"}){ recordings"
+                + " {active(filter: { names: [\"Recording1\", \"Recording2\",\"Recording3\"] })"
+                + " {data {name}}}}}";
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -695,11 +685,10 @@ class GraphQLIT extends ExternalTargetsTest {
 
         List<String> filterNames = Arrays.asList("Recording1", "Recording2");
 
-        List<ActiveRecording> filteredRecordings =
-                graphqlResp.data.targetNodes.stream()
-                        .flatMap(targetNode -> targetNode.recordings.active.data.stream())
-                        .filter(recording -> filterNames.contains(recording.name))
-                        .collect(Collectors.toList());
+        List<ActiveRecording> filteredRecordings = graphqlResp.data.targetNodes.stream()
+                .flatMap(targetNode -> targetNode.recordings.active.data.stream())
+                .filter(recording -> filterNames.contains(recording.name))
+                .collect(Collectors.toList());
 
         MatcherAssert.assertThat(filteredRecordings.size(), Matchers.equalTo(2));
         ActiveRecording r1 = new ActiveRecording();
@@ -810,27 +799,25 @@ class GraphQLIT extends ExternalTargetsTest {
                                 archivedRecordingsFuture2.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        JsonArray retrivedArchivedRecordings =
-                archivedRecordingsFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray retrivedArchivedRecordings = archivedRecordingsFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         JsonObject retrievedArchivedrecordings = retrivedArchivedRecordings.getJsonObject(0);
         String retrievedArchivedRecordingsName = retrievedArchivedrecordings.getString("name");
 
         // GraphQL Query to filter Archived recordings by names
         CompletableFuture<TargetNodesQueryResponse> resp2 = new CompletableFuture<>();
 
-        String query =
-                "query { targetNodes {"
-                        + "recordings {"
-                        + "archived(filter: { names: [\""
-                        + retrievedArchivedRecordingsName
-                        + "\",\"someOtherName\"] }) {"
-                        + "data {"
-                        + "name"
-                        + "}"
-                        + "}"
-                        + "}"
-                        + "}"
-                        + "}";
+        String query = "query { targetNodes {"
+                + "recordings {"
+                + "archived(filter: { names: [\""
+                + retrievedArchivedRecordingsName
+                + "\",\"someOtherName\"] }) {"
+                + "data {"
+                + "name"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -845,10 +832,9 @@ class GraphQLIT extends ExternalTargetsTest {
                         });
 
         TargetNodesQueryResponse graphqlResp = resp2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        List<ArchivedRecording> archivedRecordings2 =
-                graphqlResp.data.targetNodes.stream()
-                        .flatMap(targetNode -> targetNode.recordings.archived.data.stream())
-                        .collect(Collectors.toList());
+        List<ArchivedRecording> archivedRecordings2 = graphqlResp.data.targetNodes.stream()
+                .flatMap(targetNode -> targetNode.recordings.archived.data.stream())
+                .collect(Collectors.toList());
 
         int filteredRecordingsCount = archivedRecordings2.size();
         Assertions.assertEquals(
@@ -898,17 +884,16 @@ class GraphQLIT extends ExternalTargetsTest {
                             }
                         });
 
-        JsonArray updatedArchivedRecordings =
-                updatedArchivedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray updatedArchivedRecordings = updatedArchivedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS);
 
         // Assert that the targeted recordings have been deleted
-        boolean recordingsDeleted =
-                updatedArchivedRecordings.stream()
-                        .noneMatch(
-                                json -> {
-                                    JsonObject recording = (JsonObject) json;
-                                    return recording.getString("name").equals(TEST_RECORDING_NAME);
-                                });
+        boolean recordingsDeleted = updatedArchivedRecordings.stream()
+                .noneMatch(
+                        json -> {
+                            JsonObject recording = (JsonObject) json;
+                            return recording.getString("name").equals(TEST_RECORDING_NAME);
+                        });
 
         Assertions.assertTrue(
                 recordingsDeleted, "The targeted archived recordings should be deleted");
@@ -939,8 +924,7 @@ class GraphQLIT extends ExternalTargetsTest {
                             }
                         });
 
-        JsonArray savedRecordings =
-                savedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray savedRecordings = savedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         for (Object savedRecording : savedRecordings) {
             String recordingName = ((JsonObject) savedRecording).getString("name");
@@ -968,9 +952,8 @@ class GraphQLIT extends ExternalTargetsTest {
     public void testQueryforFilteredEnvironmentNodesByNames() throws Exception {
         CompletableFuture<EnvironmentNodesResponse> resp = new CompletableFuture<>();
 
-        String query =
-                "query { environmentNodes(filter: { names: [\"anotherName1\","
-                        + " \"JDP\",\"anotherName2\"] }) { name nodeType } }";
+        String query = "query { environmentNodes(filter: { names: [\"anotherName1\","
+                + " \"JDP\",\"anotherName2\"] }) { name nodeType } }";
         webClient
                 .post("/api/v2.2/graphql")
                 .sendJson(
@@ -1027,23 +1010,22 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
+                            + " state}} }");
 
-            Future<JsonObject> f3 =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+            Future<JsonObject> f3 = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
             webClient
@@ -1064,8 +1046,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Recreated
             JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording3 =
-                    notification3.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording3 = notification3.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording3.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
@@ -1105,9 +1086,9 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
+                            + " state}} }");
 
             Thread.sleep(5000);
             webClient
@@ -1168,23 +1149,22 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
+                            + " state}} }");
 
-            Future<JsonObject> f3 =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+            Future<JsonObject> f3 = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
             webClient
@@ -1205,8 +1185,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Recreated
             JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording3 =
-                    notification3.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording3 = notification3.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording3.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
@@ -1238,23 +1217,22 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
+                            + " state}} }");
 
-            Future<JsonObject> f3 =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+            Future<JsonObject> f3 = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
             webClient
@@ -1275,8 +1253,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Recreated
             JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording3 =
-                    notification3.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording3 = notification3.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording3.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
@@ -1308,9 +1285,9 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
+                            + " state}} }");
 
             Thread.sleep(5000);
             webClient
@@ -1364,23 +1341,22 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
-                        + " state}} }");
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
+                            + " state}} }");
 
-            Future<JsonObject> f3 =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+            Future<JsonObject> f3 = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
             webClient
@@ -1401,8 +1377,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Recreated
             JsonObject notification3 = f3.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording3 =
-                    notification3.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording3 = notification3.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording3.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording3.getString("state"));
@@ -1425,22 +1400,21 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
-                        + " state}} }");
-            Future<JsonObject> f =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
+                            + " state}} }");
+            Future<JsonObject> f = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
 
@@ -1462,8 +1436,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Created
             JsonObject notification = f.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording =
-                    notification.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
@@ -1486,22 +1459,21 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
-                        + " state}} }");
-            Future<JsonObject> f =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:ALWAYS }) { name"
+                            + " state}} }");
+            Future<JsonObject> f = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
 
@@ -1523,8 +1495,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Created
             JsonObject notification = f.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording =
-                    notification.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
@@ -1547,22 +1518,21 @@ class GraphQLIT extends ExternalTargetsTest {
             query.put(
                     "query",
                     "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
-                        + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                        + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
-                        + " state}} }");
-            Future<JsonObject> f =
-                    worker.submit(
-                            () -> {
-                                try {
-                                    return expectNotification(
-                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                            .get();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                } finally {
-                                    latch.countDown();
-                                }
-                            });
+                            + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name"
+                            + " state}} }");
+            Future<JsonObject> f = worker.submit(
+                    () -> {
+                        try {
+                            return expectNotification(
+                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                    .get();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
 
             Thread.sleep(5000);
             webClient
@@ -1583,8 +1553,7 @@ class GraphQLIT extends ExternalTargetsTest {
 
             // Ensure Active Recording is Created
             JsonObject notification = f.get(5, TimeUnit.SECONDS);
-            JsonObject notificationRecording =
-                    notification.getJsonObject("message").getJsonObject("recording");
+            JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
 
             Assertions.assertEquals("test", notificationRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
@@ -1721,12 +1690,17 @@ class GraphQLIT extends ExternalTargetsTest {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
             AggregateInfo other = (AggregateInfo) obj;
-            if (count != other.count) return false;
-            if (size != other.size) return false;
+            if (count != other.count)
+                return false;
+            if (size != other.size)
+                return false;
             return true;
         }
     }
@@ -2343,19 +2317,18 @@ class GraphQLIT extends ExternalTargetsTest {
                 "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
                         + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
                         + " \"Profiling\", templateType: \"TARGET\"}) { name state}} }");
-        Future<JsonObject> f =
-                worker.submit(
-                        () -> {
-                            try {
-                                return expectNotification(
-                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
-                                        .get();
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            } finally {
-                                latch.countDown();
-                            }
-                        });
+        Future<JsonObject> f = worker.submit(
+                () -> {
+                    try {
+                        return expectNotification(
+                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                .get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
 
         Thread.sleep(5000);
 
@@ -2376,8 +2349,7 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(30, TimeUnit.SECONDS);
 
         JsonObject notification = f.get(5, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
+        JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
     }
@@ -2394,19 +2366,18 @@ class GraphQLIT extends ExternalTargetsTest {
                         + " doStop(recording: { name: \"test\", duration: 30, template:"
                         + " \"Profiling\", templateType: \"TARGET\"}) { name state }} }");
 
-        Future<JsonObject> f =
-                worker.submit(
-                        () -> {
-                            try {
-                                return expectNotification(
-                                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
-                                        .get();
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            } finally {
-                                latch.countDown();
-                            }
-                        });
+        Future<JsonObject> f = worker.submit(
+                () -> {
+                    try {
+                        return expectNotification(
+                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
+                                .get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
 
         Thread.sleep(5000);
 
@@ -2427,8 +2398,7 @@ class GraphQLIT extends ExternalTargetsTest {
         latch.await(30, TimeUnit.SECONDS);
 
         JsonObject notification = f.get(5, TimeUnit.SECONDS);
-        JsonObject notificationRecording =
-                notification.getJsonObject("message").getJsonObject("recording");
+        JsonObject notificationRecording = notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
     }
