@@ -2051,7 +2051,7 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: {"
-                        + " name:\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\" }) { name"
+                        + " name:\"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
                         + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
                         + " templateType: \"TARGET\"}) { name state}} }");
         Future<JsonObject> f =
@@ -2102,9 +2102,9 @@ class GraphQLIT extends ExternalTargetsTest {
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: {"
-                    + " name:\\\\\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\\\\\" }) "
-                    + " {name recordings { active { data { doStop { name state } } } } } }");
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" })  {"
+                        + " recordings { active { data { doStop { name state } } } } } }");
 
         Future<JsonObject> f2 =
                 worker.submit(
@@ -2154,8 +2154,8 @@ class GraphQLIT extends ExternalTargetsTest {
         CompletableFuture<JsonObject> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: {"
-                        + " name:\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\" }) { name"
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
                         + " recordings { active { data { doDelete { name state } } } } } }");
 
         Thread.sleep(5000);
@@ -2175,7 +2175,6 @@ class GraphQLIT extends ExternalTargetsTest {
 
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         deletedObj = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        System.out.println("++ deleteing");
         System.out.println("++deleteing" + deletedObj.encodePrettily());
     }
 
@@ -2188,8 +2187,8 @@ class GraphQLIT extends ExternalTargetsTest {
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: {"
-                        + " name:\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\" }) { name"
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
                         + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
                         + " templateType: \"TARGET\", replace:ALWAYS}) { name state}} }");
         Future<JsonObject> f =
@@ -2242,8 +2241,8 @@ class GraphQLIT extends ExternalTargetsTest {
         CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
         query.put(
                 "query",
-                "query { targetNodes(filter: {"
-                    + " name:\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\" }) { name"
+                "query { targetNodes(filter: { name:"
+                    + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
                     + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
                     + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name state}}"
                     + " }");
@@ -2296,8 +2295,8 @@ class GraphQLIT extends ExternalTargetsTest {
 
         query.put(
                 "query",
-                "query { targetNodes(filter: {"
-                        + " name:\\\"service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi\\\" }) {name "
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
                         + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
                         + " templateType: \"TARGET\", replace:NEVER }) { name state}} }");
 
