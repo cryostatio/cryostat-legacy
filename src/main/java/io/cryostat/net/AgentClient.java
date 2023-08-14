@@ -101,7 +101,7 @@ public class AgentClient {
 
     Future<MBeanMetrics> mbeanMetrics() {
         Future<HttpResponse<String>> f =
-                invoke(HttpMethod.GET, "/mbean-metrics", BodyCodec.string());
+                invoke(HttpMethod.GET, "/mbean-metrics/", BodyCodec.string());
         return f.map(HttpResponse::body)
                 // uses Gson rather than Vertx's Jackson because Gson is able to handle MBeanMetrics
                 // with no additional fuss. Jackson complains about private final fields.
@@ -112,7 +112,7 @@ public class AgentClient {
         Future<HttpResponse<String>> f =
                 invoke(
                         HttpMethod.POST,
-                        "/recordings",
+                        "/recordings/",
                         Buffer.buffer(gson.toJson(req)),
                         BodyCodec.string());
         return f.map(
@@ -130,8 +130,48 @@ public class AgentClient {
                 });
     }
 
+    Future<Void> stopRecording(long id) {
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.PATCH,
+                        String.format("/recordings/%d", id),
+                        Buffer.buffer(),
+                        BodyCodec.none());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return null;
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
+    Future<Void> deleteRecording(long id) {
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.DELETE,
+                        String.format("/recordings/%d", id),
+                        Buffer.buffer(),
+                        BodyCodec.none());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return null;
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
     Future<List<IRecordingDescriptor>> activeRecordings() {
-        Future<HttpResponse<String>> f = invoke(HttpMethod.GET, "/recordings", BodyCodec.string());
+        Future<HttpResponse<String>> f = invoke(HttpMethod.GET, "/recordings/", BodyCodec.string());
         return f.map(HttpResponse::body)
                 .map(
                         s ->
@@ -146,14 +186,14 @@ public class AgentClient {
 
     Future<Collection<? extends IEventTypeInfo>> eventTypes() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-types/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
                 .map(arr -> arr.stream().map(o -> new AgentEventTypeInfo((JsonObject) o)).toList());
     }
 
     Future<IConstrainedMap<EventOptionID>> eventSettings() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-settings", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-settings/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
                 .map(
                         arr -> {
@@ -207,7 +247,7 @@ public class AgentClient {
 
     Future<List<String>> eventTemplates() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-templates", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-templates/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body).map(arr -> arr.stream().map(Object::toString).toList());
     }
 
