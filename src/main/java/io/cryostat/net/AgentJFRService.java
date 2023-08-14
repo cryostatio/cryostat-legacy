@@ -52,9 +52,9 @@ import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.templates.MergedTemplateService;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
+
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
-
 import org.jsoup.nodes.Document;
 
 class AgentJFRService implements CryostatFlightRecorderService {
@@ -195,9 +195,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
         Future<Buffer> f = client.openStream(descriptor.getId());
         try {
             Buffer b = f.toCompletionStage().toCompletableFuture().get();
-            return new BufferedInputStream(
-                    new ByteArrayInputStream(b.getBytes())
-                    );
+            return new BufferedInputStream(new ByteArrayInputStream(b.getBytes()));
         } catch (ExecutionException | InterruptedException e) {
             logger.warn(e);
             throw new FlightRecorderException("Failed to open remote recording stream", e);
@@ -205,14 +203,18 @@ class AgentJFRService implements CryostatFlightRecorderService {
     }
 
     @Override
-    public InputStream openStream(IRecordingDescriptor descriptor, IQuantity lastPartDuration, boolean removeOnClose)
+    public InputStream openStream(
+            IRecordingDescriptor descriptor, IQuantity lastPartDuration, boolean removeOnClose)
             throws FlightRecorderException {
         throw new UnimplementedException();
     }
 
     @Override
     public InputStream openStream(
-            IRecordingDescriptor descriptor, IQuantity startTime, IQuantity endTime, boolean removeOnClose)
+            IRecordingDescriptor descriptor,
+            IQuantity startTime,
+            IQuantity endTime,
+            boolean removeOnClose)
             throws FlightRecorderException {
         throw new UnimplementedException();
     }

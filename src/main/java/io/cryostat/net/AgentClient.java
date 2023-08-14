@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
-import java.io.InputStream;
 
 import javax.script.ScriptException;
 
@@ -133,10 +132,7 @@ public class AgentClient {
 
     Future<Buffer> openStream(long id) {
         Future<HttpResponse<Buffer>> f =
-                invoke(
-                        HttpMethod.GET,
-                        "/recordings/" + id,
-                        BodyCodec.buffer());
+                invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());
         return f.map(
                 resp -> {
                     int statusCode = resp.statusCode();
