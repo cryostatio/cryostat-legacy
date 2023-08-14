@@ -916,7 +916,7 @@ public class RecordingArchiveHelper {
 
     Path writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, URISyntaxException, FlightRecorderException, Exception {
-        URI serviceUri = URIUtil.convert(connection.getJMXURL());
+        URI serviceUri = URIUtil.getConnectionUri(connection);
         String jvmId = jvmIdHelper.getJvmId(serviceUri.toString());
         Path specificRecordingsPath = getRecordingSubdirectoryPath(jvmId);
         if (!fs.exists(specificRecordingsPath)) {

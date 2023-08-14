@@ -129,6 +129,22 @@ public class AgentClient {
                 });
     }
 
+    Future<Buffer> openStream(long id) {
+        Future<HttpResponse<Buffer>> f =
+                invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return resp.body();
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
     Future<Void> stopRecording(long id) {
         Future<HttpResponse<Void>> f =
                 invoke(
