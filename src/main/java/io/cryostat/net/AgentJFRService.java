@@ -82,7 +82,14 @@ class AgentJFRService implements CryostatFlightRecorderService {
 
     @Override
     public void close(IRecordingDescriptor descriptor) throws FlightRecorderException {
-        throw new UnimplementedException();
+        try {
+            client.deleteRecording(descriptor.getId())
+                    .toCompletionStage()
+                    .toCompletableFuture()
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new FlightRecorderException("Failed to stop recording", e);
+        }
     }
 
     @Override
@@ -205,8 +212,15 @@ class AgentJFRService implements CryostatFlightRecorderService {
     }
 
     @Override
-    public void stop(IRecordingDescriptor arg0) throws FlightRecorderException {
-        throw new UnimplementedException();
+    public void stop(IRecordingDescriptor descriptor) throws FlightRecorderException {
+        try {
+            client.stopRecording(descriptor.getId())
+                    .toCompletionStage()
+                    .toCompletableFuture()
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new FlightRecorderException("Failed to stop recording", e);
+        }
     }
 
     @Override
