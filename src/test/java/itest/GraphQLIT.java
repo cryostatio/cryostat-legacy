@@ -1032,17 +1032,14 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 13");
         }
     }
 
     @Test
     @Order(14)
     void testReplaceNeverOnStoppedRecording() throws Exception {
-        // CountDownLatch latch = new CountDownLatch(1);
         JsonObject[] notificationRecordingHolder = new JsonObject[1];
         JsonObject deletedObj = new JsonObject();
-        // JsonObject query = new JsonObject();
 
         try {
             // Start a Recording
@@ -1067,16 +1064,13 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 14");
         }
     }
 
     @Test
     @Order(15)
     void testReplaceStoppedOnStoppedRecording() throws Exception {
-        // CountDownLatch latch = new CountDownLatch(2);
         JsonObject[] notificationRecordingHolder = new JsonObject[1];
-        // JsonObject query = new JsonObject();
         JsonObject deletedObj = new JsonObject();
 
         try {
@@ -1097,6 +1091,7 @@ class GraphQLIT extends ExternalTargetsTest {
             // Restart the recording with replace:STOPPED
             restartRecordingWithReplaceStopped(notificationRecordingHolder);
             JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
+
             Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
 
@@ -1105,17 +1100,14 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 15");
         }
     }
 
     @Test
     @Order(16)
     void testReplaceStoppedOnRunningRecording() throws Exception {
-        // CountDownLatch latch = new CountDownLatch(2);
         JsonObject[] notificationRecordingHolder = new JsonObject[1];
         JsonObject deletedObj = new JsonObject();
-        // JsonObject query = new JsonObject();
 
         try {
             // Start a Recording
@@ -1126,17 +1118,45 @@ class GraphQLIT extends ExternalTargetsTest {
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
             // Restart the recording with replace:STOPPED
-            restartRecordingWithReplaceStopped(notificationRecordingHolder);
-            JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
-            Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
-            Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
+            CompletableFuture<JsonObject> resp = new CompletableFuture<>();
+            CountDownLatch latch = new CountDownLatch(1);
+            JsonObject query = new JsonObject();
 
+            query.put(
+                    "query",
+                    "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:STOPPED }) { name state}} }");
+
+            Thread.sleep(5000);
+            webClient
+                    .post("/api/v2.2/graphql")
+                    .sendJson(
+                            query,
+                            ar -> {
+                                if (assertRequestStatus(ar, resp)) {
+                                    resp.complete(ar.result().bodyAsJsonObject());
+                                    latch.countDown();
+                                }
+                            });
+
+            latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonArray errors = response.getJsonArray("errors");
+            JsonObject error = errors.getJsonObject(0);
+
+            Assertions.assertTrue(
+                    error.getString("message")
+                            .contains("Recording with name \"test\" already exists"),
+                    "Expected error message to contain 'Recording with name \"test\" already"
+                            + " exists'");
         } finally {
             // Delete the Recording
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 16");
         }
     }
 
@@ -1155,14 +1175,13 @@ class GraphQLIT extends ExternalTargetsTest {
             Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
 
             // Restart the recording with replace:NEVER
-            testReplaceNeverOnStoppedRecording();
+            restartRecordingWithReplaceNever();
 
         } finally {
             // Delete the Recording
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 17");
         }
     }
 
@@ -1192,7 +1211,6 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 18");
         }
     }
 
@@ -1256,7 +1274,6 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 19");
         }
     }
 
@@ -1278,7 +1295,6 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 20");
         }
     }
 
@@ -1289,10 +1305,10 @@ class GraphQLIT extends ExternalTargetsTest {
         JsonObject deletedObj = new JsonObject();
 
         try {
-
             // Restart the recording with replace:STOPPED
             restartRecordingWithReplaceStopped(notificationRecordingHolder);
             JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
+
             Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
             Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
 
@@ -1301,7 +1317,6 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteRecordingProcess(deletedObj);
             Assertions.assertNull(deletedObj.getString("name"));
             Assertions.assertNull(deletedObj.getString("state"));
-            System.out.println("++case 21");
         }
     }
 
@@ -2091,7 +2106,6 @@ class GraphQLIT extends ExternalTargetsTest {
                 notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
-        System.out.println("++creating" + notificationRecordingHolder[0].encodePrettily());
     }
 
     // Stop the Recording
@@ -2143,7 +2157,6 @@ class GraphQLIT extends ExternalTargetsTest {
                 notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
-        System.out.println("++stopping" + notificationRecordingHolder[0].encodePrettily());
     }
 
     // Delete the Recording
@@ -2175,7 +2188,6 @@ class GraphQLIT extends ExternalTargetsTest {
 
         latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         deletedObj = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        System.out.println("++deleteing" + deletedObj.encodePrettily());
     }
 
     // Restart the recording with replace:ALWAYS
@@ -2228,11 +2240,10 @@ class GraphQLIT extends ExternalTargetsTest {
                 notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
-        System.out.println(
-                "++restartingWithReplaceAlways" + notificationRecordingHolder[0].encodePrettily());
     }
 
-    // Restart the recording with replace:STOPPED
+    // Restart the recording with replace:STOPPED (utilise this helper ONLY when Recording is
+    // STOPPED)
     private void restartRecordingWithReplaceStopped(JsonObject[] notificationRecordingHolder)
             throws Exception {
         CountDownLatch latch = new CountDownLatch(2);
@@ -2242,10 +2253,9 @@ class GraphQLIT extends ExternalTargetsTest {
         query.put(
                 "query",
                 "query { targetNodes(filter: { name:"
-                    + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
-                    + " doStartRecording(recording: { name: \"test\", duration: 30, template:"
-                    + " \"Profiling\", templateType: \"TARGET\", replace:STOPPED }) { name state}}"
-                    + " }");
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:STOPPED}) { name state}} }");
 
         Future<JsonObject> f =
                 worker.submit(
@@ -2283,11 +2293,10 @@ class GraphQLIT extends ExternalTargetsTest {
                 notification.getJsonObject("message").getJsonObject("recording");
 
         notificationRecordingHolder[0] = notificationRecording;
-        System.out.println(
-                "++restartingWithReplaceSTopped" + notificationRecordingHolder[0].encodePrettily());
     }
 
-    // Restart a Recording with replace:NEVER
+    // Restart a Recording with replace:NEVER (could be used with Replace:STOPPED on a running
+    // recording)
     private void restartRecordingWithReplaceNever() throws Exception {
         CompletableFuture<JsonObject> resp = new CompletableFuture<>();
         CountDownLatch latch = new CountDownLatch(1);
