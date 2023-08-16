@@ -558,7 +558,6 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                // Mockito.anyBoolean(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),

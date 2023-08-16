@@ -847,7 +847,7 @@ public class RecordingTargetHelperTest {
     }
 
     @Test
-    void shouldStopAndRecreateIfRecordingExistsAndIsRunning() throws Exception {
+    void shouldCloseAndRecreateIfRecordingExistsAndIsRunning() throws Exception {
         String recordingName = "existingRecording";
         String targetId = "fooTarget";
         String duration = "5000ms";
@@ -901,7 +901,6 @@ public class RecordingTargetHelperTest {
                 metadata,
                 false);
 
-        Mockito.verify(service).stop(existingRecording);
         Mockito.verify(service).close(existingRecording);
         Mockito.verify(service).start(Mockito.any(), Mockito.any());
     }
