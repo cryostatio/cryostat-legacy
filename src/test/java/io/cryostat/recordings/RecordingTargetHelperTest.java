@@ -15,7 +15,7 @@
  */
 package io.cryostat.recordings;
 
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -53,6 +53,7 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import io.vertx.core.Vertx;
@@ -730,7 +731,7 @@ public class RecordingTargetHelperTest {
                         });
 
         recordingTargetHelper.startRecording(
-                false,
+                ReplacementPolicy.NEVER,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,
@@ -782,6 +783,187 @@ public class RecordingTargetHelperTest {
                 Matchers.equalTo(
                         new Metadata(
                                 Map.of("template.name", "Profiling", "template.type", "TARGET"))));
+    }
+
+    void shouldReplaceExistingRecording() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.ALWAYS,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+
+        // Verify notification not sent because recording exists and no new recording is created
+        Mockito.verify(notification, Mockito.times(0)).send();
+    }
+
+    @Test
+    void shouldCloseAndRecreateIfRecordingExistsAndIsRunning() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.RUNNING);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.ALWAYS,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void shouldRestartRecordingWhenRecordingExistsAndIsStopped() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.STOPPED,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(notification).send();
+        Mockito.verifyNoMoreInteractions(recordingOptions);
     }
 
     @Test

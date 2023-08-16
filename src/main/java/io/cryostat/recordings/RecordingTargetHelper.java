@@ -114,8 +114,25 @@ public class RecordingTargetHelper {
                 connection -> connection.getService().getAvailableRecordings());
     }
 
+    public enum ReplacementPolicy {
+        ALWAYS,
+        STOPPED,
+        NEVER;
+
+        public static ReplacementPolicy fromString(String value) {
+            if (value == null) {
+                return NEVER;
+            }
+            try {
+                return valueOf(value.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return NEVER;
+            }
+        }
+    }
+
     public IRecordingDescriptor startRecording(
-            boolean restart,
+            ReplacementPolicy replace,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
@@ -124,6 +141,7 @@ public class RecordingTargetHelper {
             boolean archiveOnStop)
             throws Exception {
         String recordingName = (String) recordingOptions.get(RecordingOptionsBuilder.KEY_NAME);
+
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
@@ -132,13 +150,18 @@ public class RecordingTargetHelper {
                     Optional<IRecordingDescriptor> previous =
                             getDescriptorByName(connection, recordingName);
                     if (previous.isPresent()) {
-                        if (!restart) {
+                        if (shouldRestartRecording(replace, previous.get())) {
+                            if (isRecordingStopped(previous.get())) {
+                                connection.getService().close(previous.get());
+                            } else {
+                                // If recording exists & running, close it before starting new one
+                                connection.getService().close(previous.get());
+                            }
+                        } else {
                             throw new IllegalArgumentException(
                                     String.format(
                                             "Recording with name \"%s\" already exists",
                                             recordingName));
-                        } else {
-                            connection.getService().close(previous.get());
                         }
                     }
                     IRecordingDescriptor desc =
@@ -175,13 +198,31 @@ public class RecordingTargetHelper {
                     if (fixedDuration != null) {
                         Long delay =
                                 Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
-
                         scheduleRecordingTasks(
                                 recordingName, delay, connectionDescriptor, archiveOnStop);
                     }
-
                     return desc;
                 });
+    }
+
+    private boolean shouldRestartRecording(
+            ReplacementPolicy replace, IRecordingDescriptor descriptor) {
+        if (replace != null) {
+            switch (replace) {
+                case ALWAYS:
+                    return true;
+                case STOPPED:
+                    return descriptor.getState() == IRecordingDescriptor.RecordingState.STOPPED;
+                case NEVER:
+                    return false;
+            }
+        }
+        // If neither restart nor replace is specified, default to never
+        return false;
+    }
+
+    private boolean isRecordingStopped(IRecordingDescriptor recording) {
+        return recording.getState() == IRecordingDescriptor.RecordingState.STOPPED;
     }
 
     /**

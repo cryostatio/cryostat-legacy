@@ -42,6 +42,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -110,13 +111,15 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    boolean restart = false;
+                    ReplacementPolicy replace = ReplacementPolicy.NEVER;
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
-                    if (settings.containsKey("restart")) {
-                        restart = Boolean.TRUE.equals(settings.get("restart"));
+
+                    if (settings.containsKey("replace")) {
+                        String replaceValue = (String) settings.get("replace");
+                        replace = ReplacementPolicy.fromString(replaceValue);
                     }
                     if (settings.containsKey("duration")) {
                         builder =
@@ -157,7 +160,7 @@ class StartRecordingOnTargetMutator
                     }
                     IRecordingDescriptor desc =
                             recordingTargetHelper.startRecording(
-                                    restart,
+                                    replace,
                                     cd,
                                     builder.build(),
                                     (String) settings.get("template"),

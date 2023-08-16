@@ -47,6 +47,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -151,10 +152,11 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
                                                 .name(recordingName);
-                                boolean restart = false;
-                                if (attrs.contains("restart")) {
-                                    restart = Boolean.parseBoolean(attrs.get("restart"));
-                                }
+
+                                String replace = attrs.get("replace");
+                                ReplacementPolicy replacementPolicy =
+                                        ReplacementPolicy.fromString(replace);
+
                                 if (attrs.contains("duration")) {
                                     builder =
                                             builder.duration(
@@ -199,7 +201,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
                                         recordingTargetHelper.startRecording(
-                                                restart,
+                                                replacementPolicy,
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),

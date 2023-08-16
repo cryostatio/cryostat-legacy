@@ -48,6 +48,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
@@ -383,7 +384,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     RecordingTargetHelper.parseEventSpecifierToTemplate(
                                             rule.getEventSpecifier());
                             return recordingTargetHelper.startRecording(
-                                    true,
+                                    ReplacementPolicy.ALWAYS,
                                     connectionDescriptor,
                                     builder.build(),
                                     template.getLeft(),

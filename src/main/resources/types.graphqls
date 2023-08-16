@@ -7,6 +7,12 @@ scalar Long
 scalar Int
 scalar Float
 
+enum ReplacementPolicy {
+    ALWAYS
+    STOPPED
+    NEVER
+}
+
 input EnvironmentNodeFilterInput {
     id: Int
     name: String
@@ -166,7 +172,7 @@ type RecordingMetadata {
 }
 
 input RecordingSettings {
-    restart: Boolean
+    replace: ReplacementPolicy
     name: String!
     template: String!
     templateType: String!
