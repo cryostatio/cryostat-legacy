@@ -252,10 +252,15 @@ runJfrDatasource() {
         tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
         DATASOURCE_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
+    local RJMX_PORT=11223
     podman run \
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
+        --cpus 0.1 \
+        --memory 512m \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
@@ -266,6 +271,8 @@ runGrafana() {
         tag="$(getPomProperty cryostat.itest.grafana.version)"
         GRAFANA_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
     local host; local port;
     host="$(getPomProperty cryostat.itest.webHost)"
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
@@ -273,6 +280,8 @@ runGrafana() {
         --name grafana \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
+        --cpus 0.1 \
+        --memory 256M \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -286,6 +295,8 @@ runReportGenerator() {
         tag="$(getPomProperty cryostat.itest.reports.version)"
         REPORTS_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
     local RJMX_PORT=10000
     local port;
     port="$(getPomProperty cryostat.itest.reports.port)"
@@ -296,10 +307,10 @@ runReportGenerator() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
-        --cpus 1 \
-        --memory 512M \
+        --cpus 0.128 \
+        --memory 256M \
         --restart on-failure \
-        --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
