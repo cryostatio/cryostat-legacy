@@ -261,6 +261,11 @@ runJfrDatasource() {
         --pod cryostat-pod \
         --cpus 0.1 \
         --memory 512m \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="${RJMX_PORT}" \
+        --restart on-failure \
+        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
