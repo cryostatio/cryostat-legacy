@@ -19,35 +19,17 @@ jobs:
       run: exit 1
     - name: Show warning if permission is denied
       if: |
-        !(github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'OWNER')
-        && !contains(github.event.issue.labels.*.name, 'safe-to-test')
+        !(github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+        && (!contains(github.event.issue.labels.*.name, 'safe-to-test') || github.event.issue.user.name != github.event.comment.user.name)
       uses: thollander/actions-comment-pull-request@v2
       with:
         message: |-
           You do not have permission to run the /build_test command. Please ask Cryostat @reviewers 
           to resolve the issue.
-    - name: Fail if command permission is not allowed
+    - name: Fail if command permission is denied
       if: |
-        !(github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'OWNER')
-        && !contains(github.event.issue.labels.*.name, 'safe-to-test')
-      run: exit 1
-    - name: Show warning if safe-to-test applied and permission denied
-      if: |
-        !(github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'OWNER' ||
-        github.event.issue.user.name == github.event.comment.user.name)
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        message: |-
-          You do not have permission to run the /build_test command. Please ask Cryostat @reviewers 
-          to resolve the issue.
-    - name: Fail if safe-to-test applied and command permission is not allowed
-      if: |
-        !(github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'OWNER' ||
-        github.event.issue.user.name == github.event.comment.user.name)
+        !(github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+        && (!contains(github.event.issue.labels.*.name, 'safe-to-test') || github.event.issue.user.name != github.event.comment.user.name)
       run: exit 1
     - name: React to comment
       uses: actions/github-script@v4
@@ -113,7 +95,7 @@ jobs:
       arm64_image: ${{ steps.arm64_image.outputs.image }}
     needs: [build-and-test, checkout-branch]
     env:
-      head_sha: ${{ needs.checkout-branch.outputs.PR_head_sha}}
+      head_sha: ${{ needs.checkout-branch.outputs.PR_head_sha }}
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -153,8 +135,8 @@ jobs:
       with: 
         csvinput: |
           ARCH, IMAGE
-          AMD64, ${{ env.amd64_image }}
-          ARM64, ${{ env.arm64_image }}
+          amd64, ${{ env.amd64_image }}
+          arm64, ${{ env.arm64_image }}
     - uses: thollander/actions-comment-pull-request@v2
       with:
         message: |-
