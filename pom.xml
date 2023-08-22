@@ -355,7 +355,7 @@
           <path>
             <groupId>com.google.dagger</groupId>
             <artifactId>dagger-compiler</artifactId>
-            <version>${com.google.dagger.compiler.version}</version>
+            <version>${com.google.dagger.version}</version>
           </path>
         </annotationProcessorPaths>
       </configuration>
