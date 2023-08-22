@@ -254,7 +254,7 @@ runJfrDatasource() {
     fi
     # limits set to match operator defaults:
     # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
-    local RJMX_PORT=11223
+    local RJMX_PORT=10111
     podman run \
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
