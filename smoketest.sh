@@ -254,13 +254,18 @@ runJfrDatasource() {
     fi
     # limits set to match operator defaults:
     # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
-    local RJMX_PORT=11223
+    local RJMX_PORT=10111
     podman run \
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --cpus 0.1 \
         --memory 512m \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="${RJMX_PORT}" \
+        --restart on-failure \
+        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
