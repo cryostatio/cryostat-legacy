@@ -130,6 +130,30 @@ public class AgentClient {
                 });
     }
 
+    Future<IRecordingDescriptor> startSnapshot(StartRecordingRequest req) {
+
+        Future<HttpResponse<String>> f =
+                invoke(
+                        HttpMethod.POST,
+                        "/recordings/",
+                        Buffer.buffer(gson.toJson(req)),
+                        BodyCodec.string());
+
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        String body = resp.body();
+                        return gson.fromJson(body, SerializableRecordingDescriptor.class)
+                                .toJmcForm();
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
     Future<Buffer> openStream(long id) {
         Future<HttpResponse<Buffer>> f =
                 invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());
