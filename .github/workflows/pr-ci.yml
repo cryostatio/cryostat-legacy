@@ -145,8 +145,8 @@ jobs:
           To run smoketest:
           ```
           # amd64          
-          CRYOSTAT_IMAGE=${{ amd64_image }} sh smoketest.sh
+          CRYOSTAT_IMAGE=${{ env.amd64_image }} sh smoketest.sh
 
           # or arm64
-          CRYOSTAT_IMAGE=${{ arm64_image }} sh smoketest.sh
+          CRYOSTAT_IMAGE=${{ env.arm64_image }} sh smoketest.sh
           ```
