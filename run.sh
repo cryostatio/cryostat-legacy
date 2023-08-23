@@ -116,6 +116,9 @@ fi
 # run as root (uid 0) within the container - with rootless podman this means
 # that the process will actually run with your own uid on the host machine,
 # rather than the uid being remapped to something else
+#
+# limits set to match operator defaults:
+# https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
 podman run \
     --pod cryostat-pod \
     --name cryostat \
@@ -125,7 +128,8 @@ podman run \
     --label io.cryostat.jmxHost="localhost" \
     --label io.cryostat.jmxPort="0" \
     --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:0/jmxrmi" \
-    --memory 768M \
+    --cpus 0.1 \
+    --memory 384M \
     --mount type=bind,source="$(dirname "$0")/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/certs",destination=/certs,relabel=shared \
     --mount type=bind,source="$(dirname "$0")/clientlib",destination=/clientlib,relabel=shared \
