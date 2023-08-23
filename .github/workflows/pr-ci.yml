@@ -24,7 +24,7 @@ jobs:
       uses: thollander/actions-comment-pull-request@v2
       with:
         message: |-
-          You do not have permission to run the /build_test command. Please ask Cryostat @reviewers 
+          You do not have permission to run the /build_test command. Please ask @cryostatio/reviewers
           to resolve the issue.
     - name: Fail if command permission is denied
       if: |
