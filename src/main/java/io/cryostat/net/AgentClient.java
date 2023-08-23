@@ -130,13 +130,14 @@ public class AgentClient {
                 });
     }
 
-    Future<IRecordingDescriptor> startSnapshot(StartRecordingRequest req) {
+    Future<IRecordingDescriptor> startSnapshot() {
+        StartRecordingRequest snapshotReq = new StartRecordingRequest("snapshot", "", "", 0, 0, 0);
 
         Future<HttpResponse<String>> f =
                 invoke(
                         HttpMethod.POST,
                         "/recordings/",
-                        Buffer.buffer(gson.toJson(req)),
+                        Buffer.buffer(gson.toJson(snapshotReq)),
                         BodyCodec.string());
 
         return f.map(
