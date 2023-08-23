@@ -174,7 +174,11 @@ class AgentJFRService implements CryostatFlightRecorderService {
 
     @Override
     public IRecordingDescriptor getSnapshotRecording() throws FlightRecorderException {
-        throw new UnimplementedException();
+        try {
+            return client.startSnapshot().toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new FlightRecorderException("Failed to creat snapshot recording");
+        }
     }
 
     @Override
