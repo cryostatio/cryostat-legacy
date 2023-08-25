@@ -19,6 +19,10 @@ on:
         description: the Cryostat application version that will be built
         value: ${{ jobs.get-pom-properties.outputs.image-version }}
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   get-pom-properties:
     runs-on: ubuntu-latest
@@ -32,7 +36,8 @@ jobs:
       # Query POM for image version and save as output parameter
       run: |
         IMAGE_VERSION="$(mvn validate help:evaluate -Dexpression=cryostat.imageVersionLower -q -DforceStdout)"
-        echo "::set-output name=image-version::$IMAGE_VERSION"
+        echo "image-version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
+        echo "::set-output name=image-version::"
     outputs:
       image-version: ${{ steps.query-pom.outputs.image-version }}
 
