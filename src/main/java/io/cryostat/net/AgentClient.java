@@ -155,6 +155,32 @@ public class AgentClient {
                 });
     }
 
+    Future<Void> updateRecordingOptions(long id, IConstrainedMap<String> newSettings) {
+
+        JsonObject jsonSettings = new JsonObject();
+        for (String key : newSettings.keySet()) {
+            jsonSettings.put(key, newSettings.get(key));
+        }
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.PATCH,
+                        String.format("/recordings/%d", id),
+                        jsonSettings.toBuffer(),
+                        BodyCodec.none());
+
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return null;
+                    } else if (statusCode == 403) {
+                        throw new UnsupportedOperationException();
+                    } else {
+                        throw new RuntimeException("Unknown failure");
+                    }
+                });
+    }
+
     Future<Buffer> openStream(long id) {
         Future<HttpResponse<Buffer>> f =
                 invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());

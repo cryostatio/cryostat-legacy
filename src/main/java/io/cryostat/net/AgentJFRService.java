@@ -177,7 +177,7 @@ class AgentJFRService implements CryostatFlightRecorderService {
         try {
             return client.startSnapshot().toCompletionStage().toCompletableFuture().get();
         } catch (ExecutionException | InterruptedException e) {
-            throw new FlightRecorderException("Failed to creat snapshot recording");
+            throw new FlightRecorderException("Failed to create snapshot recording", e);
         }
     }
 
@@ -249,9 +249,18 @@ class AgentJFRService implements CryostatFlightRecorderService {
     }
 
     @Override
-    public void updateRecordingOptions(IRecordingDescriptor arg0, IConstrainedMap<String> arg1)
+    public void updateRecordingOptions(
+            IRecordingDescriptor recordingDescriptor, IConstrainedMap<String> newSettings)
             throws FlightRecorderException {
-        throw new UnimplementedException();
+        try {
+            long recordingId = recordingDescriptor.getId();
+            client.updateRecordingOptions(recordingId, newSettings)
+                    .toCompletionStage()
+                    .toCompletableFuture()
+                    .get();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new FlightRecorderException("Failed to update recording options", e);
+        }
     }
 
     @Override
