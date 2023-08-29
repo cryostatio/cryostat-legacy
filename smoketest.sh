@@ -265,7 +265,7 @@ runJfrDatasource() {
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
@@ -315,7 +315,7 @@ runReportGenerator() {
         --cpus 0.2 \
         --memory 384M \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
