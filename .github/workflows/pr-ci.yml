@@ -53,7 +53,8 @@ jobs:
     outputs: 
       PR_head_ref: ${{ fromJSON(steps.comment-branch.outputs.result).ref }}
       PR_head_sha: ${{ fromJSON(steps.comment-branch.outputs.result).sha }}
-      PR_repo: ${{ fromJSON(steps.comment-branch.outputs.result).repo.full_name }}
+      PR_num: ${{ fromJSON(steps.comment-branch.outputs.result).num }}
+      PR_repo: ${{ fromJSON(steps.comment-branch.outputs.result).repo }}
     steps:
     - uses: actions/github-script@v4
       id: comment-branch
@@ -64,7 +65,7 @@ jobs:
             repo: context.repo.repo,
             pull_number: context.issue.number
           })
-          return result.data.head
+          return { repo: result.data.head.repo.full_name, num: result.data.number, sha: result.data.head.sha, ref: result.data.head.ref }
 
   code-analysis:
     needs: [checkout-branch]
@@ -96,6 +97,7 @@ jobs:
     needs: [build-and-test, checkout-branch]
     env:
       head_sha: ${{ needs.checkout-branch.outputs.PR_head_sha }}
+      PR_num: ${{ needs.checkout-branch.outputs.PR_num }}
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -103,13 +105,13 @@ jobs:
     - name: Load cryostat image
       run: podman load -i cryostat-${{ matrix.arch }}.tar
     - name: Tag cryostat image
-      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ github.event.number }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
+      run: podman tag cryostat ghcr.io/${{ github.repository_owner }}/cryostat:pr-${{ env.PR_num }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
     - name: Push PR test image to ghcr.io
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
-        tags: pr-${{ github.event.number }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
+        tags: pr-${{ env.PR_num }}-${{ env.head_sha }}-linux-${{ matrix.arch }}
         registry: ghcr.io/${{ github.repository_owner }}
         username: ${{ github.event.comment.user.login }}
         password: ${{ secrets.GITHUB_TOKEN }}
