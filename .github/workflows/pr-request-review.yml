@@ -1,0 +1,49 @@
+name: Request Review
+
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if command is '/request_review'
+        id: check-command
+        run: |
+          if [[ $(echo "${{ github.event.comment.body }}" | tr '[:upper:]' '[:lower:]') == "/request_review"* ]]; then
+            echo "::set-output name=command::true"
+          else
+            echo "::set-output name=command::false"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add label and request review
+        if: steps.check-command.outputs.command == 'true'
+        run: |
+          reviewers=$(echo "${{ github.event.comment.body }}" | grep -oE "@[a-zA-Z0-9_\-]+" | grep -v "@cryostatio/reviewer(s)" | paste -sd "," -)
+
+          echo "Adding label 'review-requested' to the PR"
+          gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
+
+          if [ -n "$reviewers" ]; then
+            echo "Requesting review from reviewers: $reviewers"
+            gh pr request-review ${{ github.event.issue.number }} --reviewer $reviewers
+          else
+            echo "Requesting review from @cryostatio/reviewer(s) team"
+            gh pr request-review ${{ github.event.issue.number }} --team cryostatio/reviewer(s)
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove label on changes requested
+        run: |
+          reviews_status=$(gh pr list --json state,reviews -q ".[] | select(.number == ${{ github.event.issue.number }}) | .reviews[].state")
+          if [[ "$reviews_status" == *"CHANGES_REQUESTED"* ]]; then
+            echo "Changes requested, removing 'review-requested' label"
+            gh pr edit ${{ github.event.issue.number }} --remove-label "review-requested"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
