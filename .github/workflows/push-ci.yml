@@ -72,9 +72,9 @@ jobs:
           podman tag \
           ${{ env.CRYOSTAT_IMG }}:$IMAGE_VERSION \
           ${{ env.CRYOSTAT_IMG }}:latest
-          echo "::set-output name=tags::$IMAGE_VERSION latest"
+          echo "tags=$IMAGE_VERSION latest" >> "$GITHUB_OUTPUT""
         else
-          echo "::set-output name=tags::$IMAGE_VERSION"
+          echo "tags=$IMAGE_VERSION" >> "$GITHUB_OUTPUT""
         fi
       if: github.repository_owner == 'cryostatio'
     - name: Push to quay.io

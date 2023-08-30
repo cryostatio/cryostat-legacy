@@ -37,7 +37,6 @@ jobs:
       run: |
         IMAGE_VERSION="$(mvn validate help:evaluate -Dexpression=cryostat.imageVersionLower -q -DforceStdout)"
         echo "image-version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
-        echo "::set-output name=image-version::"
     outputs:
       image-version: ${{ steps.query-pom.outputs.image-version }}
 
