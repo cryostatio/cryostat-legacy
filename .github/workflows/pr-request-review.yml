@@ -10,36 +10,47 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    #if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
+
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
 
     steps:
+      - name: Set up GitHub CLI
+        uses: actions/setup-gh@v2
+        with:
+          gh-version: 2 # You can adjust this version if needed
+
       - name: Checkout code
         uses: actions/checkout@v2
+        
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
         
       - name: Add label and request review
         run: |
           reviewers="@cryostatio/reviewers"
+          pr_number=${{ github.event.issue.number }}
 
           echo "Adding label 'review-requested' to the PR"
-          gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
+          gh pr edit $pr_number --add-label "review-requested"
 
           if [ -n "$reviewers" ]; then
-            gh pr request-review ${{ github.event.issue.number }} --reviewer $reviewers
+            gh pr request-review $pr_number --reviewer $reviewers
           else
             echo "Requesting review from @cryostatio/reviewer(s) team"
-            gh pr request-review ${{ github.event.issue.number }} --team cryostatio/reviewer(s)
+            gh pr request-review $pr_number --team cryostatio/reviewer(s)
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove label on review
         run: |
-          reviews_status=$(gh pr list --json state,reviews -q ".[] | select(.number == ${{ github.event.issue.number }}) | .reviews[].state")
-          if [[ -n "$reviews_status"]]; then
+          pr_number=${{ github.event.issue.number }}
+          reviews_status=$(gh pr list --json state,reviews -q ".[] | select(.number == $pr_number) | .reviews[].state")
+          if [[ -n "$reviews_status" ]]; then
             echo "Changes requested, removing 'review-requested' label"
-            gh pr edit ${{ github.event.issue.number }} --remove-label "review-requested"
+            gh pr edit $pr_number --remove-label "review-requested"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#
