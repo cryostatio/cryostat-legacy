@@ -18,4 +18,4 @@ jobs:
           ignore-missing-package: true
           tag-regex: pr-${{ github.event.number }}-.*
           tagged-keep-latest: 0
-        if: github.repository_owner == 'cryostatio'
+        #if: github.repository_owner == 'cryostatio'
