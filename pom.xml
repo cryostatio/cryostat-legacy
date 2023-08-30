@@ -89,7 +89,7 @@
   <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.15</org.apache.commons.codec.version>
   <org.apache.commons.validator.version>1.7</org.apache.commons.validator.version>
-  <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
+  <org.apache.commons.io.version>2.13.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.14</org.apache.httpcomponents.version>
   <io.fabric8.client.version>6.7.2</io.fabric8.client.version>
   <io.vertx.web.version>4.4.4</io.vertx.web.version>
