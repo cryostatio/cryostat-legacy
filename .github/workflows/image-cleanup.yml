@@ -9,6 +9,8 @@ jobs:
   delete-images:
     name: Delete PR-scoped test images
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: r26d/ghcr-delete-image-action@v1.2.2
         with:
