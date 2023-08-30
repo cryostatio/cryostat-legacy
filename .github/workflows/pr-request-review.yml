@@ -15,6 +15,10 @@ jobs:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
 
     steps:
+      - name: Debug - Print Working Directory
+        run: |
+          pwd
+          ls -al
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -45,6 +49,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug - Check Directory After Action
+        run: |
+          pwd
+          ls -al
+
       - name: Remove label on review
         run: |
           pr_number=${{ steps.pr_number.outputs.pr_number }}
@@ -55,4 +64,4 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+#
