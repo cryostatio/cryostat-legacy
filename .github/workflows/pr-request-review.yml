@@ -8,28 +8,18 @@ on:
 jobs:
   request-review:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
     steps:
-      - name: Check if command is '/request_review'
-        id: check-command
-        run: |
-          if [[ $(echo "${{ github.event.comment.body }}" | tr '[:upper:]' '[:lower:]') == "/request_review"* ]]; then
-            echo "::set-output name=command::true"
-          else
-            echo "::set-output name=command::false"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Add label and request review
-        if: steps.check-command.outputs.command == 'true'
         run: |
-          reviewers=$(echo "${{ github.event.comment.body }}" | grep -oE "@[a-zA-Z0-9_\-]+" | grep -v "@cryostatio/reviewer(s)" | paste -sd "," -)
+          reviewers="@cryostatio/reviewers"
 
           echo "Adding label 'review-requested' to the PR"
           gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
 
           if [ -n "$reviewers" ]; then
-            echo "Requesting review from reviewers: $reviewers"
             gh pr request-review ${{ github.event.issue.number }} --reviewer $reviewers
           else
             echo "Requesting review from @cryostatio/reviewer(s) team"
@@ -38,10 +28,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Remove label on changes requested
+      - name: Remove label on review
         run: |
           reviews_status=$(gh pr list --json state,reviews -q ".[] | select(.number == ${{ github.event.issue.number }}) | .reviews[].state")
-          if [[ "$reviews_status" == *"CHANGES_REQUESTED"* ]]; then
+          if [[ -n "$reviews_status"]]; then
             echo "Changes requested, removing 'review-requested' label"
             gh pr edit ${{ github.event.issue.number }} --remove-label "review-requested"
           fi
