@@ -11,6 +11,8 @@ on:
 jobs:
   check-pr-label-and-comment:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - uses: yashhy/pr-label-check-and-comment-action@v1.0.1
         with:
