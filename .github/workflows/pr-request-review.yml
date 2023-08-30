@@ -25,6 +25,12 @@ jobs:
       - name: Determine PR Number
         id: pr_number
         run: echo "::set-output name=pr_number::$(jq -r '.issue.number' <<< "${GITHUB_EVENT_PATH}")"
+      - name: Checkout Pull Request Branch
+        run: |
+          pr_number=${{ steps.pr_number.outputs.pr_number }}
+          pr_branch=$(gh pr view $pr_number --json baseRefName -q '.base_ref_name')
+          git fetch origin $pr_branch:$pr_branch
+          git checkout $pr_branch
       
       - name: Extract Reviewers from Comment
         id: reviewers
