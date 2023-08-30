@@ -71,18 +71,17 @@
   <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.12.1</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.4.5</org.apache.maven.plugins.info.reports.version>
-  <org.apache.maven.plugins.clean.version>3.2.0</org.apache.maven.plugins.clean.version>
+  <org.apache.maven.plugins.clean.version>3.3.1</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.3.1</org.apache.maven.plugins.resources.version>
   <org.apache.maven.plugins.assembly.version>3.5.0</org.apache.maven.plugins.assembly.version>
-  <com.github.eirslett.frontend.plugin.version>1.12.1</com.github.eirslett.frontend.plugin.version>
+  <com.github.eirslett.frontend.plugin.version>1.13.4</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.1.0</org.codehaus.mojo.exec.plugin.version>
-  <org.codehaus.mojo.build.helper.plugin.version>3.3.0</org.codehaus.mojo.build.helper.plugin.version>
+  <org.codehaus.mojo.build.helper.plugin.version>3.4.0</org.codehaus.mojo.build.helper.plugin.version>
   <com.mycila.license.maven.plugin.version>4.2</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>8.3.1</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.3.2</com.google.cloud.tools.jib.maven.plugin.version>
 
-  <com.google.dagger.version>2.45</com.google.dagger.version>
-  <com.google.dagger.compiler.version>2.45</com.google.dagger.compiler.version>
+  <com.google.dagger.version>2.47</com.google.dagger.version>
 
   <io.cryostat.core.version>2.21.1</io.cryostat.core.version>
 
@@ -93,32 +92,35 @@
   <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.14</org.apache.httpcomponents.version>
   <io.fabric8.client.version>6.7.2</io.fabric8.client.version>
-  <io.vertx.web.version>4.3.7</io.vertx.web.version>
+  <io.vertx.web.version>4.4.4</io.vertx.web.version>
+  <!-- https://repo1.maven.org/maven2/io/vertx/vertx-dependencies/${io.vertx.web.version}/vertx-dependencies-${io.vertx.web.version}.pom -->
+  <!-- https://groups.google.com/g/vertx/c/uzzcgw-YuOg -->
+  <io.netty.netty-transport-native-epoll.version>4.1.94.Final</io.netty.netty-transport-native-epoll.version><!-- FIXME this should be tied to the vertx version -->
   <!--
     FIXME this needs to be synced with the vertx version - is there a BOM to use or something?
     https://github.com/vert-x3/vertx-web/blob/${io.vertx.web.version}/vertx-web-graphql/pom.xml#L35
   -->
-  <com.graphql.java.extended.scalars.version>19.0</com.graphql.java.extended.scalars.version>
+  <com.graphql.java.extended.scalars.version>20.2</com.graphql.java.extended.scalars.version>
   <com.nimbusds.jose.jwt.version>9.31</com.nimbusds.jose.jwt.version>
-  <org.bouncycastle.version>1.72</org.bouncycastle.version>
+  <org.bouncycastle.version>1.74</org.bouncycastle.version>
   <org.jasypt.version>1.9.3</org.jasypt.version>
   <org.jasypt-hibernate5.version>1.9.3</org.jasypt-hibernate5.version>
   <org.slf4j.version>1.7.36</org.slf4j.version>
   <com.google.code.gson.version>2.10.1</com.google.code.gson.version>
-  <com.github.ben-manes.caffeine.version>3.1.1</com.github.ben-manes.caffeine.version>
+  <com.github.ben-manes.caffeine.version>3.1.6</com.github.ben-manes.caffeine.version>
   <org.hibernate.hibernate.version>5.6.14.Final</org.hibernate.hibernate.version>
   <com.vladmihalcea.hibernate.types.version>2.21.1</com.vladmihalcea.hibernate.types.version>
   <com.h2database.h2.version>2.1.214</com.h2database.h2.version>
-  <org.postgresql.postgresql.version>42.5.1</org.postgresql.postgresql.version>
+  <org.postgresql.postgresql.version>42.6.0</org.postgresql.postgresql.version>
 
   <com.github.spotbugs.version>4.7.3</com.github.spotbugs.version>
-  <com.github.spotbugs.plugin.version>4.7.3.4</com.github.spotbugs.plugin.version>
-  <org.junit.jupiter.version>5.9.3</org.junit.jupiter.version>
+  <com.github.spotbugs.plugin.version>4.7.3.5</com.github.spotbugs.plugin.version>
+  <org.junit.jupiter.version>5.10.0</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
   <org.mockito.version>5.2.0</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.10</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.37.0</com.diffplug.spotless.maven.plugin.version>
-  <org.jsoup.version>1.15.4</org.jsoup.version>
+  <org.jsoup.version>1.16.1</org.jsoup.version>
   <shellcheck-maven-plugin.version>0.5.0</shellcheck-maven-plugin.version>
 </properties>
 
@@ -212,14 +214,6 @@
     <groupId>org.jasypt</groupId>
     <artifactId>jasypt-hibernate5</artifactId>
     <version>${org.jasypt-hibernate5.version}</version>
-  </dependency>
-  <dependency>
-    <groupId>io.netty</groupId>
-    <artifactId>netty-transport-native-epoll</artifactId>
-    <classifier>linux-x86_64</classifier>
-    <version>4.1.86.Final</version><!-- FIXME this should be tied to the vertx version -->
-    <!-- https://repo1.maven.org/maven2/io/vertx/vertx-dependencies/${io.vertx.web.version}/vertx-dependencies-${io.vertx.web.version}.pom -->
-    <!-- https://groups.google.com/g/vertx/c/uzzcgw-YuOg -->
   </dependency>
   <dependency>
     <groupId>org.slf4j</groupId>
@@ -359,7 +353,7 @@
           <path>
             <groupId>com.google.dagger</groupId>
             <artifactId>dagger-compiler</artifactId>
-            <version>${com.google.dagger.compiler.version}</version>
+            <version>${com.google.dagger.version}</version>
           </path>
         </annotationProcessorPaths>
       </configuration>
@@ -988,6 +982,85 @@
 </reporting>
 
 <profiles>
+  <profile>
+    <id>default-arch</id>
+    <activation>
+      <property>
+        <name>!build.arch</name>
+      </property>
+    </activation>
+    <properties>
+      <io.netty.netty-transport-native-epoll.classifier>linux-x86_64</io.netty.netty-transport-native-epoll.classifier>
+      <io.netty.netty-transport-native-epoll.scope>compile</io.netty.netty-transport-native-epoll.scope>
+    </properties>
+  </profile>
+  <profile>
+    <id>amd64</id>
+    <activation>
+      <property>
+        <name>build.arch</name>
+        <value>amd64</value>
+      </property>
+    </activation>
+    <properties>
+      <io.netty.netty-transport-native-epoll.classifier>linux-x86_64</io.netty.netty-transport-native-epoll.classifier>
+      <io.netty.netty-transport-native-epoll.scope>compile</io.netty.netty-transport-native-epoll.scope>
+    </properties>
+  </profile>
+  <profile>
+    <id>arm64</id>
+    <activation>
+      <property>
+        <name>build.arch</name>
+        <value>arm64</value>
+      </property>
+    </activation>
+    <properties>
+      <io.netty.netty-transport-native-epoll.classifier>linux-aarch_64</io.netty.netty-transport-native-epoll.classifier>
+      <io.netty.netty-transport-native-epoll.scope>compile</io.netty.netty-transport-native-epoll.scope>
+    </properties>
+  </profile>
+  <profile>
+    <id>with-epoll</id>
+    <activation>
+      <property>
+        <name>!build.exclude-epoll</name>
+      </property>
+    </activation>
+    <properties>
+      <io.netty.netty-transport-native-epoll.scope>compile</io.netty.netty-transport-native-epoll.scope>
+    </properties>
+    <dependencies>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-native-epoll</artifactId>
+        <classifier>${io.netty.netty-transport-native-epoll.classifier}</classifier>
+        <version>${io.netty.netty-transport-native-epoll.version}</version>
+        <scope>${io.netty.netty-transport-native-epoll.scope}</scope>
+      </dependency>
+    </dependencies>
+  </profile>
+  <profile>
+    <id>no-epoll</id>
+    <activation>
+      <property>
+        <name>build.exclude-epoll</name>
+      </property>
+    </activation>
+    <properties>
+      <io.netty.netty-transport-native-epoll.classifier>linux-x86_64</io.netty.netty-transport-native-epoll.classifier>
+      <io.netty.netty-transport-native-epoll.scope>provided</io.netty.netty-transport-native-epoll.scope>
+    </properties>
+    <dependencies>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-native-epoll</artifactId>
+        <classifier>${io.netty.netty-transport-native-epoll.classifier}</classifier>
+        <version>${io.netty.netty-transport-native-epoll.version}</version>
+        <scope>${io.netty.netty-transport-native-epoll.scope}</scope>
+      </dependency>
+    </dependencies>
+  </profile>
   <profile>
     <id>headless</id>
     <activation>

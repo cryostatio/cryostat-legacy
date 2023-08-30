@@ -1,52 +1,29 @@
 /*
- * Copyright The Cryostat Authors
+ * Copyright The Cryostat Authors.
  *
- * The Universal Permissive License (UPL), Version 1.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or data
- * (collectively the "Software"), free of charge and under any and all copyright
- * rights in the Software, and any and all patent rights owned or freely
- * licensable by each licensor hereunder covering either (i) the unmodified
- * Software as contributed to or provided by such licensor, or (ii) the Larger
- * Works (as defined below), to deal in both
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * (a) the Software, and
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software (each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- * The above copyright notice and either this complete permission notice or at
- * a minimum a reference to the UPL must be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.lang.reflect.Type;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 import javax.persistence.RollbackException;
+import javax.script.ScriptException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -60,13 +37,13 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.MatchExpression;
+import io.cryostat.rules.MatchExpressionEvaluator;
 import io.cryostat.rules.MatchExpressionManager;
 import io.cryostat.rules.MatchExpressionManager.MatchedMatchExpression;
 import io.cryostat.rules.MatchExpressionValidationException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
-import com.google.gson.reflect.TypeToken;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -78,6 +55,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
     static final String PATH = "matchExpressions";
 
     private final MatchExpressionManager expressionManager;
+    private final MatchExpressionEvaluator expressionEvaluator;
     private final NotificationFactory notificationFactory;
 
     @Inject
@@ -85,10 +63,12 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
             AuthManager auth,
             CredentialsManager credentialsManager,
             MatchExpressionManager expressionManager,
+            MatchExpressionEvaluator expressionEvaluator,
             NotificationFactory notificationFactory,
             Gson gson) {
         super(auth, credentialsManager, gson);
         this.expressionManager = expressionManager;
+        this.expressionEvaluator = expressionEvaluator;
         this.notificationFactory = notificationFactory;
     }
 
@@ -124,7 +104,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
 
     @Override
     public List<HttpMimeType> consumes() {
-        return List.of(HttpMimeType.MULTIPART_FORM, HttpMimeType.URLENCODED_FORM);
+        return List.of(HttpMimeType.JSON);
     }
 
     @Override
@@ -140,18 +120,18 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
     @Override
     public IntermediateResponse<MatchedMatchExpression> handle(RequestParameters params)
             throws ApiException {
-        String matchExpression = params.getFormAttributes().get("matchExpression");
-        String targets = params.getFormAttributes().get("targets");
-        if (StringUtils.isBlank(matchExpression)) {
-            throw new ApiException(400, "'matchExpression' is required.");
-        }
         try {
-            if (StringUtils.isNotBlank(targets)) {
-                Set<ServiceRef> matched;
-                List<ServiceRef> parsedTargets = parseTargets(targets);
-                matched =
+            RequestData requestData = gson.fromJson(params.getBody(), RequestData.class);
+            String matchExpression = requestData.getMatchExpression();
+            List<ServiceRef> targets = requestData.getTargets();
+            if (StringUtils.isBlank(matchExpression)) {
+                throw new ApiException(400, "'matchExpression' is required.");
+            }
+            expressionEvaluator.validate(matchExpression);
+            if (targets != null) {
+                Set<ServiceRef> matched =
                         expressionManager.resolveMatchingTargets(
-                                matchExpression, (t) -> parsedTargets.contains(t));
+                                matchExpression, (t) -> targets.contains(t));
 
                 return new IntermediateResponse<MatchedMatchExpression>()
                         .statusCode(200)
@@ -176,7 +156,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
                         .body(new MatchedMatchExpression(expr));
             }
         } catch (JsonParseException e) {
-            throw new ApiException(400, "JSON formatting error", e);
+            throw new ApiException(400, "Unable to parse JSON", e);
         } catch (RollbackException e) {
             if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
                 throw new ApiException(400, "Duplicate matchExpression", e);
@@ -184,13 +164,21 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
             throw new ApiException(500, e);
         } catch (MatchExpressionValidationException e) {
             throw new ApiException(400, e);
+        } catch (ScriptException e) {
+            throw new ApiException(400, "Invalid matchExpression", e);
         }
     }
 
-    public List<ServiceRef> parseTargets(String targets) {
-        Objects.requireNonNull(targets, "Targets must not be null");
-        Type mapType = new TypeToken<List<ServiceRef>>() {}.getType();
-        List<ServiceRef> parsedTargets = gson.fromJson(targets, mapType);
-        return parsedTargets;
+    static class RequestData {
+        private String matchExpression;
+        private List<ServiceRef> targets;
+
+        String getMatchExpression() {
+            return matchExpression;
+        }
+
+        List<ServiceRef> getTargets() {
+            return targets;
+        }
     }
 }

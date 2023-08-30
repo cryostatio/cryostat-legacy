@@ -1,43 +1,21 @@
 /*
- * Copyright The Cryostat Authors
+ * Copyright The Cryostat Authors.
  *
- * The Universal Permissive License (UPL), Version 1.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or data
- * (collectively the "Software"), free of charge and under any and all copyright
- * rights in the Software, and any and all patent rights owned or freely
- * licensable by each licensor hereunder covering either (i) the unmodified
- * Software as contributed to or provided by such licensor, or (ii) the Larger
- * Works (as defined below), to deal in both
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * (a) the Software, and
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software (each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- * The above copyright notice and either this complete permission notice or at
- * a minimum a reference to the UPL must be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.cryostat.recordings;
 
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -75,6 +53,7 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import io.vertx.core.Vertx;
@@ -752,7 +731,7 @@ public class RecordingTargetHelperTest {
                         });
 
         recordingTargetHelper.startRecording(
-                false,
+                ReplacementPolicy.NEVER,
                 connectionDescriptor,
                 recordingOptions,
                 templateName,
@@ -804,6 +783,187 @@ public class RecordingTargetHelperTest {
                 Matchers.equalTo(
                         new Metadata(
                                 Map.of("template.name", "Profiling", "template.type", "TARGET"))));
+    }
+
+    void shouldReplaceExistingRecording() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.ALWAYS,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+
+        // Verify notification not sent because recording exists and no new recording is created
+        Mockito.verify(notification, Mockito.times(0)).send();
+    }
+
+    @Test
+    void shouldCloseAndRecreateIfRecordingExistsAndIsRunning() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.RUNNING);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.ALWAYS,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void shouldRestartRecordingWhenRecordingExistsAndIsStopped() throws Exception {
+        String recordingName = "existingRecording";
+        String targetId = "fooTarget";
+        String duration = "5000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor existingRecording = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Metadata metadata =
+                new Metadata(Map.of("template.name", "Profiling", "template.type", "TARGET"));
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        invocation -> {
+                            TargetConnectionManager.ConnectedTask task = invocation.getArgument(1);
+                            return task.execute(connection);
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+
+        Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        Mockito.when(
+                        recordingMetadataManager.setRecordingMetadata(
+                                Mockito.any(), Mockito.anyString(), Mockito.any(Metadata.class)))
+                .thenAnswer(
+                        invocation -> {
+                            return CompletableFuture.completedFuture(invocation.getArgument(2));
+                        });
+
+        Mockito.doNothing().when(notification).send();
+
+        recordingTargetHelper.startRecording(
+                ReplacementPolicy.STOPPED,
+                connectionDescriptor,
+                recordingOptions,
+                templateName,
+                templateType,
+                metadata,
+                false);
+
+        Mockito.verify(service).close(existingRecording);
+        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(notification).send();
+        Mockito.verifyNoMoreInteractions(recordingOptions);
     }
 
     @Test

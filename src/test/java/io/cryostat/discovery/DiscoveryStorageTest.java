@@ -1,39 +1,17 @@
 /*
- * Copyright The Cryostat Authors
+ * Copyright The Cryostat Authors.
  *
- * The Universal Permissive License (UPL), Version 1.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or data
- * (collectively the "Software"), free of charge and under any and all copyright
- * rights in the Software, and any and all patent rights owned or freely
- * licensable by each licensor hereunder covering either (i) the unmodified
- * Software as contributed to or provided by such licensor, or (ii) the Larger
- * Works (as defined below), to deal in both
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * (a) the Software, and
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software (each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- * The above copyright notice and either this complete permission notice or at
- * a minimum a reference to the UPL must be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.cryostat.discovery;
 
@@ -47,7 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Singleton;
 
@@ -68,7 +45,6 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.DefaultPlatformClient;
 import io.cryostat.platform.internal.KubeApiPlatformClient;
 import io.cryostat.recordings.JvmIdHelper;
-import io.cryostat.recordings.JvmIdHelper.JvmIdGetException;
 import io.cryostat.rules.MatchExpressionEvaluator;
 
 import com.google.gson.Gson;
@@ -915,86 +891,6 @@ class DiscoveryStorageTest {
                             new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef2),
                             new TargetDiscoveryEvent(EventKind.FOUND, updatedServiceRef3),
                             new TargetDiscoveryEvent(EventKind.MODIFIED, updatedServiceRef4)));
-        }
-
-        @Test
-        void testIgnoreNodesIfNonSSLAuthExceptions() throws Exception {
-            UUID id = UUID.randomUUID();
-
-            ServiceRef serviceRef1 =
-                    new ServiceRef(
-                            null,
-                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:1/jmxrmi"),
-                            "serviceRef1");
-            ServiceRef serviceRef2 =
-                    new ServiceRef(
-                            null,
-                            URI.create("service:jmx:rmi:///jndi/rmi://localhost:2/jmxrmi"),
-                            "serviceRef2");
-            TargetNode target1 = new TargetNode(BaseNodeType.JVM, serviceRef1);
-            TargetNode target2 = new TargetNode(BaseNodeType.JVM, serviceRef2);
-
-            EnvironmentNode realm1 =
-                    new EnvironmentNode("next", BaseNodeType.REALM, Map.of(), Set.of(target1));
-            EnvironmentNode realm2 =
-                    new EnvironmentNode(
-                            "next", BaseNodeType.REALM, Map.of(), Set.of(target1, target2));
-
-            PluginInfo prevPlugin =
-                    new PluginInfo(
-                            "test-realm", URI.create("http://example.com"), gson.toJson(realm1));
-
-            Mockito.when(dao.get(Mockito.eq(id))).thenReturn(Optional.of(prevPlugin));
-            Mockito.when(dao.update(Mockito.any(UUID.class), Mockito.any(Collection.class)))
-                    .thenAnswer(
-                            new Answer<PluginInfo>() {
-                                @Override
-                                public PluginInfo answer(InvocationOnMock invocation)
-                                        throws Throwable {
-                                    List<AbstractNode> subtree = invocation.getArgument(1);
-                                    EnvironmentNode next =
-                                            new EnvironmentNode(
-                                                    "next", BaseNodeType.REALM, Map.of(), subtree);
-                                    return new PluginInfo(
-                                            "test-realm",
-                                            URI.create("http://example.com"),
-                                            gson.toJson(next));
-                                }
-                            });
-            JvmIdGetException jige = Mockito.mock(JvmIdGetException.class);
-            ExecutionException ex = Mockito.mock(ExecutionException.class);
-            Mockito.when(jige.getCause()).thenReturn(ex);
-            Mockito.when(ex.getCause()).thenReturn(new SecurityException("test"));
-
-            Mockito.when(jvmIdHelper.resolveId(Mockito.any(ServiceRef.class)))
-                    .thenThrow(jige)
-                    .thenReturn(
-                            new ServiceRef(
-                                    "serviceRef2", serviceRef2.getServiceUri(), "serviceRef2"));
-
-            var updatedSubtree = storage.update(id, List.of(realm2));
-            MatcherAssert.assertThat(updatedSubtree, Matchers.notNullValue());
-            MatcherAssert.assertThat(updatedSubtree, Matchers.hasSize(1));
-            for (AbstractNode node : updatedSubtree) {
-                MatcherAssert.assertThat(node, Matchers.instanceOf(EnvironmentNode.class));
-                EnvironmentNode env = (EnvironmentNode) node;
-                MatcherAssert.assertThat(env.getChildren(), Matchers.hasSize(2));
-                for (AbstractNode nested : env.getChildren()) {
-                    if (nested instanceof TargetNode) {
-                        TargetNode target = (TargetNode) nested;
-                        MatcherAssert.assertThat(target, Matchers.instanceOf(TargetNode.class));
-                        if (target.getTarget().getAlias().get().equals("serviceRef1")) {
-                            MatcherAssert.assertThat(
-                                    target.getTarget().getJvmId(), Matchers.nullValue());
-                        } else if (target.getTarget().getAlias().get().equals("serviceRef2")) {
-                            MatcherAssert.assertThat(
-                                    target.getTarget().getJvmId(), Matchers.equalTo("serviceRef2"));
-                        } else {
-                            throw new IllegalStateException("Unexpected alias");
-                        }
-                    }
-                }
-            }
         }
     }
 }

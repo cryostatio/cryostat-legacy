@@ -117,6 +117,17 @@ runDemoApps() {
         --rm -d quay.io/roberttoyonaga/jmx:jmxquarkus@sha256:b067f29faa91312d20d43c55d194a2e076de7d0d094da3d43ee7d2b2b5a6f100
 
     podman run \
+        --name vertx-fib-demo-0 \
+        --env HTTP_PORT=8079 \
+        --env JMX_PORT=9089 \
+        --env START_DELAY=60 \
+        --pod cryostat-pod \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="9089" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+
+    podman run \
         --name vertx-fib-demo-1 \
         --env HTTP_PORT=8081 \
         --env JMX_PORT=9093 \
@@ -133,7 +144,7 @@ runDemoApps() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9093" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -154,7 +165,7 @@ runDemoApps() {
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9094" \
         --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -174,7 +185,7 @@ runDemoApps() {
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.3
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
@@ -241,10 +252,20 @@ runJfrDatasource() {
         tag="$(getPomProperty cryostat.itest.jfr-datasource.version)"
         DATASOURCE_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
+    local RJMX_PORT=10111
     podman run \
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
+        --cpus 0.1 \
+        --memory 512m \
+        --label io.cryostat.discovery="true" \
+        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxPort="${RJMX_PORT}" \
+        --restart on-failure \
+        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
@@ -255,6 +276,8 @@ runGrafana() {
         tag="$(getPomProperty cryostat.itest.grafana.version)"
         GRAFANA_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
     local host; local port;
     host="$(getPomProperty cryostat.itest.webHost)"
     port="$(getPomProperty cryostat.itest.jfr-datasource.port)"
@@ -262,6 +285,8 @@ runGrafana() {
         --name grafana \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
+        --cpus 0.1 \
+        --memory 256M \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -275,6 +300,8 @@ runReportGenerator() {
         tag="$(getPomProperty cryostat.itest.reports.version)"
         REPORTS_IMAGE="${stream}:${tag}"
     fi
+    # limits set to match operator defaults:
+    # https://github.com/cryostatio/cryostat-operator/blob/2d386930dc96f0dcaf937987ec35874006c53b61/internal/controllers/common/resource_definitions/resource_definitions.go#L66
     local RJMX_PORT=10000
     local port;
     port="$(getPomProperty cryostat.itest.reports.port)"
@@ -285,10 +312,10 @@ runReportGenerator() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
-        --cpus 1 \
-        --memory 512M \
+        --cpus 0.128 \
+        --memory 256M \
         --restart on-failure \
-        --env JAVA_OPTS="-XX:ActiveProcessorCount=1 -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }

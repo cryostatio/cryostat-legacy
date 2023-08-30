@@ -106,7 +106,7 @@ runDemoApps() {
         --label io.cryostat.jmxPort="9093" \
         --publish 8081:8081 \
         --publish 9093:9093 \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
     CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-1"
 
     docker run \
@@ -119,7 +119,7 @@ runDemoApps() {
         --label io.cryostat.jmxPort="9094" \
         --publish 8082:8082 \
         --publish 9094:9092 \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
     CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-2"
 
     docker run \
@@ -133,7 +133,7 @@ runDemoApps() {
         --label io.cryostat.jmxPort="9095" \
         --publish 8083:8083 \
         --publish 9095:9095 \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.12.2
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
     CONTAINERS="${CONTAINERS:+${CONTAINERS} }vertx-fib-demo-3"
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour

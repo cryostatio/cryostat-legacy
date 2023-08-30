@@ -1,45 +1,24 @@
 /*
- * Copyright The Cryostat Authors
+ * Copyright The Cryostat Authors.
  *
- * The Universal Permissive License (UPL), Version 1.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or data
- * (collectively the "Software"), free of charge and under any and all copyright
- * rights in the Software, and any and all patent rights owned or freely
- * licensable by each licensor hereunder covering either (i) the unmodified
- * Software as contributed to or provided by such licensor, or (ii) the Larger
- * Works (as defined below), to deal in both
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * (a) the Software, and
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software (each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- * The above copyright notice and either this complete permission notice or at
- * a minimum a reference to the UPL must be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package itest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -587,7 +566,8 @@ class GraphQLIT extends ExternalTargetsTest {
                                                 EnvironmentNodesResponse.class));
                             }
                         });
-        // if any of the nodes in the query did not have an ID property then the request would fail
+        // if any of the nodes in the query did not have an ID property then the request
+        // would fail
         EnvironmentNodesResponse actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Set<Integer> observedIds = new HashSet<>();
         for (var env : actual.data.environmentNodes) {
@@ -904,7 +884,8 @@ class GraphQLIT extends ExternalTargetsTest {
             deleteFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
 
-        // Retrieve the list of updated archived recordings to verify that the targeted recordings
+        // Retrieve the list of updated archived recordings to verify that the targeted
+        // recordings
         // have been deleted
         CompletableFuture<JsonArray> updatedArchivedRecordingsFuture = new CompletableFuture<>();
         webClient
@@ -1016,6 +997,327 @@ class GraphQLIT extends ExternalTargetsTest {
             }
         }
         Assertions.assertTrue(nameExists, "Name not found");
+    }
+
+    @Test
+    @Order(13)
+    void testReplaceAlwaysOnStoppedRecording() throws Exception {
+        JsonObject deletedObj = new JsonObject();
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Stop the Recording
+            stopRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationStopRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
+
+            // Restart the recording with replace:ALWAYS
+            restartRecordingWithReplaceAlways(notificationRecordingHolder);
+            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(14)
+    void testReplaceNeverOnStoppedRecording() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Stop the Recording
+            stopRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationStopRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
+
+            // Restart the recording with replace:NEVER
+            restartRecordingWithReplaceNever();
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(15)
+    void testReplaceStoppedOnStoppedRecording() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Stop the Recording
+            stopRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationStopRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationStopRecording.getString("name"));
+            Assertions.assertEquals("STOPPED", notificationStopRecording.getString("state"));
+
+            // Restart the recording with replace:STOPPED
+            restartRecordingWithReplaceStopped(notificationRecordingHolder);
+            JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(16)
+    void testReplaceStoppedOnRunningRecording() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:STOPPED
+            CompletableFuture<JsonObject> resp = new CompletableFuture<>();
+            CountDownLatch latch = new CountDownLatch(1);
+            JsonObject query = new JsonObject();
+
+            query.put(
+                    "query",
+                    "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:STOPPED }) { name state}} }");
+
+            Thread.sleep(5000);
+            webClient
+                    .post("/api/v2.2/graphql")
+                    .sendJson(
+                            query,
+                            ar -> {
+                                if (assertRequestStatus(ar, resp)) {
+                                    resp.complete(ar.result().bodyAsJsonObject());
+                                    latch.countDown();
+                                }
+                            });
+
+            latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonArray errors = response.getJsonArray("errors");
+            JsonObject error = errors.getJsonObject(0);
+
+            Assertions.assertTrue(
+                    error.getString("message")
+                            .contains("Recording with name \"test\" already exists"),
+                    "Expected error message to contain 'Recording with name \"test\" already"
+                            + " exists'");
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(17)
+    void testReplaceNeverOnRunningRecording() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:NEVER
+            restartRecordingWithReplaceNever();
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(18)
+    void testReplaceAlwaysOnRunningRecording() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start a Recording
+            startRecordingProcess(notificationRecordingHolder);
+            JsonObject notificationRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecording.getString("state"));
+
+            // Restart the recording with replace:ALWAYS
+            restartRecordingWithReplaceAlways(notificationRecordingHolder);
+            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(19)
+    void testStartRecordingwithReplaceNever() throws Exception {
+        CountDownLatch latch = new CountDownLatch(2);
+        JsonObject deletedObj = new JsonObject();
+        JsonObject query = new JsonObject();
+
+        try {
+            CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+            query.put(
+                    "query",
+                    "query { targetNodes(filter: { annotations: \"PORT == 9093\" }) {"
+                            + " doStartRecording(recording: { name: \"test\",template:"
+                            + " \"Profiling\", templateType: \"TARGET\", replace:NEVER }) { name"
+                            + " state}} }");
+            Future<JsonObject> f =
+                    worker.submit(
+                            () -> {
+                                try {
+                                    return expectNotification(
+                                                    "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                            .get();
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                } finally {
+                                    latch.countDown();
+                                }
+                            });
+
+            Thread.sleep(5000);
+
+            webClient
+                    .post("/api/v2.2/graphql")
+                    .sendJson(
+                            query,
+                            ar -> {
+                                if (assertRequestStatus(ar, resp)) {
+                                    resp.complete(
+                                            gson.fromJson(
+                                                    ar.result().bodyAsString(),
+                                                    StartRecordingMutationResponse.class));
+                                    latch.countDown();
+                                }
+                            });
+
+            latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            // Ensure Active Recording is Created
+            JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            JsonObject notificationCreateRecording =
+                    notification.getJsonObject("message").getJsonObject("recording");
+
+            Assertions.assertEquals("test", notificationCreateRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationCreateRecording.getString("state"));
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(20)
+    void testStartRecordingwithReplaceAlways() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Start the recording with replace:ALWAYS
+            restartRecordingWithReplaceAlways(notificationRecordingHolder);
+            JsonObject notificationRestartRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRestartRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRestartRecording.getString("state"));
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
+    }
+
+    @Test
+    @Order(21)
+    void testStartRecordingwithReplaceStopped() throws Exception {
+        JsonObject[] notificationRecordingHolder = new JsonObject[1];
+        JsonObject deletedObj = new JsonObject();
+
+        try {
+            // Restart the recording with replace:STOPPED
+            restartRecordingWithReplaceStopped(notificationRecordingHolder);
+            JsonObject notificationRecreateRecording = notificationRecordingHolder[0];
+
+            Assertions.assertEquals("test", notificationRecreateRecording.getString("name"));
+            Assertions.assertEquals("RUNNING", notificationRecreateRecording.getString("state"));
+
+        } finally {
+            // Delete the Recording
+            deleteRecordingProcess(deletedObj);
+            Assertions.assertNull(deletedObj.getString("name"));
+            Assertions.assertNull(deletedObj.getString("state"));
+        }
     }
 
     static class Target {
@@ -1753,5 +2055,280 @@ class GraphQLIT extends ExternalTargetsTest {
             DeleteMutationResponse other = (DeleteMutationResponse) obj;
             return Objects.equals(data, other.data);
         }
+    }
+
+    // start recording
+    private void startRecordingProcess(JsonObject[] notificationRecordingHolder) throws Exception {
+        JsonObject query = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(2);
+
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: {"
+                        + " name:\"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\"}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        notificationRecordingHolder[0] = notificationRecording;
+    }
+
+    // Stop the Recording
+    private void stopRecordingProcess(JsonObject[] notificationRecordingHolder) throws Exception {
+        JsonObject query = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(2);
+
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" })  {"
+                        + " recordings { active { data { doStop { name state } } } } } }");
+
+        Future<JsonObject> f2 =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingStopped", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(30, TimeUnit.SECONDS);
+
+        JsonObject notification = f2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        notificationRecordingHolder[0] = notificationRecording;
+    }
+
+    // Delete the Recording
+    private void deleteRecordingProcess(JsonObject deletedObj) throws Exception {
+        JsonObject query = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(1);
+
+        CompletableFuture<JsonObject> resp = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " recordings { active { data { doDelete { name state } } } } } }");
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(), JsonObject.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        deletedObj = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    // Restart the recording with replace:ALWAYS
+    private void restartRecordingWithReplaceAlways(JsonObject[] notificationRecordingHolder)
+            throws Exception {
+        JsonObject query = new JsonObject();
+        CountDownLatch latch = new CountDownLatch(2);
+
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:ALWAYS}) { name state}} }");
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        notificationRecordingHolder[0] = notificationRecording;
+    }
+
+    // Restart the recording with replace:STOPPED (utilise this helper ONLY when Recording is
+    // STOPPED)
+    private void restartRecordingWithReplaceStopped(JsonObject[] notificationRecordingHolder)
+            throws Exception {
+        CountDownLatch latch = new CountDownLatch(2);
+        JsonObject query = new JsonObject();
+
+        CompletableFuture<StartRecordingMutationResponse> resp = new CompletableFuture<>();
+        query.put(
+                "query",
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:STOPPED}) { name state}} }");
+
+        Future<JsonObject> f =
+                worker.submit(
+                        () -> {
+                            try {
+                                return expectNotification(
+                                                "ActiveRecordingCreated", 15, TimeUnit.SECONDS)
+                                        .get();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                latch.countDown();
+                            }
+                        });
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                StartRecordingMutationResponse.class));
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        JsonObject notification = f.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject notificationRecording =
+                notification.getJsonObject("message").getJsonObject("recording");
+
+        notificationRecordingHolder[0] = notificationRecording;
+    }
+
+    // Restart a Recording with replace:NEVER (could be used with Replace:STOPPED on a running
+    // recording)
+    private void restartRecordingWithReplaceNever() throws Exception {
+        CompletableFuture<JsonObject> resp = new CompletableFuture<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        JsonObject query = new JsonObject();
+
+        query.put(
+                "query",
+                "query { targetNodes(filter: { name:"
+                        + " \"service:jmx:rmi:///jndi/rmi://cryostat-itests:9091/jmxrmi\" }) {"
+                        + " doStartRecording(recording: { name: \"test\", template:\"Profiling\","
+                        + " templateType: \"TARGET\", replace:NEVER }) { name state}} }");
+
+        Thread.sleep(5000);
+        webClient
+                .post("/api/v2.2/graphql")
+                .sendJson(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(ar.result().bodyAsJsonObject());
+                                latch.countDown();
+                            }
+                        });
+
+        latch.await(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        JsonObject response = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray errors = response.getJsonArray("errors");
+        JsonObject error = errors.getJsonObject(0);
+
+        Assertions.assertTrue(
+                error.getString("message").contains("Recording with name \"test\" already exists"),
+                "Expected error message to contain 'Recording with name \"test\" already exists'");
     }
 }

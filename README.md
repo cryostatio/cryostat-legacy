@@ -52,6 +52,7 @@ Build Requirements:
 
 Run Requirements:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
+- `systemctl --user enable --now podman.socket` to enable the user podman.socket for podman discovery
 
 ## BUILD
 
@@ -109,10 +110,12 @@ exec:exec@destroy-pod`
 ### Run on local podman*
 * `run.sh`
 
+Note: If you get a 'No plugin found' error, it is because maven has not downloaded all the necessary plugins. To resolve this error, manually run `mvn help:evaluate` to prompt maven to download the missing help plugin. 
+
 ### Run on local podman with Grafana, jfr-datasource and demo application*
 * `smoketest.sh`
 
-*To run on local podman, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) should be enabled.
+To run on local podman, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) should be enabled.
 This allows resource configuration for any rootless containers running on podman. To ensure podman works with cgroups v2, follow these [instructions](https://podman.io/blogs/2019/10/29/podman-crun-f31.html).
 
 Note: If your podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it to crun as recommended in the instructions, since this version of runc supports cgroups v2. The article refers to an older version of runc.

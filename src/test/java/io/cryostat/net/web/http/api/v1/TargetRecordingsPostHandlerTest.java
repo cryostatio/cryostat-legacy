@@ -1,39 +1,17 @@
 /*
- * Copyright The Cryostat Authors
+ * Copyright The Cryostat Authors.
  *
- * The Universal Permissive License (UPL), Version 1.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or data
- * (collectively the "Software"), free of charge and under any and all copyright
- * rights in the Software, and any and all patent rights owned or freely
- * licensable by each licensor hereunder covering either (i) the unmodified
- * Software as contributed to or provided by such licensor, or (ii) the Larger
- * Works (as defined below), to deal in both
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * (a) the Software, and
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software (each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- * The above copyright notice and either this complete permission notice or at
- * a minimum a reference to the UPL must be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.cryostat.net.web.http.api.v1;
 
@@ -65,6 +43,7 @@ import io.cryostat.recordings.RecordingMetadataManager;
 import io.cryostat.recordings.RecordingMetadataManager.Metadata;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -194,6 +173,7 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("maxAge", "50");
         attrs.add("maxSize", "64");
         attrs.add("archiveOnStop", "false");
+
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         resp.putHeader(
@@ -203,7 +183,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -223,7 +203,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -242,7 +223,7 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
-                        restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
@@ -250,7 +231,8 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
+        MatcherAssert.assertThat(
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.NEVER));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -307,7 +289,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -329,7 +311,7 @@ class TargetRecordingsPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        attrs.add("restart", "true");
+        attrs.add("replace", "always");
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
@@ -337,7 +319,8 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -356,7 +339,7 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
-                        restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
@@ -364,7 +347,8 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(true));
+        MatcherAssert.assertThat(
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -411,7 +395,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -574,7 +558,7 @@ class TargetRecordingsPostHandlerTest {
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
                         recordingTargetHelper.startRecording(
-                                Mockito.anyBoolean(),
+                                Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any(),
@@ -594,7 +578,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
 
-        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<ReplacementPolicy> replaceCaptor =
+                ArgumentCaptor.forClass(ReplacementPolicy.class);
 
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
@@ -613,7 +598,7 @@ class TargetRecordingsPostHandlerTest {
 
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
-                        restartCaptor.capture(),
+                        replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
@@ -621,7 +606,8 @@ class TargetRecordingsPostHandlerTest {
                         metadataCaptor.capture(),
                         archiveOnStopCaptor.capture());
 
-        MatcherAssert.assertThat(restartCaptor.getValue(), Matchers.equalTo(false));
+        MatcherAssert.assertThat(
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.NEVER));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
