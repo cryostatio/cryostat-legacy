@@ -12,6 +12,9 @@ jobs:
       pull-requests: write
     if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
       - name: Add label and request review
         run: |
           reviewers="@cryostatio/reviewers"
