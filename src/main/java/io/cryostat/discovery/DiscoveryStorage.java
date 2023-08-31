@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
@@ -81,7 +82,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private long pluginPruneTimerId = -1L;
     private long targetRetryTimeId = -1L;
 
-    private final Map<TargetNode, UUID> nonConnectableTargets = new HashMap<>();
+    private final Map<TargetNode, UUID> nonConnectableTargets = new ConcurrentHashMap<>();
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
@@ -134,28 +135,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         .setPeriodic(
                                 // TODO make this configurable, use an exponential backoff, have a
                                 // maximum retry policy, etc.
-                                15_000,
-                                i -> {
-                                    testNonConnectedTargets(
-                                            entry -> {
-                                                TargetNode targetNode = entry.getKey();
-                                                try {
-                                                    String id =
-                                                            jvmIdHelper
-                                                                    .get()
-                                                                    .resolveId(
-                                                                            targetNode.getTarget())
-                                                                    .getJvmId();
-                                                    return StringUtils.isNotBlank(id);
-                                                } catch (JvmIdGetException e) {
-                                                    logger.info(
-                                                            "Retain null jvmId for node [{}]",
-                                                            targetNode.getName());
-                                                    logger.info(e);
-                                                    return false;
-                                                }
-                                            });
-                                });
+                                15_000, i -> checkNonConnectedTargetJvmIds());
         this.credentialsManager
                 .get()
                 .addListener(
@@ -165,11 +145,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     testNonConnectedTargets(
                                             entry -> {
                                                 try {
-                                                    return matchExpressionEvaluator
-                                                            .get()
-                                                            .applies(
-                                                                    event.getPayload(),
-                                                                    entry.getKey().getTarget());
+                                                    ServiceRef target = entry.getKey().getTarget();
+                                                    boolean credentialsApply =
+                                                            matchExpressionEvaluator
+                                                                    .get()
+                                                                    .applies(
+                                                                            event.getPayload(),
+                                                                            target);
+                                                    return credentialsApply && testJvmId(target);
                                                 } catch (ScriptException e) {
                                                     logger.error(e);
                                                     return false;
@@ -183,13 +166,47 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             event.getEventType().toString());
                             }
                         });
+
+        this.addTargetDiscoveryListener(
+                tde -> {
+                    switch (tde.getEventKind()) {
+                        case MODIFIED:
+                            testNonConnectedTargets(
+                                    entry ->
+                                            Objects.equals(
+                                                    tde.getServiceRef(),
+                                                    entry.getKey().getTarget()));
+                            break;
+                        default:
+                            break;
+                    }
+                });
+    }
+
+    private void checkNonConnectedTargetJvmIds() {
+        testNonConnectedTargets(
+                entry -> {
+                    TargetNode targetNode = entry.getKey();
+                    return testJvmId(targetNode.getTarget());
+                });
+    }
+
+    private boolean testJvmId(ServiceRef serviceRef) {
+        try {
+            String id = jvmIdHelper.get().resolveId(serviceRef).getJvmId();
+            return StringUtils.isNotBlank(id);
+        } catch (JvmIdGetException e) {
+            logger.trace("Retain null jvmId for target [{}]", serviceRef.getServiceUri());
+            logger.trace(e);
+            return false;
+        }
     }
 
     private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
-        executor.execute(
-                () -> {
-                    Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
-                    for (var entry : copy.entrySet()) {
+        Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
+        for (var entry : copy.entrySet()) {
+            executor.execute(
+                    () -> {
                         try {
                             if (predicate.test(entry)) {
                                 nonConnectableTargets.remove(entry.getKey());
@@ -202,8 +219,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         } catch (JsonSyntaxException e) {
                             throw new RuntimeException(e);
                         }
-                    }
-                });
+                    });
+        }
     }
 
     @Override
