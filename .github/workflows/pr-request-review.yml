@@ -31,12 +31,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Remove label on review
-        run: |
-          reviews_status=$(gh pr list --json state,reviews -q ".[] | select(.number == ${{ github.event.issue.number }}) | .reviews[].state")
-          if [[ -n "$reviews_status"]]; then
-            echo "Changes requested, removing 'review-requested' label"
-            gh pr edit ${{ github.event.issue.number }} --remove-label "review-requested"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
