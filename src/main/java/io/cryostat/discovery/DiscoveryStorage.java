@@ -39,6 +39,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.StoredCredentials;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
@@ -64,6 +65,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
@@ -77,12 +79,14 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Lazy<CredentialsManager> credentialsManager;
     private final Lazy<MatchExpressionEvaluator> matchExpressionEvaluator;
     private final Gson gson;
+    private final Clock clock;
     private final WebClient http;
     private final Logger logger;
     private long pluginPruneTimerId = -1L;
     private long targetRetryTimeId = -1L;
 
-    private final Map<TargetNode, UUID> nonConnectableTargets = new ConcurrentHashMap<>();
+    private final Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> nonConnectableTargets =
+            new ConcurrentHashMap<>();
 
     public static final String DISCOVERY_STARTUP_ADDRESS = "discovery-startup";
 
@@ -97,6 +101,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
+            Clock clock,
             Logger logger) {
         this.deployer = deployer;
         this.executor = executor;
@@ -108,6 +113,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         this.matchExpressionEvaluator = matchExpressionEvaluator;
         this.gson = gson;
         this.http = http;
+        this.clock = clock;
         this.logger = logger;
     }
 
@@ -131,11 +137,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
         this.pluginPruneTimerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
         this.targetRetryTimeId =
-                getVertx()
-                        .setPeriodic(
-                                // TODO make this configurable, use an exponential backoff, have a
-                                // maximum retry policy, etc.
-                                15_000, i -> checkNonConnectedTargetJvmIds());
+                getVertx().setPeriodic(2_000, i -> checkNonConnectedTargetJvmIds());
         this.credentialsManager
                 .get()
                 .addListener(
@@ -203,14 +205,34 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
-        Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
+        Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> copy =
+                new HashMap<>(nonConnectableTargets);
         for (var entry : copy.entrySet()) {
             executor.execute(
                     () -> {
+                        // TODO make this configurable, use an exponential backoff, have a
+                        // maximum retry policy, etc.
+                        ConnectionAttemptRecord attemptRecord = entry.getValue();
+                        long nextAttempt =
+                                (attemptRecord.attemptCount * attemptRecord.attemptCount)
+                                        + attemptRecord.lastAttemptTimestamp;
+                        attemptRecord.attemptCount++;
+                        long now = clock.now().getEpochSecond();
+                        long elapsed =
+                                attemptRecord.lastAttemptTimestamp
+                                        - attemptRecord.firstAttemptTimestamp;
+                        if (elapsed > ConnectionAttemptRecord.MAX_ATTEMPT_INTERVAL) {
+                            nonConnectableTargets.remove(entry.getKey());
+                            return;
+                        }
+                        if (now < nextAttempt) {
+                            return;
+                        }
+                        attemptRecord.lastAttemptTimestamp = now;
                         try {
-                            if (predicate.test(entry)) {
+                            if (predicate.test(entry.getKey())) {
                                 nonConnectableTargets.remove(entry.getKey());
-                                UUID id = entry.getValue();
+                                UUID id = entry.getKey().getValue();
                                 PluginInfo plugin = getById(id).orElseThrow();
                                 EnvironmentNode original =
                                         gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
@@ -377,7 +399,11 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 } catch (Exception e) {
                     logger.info("Update node [{}] with null jvmId", child.getName());
                     logger.info(e);
-                    nonConnectableTargets.putIfAbsent((TargetNode) child, id);
+                    ConnectionAttemptRecord attemptRecord = new ConnectionAttemptRecord();
+                    attemptRecord.firstAttemptTimestamp = clock.now().getEpochSecond();
+                    attemptRecord.lastAttemptTimestamp = attemptRecord.firstAttemptTimestamp;
+                    nonConnectableTargets.putIfAbsent(
+                            Pair.of((TargetNode) child, id), attemptRecord);
                 }
                 modifiedChildren.add(child);
             } else if (child instanceof EnvironmentNode) {
@@ -489,5 +515,12 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         NotFoundException(UUID id) {
             super(String.format("Unknown registration id: [%s]", id.toString()));
         }
+    }
+
+    private static class ConnectionAttemptRecord {
+        static final long MAX_ATTEMPT_INTERVAL = 60; // seconds from first try to last try
+        long attemptCount;
+        long firstAttemptTimestamp;
+        long lastAttemptTimestamp;
     }
 }
