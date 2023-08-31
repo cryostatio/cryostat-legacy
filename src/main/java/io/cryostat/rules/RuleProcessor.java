@@ -201,15 +201,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     public synchronized void accept(TargetDiscoveryEvent tde) {
         switch (tde.getEventKind()) {
             case FOUND:
-                if (!platformClient.contains(tde.getServiceRef())) {
-                    registry.getRules(tde.getServiceRef())
-                            .forEach(
-                                    rule -> {
-                                        if (rule.isEnabled()) {
-                                            activate(rule, tde.getServiceRef());
-                                        }
-                                    });
-                }
+                activateAllRulesFor(tde.getServiceRef());
                 break;
             case LOST:
                 deactivate(null, tde.getServiceRef());
@@ -220,6 +212,16 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             default:
                 throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
+    }
+
+    private void activateAllRulesFor(ServiceRef serviceRef) {
+        registry.getRules(serviceRef)
+                .forEach(
+                        rule -> {
+                            if (rule.isEnabled()) {
+                                activate(rule, serviceRef);
+                            }
+                        });
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
