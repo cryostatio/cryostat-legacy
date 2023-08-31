@@ -1,0 +1,25 @@
+name: Remove Review Label
+
+on:
+  pull_request_review:
+    types: [edited, dismissed]
+
+jobs:
+  remove-review-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'review-requested')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Remove label
+        run: |
+          pr_number=${{ github.event.pull_request.number }}
+          echo "Removing 'review-requested' label from the PR"
+          gh pr edit $pr_number --remove-label "review-requested"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
