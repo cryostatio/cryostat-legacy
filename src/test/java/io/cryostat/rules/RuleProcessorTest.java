@@ -217,7 +217,7 @@ class RuleProcessorTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.STOPPED));
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
@@ -472,7 +472,7 @@ class RuleProcessorTest {
                         archiveOnStopCaptor.capture());
 
         MatcherAssert.assertThat(
-                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.ALWAYS));
+                replaceCaptor.getValue(), Matchers.equalTo(ReplacementPolicy.STOPPED));
 
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
