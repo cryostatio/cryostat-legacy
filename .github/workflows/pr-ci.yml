@@ -13,6 +13,8 @@ jobs:
   check-before-build:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/build_test')
+    permissions:
+      pull-requests: write
     steps:
     - name: Fail if needs-triage label applied 
       if: ${{ contains(github.event.issue.labels.*.name, 'needs-triage') }}
@@ -46,15 +48,13 @@ jobs:
   checkout-branch: 
     runs-on: ubuntu-latest
     needs: [check-before-build]
-    permissions:
-      contents: read
-      issues: read
-      pull-requests: read
     outputs: 
       PR_head_ref: ${{ fromJSON(steps.comment-branch.outputs.result).ref }}
       PR_head_sha: ${{ fromJSON(steps.comment-branch.outputs.result).sha }}
       PR_num: ${{ fromJSON(steps.comment-branch.outputs.result).num }}
       PR_repo: ${{ fromJSON(steps.comment-branch.outputs.result).repo }}
+    permissions:
+      pull-requests: read
     steps:
     - uses: actions/github-script@v4
       id: comment-branch
@@ -88,16 +88,18 @@ jobs:
 
   push-to-ghcr:
     runs-on: ubuntu-latest
+    needs: [build-and-test, checkout-branch]
     strategy:
       matrix:
         arch: [amd64, arm64]
     outputs: 
       amd64_image: ${{ steps.amd64_image.outputs.image }}
       arm64_image: ${{ steps.arm64_image.outputs.image }}
-    needs: [build-and-test, checkout-branch]
     env:
       head_sha: ${{ needs.checkout-branch.outputs.PR_head_sha }}
       PR_num: ${{ needs.checkout-branch.outputs.PR_num }}
+    permissions:
+      packages: write
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -130,6 +132,8 @@ jobs:
     env:
       amd64_image: ${{ needs.push-to-ghcr.outputs.amd64_image }}
       arm64_image: ${{ needs.push-to-ghcr.outputs.arm64_image }}
+    permissions:
+      pull-requests: write
     steps:
     - name: Create markdown table
       id: md-table
