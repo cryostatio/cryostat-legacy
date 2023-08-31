@@ -413,7 +413,7 @@ public class RecordingMetadataManager extends AbstractVerticle
                             // message to clear our stored metadata
                             break;
                         default:
-                            throw new UnsupportedOperationException(tde.getEventKind().toString());
+                            break;
                     }
                 });
     }
