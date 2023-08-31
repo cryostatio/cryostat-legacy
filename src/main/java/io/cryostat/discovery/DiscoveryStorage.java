@@ -83,7 +83,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final WebClient http;
     private final Logger logger;
     private long pluginPruneTimerId = -1L;
-    private long targetRetryTimeId = -1L;
+    private long targetRetryTimerId = -1L;
 
     private final Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> nonConnectableTargets =
             new ConcurrentHashMap<>();
@@ -136,7 +136,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .onFailure(future::fail);
 
         this.pluginPruneTimerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
-        this.targetRetryTimeId =
+        this.targetRetryTimerId =
                 getVertx().setPeriodic(2_000, i -> checkNonConnectedTargetJvmIds());
         this.credentialsManager
                 .get()
@@ -178,6 +178,16 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                             Objects.equals(
                                                     tde.getServiceRef(),
                                                     entry.getKey().getTarget()));
+                            break;
+                        case LOST:
+                            var it = nonConnectableTargets.entrySet().iterator();
+                            while (it.hasNext()) {
+                                var entry = it.next();
+                                if (Objects.equals(
+                                        tde.getServiceRef(), entry.getKey().getKey().getTarget())) {
+                                    it.remove();
+                                }
+                            }
                             break;
                         default:
                             break;
@@ -248,7 +258,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     @Override
     public void stop() {
         getVertx().cancelTimer(pluginPruneTimerId);
-        getVertx().cancelTimer(targetRetryTimeId);
+        getVertx().cancelTimer(targetRetryTimerId);
     }
 
     private CompositeFuture pingPrune() {
