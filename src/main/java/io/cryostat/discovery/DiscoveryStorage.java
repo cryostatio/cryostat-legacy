@@ -401,6 +401,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public PluginInfo deregister(UUID id) {
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
+        getStoredCredentials(plugin.getCallback())
+                .ifPresent(sc -> credentialsManager.get().delete(sc.getId()));
         dao.delete(id);
         findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
                 .map(TargetNode::getTarget)
