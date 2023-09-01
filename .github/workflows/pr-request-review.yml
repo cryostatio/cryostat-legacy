@@ -17,7 +17,7 @@ jobs:
         
       - name: Add label and request review
         run: |
-          reviewers="aali309"
+          reviewers="ashihab20"
 
           echo "Adding label 'review-requested' to the PR"
           gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
