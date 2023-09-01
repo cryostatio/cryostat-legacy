@@ -10,7 +10,7 @@ jobs:
     permissions:
       pull-requests: write
 
-    if: github.repository_owner == 'cryostatio' && contains(github.event.pull_request.labels.*.name, 'review-requested')
+    if: contains(github.event.pull_request.labels.*.name, 'review-requested')
 
     steps:
       - name: Checkout code
