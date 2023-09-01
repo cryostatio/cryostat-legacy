@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
