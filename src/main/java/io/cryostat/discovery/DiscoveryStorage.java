@@ -277,6 +277,9 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     private Optional<StoredCredentials> getStoredCredentials(URI uri) {
+        if (uri == NO_CALLBACK) {
+            return Optional.empty();
+        }
         String userInfo = uri.getUserInfo();
         if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
             String[] parts = userInfo.split(":");
