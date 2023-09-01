@@ -241,26 +241,17 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                         .ssl("https".equals(uri.getScheme()))
                         .timeout(1_000)
                         .followRedirects(true);
-        String userInfo = uri.getUserInfo();
-        if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
-            String[] parts = userInfo.split(":");
-            if ("storedcredentials".equals(parts[0])) {
-                logger.info(
-                        "Using stored credentials id:{} referenced in ping callback userinfo",
-                        parts[1]);
-                Optional<StoredCredentials> opt =
-                        credentialsManager.get().getById(Integer.parseInt(parts[1]));
-                if (opt.isEmpty()) {
-                    logger.warn("Could not find such credentials!");
-                    return Future.succeededFuture(false);
-                }
-                StoredCredentials credentials = opt.get();
-                req =
-                        req.authentication(
-                                new UsernamePasswordCredentials(
-                                        credentials.getCredentials().getUsername(),
-                                        credentials.getCredentials().getPassword()));
-            }
+        Optional<StoredCredentials> opt = getStoredCredentials(uri);
+        if (opt.isPresent()) {
+            StoredCredentials credentials = opt.get();
+            logger.info(
+                    "Using stored credentials id:{} referenced in ping callback userinfo",
+                    credentials.getId());
+            req =
+                    req.authentication(
+                            new UsernamePasswordCredentials(
+                                    credentials.getCredentials().getUsername(),
+                                    credentials.getCredentials().getPassword()));
         }
         return req.send()
                 .onComplete(
@@ -283,6 +274,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                 .map(HttpResponse::statusCode)
                 .map(HttpStatusCodeIdentifier::isSuccessCode)
                 .otherwise(false);
+    }
+
+    private Optional<StoredCredentials> getStoredCredentials(URI uri) {
+        String userInfo = uri.getUserInfo();
+        if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
+            String[] parts = userInfo.split(":");
+            if ("storedcredentials".equals(parts[0])) {
+
+                Optional<StoredCredentials> opt =
+                        credentialsManager.get().getById(Integer.parseInt(parts[1]));
+                if (opt.isEmpty()) {
+                    logger.warn("Could not find stored credentials with id:{} !", parts[1]);
+                }
+                return opt;
+            }
+        }
+        return Optional.empty();
     }
 
     private void removePlugin(UUID uuid, Object label) {
