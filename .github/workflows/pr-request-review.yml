@@ -24,11 +24,11 @@ jobs:
 
           if [ -n "$reviewers" ]; then
             for reviewer in $reviewers; do
-              gh pr review ${{ github.event.issue.number }} --body "Review requested by @${reviewer}"
+              gh pr review ${{ github.event.issue.number }} --comment "Review requested by @${reviewer}"
             done
           else
             echo "Requesting review from @cryostatio/reviewers team"
-            gh pr review ${{ github.event.issue.number }} --team "Review requested by @cryostatio/reviewers"
+            gh pr review ${{ github.event.issue.number }} --comment "Review requested by @cryostatio/reviewers"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
