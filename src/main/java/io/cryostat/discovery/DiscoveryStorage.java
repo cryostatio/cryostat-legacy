@@ -284,7 +284,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         if (StringUtils.isNotBlank(userInfo) && userInfo.contains(":")) {
             String[] parts = userInfo.split(":");
             if ("storedcredentials".equals(parts[0])) {
-
                 Optional<StoredCredentials> opt =
                         credentialsManager.get().getById(Integer.parseInt(parts[1]));
                 if (opt.isEmpty()) {
@@ -294,6 +293,10 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             }
         }
         return Optional.empty();
+    }
+
+    private void deleteStoredCredentials(URI uri) {
+        getStoredCredentials(uri).ifPresent(sc -> credentialsManager.get().delete(sc.getId()));
     }
 
     private void removePlugin(UUID uuid, Object label) {
@@ -333,6 +336,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             logger.trace("Discovery Registration: \"{}\" [{}]", realm, id);
             return updated.getId();
         } catch (Exception e) {
+            deleteStoredCredentials(callback);
             throw new RegistrationException(realm, callback, e, e.getMessage());
         }
     }
@@ -404,8 +408,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     public PluginInfo deregister(UUID id) {
         PluginInfo plugin = dao.get(id).orElseThrow(() -> new NotFoundException(id));
-        getStoredCredentials(plugin.getCallback())
-                .ifPresent(sc -> credentialsManager.get().delete(sc.getId()));
+        deleteStoredCredentials(plugin.getCallback());
         dao.delete(id);
         findLeavesFrom(gson.fromJson(plugin.getSubtree(), EnvironmentNode.class)).stream()
                 .map(TargetNode::getTarget)
