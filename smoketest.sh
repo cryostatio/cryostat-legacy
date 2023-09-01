@@ -205,7 +205,7 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.port=9097 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10010 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-1" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
@@ -225,7 +225,7 @@ runDemoApps() {
         --env JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -javaagent:/deployments/app/cryostat-agent.jar" \
         --env QUARKUS_HTTP_PORT=10011 \
         --env ORG_ACME_CRYOSTATSERVICE_ENABLED="false" \
-        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent" \
+        --env CRYOSTAT_AGENT_APP_NAME="quarkus-test-agent-2" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_WEBCLIENT_SSL_VERIFY_HOSTNAME="false" \
         --env CRYOSTAT_AGENT_WEBSERVER_HOST="localhost" \
