@@ -17,18 +17,17 @@ jobs:
         
       - name: Add label and request review
         run: |
-          reviewers="@cryostatio/reviewers"
-          pr_number=${{ github.event.issue.number }}
+          reviewers="@mwangggg"
 
           echo "Adding label 'review-requested' to the PR"
-          gh pr edit $pr_number --add-label "review-requested"
+          gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
 
           if [ -n "$reviewers" ]; then
-            gh pr create --reviewer $reviewers
+            gh pr edit ${{ github.event.issue.number }} --add-reviewer $reviewers
           else
             echo "Requesting review from @cryostatio/reviewers team"
-            gh pr create --reviewer cryostatio/reviewers
+            gh pr edit ${{ github.event.issue.number }} --add-reviewer cryostatio/reviewers
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#test23
+
