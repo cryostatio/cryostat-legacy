@@ -23,10 +23,10 @@ jobs:
           gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
 
           if [ -n "$reviewers" ]; then
-            gh pr request-review ${{ github.event.issue.number }} --reviewer $reviewers
+            gh pr review ${{ github.event.issue.number }} $reviewers
           else
             echo "Requesting review from @cryostatio/reviewers team"
-            gh pr request-review ${{ github.event.issue.number }} --team cryostatio/reviewers
+            gh pr review ${{ github.event.issue.number }} cryostatio/reviewers
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
