@@ -2,7 +2,7 @@ name: Remove Review Label
 
 on:
   pull_request_review:
-    types: [edited, dismissed]
+    types: [submitted, edited, dismissed]
 
 jobs:
   remove-review-label:
