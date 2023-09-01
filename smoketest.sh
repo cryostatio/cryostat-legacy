@@ -125,7 +125,7 @@ runDemoApps() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="9089" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-1 \
@@ -142,9 +142,9 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxHost="vertx-fib-demo-1" \
         --label io.cryostat.jmxPort="9093" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-2 \
@@ -162,10 +162,10 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxHost="localhost" \
+        --label io.cryostat.jmxHost="vertx-fib-demo-2" \
         --label io.cryostat.jmxPort="9094" \
         --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
         --name vertx-fib-demo-3 \
@@ -184,8 +184,8 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
         --pod cryostat-pod \
         --label io.cryostat.discovery="true" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9095/jmxrmi" \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.0
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://vertx-fib-demo-3:9095/jmxrmi" \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     # this config is broken on purpose (missing required env vars) to test the agent's behaviour
     # when not properly set up
@@ -234,7 +234,7 @@ runDemoApps() {
         --env CRYOSTAT_AGENT_BASEURI="${protocol}://localhost:${webPort}/" \
         --env CRYOSTAT_AGENT_TRUST_ALL="true" \
         --env CRYOSTAT_AGENT_AUTHORIZATION="Basic $(echo user:pass | base64)" \
-        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="true" \
+        --env CRYOSTAT_AGENT_REGISTRATION_PREFER_JMX="false" \
         --rm -d quay.io/andrewazores/quarkus-test:latest
 
     # copy a jboss-client.jar into /clientlib first
