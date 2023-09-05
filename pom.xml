@@ -73,7 +73,7 @@
   <org.apache.maven.plugins.info.reports.version>3.4.5</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.3.1</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.3.1</org.apache.maven.plugins.resources.version>
-  <org.apache.maven.plugins.assembly.version>3.5.0</org.apache.maven.plugins.assembly.version>
+  <org.apache.maven.plugins.assembly.version>3.6.0</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.13.4</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.1.0</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.build.helper.plugin.version>3.4.0</org.codehaus.mojo.build.helper.plugin.version>
