@@ -11,19 +11,19 @@ jobs:
     permissions:
       pull-requests: write
     if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
+    env:
+      REVIEWERS_TEAM: 'cryostatio/reviewers'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         
       - name: Add label and request review
         run: |
-          reviewers="cryostatio/reviewers"
-
           echo "Adding label 'review-requested' to the PR"
           gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
 
-          echo "Requesting review from @cryostatio/reviewers team"
-          gh pr edit ${{ github.event.issue.number }} --add-reviewer $reviewers
+          echo "Requesting review from @$REVIEWERS_TEAM"
+          gh pr edit ${{ github.event.issue.number }} --add-reviewer $REVIEWERS_TEAM
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
