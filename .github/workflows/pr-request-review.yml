@@ -8,22 +8,12 @@ on:
 jobs:
   request-review:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       pull-requests: write
     if: github.repository_owner == 'cryostatio' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/request_review')
-    env:
-      REVIEWERS_TEAM: 'cryostatio/reviewers'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Add label and request review
-        run: |
-          echo "Adding label 'review-requested' to the PR"
-          gh pr edit ${{ github.event.issue.number }} --add-label "review-requested"
-
-          echo "Requesting review from @$REVIEWERS_TEAM"
-          gh pr edit ${{ github.event.issue.number }} --add-reviewer $REVIEWERS_TEAM
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      - run: |
+          # Adding label 'review-requested' to the PR. Mergify will add reviewers.
+          gh pr edit ${{ github.event.issue.number }} --add-label "review-requested" --repo ${{ github.event.repository.full_name }}
