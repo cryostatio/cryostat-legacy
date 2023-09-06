@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 
 import javax.management.ObjectName;
 import javax.script.ScriptException;
@@ -49,7 +49,6 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -64,7 +63,7 @@ import org.apache.http.auth.InvalidCredentialsException;
 public class AgentClient {
     public static final String NULL_CREDENTIALS = "No credentials found for agent";
 
-    private final Vertx vertx;
+    private final ExecutorService executor;
     private final Gson gson;
     private final long httpTimeout;
     private final WebClient webClient;
@@ -73,14 +72,14 @@ public class AgentClient {
     private final Logger logger;
 
     AgentClient(
-            Vertx vertx,
+            ExecutorService executor,
             Gson gson,
             long httpTimeout,
             WebClient webClient,
             CredentialsManager credentialsManager,
             URI agentUri,
             Logger logger) {
-        this.vertx = vertx;
+        this.executor = executor;
         this.gson = gson;
         this.httpTimeout = httpTimeout;
         this.webClient = webClient;
@@ -237,7 +236,7 @@ public class AgentClient {
                                         throw new RuntimeException(e);
                                     }
                                 },
-                                ForkJoinPool.commonPool())
+                                executor)
                         .exceptionally(
                                 t -> {
                                     throw new RuntimeException(t);
@@ -246,7 +245,7 @@ public class AgentClient {
 
     static class Factory {
 
-        private final Vertx vertx;
+        private final ExecutorService executor;
         private final Gson gson;
         private final long httpTimeout;
         private final WebClient webClient;
@@ -254,13 +253,13 @@ public class AgentClient {
         private final Logger logger;
 
         Factory(
-                Vertx vertx,
+                ExecutorService executor,
                 Gson gson,
                 long httpTimeout,
                 WebClient webClient,
                 CredentialsManager credentialsManager,
                 Logger logger) {
-            this.vertx = vertx;
+            this.executor = executor;
             this.gson = gson;
             this.httpTimeout = httpTimeout;
             this.webClient = webClient;
@@ -270,7 +269,7 @@ public class AgentClient {
 
         AgentClient create(URI agentUri) {
             return new AgentClient(
-                    vertx, gson, httpTimeout, webClient, credentialsManager, agentUri, logger);
+                    executor, gson, httpTimeout, webClient, credentialsManager, agentUri, logger);
         }
     }
 

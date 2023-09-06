@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -177,7 +177,7 @@ public abstract class RecordingsModule {
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
             return new RecordingMetadataManager(
-                    ForkJoinPool.commonPool(),
+                    Executors.newSingleThreadExecutor(),
                     metadataDir,
                     archivedRecordingsPath,
                     connectionTimeoutSeconds,
@@ -210,7 +210,7 @@ public abstract class RecordingsModule {
                 credentialsManager,
                 storage,
                 connectionTimeoutSeconds,
-                ForkJoinPool.commonPool(),
+                Executors.newCachedThreadPool(),
                 Scheduler.systemScheduler(),
                 base32,
                 logger);

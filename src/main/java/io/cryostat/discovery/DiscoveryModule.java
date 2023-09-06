@@ -17,6 +17,7 @@ package io.cryostat.discovery;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -79,6 +80,7 @@ public abstract class DiscoveryModule {
             Logger logger) {
         return new DiscoveryStorage(
                 deployer,
+                Executors.newCachedThreadPool(),
                 pingPeriod,
                 builtin,
                 dao,

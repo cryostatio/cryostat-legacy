@@ -19,7 +19,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -104,14 +104,18 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static AgentClient.Factory provideAgentClientFactory(
-            Vertx vertx,
             Gson gson,
             @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout,
             WebClient webClient,
             CredentialsManager credentialsManager,
             Logger logger) {
         return new AgentClient.Factory(
-                vertx, gson, httpTimeout, webClient, credentialsManager, logger);
+                Executors.newCachedThreadPool(),
+                gson,
+                httpTimeout,
+                webClient,
+                credentialsManager,
+                logger);
     }
 
     @Provides
@@ -127,7 +131,7 @@ public abstract class NetworkModule {
                 connectionToolkit,
                 agentConnectionFactory,
                 storage,
-                ForkJoinPool.commonPool(),
+                Executors.newCachedThreadPool(),
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
                 maxTargetConnections,
