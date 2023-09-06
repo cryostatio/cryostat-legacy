@@ -148,7 +148,11 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static Vertx provideVertx() {
-        return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
+        VertxOptions defaults = new VertxOptions();
+        return Vertx.vertx(
+                new VertxOptions()
+                        .setPreferNativeTransport(true)
+                        .setEventLoopPoolSize(defaults.getEventLoopPoolSize() + 4));
     }
 
     @Provides
