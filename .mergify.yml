@@ -42,7 +42,9 @@ pull_request_rules:
 
   - name: request reviews from the reviewers team
     conditions:
-      - label=review-requested
+      - and:
+        - label=review-requested
+        - review-requested!=@reviewers
     actions:
       request_reviews:
         teams:
