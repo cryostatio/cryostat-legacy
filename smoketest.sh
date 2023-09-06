@@ -259,13 +259,13 @@ runJfrDatasource() {
         --name jfr-datasource \
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
-        --cpus 0.1 \
-        --memory 512m \
+        --cpus 0.2 \
+        --memory 384M \
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-XX:-ExitOnOutOfMemoryError -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --rm -d "${DATASOURCE_IMAGE}"
 }
 
@@ -286,7 +286,7 @@ runGrafana() {
         --pull "${PULL_IMAGES}" \
         --pod cryostat-pod \
         --cpus 0.1 \
-        --memory 256M \
+        --memory 120M \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --env JFR_DATASOURCE_URL="http://${host}:${port}" \
@@ -312,10 +312,10 @@ runReportGenerator() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="localhost" \
         --label io.cryostat.jmxPort="${RJMX_PORT}" \
-        --cpus 0.128 \
-        --memory 256M \
+        --cpus 0.2 \
+        --memory 384M \
         --restart on-failure \
-        --env JAVA_OPTS="-Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
+        --env JAVA_OPTS_APPEND="-XX:-ExitOnOutOfMemoryError -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT="${port}" \
         --rm -d "${REPORTS_IMAGE}"
 }
