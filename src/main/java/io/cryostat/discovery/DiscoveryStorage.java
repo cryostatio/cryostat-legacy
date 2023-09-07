@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
 import javax.script.ScriptException;
@@ -69,6 +69,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public static final URI NO_CALLBACK = null;
     private final Duration pingPeriod;
     private final VerticleDeployer deployer;
+    private final ExecutorService executor;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
     private final Lazy<JvmIdHelper> jvmIdHelper;
@@ -86,6 +87,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     DiscoveryStorage(
             VerticleDeployer deployer,
+            ExecutorService executor,
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
             PluginInfoDao dao,
@@ -96,6 +98,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             WebClient http,
             Logger logger) {
         this.deployer = deployer;
+        this.executor = executor;
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
         this.dao = dao;
@@ -183,26 +186,24 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     }
 
     private void testNonConnectedTargets(Predicate<Entry<TargetNode, UUID>> predicate) {
-        ForkJoinPool.commonPool()
-                .execute(
-                        () -> {
-                            Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
-                            for (var entry : copy.entrySet()) {
-                                try {
-                                    if (predicate.test(entry)) {
-                                        nonConnectableTargets.remove(entry.getKey());
-                                        UUID id = entry.getValue();
-                                        PluginInfo plugin = getById(id).orElseThrow();
-                                        EnvironmentNode original =
-                                                gson.fromJson(
-                                                        plugin.getSubtree(), EnvironmentNode.class);
-                                        update(id, original.getChildren());
-                                    }
-                                } catch (JsonSyntaxException e) {
-                                    throw new RuntimeException(e);
-                                }
+        executor.execute(
+                () -> {
+                    Map<TargetNode, UUID> copy = new HashMap<>(nonConnectableTargets);
+                    for (var entry : copy.entrySet()) {
+                        try {
+                            if (predicate.test(entry)) {
+                                nonConnectableTargets.remove(entry.getKey());
+                                UUID id = entry.getValue();
+                                PluginInfo plugin = getById(id).orElseThrow();
+                                EnvironmentNode original =
+                                        gson.fromJson(plugin.getSubtree(), EnvironmentNode.class);
+                                update(id, original.getChildren());
                             }
-                        });
+                        } catch (JsonSyntaxException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
     }
 
     @Override

@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
 
+import io.cryostat.DirectExecutorService;
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
@@ -106,6 +107,7 @@ class DiscoveryStorageTest {
         this.storage =
                 new DiscoveryStorage(
                         deployer,
+                        new DirectExecutorService(),
                         Duration.ofMinutes(5),
                         () -> builtin,
                         dao,
