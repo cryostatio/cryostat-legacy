@@ -164,7 +164,7 @@ runDemoApps() {
         --label io.cryostat.discovery="true" \
         --label io.cryostat.jmxHost="vertx-fib-demo-2" \
         --label io.cryostat.jmxPort="9094" \
-        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://localhost:9094/jmxrmi" \
+        --label io.cryostat.jmxUrl="service:jmx:rmi:///jndi/rmi://vertx-fib-demo-2:9094/jmxrmi" \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.13.1
 
     podman run \
