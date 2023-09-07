@@ -42,21 +42,8 @@ pull_request_rules:
 
   - name: request reviews from the reviewers team
     conditions:
-      - and:
-        - label=review-requested
-        - review-requested!=@reviewers
+      - label=review-requested
     actions:
       request_reviews:
         teams:
           - "@reviewers"
-  
-  # - name: remove review-requested label upon reviewing
-  #   conditions:
-  #     - or:
-  #       - "#changes-requested-reviews-by>0"
-  #       - "#commented-reviews-by>0"
-  #       - "branch-protection-review-decision=APPROVED"
-  #   actions:
-  #     label:
-  #       remove:
-  #         - review-requested
