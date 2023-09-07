@@ -199,6 +199,23 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         testNonConnectedTargets(
                 entry -> {
                     TargetNode targetNode = entry.getKey();
+                    ConnectionAttemptRecord attemptRecord = nonConnectableTargets.get(entry);
+                    // TODO make this configurable, use an exponential backoff, have a
+                    // maximum retry policy, etc.
+                    long nextAttempt =
+                            (attemptRecord.attemptCount * attemptRecord.attemptCount)
+                                    + attemptRecord.lastAttemptTimestamp;
+                    attemptRecord.attemptCount++;
+                    long now = clock.now().getEpochSecond();
+                    if (now < nextAttempt) {
+                        return false;
+                    }
+                    long elapsed =
+                            attemptRecord.lastAttemptTimestamp
+                                    - attemptRecord.firstAttemptTimestamp;
+                    if (elapsed > ConnectionAttemptRecord.MAX_ATTEMPT_INTERVAL) {
+                        return false;
+                    }
                     return testJvmId(targetNode.getTarget());
                 });
     }
@@ -220,25 +237,6 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         for (var entry : copy.entrySet()) {
             executor.execute(
                     () -> {
-                        // TODO make this configurable, use an exponential backoff, have a
-                        // maximum retry policy, etc.
-                        ConnectionAttemptRecord attemptRecord = entry.getValue();
-                        long nextAttempt =
-                                (attemptRecord.attemptCount * attemptRecord.attemptCount)
-                                        + attemptRecord.lastAttemptTimestamp;
-                        attemptRecord.attemptCount++;
-                        long now = clock.now().getEpochSecond();
-                        long elapsed =
-                                attemptRecord.lastAttemptTimestamp
-                                        - attemptRecord.firstAttemptTimestamp;
-                        if (elapsed > ConnectionAttemptRecord.MAX_ATTEMPT_INTERVAL) {
-                            nonConnectableTargets.remove(entry.getKey());
-                            return;
-                        }
-                        if (now < nextAttempt) {
-                            return;
-                        }
-                        attemptRecord.lastAttemptTimestamp = now;
                         try {
                             if (predicate.test(entry.getKey())) {
                                 nonConnectableTargets.remove(entry.getKey());
