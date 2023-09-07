@@ -39,3 +39,22 @@ pull_request_rules:
             is updated. Please revert or drop all changes to the `web-client` submodule from this PR and perform any
             required frontend work by opening and merging a PR against
             [cryostat-web](https://github.com/cryostatio/cryostat-web).
+
+  - name: request reviews from the reviewers team
+    conditions:
+      - label=review-requested
+    actions:
+      request_reviews:
+        teams:
+          - "@cryostatio/reviewers"
+
+  - name: remove review-requested label upon reviewing
+    conditions:
+      - or:
+        - "#approved-reviews-by>0"
+        - "#changes-requested-reviews-by>0"
+        - "#commented-reviews-by>0"
+    actions:
+      label:
+        remove:
+          - review-requested
