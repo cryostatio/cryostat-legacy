@@ -12,7 +12,7 @@ pull_request_rules:
 
   - name: auto label PRs from reviewers
     conditions:
-      - author=@cryostatio/reviewers
+      - author=@reviewers
     actions:
       label:
         add:
