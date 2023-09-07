@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -127,6 +128,7 @@ public abstract class RulesModule {
             Logger logger) {
         return new RuleProcessor(
                 vertx,
+                Executors.newCachedThreadPool(),
                 storage,
                 registry,
                 credentialsManager,

@@ -28,6 +28,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.DirectExecutorService;
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
@@ -91,6 +92,7 @@ class RuleProcessorTest {
         this.processor =
                 new RuleProcessor(
                         vertx,
+                        new DirectExecutorService(),
                         platformClient,
                         registry,
                         credentialsManager,
