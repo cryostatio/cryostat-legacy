@@ -81,7 +81,7 @@
   <org.owasp.dependency.check.version>8.3.1</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.3.2</com.google.cloud.tools.jib.maven.plugin.version>
 
-  <com.google.dagger.version>2.47</com.google.dagger.version>
+  <com.google.dagger.version>2.48</com.google.dagger.version>
 
   <io.cryostat.core.version>2.21.1</io.cryostat.core.version>
 
