@@ -760,7 +760,7 @@
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
-          <tags>${cryostat.imageVersionLower}-${build.os}-${build.arch}</tags>
+          <tags>${cryostat.imageVersionLower},${cryostat.imageVersionLower}-${build.os}-${build.arch}</tags>
         </to>
         <container>
           <format>OCI</format>
