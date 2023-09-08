@@ -453,11 +453,9 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>save</argument>
-              <argument>--format</argument>
-              <argument>docker-archive</argument>
-              <argument>${baseImage}:${baseImageTag}</argument>
               <argument>--output</argument>
               <argument>${project.build.directory}/${baseImageTarball}</argument>
+              <argument>${baseImage}:${baseImageTag}</argument>
             </arguments>
             <skip>${skipBaseImage}</skip>
           </configuration>
@@ -762,7 +760,7 @@
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
-          <tags>${cryostat.imageVersionLower}-${build.os}-${build.arch}</tags>
+          <tags>${cryostat.imageVersionLower},${cryostat.imageVersionLower}-${build.os}-${build.arch}</tags>
         </to>
         <container>
           <format>OCI</format>
