@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -250,14 +251,23 @@ class AgentJFRService implements CryostatFlightRecorderService {
 
     @Override
     public void updateRecordingOptions(
-            IRecordingDescriptor recordingDescriptor, IConstrainedMap<String> newSettings)
-            throws FlightRecorderException {
+        IRecordingDescriptor recordingDescriptor, IConstrainedMap<String> newSettings)
+        throws FlightRecorderException {
         try {
             long recordingId = recordingDescriptor.getId();
-            client.updateRecordingOptions(recordingId, newSettings)
+                
+            Set<String> keys = newSettings.keySet();
+            boolean nameKeyExists = keys.contains("name");
+        
+        if (nameKeyExists) {
+            // Get the new name from newSettings
+            String newName = (String) newSettings.get("name");
+                // Update the recording name using the AgentClient's method
+                client.updateRecordingOptions(recordingId, newName)
                     .toCompletionStage()
                     .toCompletableFuture()
                     .get();
+            }
         } catch (ExecutionException | InterruptedException e) {
             throw new FlightRecorderException("Failed to update recording options", e);
         }
