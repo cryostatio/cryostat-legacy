@@ -56,13 +56,8 @@ jobs:
       with:
         step: restore
     - run: git submodule init
-<<<<<<< HEAD:.github/workflows/ci-jobs.yml
-    - run: git submodule update --remote
-    - run: mvn -B -U clean package
-=======
     - run: git submodule update
-    - run: mvn -B -U -Dbuild.arch=${{ inputs.build-arch }} clean package
->>>>>>> 0d3cbf91 (ci(submodule): don't use remote branch HEAD (#1667)):.github/workflows/ci-build-image.yml
+    - run: mvn -B -U clean package
       env:
         GITHUB_TOKEN_REF: ${{ secrets.GH_PKGS_READ_TOKEN }}
     - name: Save cryostat image
