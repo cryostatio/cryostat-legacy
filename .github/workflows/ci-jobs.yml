@@ -56,7 +56,7 @@ jobs:
       with:
         step: restore
     - run: git submodule init
-    - run: git submodule update --remote
+    - run: git submodule update
     - run: mvn -B -U clean package
       env:
         GITHUB_TOKEN_REF: ${{ secrets.GH_PKGS_READ_TOKEN }}
