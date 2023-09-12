@@ -22,9 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -335,95 +333,80 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
 
     private void archiveRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
         try {
-            targetConnectionManager
-                    .executeConnectedTaskAsync(
-                            connectionDescriptor,
-                            connection -> {
-                                IRecordingDescriptor descriptor =
-                                        connection.getService().getSnapshotRecording();
-                                try {
-                                    recordingArchiveHelper
-                                            .saveRecording(
-                                                    connectionDescriptor, descriptor.getName())
-                                            .get();
-                                } finally {
-                                    connection.getService().close(descriptor);
-                                }
+            targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    connection -> {
+                        IRecordingDescriptor descriptor =
+                                connection.getService().getSnapshotRecording();
+                        try {
+                            recordingArchiveHelper
+                                    .saveRecording(connectionDescriptor, descriptor.getName())
+                                    .get();
+                        } finally {
+                            connection.getService().close(descriptor);
+                        }
 
-                                return null;
-                            })
-                    .get();
+                        return null;
+                    });
         } catch (Exception e) {
             logger.error(new RuleException(e));
         }
     }
 
     private boolean startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
-        CompletableFuture<IRecordingDescriptor> future =
-                targetConnectionManager.executeConnectedTaskAsync(
-                        connectionDescriptor,
-                        connection -> {
-                            Optional<IRecordingDescriptor> opt =
-                                    recordingTargetHelper.getDescriptorByName(
-                                            connection, rule.getRecordingName());
-                            if (opt.isPresent()) {
-                                if (RecordingState.RUNNING.equals(opt.get().getState())) {
-                                    return null;
-                                }
-                            }
-
-                            RecordingOptionsBuilder builder =
-                                    recordingOptionsBuilderFactory
-                                            .create(connection.getService())
-                                            .name(rule.getRecordingName());
-                            if (rule.getMaxAgeSeconds() > 0) {
-                                builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
-                            }
-                            if (rule.getMaxSizeBytes() > 0) {
-                                builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
-                            }
-                            Pair<String, TemplateType> template =
-                                    RecordingTargetHelper.parseEventSpecifierToTemplate(
-                                            rule.getEventSpecifier());
-                            return recordingTargetHelper.startRecording(
-                                    ReplacementPolicy.STOPPED,
-                                    connectionDescriptor,
-                                    builder.build(),
-                                    template.getLeft(),
-                                    template.getRight(),
-                                    new Metadata(),
-                                    false);
-                        });
         try {
-            return future.handleAsync(
-                            (recording, throwable) -> {
-                                if (throwable != null) {
-                                    logger.error(new RuleException(throwable));
-                                    return false;
+            IRecordingDescriptor recording =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> opt =
+                                        recordingTargetHelper.getDescriptorByName(
+                                                connection, rule.getRecordingName());
+                                if (opt.isPresent()) {
+                                    if (RecordingState.RUNNING.equals(opt.get().getState())) {
+                                        return null;
+                                    }
                                 }
-                                if (recording == null) {
-                                    return false;
+
+                                RecordingOptionsBuilder builder =
+                                        recordingOptionsBuilderFactory
+                                                .create(connection.getService())
+                                                .name(rule.getRecordingName());
+                                if (rule.getMaxAgeSeconds() > 0) {
+                                    builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
                                 }
-                                try {
-                                    Map<String, String> labels =
-                                            new HashMap<>(
-                                                    metadataManager
-                                                            .getMetadata(
-                                                                    connectionDescriptor,
-                                                                    recording.getName())
-                                                            .getLabels());
-                                    labels.put("rule", rule.getName());
-                                    metadataManager.setRecordingMetadata(
-                                            connectionDescriptor,
-                                            recording.getName(),
-                                            new Metadata(labels));
-                                } catch (IOException ioe) {
-                                    logger.error(ioe);
+                                if (rule.getMaxSizeBytes() > 0) {
+                                    builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
                                 }
-                                return true;
-                            })
-                    .get();
-        } catch (InterruptedException | ExecutionException e) {
+                                Pair<String, TemplateType> template =
+                                        RecordingTargetHelper.parseEventSpecifierToTemplate(
+                                                rule.getEventSpecifier());
+                                return recordingTargetHelper.startRecording(
+                                        ReplacementPolicy.STOPPED,
+                                        connectionDescriptor,
+                                        builder.build(),
+                                        template.getLeft(),
+                                        template.getRight(),
+                                        new Metadata(),
+                                        false);
+                            });
+            if (recording == null) {
+                return false;
+            }
+            try {
+                Map<String, String> labels =
+                        new HashMap<>(
+                                metadataManager
+                                        .getMetadata(connectionDescriptor, recording.getName())
+                                        .getLabels());
+                labels.put("rule", rule.getName());
+                metadataManager.setRecordingMetadata(
+                        connectionDescriptor, recording.getName(), new Metadata(labels));
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+            return true;
+        } catch (Exception e) {
             logger.error(new RuleException(e));
             return false;
         }
