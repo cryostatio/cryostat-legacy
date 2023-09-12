@@ -132,35 +132,44 @@ public class AgentClient {
 
     Future<IRecordingDescriptor> startSnapshot() {
         StartRecordingRequest snapshotReq = new StartRecordingRequest("snapshot", "", "", 0, 0, 0);
-    
-        return invoke(HttpMethod.POST, "/recordings/", Buffer.buffer(gson.toJson(snapshotReq)), BodyCodec.string())
-                .compose(resp -> {
+
+        Future<HttpResponse<String>> f =
+                invoke(
+                        HttpMethod.POST,
+                        "/recordings/",
+                        Buffer.buffer(gson.toJson(snapshotReq)),
+                        BodyCodec.string());
+
+        return f.map(
+                resp -> {
                     int statusCode = resp.statusCode();
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
-                        return Future.succeededFuture(resp.body());
+                        String body = resp.body();
+                        return gson.fromJson(body, SerializableRecordingDescriptor.class)
+                                .toJmcForm();
                     } else if (statusCode == 403) {
                         throw new UnsupportedOperationException();
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
-                })
-                .map(body -> {
-                    IRecordingDescriptor recordingDescriptor = gson.fromJson(body, SerializableRecordingDescriptor.class)
-                            .toJmcForm();
-                    if ("snapshot".equals(recordingDescriptor.getName())) {
-                        String newName = String.format("snapshot-%d", recordingDescriptor.getId());
-                        updateRecordingOptions(recordingDescriptor.getId(), newName);
-                    }
-                    return recordingDescriptor;
                 });
     }
-    
-    Future<Void> updateRecordingOptions(long id, String newName) {
+
+    Future<Void> updateRecordingOptions(long id, IConstrainedMap<String> newSettings) {
+
         JsonObject jsonSettings = new JsonObject();
-        jsonSettings.put("name", newName);
-        
-        return invoke(HttpMethod.PATCH, String.format("/recordings/%d", id), jsonSettings.toBuffer(), BodyCodec.none())
-                .map(resp -> {
+        for (String key : newSettings.keySet()) {
+            jsonSettings.put(key, newSettings.get(key));
+        }
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.PATCH,
+                        String.format("/recordings/%d", id),
+                        jsonSettings.toBuffer(),
+                        BodyCodec.none());
+
+        return f.map(
+                resp -> {
                     int statusCode = resp.statusCode();
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         return null;
@@ -171,7 +180,7 @@ public class AgentClient {
                     }
                 });
     }
- 
+
     Future<Buffer> openStream(long id) {
         Future<HttpResponse<Buffer>> f =
                 invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());
