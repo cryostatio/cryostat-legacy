@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -173,6 +175,28 @@ class RuleProcessorTest {
                         .build();
 
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        IRecordingDescriptor autoRule = Mockito.mock(IRecordingDescriptor.class);
+
+        Mockito.when(recordingTargetHelper.getDescriptorByName(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(autoRule));
+
+        Mockito.when(
+                        recordingTargetHelper.startRecording(
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.anyBoolean()))
+                .thenReturn(autoRule);
+
+        Metadata metadata = new Metadata(Map.of());
+
+        Mockito.when(metadataManager.getMetadata(Mockito.any(), Mockito.any()))
+                .thenReturn(metadata);
 
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
@@ -336,7 +360,54 @@ class RuleProcessorTest {
                         .archivalPeriodSeconds(67)
                         .build();
 
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilder.name(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.toDisk(Mockito.anyBoolean()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxAge(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTaskAsync(
+                                Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        arg0 ->
+                                CompletableFuture.completedFuture(
+                                        ((TargetConnectionManager.ConnectedTask<Object>)
+                                                        arg0.getArgument(1))
+                                                .execute(connection)));
+
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        IRecordingDescriptor autoRule = Mockito.mock(IRecordingDescriptor.class);
+
+        Mockito.when(recordingTargetHelper.getDescriptorByName(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(autoRule));
+
+        Mockito.when(
+                        recordingTargetHelper.startRecording(
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.anyBoolean()))
+                .thenReturn(autoRule);
+
+        Metadata metadata = new Metadata(Map.of());
+
+        Mockito.when(metadataManager.getMetadata(Mockito.any(), Mockito.any()))
+                .thenReturn(metadata);
 
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(

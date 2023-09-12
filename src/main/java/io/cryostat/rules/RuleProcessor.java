@@ -146,7 +146,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             private void activateRule(Event<RuleEvent, Rule> event) {
                 executor.submit(
                         () -> {
-                            platformClient.listUniqueReachableServices().stream()
+                            platformClient.listDiscoverableServices().stream()
                                     .filter(
                                             serviceRef ->
                                                     registry.applies(
@@ -247,10 +247,17 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                             }
                         } else {
                             try {
-                                startRuleRecording(
-                                        new ConnectionDescriptor(serviceRef, credentials), rule);
+                                if (!startRuleRecording(
+                                        new ConnectionDescriptor(serviceRef, credentials), rule)) {
+                                    return;
+                                }
                             } catch (Exception e) {
                                 logger.error(e);
+                                return;
+                            } finally {
+                                if (tasks.containsKey(key)) {
+                                    vertx.cancelTimer(tasks.get(key).get());
+                                }
                             }
 
                             PeriodicArchiver periodicArchiver =
@@ -272,7 +279,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     vertx.setTimer(
                                             Duration.ofSeconds(initialDelay).toMillis(),
                                             initialId -> {
-                                                vertx.cancelTimer(tasks.get(key).get());
                                                 periodicArchiver.run();
                                                 long periodicTask =
                                                         vertx.setPeriodic(
@@ -318,7 +324,9 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> key) {
-        vertx.cancelTimer(tasks.get(key).get());
+        if (tasks.containsKey(key)) {
+            vertx.cancelTimer(tasks.get(key).get());
+        }
         tasks.remove(key);
         return null;
     }
@@ -348,11 +356,17 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         }
     }
 
-    private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
+    private boolean startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule) {
         CompletableFuture<IRecordingDescriptor> future =
                 targetConnectionManager.executeConnectedTaskAsync(
                         connectionDescriptor,
                         connection -> {
+                            if (recordingTargetHelper
+                                    .getDescriptorByName(connection, rule.getRecordingName())
+                                    .isPresent()) {
+                                return null;
+                            }
+
                             RecordingOptionsBuilder builder =
                                     recordingOptionsBuilderFactory
                                             .create(connection.getService())
@@ -376,11 +390,14 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     false);
                         });
         try {
-            future.handleAsync(
+            return future.handleAsync(
                             (recording, throwable) -> {
                                 if (throwable != null) {
                                     logger.error(new RuleException(throwable));
-                                    return null;
+                                    return false;
+                                }
+                                if (recording == null) {
+                                    return false;
                                 }
                                 try {
                                     Map<String, String> labels =
@@ -398,11 +415,12 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                 } catch (IOException ioe) {
                                     logger.error(ioe);
                                 }
-                                return null;
+                                return true;
                             })
                     .get();
         } catch (InterruptedException | ExecutionException e) {
             logger.error(new RuleException(e));
+            return false;
         }
     }
 }
