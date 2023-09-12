@@ -18,14 +18,14 @@ package io.cryostat.rules;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import javax.script.ScriptException;
@@ -71,7 +71,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
 
-    private final Map<Pair<ServiceRef, Rule>, Set<Long>> tasks;
+    private final Map<Pair<ServiceRef, Rule>, AtomicLong> tasks;
 
     RuleProcessor(
             Vertx vertx,
@@ -98,7 +98,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         this.metadataManager = metadataManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
-        this.tasks = new HashMap<>();
+        this.tasks = new ConcurrentHashMap<>();
 
         this.registry.addListener(this.ruleListener());
         this.credentialsManager.addListener(this.credentialsListener());
@@ -112,7 +112,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     @Override
     public void stop() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((ruleExecution, ids) -> ids.forEach(vertx::cancelTimer));
+        this.tasks.forEach((ruleExecution, id) -> vertx.cancelTimer(id.get()));
         this.tasks.clear();
     }
 
@@ -215,6 +215,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
+        Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
         if (!rule.isEnabled()) {
             this.logger.trace(
                     "Activating rule {} for target {} aborted, rule is disabled {} ",
@@ -223,7 +224,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                     rule.isEnabled());
             return;
         }
-        if (tasks.containsKey(Pair.of(serviceRef, rule))) {
+        if (tasks.containsKey(key)) {
             this.logger.trace(
                     "Activating rule {} for target {} aborted, rule is already active",
                     rule.getName(),
@@ -259,8 +260,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                             rule,
                                             recordingArchiveHelper,
                                             this::archivalFailureHandler);
-                            Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
-                            Set<Long> ids = tasks.computeIfAbsent(key, k -> new HashSet<>());
                             int initialDelay = rule.getInitialDelaySeconds();
                             int archivalPeriodSeconds = rule.getArchivalPeriodSeconds();
                             if (initialDelay <= 0) {
@@ -273,7 +272,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                     vertx.setTimer(
                                             Duration.ofSeconds(initialDelay).toMillis(),
                                             initialId -> {
-                                                tasks.get(key).remove(initialId);
+                                                vertx.cancelTimer(tasks.get(key).get());
                                                 periodicArchiver.run();
                                                 long periodicTask =
                                                         vertx.setPeriodic(
@@ -284,9 +283,9 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                                                                         executor.submit(
                                                                                 periodicArchiver
                                                                                         ::run));
-                                                ids.add(periodicTask);
+                                                tasks.get(key).set(periodicTask);
                                             });
-                            ids.add(initialTask);
+                            tasks.put(key, new AtomicLong(initialTask));
                         }
                     } catch (ScriptException e) {
                         logger.error(e);
@@ -304,25 +303,22 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         if (serviceRef != null) {
             logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
         }
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Set<Long>>> it = tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, AtomicLong>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Set<Long>> entry = it.next();
+            Map.Entry<Pair<ServiceRef, Rule>, AtomicLong> entry = it.next();
             boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
             boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
             if (sameRule || sameTarget) {
-                Set<Long> ids = entry.getValue();
-                ids.forEach(
-                        (id) -> {
-                            vertx.cancelTimer(id);
-                            logger.trace("Cancelled timer {}", id);
-                        });
+                AtomicLong id = entry.getValue();
+                vertx.cancelTimer(id.get());
+                logger.trace("Cancelled timer {}", id.get());
                 it.remove();
             }
         }
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> key) {
-        tasks.get(key).forEach(vertx::cancelTimer);
+        vertx.cancelTimer(tasks.get(key).get());
         tasks.remove(key);
         return null;
     }
