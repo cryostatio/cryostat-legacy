@@ -165,14 +165,18 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             public void onEvent(Event<CredentialsEvent, String> event) {
                 switch (event.getEventType()) {
                     case ADDED:
-                        credentialsManager
-                                .resolveMatchingTargets(event.getPayload())
-                                .forEach(
-                                        sr -> {
-                                            registry.getRules(sr).stream()
-                                                    .filter(Rule::isEnabled)
-                                                    .forEach(rule -> activate(rule, sr));
-                                        });
+                        executor.submit(
+                                () -> {
+                                    credentialsManager
+                                            .resolveMatchingTargets(event.getPayload())
+                                            .forEach(
+                                                    sr -> {
+                                                        registry.getRules(sr).stream()
+                                                                .filter(Rule::isEnabled)
+                                                                .forEach(
+                                                                        rule -> activate(rule, sr));
+                                                    });
+                                });
                         break;
                     case REMOVED:
                         break;
