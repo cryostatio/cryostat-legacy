@@ -128,7 +128,8 @@ public abstract class RulesModule {
             Logger logger) {
         return new RuleProcessor(
                 vertx,
-                Executors.newCachedThreadPool(),
+                // Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors()),
+                Executors.newSingleThreadScheduledExecutor(),
                 storage,
                 registry,
                 credentialsManager,

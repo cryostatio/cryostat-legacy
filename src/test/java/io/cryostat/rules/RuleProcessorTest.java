@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -30,7 +32,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.DirectExecutorService;
+import io.cryostat.FakeScheduledExecutorService;
 import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
@@ -53,7 +55,6 @@ import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
@@ -73,6 +74,7 @@ import org.mockito.stubbing.Answer;
 class RuleProcessorTest {
 
     RuleProcessor processor;
+    FakeScheduledExecutorService executor;
     Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
@@ -90,11 +92,12 @@ class RuleProcessorTest {
 
     @BeforeEach
     void setup() {
+        this.executor = Mockito.spy(new FakeScheduledExecutorService());
         this.vertx = MockVertx.vertx();
         this.processor =
                 new RuleProcessor(
                         vertx,
-                        new DirectExecutorService(),
+                        executor,
                         platformClient,
                         registry,
                         credentialsManager,
@@ -142,15 +145,12 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
 
         Mockito.when(connection.getService()).thenReturn(service);
 
@@ -261,30 +261,27 @@ class RuleProcessorTest {
 
         MatcherAssert.assertThat(metadataCaptor.getValue(), Matchers.equalTo(new Metadata()));
 
-        ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
-        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), handlerCaptor.capture());
+        ArgumentCaptor<Runnable> handlerCaptor = ArgumentCaptor.forClass(Runnable.class);
+        Mockito.verify(executor)
+                .scheduleAtFixedRate(
+                        handlerCaptor.capture(),
+                        Mockito.eq((long) rule.getInitialDelaySeconds()),
+                        Mockito.eq((long) rule.getArchivalPeriodSeconds()),
+                        Mockito.eq(TimeUnit.SECONDS));
 
-        Mockito.verify(periodicArchiver, Mockito.times(0)).run();
-        handlerCaptor.getValue().handle(1234L);
         Mockito.verify(periodicArchiver, Mockito.times(1)).run();
-
-        Mockito.verify(vertx).setPeriodic(Mockito.eq(67_000L), handlerCaptor.capture());
-
-        handlerCaptor.getValue().handle(1234L);
+        handlerCaptor.getValue().run();
         Mockito.verify(periodicArchiver, Mockito.times(2)).run();
     }
 
     @Test
     void testSuccessfulArchiverRuleActivationWithCredentials() throws Exception {
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
 
         Mockito.when(connection.getService()).thenReturn(service);
 
@@ -375,15 +372,12 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
 
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
 
@@ -409,7 +403,7 @@ class RuleProcessorTest {
         Mockito.when(metadataManager.getMetadata(Mockito.any(), Mockito.any()))
                 .thenReturn(metadata);
 
-        PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
+        PeriodicArchiver[] pa = new PeriodicArchiver[1];
         Mockito.when(
                         periodicArchiverFactory.create(
                                 Mockito.any(),
@@ -417,27 +411,51 @@ class RuleProcessorTest {
                                 Mockito.any(),
                                 Mockito.any(),
                                 Mockito.any()))
-                .thenReturn(periodicArchiver);
+                .thenAnswer(
+                        new Answer<PeriodicArchiver>() {
+                            @Override
+                            public PeriodicArchiver answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                CredentialsManager cm = invocation.getArgument(1);
+                                Function<Pair<String, Rule>, Void> fn =
+                                        invocation.getArgument(4);
+                                PeriodicArchiver p =
+                                        new PeriodicArchiver(
+                                                serviceRef,
+                                                cm,
+                                                rule,
+                                                recordingArchiveHelper,
+                                                fn,
+                                                logger);
+                                pa[0] = p;
+                                return p;
+                            }
+                        });
+
+        ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
+        Mockito.doReturn(task)
+                .when(executor)
+                .scheduleAtFixedRate(
+                        Mockito.any(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
 
         processor.accept(tde);
 
-        Mockito.verify(vertx).setTimer(Mockito.eq(67_000L), Mockito.any());
+        Mockito.verify(executor)
+                .scheduleAtFixedRate(
+                        Mockito.any(),
+                        Mockito.eq((long) rule.getInitialDelaySeconds()),
+                        Mockito.eq((long) rule.getArchivalPeriodSeconds()),
+                        Mockito.eq(TimeUnit.SECONDS));
 
-        ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
-                ArgumentCaptor.forClass(Function.class);
         Mockito.verify(periodicArchiverFactory)
-                .create(
-                        Mockito.any(),
-                        Mockito.any(),
-                        Mockito.any(),
-                        Mockito.any(),
-                        functionCaptor.capture());
-        Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
-        Mockito.verify(vertx, Mockito.never()).cancelTimer(MockVertx.TIMER_ID);
+                .create(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
 
-        failureFunction.apply(Pair.of(serviceRef, rule));
+        Mockito.when(recordingArchiveHelper.getRecordings(Mockito.any()))
+                .thenReturn(CompletableFuture.failedFuture(new SecurityException()));
+        pa[0].run();
 
-        Mockito.verify(vertx).cancelTimer(MockVertx.TIMER_ID);
+        Mockito.verify(task).cancel(false);
     }
 
     @Test
@@ -463,15 +481,12 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTaskAsync(
-                                Mockito.any(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 ->
-                                CompletableFuture.completedFuture(
-                                        ((TargetConnectionManager.ConnectedTask<Object>)
-                                                        arg0.getArgument(1))
-                                                .execute(connection)));
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
 
         Event<CredentialsEvent, String> event = Mockito.mock(Event.class);
