@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -32,6 +33,7 @@ import javax.script.ScriptException;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
@@ -361,10 +363,13 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                 targetConnectionManager.executeConnectedTaskAsync(
                         connectionDescriptor,
                         connection -> {
-                            if (recordingTargetHelper
-                                    .getDescriptorByName(connection, rule.getRecordingName())
-                                    .isPresent()) {
-                                return null;
+                            Optional<IRecordingDescriptor> opt =
+                                    recordingTargetHelper.getDescriptorByName(
+                                            connection, rule.getRecordingName());
+                            if (opt.isPresent()) {
+                                if (RecordingState.RUNNING.equals(opt.get().getState())) {
+                                    return null;
+                                }
                             }
 
                             RecordingOptionsBuilder builder =
