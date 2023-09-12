@@ -116,7 +116,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         this.tasks.clear();
     }
 
-    public EventListener<RuleRegistry.RuleEvent, Rule> ruleListener() {
+    EventListener<RuleRegistry.RuleEvent, Rule> ruleListener() {
         return new EventListener<RuleRegistry.RuleEvent, Rule>() {
 
             @Override
@@ -169,7 +169,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         };
     }
 
-    public EventListener<CredentialsManager.CredentialsEvent, String> credentialsListener() {
+    EventListener<CredentialsManager.CredentialsEvent, String> credentialsListener() {
         return new EventListener<CredentialsManager.CredentialsEvent, String>() {
 
             @Override
