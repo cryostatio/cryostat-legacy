@@ -123,21 +123,10 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             public void onEvent(Event<RuleEvent, Rule> event) {
                 switch (event.getEventType()) {
                     case ADDED:
-                        executor.submit(
-                                () -> {
-                                    platformClient.listUniqueReachableServices().stream()
-                                            .filter(
-                                                    serviceRef ->
-                                                            event.getPayload().isEnabled()
-                                                                    && registry.applies(
-                                                                            event.getPayload(),
-                                                                            serviceRef))
-                                            .forEach(
-                                                    serviceRef ->
-                                                            activate(
-                                                                    event.getPayload(),
-                                                                    serviceRef));
-                                });
+                        if (!event.getPayload().isEnabled()) {
+                            break;
+                        }
+                        activateRule(event);
                         break;
                     case REMOVED:
                         deactivate(event.getPayload(), null);
@@ -146,25 +135,25 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                         if (!event.getPayload().isEnabled()) {
                             deactivate(event.getPayload(), null);
                         } else {
-                            executor.submit(
-                                    () -> {
-                                        platformClient.listUniqueReachableServices().stream()
-                                                .filter(
-                                                        serviceRef ->
-                                                                registry.applies(
-                                                                        event.getPayload(),
-                                                                        serviceRef))
-                                                .forEach(
-                                                        serviceRef ->
-                                                                activate(
-                                                                        event.getPayload(),
-                                                                        serviceRef));
-                                    });
+                            activateRule(event);
                         }
                         break;
                     default:
                         throw new UnsupportedOperationException(event.getEventType().toString());
                 }
+            }
+
+            private void activateRule(Event<RuleEvent, Rule> event) {
+                executor.submit(
+                        () -> {
+                            platformClient.listUniqueReachableServices().stream()
+                                    .filter(
+                                            serviceRef ->
+                                                    registry.applies(
+                                                            event.getPayload(), serviceRef))
+                                    .forEach(
+                                            serviceRef -> activate(event.getPayload(), serviceRef));
+                        });
             }
         };
     }
