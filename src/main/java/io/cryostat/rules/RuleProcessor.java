@@ -165,24 +165,34 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             public void onEvent(Event<CredentialsEvent, String> event) {
                 switch (event.getEventType()) {
                     case ADDED:
-                        executor.submit(
-                                () -> {
-                                    credentialsManager
-                                            .resolveMatchingTargets(event.getPayload())
-                                            .forEach(
-                                                    sr -> {
-                                                        registry.getRules(sr).stream()
-                                                                .filter(Rule::isEnabled)
-                                                                .forEach(
-                                                                        rule -> activate(rule, sr));
-                                                    });
-                                });
+                        activateRule(event);
                         break;
                     case REMOVED:
+                        // check if we need to re-trigger on each target even though we are removing
+                        // credentials. This targets the case where there may be multiple
+                        // overlapping credentials applying to a single target. This is generally an
+                        // invalid configuration, but if a credential definition is removed, we can
+                        // fairly cheaply check if another set of credentials may apply and allow us
+                        // to trigger a rule activation.
+                        activateRule(event);
                         break;
                     default:
                         throw new UnsupportedOperationException(event.getEventType().toString());
                 }
+            }
+
+            private void activateRule(Event<CredentialsEvent, String> event) {
+                executor.submit(
+                        () -> {
+                            credentialsManager
+                                    .resolveMatchingTargets(event.getPayload())
+                                    .forEach(
+                                            sr -> {
+                                                registry.getRules(sr).stream()
+                                                        .filter(Rule::isEnabled)
+                                                        .forEach(rule -> activate(rule, sr));
+                                            });
+                        });
             }
         };
     }
