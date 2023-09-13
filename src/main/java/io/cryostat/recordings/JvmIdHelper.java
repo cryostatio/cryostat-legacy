@@ -114,15 +114,20 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
         try {
-            String id =
-                    this.targetConnectionManager.executeConnectedTask(
+            CompletableFuture<String> future =
+                    this.targetConnectionManager.executeConnectedTaskAsync(
                             new ConnectionDescriptor(uriStr, credentialsManager.getCredentials(sr)),
                             JFRConnection::getJvmId);
-            String prevId = this.ids.synchronous().get(uriStr);
-            if (!Objects.equals(prevId, id)) {
-                this.ids.put(uriStr, CompletableFuture.completedFuture(id));
-                logger.info("JVM ID: {} -> {}", uriStr, id);
-            }
+            future.thenAccept(
+                    id -> {
+                        String prevId = this.ids.synchronous().get(uriStr);
+                        if (Objects.equals(prevId, id)) {
+                            return;
+                        }
+                        this.ids.put(uriStr, CompletableFuture.completedFuture(id));
+                        logger.info("JVM ID: {} -> {}", uriStr, id);
+                    });
+            String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
 
             ServiceRef updated = new ServiceRef(id, serviceUri, sr.getAlias().orElse(uriStr));
             updated.setLabels(sr.getLabels());
@@ -130,7 +135,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
             reverse.put(id, sr);
             return updated;
-        } catch (Exception e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
             logger.warn("Could not resolve jvmId for target {}", uriStr);
             throw new JvmIdGetException(e, uriStr);
         }
