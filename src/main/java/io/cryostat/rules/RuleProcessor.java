@@ -55,6 +55,7 @@ import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDiscoveryEvent> {
@@ -71,7 +72,7 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
 
-    private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
+    private final Map<Pair<String, Rule>, Future<?>> tasks;
 
     RuleProcessor(
             Vertx vertx,
@@ -225,7 +226,12 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
-        Pair<ServiceRef, Rule> key = Pair.of(serviceRef, rule);
+        if (StringUtils.isBlank(serviceRef.getJvmId())) {
+            this.logger.trace(
+                    "Target {} has no JVM ID, aborting rule activation",
+                    serviceRef.getServiceUri());
+        }
+        Pair<String, Rule> key = Pair.of(serviceRef.getJvmId(), rule);
         if (!rule.isEnabled()) {
             this.logger.trace(
                     "Activating rule {} for target {} aborted, rule is disabled {} ",
@@ -264,10 +270,10 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
                             } catch (Exception e) {
                                 logger.error(e);
                                 return;
-                            } finally {
-                                if (tasks.containsKey(key)) {
-                                    tasks.get(key).cancel(false);
-                                }
+                            }
+
+                            if (tasks.containsKey(key)) {
+                                tasks.get(key).cancel(false);
                             }
 
                             PeriodicArchiver periodicArchiver =
@@ -309,20 +315,26 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
         if (serviceRef != null) {
             logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
         }
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<String, Rule>, Future<?>>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
-            boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
-            boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
+            Map.Entry<Pair<String, Rule>, Future<?>> entry = it.next();
+            Pair<String, Rule> key = entry.getKey();
+            Future<?> task = entry.getValue();
+            boolean sameTarget =
+                    serviceRef != null && Objects.equals(key.getLeft(), serviceRef.getJvmId());
+            boolean sameRule = Objects.equals(key.getRight(), rule);
             if (sameRule || sameTarget) {
-                Future<?> task = entry.getValue();
-                task.cancel(false);
-                it.remove();
+                try {
+                    it.remove();
+                    task.cancel(false);
+                } catch (Exception e) {
+                    logger.error(e);
+                }
             }
         }
     }
 
-    private Void archivalFailureHandler(Pair<ServiceRef, Rule> key) {
+    private Void archivalFailureHandler(Pair<String, Rule> key) {
         if (tasks.containsKey(key)) {
             tasks.get(key).cancel(false);
         }
