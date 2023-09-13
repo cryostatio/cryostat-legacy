@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Singleton;
 
 import io.cryostat.DirectExecutorService;
+import io.cryostat.FakeScheduledExecutorService;
 import io.cryostat.MainModule;
 import io.cryostat.MockVertx;
 import io.cryostat.VerticleDeployer;
@@ -109,6 +110,7 @@ class DiscoveryStorageTest {
         this.storage =
                 new DiscoveryStorage(
                         deployer,
+                        new FakeScheduledExecutorService(),
                         new DirectExecutorService(),
                         Duration.ofMinutes(5),
                         () -> builtin,
@@ -206,13 +208,11 @@ class DiscoveryStorageTest {
             storage.start(p);
             f.join();
 
-            Mockito.verify(dao).delete(plugin.getId());
+            Mockito.verify(dao, Mockito.times(2)).delete(plugin.getId());
         }
 
         @Test
         void removesPluginsIfCallbackFails() throws Exception {
-            Mockito.when(deployer.deploy(Mockito.any(), Mockito.anyBoolean()))
-                    .thenReturn(Future.succeededFuture());
             EnvironmentNode realm =
                     new EnvironmentNode("realm", BaseNodeType.REALM, Map.of(), Set.of());
             PluginInfo plugin =
@@ -245,7 +245,7 @@ class DiscoveryStorageTest {
             storage.start(p);
             f.join();
 
-            Mockito.verify(dao).delete(plugin.getId());
+            Mockito.verify(dao, Mockito.times(2)).delete(plugin.getId());
         }
 
         @Test

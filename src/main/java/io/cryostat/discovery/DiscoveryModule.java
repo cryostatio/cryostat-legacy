@@ -82,6 +82,7 @@ public abstract class DiscoveryModule {
             Logger logger) {
         return new DiscoveryStorage(
                 deployer,
+                Executors.newSingleThreadScheduledExecutor(),
                 Executors.newCachedThreadPool(),
                 pingPeriod,
                 builtin,

@@ -30,6 +30,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import javax.script.ScriptException;
@@ -54,14 +57,11 @@ import io.cryostat.util.HttpStatusCodeIdentifier;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -72,6 +72,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     public static final URI NO_CALLBACK = null;
     private final Duration pingPeriod;
     private final VerticleDeployer deployer;
+    private final ScheduledExecutorService scheduler;
     private final ExecutorService executor;
     private final Lazy<BuiltInDiscovery> builtin;
     private final PluginInfoDao dao;
@@ -82,8 +83,8 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     private final Clock clock;
     private final WebClient http;
     private final Logger logger;
-    private long pluginPruneTimerId = -1L;
-    private long targetRetryTimerId = -1L;
+    private ScheduledFuture<?> pluginPruneTask;
+    private ScheduledFuture<?> targetRetryTask;
 
     private final Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> nonConnectableTargets =
             new ConcurrentHashMap<>();
@@ -92,6 +93,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     DiscoveryStorage(
             VerticleDeployer deployer,
+            ScheduledExecutorService scheduler,
             ExecutorService executor,
             Duration pingPeriod,
             Lazy<BuiltInDiscovery> builtin,
@@ -104,6 +106,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
             Clock clock,
             Logger logger) {
         this.deployer = deployer;
+        this.scheduler = scheduler;
         this.executor = executor;
         this.pingPeriod = pingPeriod;
         this.builtin = builtin;
@@ -120,24 +123,34 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
     @Override
     public void start(Promise<Void> future) throws Exception {
         pingPrune()
-                .onSuccess(
-                        cf ->
-                                deployer.deploy(builtin.get(), true)
-                                        .onSuccess(ar -> future.complete())
-                                        .onFailure(t -> future.fail((Throwable) t))
-                                        .eventually(
-                                                m ->
-                                                        getVertx()
-                                                                .eventBus()
-                                                                .send(
-                                                                        DISCOVERY_STARTUP_ADDRESS,
-                                                                        "Discovery storage"
-                                                                                + " deployed")))
-                .onFailure(future::fail);
+                .whenComplete(
+                        (v, ex) -> {
+                            if (ex != null) {
+                                future.fail(ex);
+                                return;
+                            }
+                            deployer.deploy(builtin.get(), true)
+                                    .onSuccess(ar -> future.complete())
+                                    .onFailure(t -> future.fail((Throwable) t))
+                                    .eventually(
+                                            m ->
+                                                    getVertx()
+                                                            .eventBus()
+                                                            .send(
+                                                                    DISCOVERY_STARTUP_ADDRESS,
+                                                                    "Discovery storage deployed"));
+                        });
 
-        this.pluginPruneTimerId = getVertx().setPeriodic(pingPeriod.toMillis(), i -> pingPrune());
-        this.targetRetryTimerId =
-                getVertx().setPeriodic(2_000, i -> checkNonConnectedTargetJvmIds());
+        this.pluginPruneTask =
+                scheduler.scheduleAtFixedRate(
+                        this::pingPrune,
+                        pingPeriod.toMillis(),
+                        pingPeriod.toMillis(),
+                        TimeUnit.MILLISECONDS);
+        // TODO make this configurable
+        this.targetRetryTask =
+                scheduler.scheduleAtFixedRate(
+                        this::checkNonConnectedTargetJvmIds, 2, 2, TimeUnit.SECONDS);
         this.credentialsManager
                 .get()
                 .addListener(
@@ -235,7 +248,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         Map<Pair<TargetNode, UUID>, ConnectionAttemptRecord> copy =
                 new HashMap<>(nonConnectableTargets);
         for (var entry : copy.entrySet()) {
-            executor.execute(
+            executor.submit(
                     () -> {
                         try {
                             if (predicate.test(entry.getKey())) {
@@ -255,33 +268,36 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
 
     @Override
     public void stop() {
-        getVertx().cancelTimer(pluginPruneTimerId);
-        getVertx().cancelTimer(targetRetryTimerId);
+        if (this.pluginPruneTask != null) {
+            this.pluginPruneTask.cancel(false);
+        }
+        if (this.targetRetryTask != null) {
+            this.targetRetryTask.cancel(false);
+        }
     }
 
-    private CompositeFuture pingPrune() {
-        List<Future> futures =
+    private CompletableFuture<?> pingPrune() {
+        List<CompletableFuture<Boolean>> futures =
                 dao.getAll().stream()
                         .map(
                                 plugin -> {
                                     UUID key = plugin.getId();
                                     URI uri = plugin.getCallback();
-                                    return (Future)
-                                            ping(HttpMethod.POST, uri)
-                                                    .onSuccess(
-                                                            res -> {
-                                                                if (!Boolean.TRUE.equals(res)) {
-                                                                    removePlugin(key, uri);
-                                                                }
-                                                            });
+                                    return ping(HttpMethod.POST, uri)
+                                            .whenComplete(
+                                                    (v, t) -> {
+                                                        if (t != null || !Boolean.TRUE.equals(v)) {
+                                                            removePlugin(key, uri);
+                                                        }
+                                                    });
                                 })
                         .toList();
-        return CompositeFuture.join(futures);
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
-    private Future<Boolean> ping(HttpMethod mtd, URI uri) {
+    private CompletableFuture<Boolean> ping(HttpMethod mtd, URI uri) {
         if (Objects.equals(uri, NO_CALLBACK)) {
-            return Future.succeededFuture(true);
+            return CompletableFuture.completedFuture(true);
         }
         HttpRequest<Buffer> req =
                 http.request(mtd, uri.getPort(), uri.getHost(), uri.getPath())
@@ -300,27 +316,34 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
                                     credentials.getCredentials().getUsername(),
                                     credentials.getCredentials().getPassword()));
         }
-        return req.send()
-                .onComplete(
-                        ar -> {
-                            if (ar.failed()) {
-                                logger.info(
-                                        "{} {} failed: {}",
-                                        mtd,
-                                        uri,
-                                        ExceptionUtils.getStackTrace(ar.cause()));
-                                return;
-                            }
-                            logger.info(
-                                    "{} {} status {}: {}",
-                                    mtd,
-                                    uri,
-                                    ar.result().statusCode(),
-                                    ar.result().statusMessage());
-                        })
-                .map(HttpResponse::statusCode)
-                .map(HttpStatusCodeIdentifier::isSuccessCode)
-                .otherwise(false);
+        final HttpRequest<Buffer> freq = req;
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        executor.submit(
+                () -> {
+                    freq.send()
+                            .onComplete(
+                                    ar -> {
+                                        if (ar.failed()) {
+                                            logger.info(
+                                                    "{} {} failed: {}",
+                                                    mtd,
+                                                    uri,
+                                                    ExceptionUtils.getStackTrace(ar.cause()));
+                                            result.completeExceptionally(ar.cause());
+                                            return;
+                                        }
+                                        logger.info(
+                                                "{} {} status {}: {}",
+                                                mtd,
+                                                uri,
+                                                ar.result().statusCode(),
+                                                ar.result().statusMessage());
+                                        result.complete(
+                                                HttpStatusCodeIdentifier.isSuccessCode(
+                                                        ar.result().statusCode()));
+                                    });
+                });
+        return result;
     }
 
     private Optional<StoredCredentials> getStoredCredentials(URI uri) {
@@ -359,9 +382,7 @@ public class DiscoveryStorage extends AbstractPlatformClientVerticle {
         // FIXME this method should return a Future and be performed async
         Objects.requireNonNull(realm, "realm");
         try {
-            CompletableFuture<Boolean> cf = new CompletableFuture<>();
-            ping(HttpMethod.GET, callback)
-                    .onComplete(ar -> cf.complete(ar.succeeded() && ar.result()));
+            CompletableFuture<Boolean> cf = ping(HttpMethod.GET, callback);
             if (!cf.get()) {
                 throw new Exception("callback ping failure");
             }
