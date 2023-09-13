@@ -28,6 +28,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,6 +61,7 @@ public class TargetConnectionManager {
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
     private final Lazy<AgentConnection.Factory> agentConnectionFactory;
     private final Executor executor;
+    private final long connectionTimeoutSeconds;
     private final Logger logger;
 
     private final AsyncLoadingCache<ConnectionDescriptor, JFRConnection> connections;
@@ -74,10 +76,12 @@ public class TargetConnectionManager {
             Scheduler scheduler,
             Duration ttl,
             int maxTargetConnections,
+            long connectionTimeoutSeconds,
             Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.agentConnectionFactory = agentConnectionFactory;
         this.executor = executor;
+        this.connectionTimeoutSeconds = connectionTimeoutSeconds;
         this.logger = logger;
 
         this.targetLocks = new ConcurrentHashMap<>();
@@ -134,7 +138,8 @@ public class TargetConnectionManager {
                                     throw new CompletionException(e);
                                 }
                             },
-                            executor);
+                            executor)
+                    .orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS);
         }
     }
 
@@ -282,14 +287,15 @@ public class TargetConnectionManager {
         public CompletableFuture<JFRConnection> asyncLoad(
                 ConnectionDescriptor key, Executor executor) throws Exception {
             return CompletableFuture.supplyAsync(
-                    () -> {
-                        try {
-                            return connect(key);
-                        } catch (Exception e) {
-                            throw new CompletionException(e);
-                        }
-                    },
-                    executor);
+                            () -> {
+                                try {
+                                    return connect(key);
+                                } catch (Exception e) {
+                                    throw new CompletionException(e);
+                                }
+                            },
+                            executor)
+                    .orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS);
         }
 
         @Override

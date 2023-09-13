@@ -116,7 +116,6 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         try {
             String id =
                     computeJvmId(uriStr, Optional.ofNullable(credentialsManager.getCredentials(sr)))
-                            .orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
                             .whenComplete(
                                     (i, t) -> {
                                         String prevId = this.ids.synchronous().get(uriStr);
@@ -126,7 +125,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                         this.ids.put(uriStr, CompletableFuture.completedFuture(i));
                                         logger.info("JVM ID: {} -> {}", uriStr, i);
                                     })
-                            .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+                            .get();
 
             ServiceRef updated = new ServiceRef(id, serviceUri, sr.getAlias().orElse(uriStr));
             updated.setLabels(sr.getLabels());
@@ -134,7 +133,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
             updated.setCryostatAnnotations(sr.getCryostatAnnotations());
             reverse.put(id, sr);
             return updated;
-        } catch (InterruptedException | ExecutionException | TimeoutException | ScriptException e) {
+        } catch (InterruptedException | ExecutionException | ScriptException e) {
             logger.warn("Could not resolve jvmId for target {}", uriStr);
             throw new JvmIdGetException(e, uriStr);
         }
@@ -165,7 +164,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                         : credentialsManager.getCredentialsByTargetId(targetId)),
                         JFRConnection::getJvmId);
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
-        return future.orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS);
+        return future;
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {

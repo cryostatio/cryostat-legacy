@@ -126,6 +126,7 @@ public abstract class NetworkModule {
             DiscoveryStorage storage,
             @Named(Variables.TARGET_CACHE_TTL) Duration maxTargetTtl,
             @Named(Variables.TARGET_MAX_CONCURRENT_CONNECTIONS) int maxTargetConnections,
+            @Named(Variables.JMX_CONNECTION_TIMEOUT) long connectionTimeoutSeconds,
             Logger logger) {
         return new TargetConnectionManager(
                 connectionToolkit,
@@ -135,6 +136,7 @@ public abstract class NetworkModule {
                 Scheduler.systemScheduler(),
                 maxTargetTtl,
                 maxTargetConnections,
+                connectionTimeoutSeconds,
                 logger);
     }
 
