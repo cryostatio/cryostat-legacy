@@ -152,7 +152,7 @@ public abstract class NetworkModule {
         return Vertx.vertx(
                 new VertxOptions()
                         .setPreferNativeTransport(true)
-                        .setEventLoopPoolSize(defaults.getEventLoopPoolSize() + 4));
+                        .setEventLoopPoolSize(defaults.getEventLoopPoolSize() + 6));
     }
 
     @Provides

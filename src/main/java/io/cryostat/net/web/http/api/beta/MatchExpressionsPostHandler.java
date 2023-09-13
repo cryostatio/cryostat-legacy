@@ -159,7 +159,7 @@ public class MatchExpressionsPostHandler extends AbstractV2RequestHandler<Matche
             throw new ApiException(400, "Unable to parse JSON", e);
         } catch (RollbackException e) {
             if (ExceptionUtils.indexOfType(e, ConstraintViolationException.class) >= 0) {
-                throw new ApiException(400, "Duplicate matchExpression", e);
+                throw new ApiException(409, "Duplicate matchExpression", e);
             }
             throw new ApiException(500, e);
         } catch (MatchExpressionValidationException e) {
