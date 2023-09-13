@@ -33,7 +33,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.FakeScheduledExecutorService;
-import io.cryostat.MockVertx;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.CredentialsManager.CredentialsEvent;
 import io.cryostat.core.log.Logger;
@@ -55,7 +54,6 @@ import io.cryostat.recordings.RecordingTargetHelper.ReplacementPolicy;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
-import io.vertx.core.Vertx;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -75,7 +73,6 @@ class RuleProcessorTest {
 
     RuleProcessor processor;
     FakeScheduledExecutorService executor;
-    Vertx vertx;
     @Mock PlatformClient platformClient;
     @Mock RuleRegistry registry;
     @Mock CredentialsManager credentialsManager;
@@ -93,10 +90,8 @@ class RuleProcessorTest {
     @BeforeEach
     void setup() {
         this.executor = Mockito.spy(new FakeScheduledExecutorService());
-        this.vertx = MockVertx.vertx();
         this.processor =
                 new RuleProcessor(
-                        vertx,
                         executor,
                         platformClient,
                         registry,
