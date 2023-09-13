@@ -114,20 +114,19 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
         URI serviceUri = sr.getServiceUri();
         String uriStr = serviceUri.toString();
         try {
-            CompletableFuture<String> future =
-                    this.targetConnectionManager.executeConnectedTaskAsync(
-                            new ConnectionDescriptor(uriStr, credentialsManager.getCredentials(sr)),
-                            JFRConnection::getJvmId);
-            future.thenAccept(
-                    id -> {
-                        String prevId = this.ids.synchronous().get(uriStr);
-                        if (Objects.equals(prevId, id)) {
-                            return;
-                        }
-                        this.ids.put(uriStr, CompletableFuture.completedFuture(id));
-                        logger.info("JVM ID: {} -> {}", uriStr, id);
-                    });
-            String id = future.get(connectionTimeoutSeconds, TimeUnit.SECONDS);
+            String id =
+                    computeJvmId(uriStr, Optional.ofNullable(credentialsManager.getCredentials(sr)))
+                            .orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .whenComplete(
+                                    (i, t) -> {
+                                        String prevId = this.ids.synchronous().get(uriStr);
+                                        if (Objects.equals(prevId, i)) {
+                                            return;
+                                        }
+                                        this.ids.put(uriStr, CompletableFuture.completedFuture(i));
+                                        logger.info("JVM ID: {} -> {}", uriStr, i);
+                                    })
+                            .get(connectionTimeoutSeconds, TimeUnit.SECONDS);
 
             ServiceRef updated = new ServiceRef(id, serviceUri, sr.getAlias().orElse(uriStr));
             updated.setLabels(sr.getLabels());
@@ -166,7 +165,7 @@ public class JvmIdHelper extends AbstractEventEmitter<JvmIdHelper.IdEvent, Strin
                                         : credentialsManager.getCredentialsByTargetId(targetId)),
                         JFRConnection::getJvmId);
         future.thenAccept(id -> logger.info("JVM ID: {} -> {}", targetId, id));
-        return future;
+        return future.orTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS);
     }
 
     public String getJvmId(ConnectionDescriptor connectionDescriptor) throws JvmIdGetException {
