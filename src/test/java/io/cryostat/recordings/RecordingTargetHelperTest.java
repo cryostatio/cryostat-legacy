@@ -33,6 +33,7 @@ import java.util.concurrent.Future;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
@@ -41,6 +42,7 @@ import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.CryostatFlightRecorderService;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
@@ -807,7 +809,8 @@ public class RecordingTargetHelperTest {
         List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
         Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
 
-        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+        Mockito.when(service.start(Mockito.any(), Mockito.anyString(), Mockito.any()))
+                .thenReturn(existingRecording);
 
         Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
 
@@ -837,7 +840,7 @@ public class RecordingTargetHelperTest {
                 false);
 
         Mockito.verify(service).close(existingRecording);
-        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(service).start(Mockito.any(), Mockito.anyString(), Mockito.any());
 
         // Verify notification not sent because recording exists and no new recording is created
         Mockito.verify(notification, Mockito.times(0)).send();
@@ -869,15 +872,10 @@ public class RecordingTargetHelperTest {
         List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
         Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
 
-        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+        Mockito.when(service.start(Mockito.any(), Mockito.anyString(), Mockito.any()))
+                .thenReturn(existingRecording);
 
         Mockito.when(existingRecording.getState()).thenReturn(RecordingState.RUNNING);
-
-        TemplateService templateService = Mockito.mock(TemplateService.class);
-        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
-                .thenReturn(Optional.of(events));
 
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
@@ -899,7 +897,7 @@ public class RecordingTargetHelperTest {
                 false);
 
         Mockito.verify(service).close(existingRecording);
-        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(service).start(Mockito.any(), Mockito.anyString(), Mockito.any());
     }
 
     @Test
@@ -928,15 +926,10 @@ public class RecordingTargetHelperTest {
         List<IRecordingDescriptor> existingRecordings = List.of(existingRecording);
         Mockito.when(service.getAvailableRecordings()).thenReturn(existingRecordings);
 
-        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(existingRecording);
+        Mockito.when(service.start(Mockito.any(), Mockito.anyString(), Mockito.any()))
+                .thenReturn(existingRecording);
 
         Mockito.when(existingRecording.getState()).thenReturn(RecordingState.STOPPED);
-
-        TemplateService templateService = Mockito.mock(TemplateService.class);
-        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
-                .thenReturn(Optional.of(events));
 
         Mockito.when(
                         recordingMetadataManager.setRecordingMetadata(
@@ -958,7 +951,7 @@ public class RecordingTargetHelperTest {
                 false);
 
         Mockito.verify(service).close(existingRecording);
-        Mockito.verify(service).start(Mockito.any(), Mockito.any());
+        Mockito.verify(service).start(Mockito.any(), Mockito.anyString(), Mockito.any());
         Mockito.verify(notification).send();
         Mockito.verifyNoMoreInteractions(recordingOptions);
     }
