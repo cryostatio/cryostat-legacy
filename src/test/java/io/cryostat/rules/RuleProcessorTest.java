@@ -417,8 +417,7 @@ class RuleProcessorTest {
                             public PeriodicArchiver answer(InvocationOnMock invocation)
                                     throws Throwable {
                                 CredentialsManager cm = invocation.getArgument(1);
-                                Function<Pair<String, Rule>, Void> fn =
-                                        invocation.getArgument(4);
+                                Function<Pair<String, Rule>, Void> fn = invocation.getArgument(4);
                                 PeriodicArchiver p =
                                         new PeriodicArchiver(
                                                 serviceRef,

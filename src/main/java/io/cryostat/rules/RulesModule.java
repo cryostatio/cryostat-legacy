@@ -115,7 +115,6 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static RuleProcessor provideRuleProcessor(
-            Vertx vertx,
             DiscoveryStorage storage,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
@@ -127,7 +126,6 @@ public abstract class RulesModule {
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         return new RuleProcessor(
-                vertx,
                 Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() * 2),
                 storage,
                 registry,

@@ -54,7 +54,6 @@ import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -75,7 +74,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
     private final Map<Pair<String, Rule>, Future<?>> tasks;
 
     RuleProcessor(
-            Vertx vertx,
             ScheduledExecutorService executor,
             PlatformClient platformClient,
             RuleRegistry registry,
@@ -87,7 +85,6 @@ public class RuleProcessor extends AbstractVerticle implements Consumer<TargetDi
             RecordingMetadataManager metadataManager,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
-        this.vertx = vertx;
         this.executor = executor;
         this.platformClient = platformClient;
         this.registry = registry;
