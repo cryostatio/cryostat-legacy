@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.AuthenticationErrorException;
 import io.cryostat.net.security.ResourceAction;
 
 import graphql.GraphQLContext;
@@ -65,8 +65,8 @@ class AbstractPermissionedDataFetcherTest {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        AuthorizationErrorException ex =
-                Assertions.assertThrows(AuthorizationErrorException.class, () -> fetcher.get(env));
+        AuthenticationErrorException ex =
+                Assertions.assertThrows(AuthenticationErrorException.class, () -> fetcher.get(env));
         MatcherAssert.assertThat(ex.getMessage(), Matchers.equalTo("Unauthorized"));
     }
 

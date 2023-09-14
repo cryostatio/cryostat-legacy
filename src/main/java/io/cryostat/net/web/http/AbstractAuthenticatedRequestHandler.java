@@ -35,7 +35,7 @@ import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.AuthorizationErrorException;
+import io.cryostat.net.AuthenticationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -152,7 +152,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         // Check if the Exception has a PermissionDeniedException or KubernetesClientException
         // in its cause chain
         return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
-                || ExceptionUtils.indexOfType(e, AuthorizationErrorException.class) >= 0
+                || ExceptionUtils.indexOfType(e, AuthenticationErrorException.class) >= 0
                 || ExceptionUtils.indexOfType(e, KubernetesClientException.class) >= 0;
     }
 
