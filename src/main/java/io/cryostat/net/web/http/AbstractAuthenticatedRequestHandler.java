@@ -36,6 +36,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthenticationErrorException;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -81,8 +82,11 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         } catch (ApiException | HttpException e) {
             throw e;
         } catch (Exception e) {
-            if (isAuthFailure(e)) {
-                throw new HttpException(401, "HTTP Authorization Failure", e);
+            if (isAuthenticationFailure(e)) {
+                throw new HttpException(401, "HTTP Unauthorized", e);
+            }
+            if (isAuthorizationFailure(e)) {
+                throw new HttpException(403, "HTTP Forbidden", e);
             }
             if (isTargetConnectionFailure(e)) {
                 handleConnectionException(ctx, e);
@@ -148,12 +152,16 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                 || ExceptionUtils.indexOfType(e, FlightRecorderException.class) >= 0;
     }
 
-    public static boolean isAuthFailure(Exception e) {
+    public static boolean isAuthenticationFailure(Exception e) {
         // Check if the Exception has a PermissionDeniedException or KubernetesClientException
         // in its cause chain
-        return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
-                || ExceptionUtils.indexOfType(e, AuthenticationErrorException.class) >= 0
+        return ExceptionUtils.indexOfType(e, AuthenticationErrorException.class) >= 0
                 || ExceptionUtils.indexOfType(e, KubernetesClientException.class) >= 0;
+    }
+
+    public static boolean isAuthorizationFailure(Exception e) {
+        return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
+                || ExceptionUtils.indexOfType(e, AuthorizationErrorException.class) >= 0;
     }
 
     public static boolean isJmxAuthFailure(Exception e) {

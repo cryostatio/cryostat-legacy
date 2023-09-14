@@ -122,7 +122,8 @@ public class AgentClient {
                         return gson.fromJson(body, SerializableRecordingDescriptor.class)
                                 .toJmcForm();
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("startRecording"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
@@ -147,7 +148,8 @@ public class AgentClient {
                         return gson.fromJson(body, SerializableRecordingDescriptor.class)
                                 .toJmcForm();
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("startSnapshot"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
@@ -155,7 +157,6 @@ public class AgentClient {
     }
 
     Future<Void> updateRecordingOptions(long id, IConstrainedMap<String> newSettings) {
-
         JsonObject jsonSettings = new JsonObject();
         for (String key : newSettings.keySet()) {
             jsonSettings.put(key, newSettings.get(key));
@@ -173,7 +174,8 @@ public class AgentClient {
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         return null;
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("updateRecordingOptions"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
@@ -189,7 +191,8 @@ public class AgentClient {
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         return resp.body();
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("openStream"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
@@ -209,7 +212,8 @@ public class AgentClient {
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         return null;
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("stopRecording"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
@@ -229,7 +233,8 @@ public class AgentClient {
                     if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
                         return null;
                     } else if (statusCode == 403) {
-                        throw new UnsupportedOperationException();
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("deleteRecording"));
                     } else {
                         throw new RuntimeException("Unknown failure");
                     }
