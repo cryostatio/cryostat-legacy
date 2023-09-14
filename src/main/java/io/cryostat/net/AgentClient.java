@@ -125,7 +125,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("startRecording"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -151,7 +151,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("startSnapshot"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -177,7 +177,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("updateRecordingOptions"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -194,7 +194,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("openStream"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -215,7 +215,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("stopRecording"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -236,7 +236,7 @@ public class AgentClient {
                         throw new AuthorizationErrorException(
                                 new UnsupportedOperationException("deleteRecording"));
                     } else {
-                        throw new RuntimeException("Unknown failure");
+                        throw new AgentApiException(statusCode);
                     }
                 });
     }
@@ -362,7 +362,7 @@ public class AgentClient {
                                                                 credentials.getPassword()));
                                     } catch (ScriptException | InvalidCredentialsException e) {
                                         logger.error(e);
-                                        throw new RuntimeException(e);
+                                        throw new IllegalStateException(e);
                                     }
 
                                     try {
