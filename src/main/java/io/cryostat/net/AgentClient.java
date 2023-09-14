@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -29,6 +30,7 @@ import javax.script.ScriptException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IConstraint;
+import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
@@ -58,6 +60,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import jdk.jfr.RecordingState;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.auth.InvalidCredentialsException;
@@ -208,24 +211,42 @@ public class AgentClient {
     }
 
     Future<Void> stopRecording(long id) {
-        Future<HttpResponse<Void>> f =
-                invoke(
-                        HttpMethod.PATCH,
-                        String.format("/recordings/%d", id),
-                        Buffer.buffer(),
-                        BodyCodec.none());
-        return f.map(
-                resp -> {
-                    int statusCode = resp.statusCode();
-                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
-                        return null;
-                    } else if (statusCode == 403) {
-                        throw new AuthorizationErrorException(
-                                new UnsupportedOperationException("stopRecording"));
-                    } else {
-                        throw new AgentApiException(statusCode);
+        // FIXME this is a terrible hack, the interfaces here should not require only an
+        // IConstrainedMap with IOptionDescriptors but allow us to pass other and more simply
+        // serializable data to the Agent, such as this recording state entry
+        IConstrainedMap<String> map =
+                new IConstrainedMap<String>() {
+                    @Override
+                    public Set<String> keySet() {
+                        return Set.of("state");
                     }
-                });
+
+                    @Override
+                    public Object get(String key) {
+                        return RecordingState.STOPPED.name();
+                    }
+
+                    @Override
+                    public IConstraint<?> getConstraint(String key) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public String getPersistableString(String key) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public IMutableConstrainedMap<String> emptyWithSameConstraints() {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public IMutableConstrainedMap<String> mutableCopy() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+        return updateRecordingOptions(id, map);
     }
 
     Future<Void> deleteRecording(long id) {
