@@ -58,6 +58,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.auth.InvalidCredentialsException;
 
@@ -159,7 +160,14 @@ public class AgentClient {
     Future<Void> updateRecordingOptions(long id, IConstrainedMap<String> newSettings) {
         JsonObject jsonSettings = new JsonObject();
         for (String key : newSettings.keySet()) {
-            jsonSettings.put(key, newSettings.get(key));
+            Object value = newSettings.get(key);
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof String && StringUtils.isBlank((String) value)) {
+                continue;
+            }
+            jsonSettings.put(key, value);
         }
         Future<HttpResponse<Void>> f =
                 invoke(
