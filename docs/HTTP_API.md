@@ -161,6 +161,7 @@
     `200` - The body is
     ```
         {
+          "cryostatVersion": "$CRYOSTAT_VERSION",
           "datasourceConfigured": $DATASOURCE_CONFIGURED,
           "datasourceAvailable": $DATASOURCE_AVAILABLE,
           "dashboardConfigured": $DASHBOARD_CONFIGURED,
@@ -169,6 +170,7 @@
           "reportsAvailable": $REPORTS_AVAILABLE
         }
     ```
+    `$CRYOSTAT_VERSION` is the version of the current Cryostat instance.
 
     `$DATASOURCE_CONFIGURED` is `true` if the relevant environment variable has
     been set to a non-empty value.
