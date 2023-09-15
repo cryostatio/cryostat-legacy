@@ -15,9 +15,6 @@
  */
 package io.cryostat.rules;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
@@ -605,7 +602,7 @@ class RuleProcessorTest {
 
         processor.accept(tde);
 
-        Mockito.verify(recordingOptionsBuilder, never()).name("auto_Test_Rule");
+        Mockito.verify(recordingOptionsBuilder, Mockito.never()).name("auto_Test_Rule");
 
         ArgumentCaptor<ReplacementPolicy> replaceCaptor =
                 ArgumentCaptor.forClass(ReplacementPolicy.class);
@@ -625,7 +622,7 @@ class RuleProcessorTest {
 
         ArgumentCaptor<Boolean> archiveOnStopCaptor = ArgumentCaptor.forClass(Boolean.class);
 
-        Mockito.verify(recordingTargetHelper, never())
+        Mockito.verify(recordingTargetHelper, Mockito.never())
                 .startRecording(
                         replaceCaptor.capture(),
                         connectionDescriptorCaptor.capture(),

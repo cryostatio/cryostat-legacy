@@ -235,7 +235,6 @@ class DiscoveryStorageTest {
             Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.when(req.followRedirects(Mockito.anyBoolean())).thenReturn(req);
 
-            HttpResponse<Buffer> res = Mockito.mock(HttpResponse.class);
             Future<HttpResponse<Buffer>> future = Future.failedFuture("test failure");
             Mockito.when(req.send()).thenReturn(future);
 
