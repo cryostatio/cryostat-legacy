@@ -172,16 +172,17 @@ type RecordingMetadata {
 }
 
 input RecordingSettings {
-    replace: ReplacementPolicy
     name: String!
     template: String!
     templateType: String!
-    duration: Long
+    replace: ReplacementPolicy
+    restart: Boolean
     continuous: Boolean
+    archiveOnStop: Boolean
     toDisk: Boolean
+    duration: Long
     maxSize: Long
     maxAge: Long
-    archiveOnStop: Boolean
     metadata: Object
 }
 

@@ -60,6 +60,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -258,8 +259,9 @@ class TargetRecordingsPostHandlerTest {
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"archiveOnStop\":false,\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
     }
 
-    @Test
-    void shouldRestartRecording() throws Exception {
+    @ParameterizedTest
+    @MethodSource("getRestartOptions")
+    void shouldRestartRecording(String restart, String replace) throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -311,7 +313,12 @@ class TargetRecordingsPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        attrs.add("replace", "always");
+        if (restart != null) {
+            attrs.add("restart", restart);
+        }
+        if (replace != null) {
+            attrs.add("replace", replace);
+        }
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "template=Foo");
 
@@ -371,6 +378,15 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(resp)
                 .end(
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"metadata\":{\"labels\":{}},\"archiveOnStop\":false,\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
+    }
+
+    private static Stream<Arguments> getRestartOptions() {
+        return Stream.of(
+                Arguments.of("true", null),
+                Arguments.of(null, "always"),
+                Arguments.of("true", "always"),
+                Arguments.of("false", "always"),
+                Arguments.of("anything", "always"));
     }
 
     @Test
