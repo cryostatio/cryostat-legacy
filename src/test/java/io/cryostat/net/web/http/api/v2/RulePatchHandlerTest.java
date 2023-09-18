@@ -207,7 +207,7 @@ class RulePatchHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             IntermediateResponse<Void> response = handler.handle(params);
 
@@ -226,7 +226,8 @@ class RulePatchHandlerTest {
             Mockito.verify(recordingTargetHelper)
                     .stopRecording(
                             Mockito.any(ConnectionDescriptor.class),
-                            Mockito.eq(rule.getRecordingName()));
+                            Mockito.eq(rule.getRecordingName()),
+                            Mockito.eq(true));
 
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(204));
         }

@@ -43,7 +43,7 @@ class PeriodicArchiver implements Runnable {
     private final CredentialsManager credentialsManager;
     private final Rule rule;
     private final RecordingArchiveHelper recordingArchiveHelper;
-    private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
+    private final Function<Pair<String, Rule>, Void> failureNotifier;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
@@ -53,7 +53,7 @@ class PeriodicArchiver implements Runnable {
             CredentialsManager credentialsManager,
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
-            Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
+            Function<Pair<String, Rule>, Void> failureNotifier,
             Logger logger) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
@@ -105,7 +105,7 @@ class PeriodicArchiver implements Runnable {
             if (AbstractAuthenticatedRequestHandler.isJmxAuthFailure(e)
                     || AbstractAuthenticatedRequestHandler.isJmxSslFailure(e)
                     || AbstractAuthenticatedRequestHandler.isServiceTypeFailure(e)) {
-                failureNotifier.apply(Pair.of(serviceRef, rule));
+                failureNotifier.apply(Pair.of(serviceRef.getJvmId(), rule));
             }
         }
     }

@@ -37,7 +37,7 @@ class PeriodicArchiverFactory {
             CredentialsManager credentialsManager,
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
-            Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
+            Function<Pair<String, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
                 serviceRef,
                 credentialsManager,

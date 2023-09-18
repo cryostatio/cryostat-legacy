@@ -27,6 +27,7 @@ import io.cryostat.VerticleDeployer;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformModule;
@@ -77,9 +78,11 @@ public abstract class DiscoveryModule {
             Lazy<MatchExpressionEvaluator> matchExpressionEvaluator,
             Gson gson,
             WebClient http,
+            Clock clock,
             Logger logger) {
         return new DiscoveryStorage(
                 deployer,
+                Executors.newSingleThreadScheduledExecutor(),
                 Executors.newCachedThreadPool(),
                 pingPeriod,
                 builtin,
@@ -89,6 +92,7 @@ public abstract class DiscoveryModule {
                 matchExpressionEvaluator,
                 gson,
                 http,
+                clock,
                 logger);
     }
 

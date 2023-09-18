@@ -63,6 +63,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         TTL,
                         -1,
+                        10,
                         logger);
     }
 
@@ -156,6 +157,7 @@ class TargetConnectionManagerTest {
                         Scheduler.systemScheduler(),
                         Duration.ofNanos(1),
                         1,
+                        10,
                         logger);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -185,6 +187,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
+                        10,
                         logger);
         Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -223,6 +226,7 @@ class TargetConnectionManagerTest {
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),
                         -1,
+                        10,
                         logger);
         ConnectionDescriptor desc = new ConnectionDescriptor(url);
         JFRConnection conn = mgr.executeConnectedTask(desc, a -> a);

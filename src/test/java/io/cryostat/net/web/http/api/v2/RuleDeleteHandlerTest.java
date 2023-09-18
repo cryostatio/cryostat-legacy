@@ -186,7 +186,7 @@ class RuleDeleteHandlerTest {
             Mockito.verify(registry, Mockito.never()).deleteRule(Mockito.anyString());
             Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
             Mockito.verify(recordingTargetHelper, Mockito.never())
-                    .stopRecording(Mockito.any(), Mockito.any());
+                    .stopRecording(Mockito.any(), Mockito.any(), Mockito.eq(true));
         }
 
         @Test
@@ -211,11 +211,13 @@ class RuleDeleteHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             FlightRecorderException exception =
                     new FlightRecorderException(new Exception("test message"));
-            Mockito.when(recordingTargetHelper.stopRecording(Mockito.any(), Mockito.any()))
+            Mockito.when(
+                            recordingTargetHelper.stopRecording(
+                                    Mockito.any(), Mockito.any(), Mockito.eq(true)))
                     .thenThrow(exception);
 
             IntermediateResponse<Void> response = handler.handle(params);
@@ -225,7 +227,8 @@ class RuleDeleteHandlerTest {
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry).applies(rule, serviceRef);
             Mockito.verify(recordingTargetHelper)
-                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
+                    .stopRecording(
+                            Mockito.any(), Mockito.eq(rule.getRecordingName()), Mockito.eq(true));
             Mockito.verify(logger).error(exception);
         }
 
@@ -245,7 +248,7 @@ class RuleDeleteHandlerTest {
             Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
             Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
 
-            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of());
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of());
 
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -254,7 +257,8 @@ class RuleDeleteHandlerTest {
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry, Mockito.never()).applies(Mockito.any(), Mockito.any());
             Mockito.verify(recordingTargetHelper, Mockito.never())
-                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
+                    .stopRecording(
+                            Mockito.any(), Mockito.eq(rule.getRecordingName()), Mockito.eq(true));
         }
 
         @Test
@@ -279,7 +283,7 @@ class RuleDeleteHandlerTest {
                             "id",
                             new URI("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
                             "io.cryostat.Cryostat");
-            Mockito.when(storage.listUniqueReachableServices()).thenReturn(List.of(serviceRef));
+            Mockito.when(storage.listDiscoverableServices()).thenReturn(List.of(serviceRef));
 
             IntermediateResponse<Void> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -288,7 +292,8 @@ class RuleDeleteHandlerTest {
             Mockito.verify(registry).deleteRule(rule);
             Mockito.verify(registry).applies(Mockito.any(), Mockito.any());
             Mockito.verify(recordingTargetHelper)
-                    .stopRecording(Mockito.any(), Mockito.eq(rule.getRecordingName()));
+                    .stopRecording(
+                            Mockito.any(), Mockito.eq(rule.getRecordingName()), Mockito.eq(true));
         }
     }
 }

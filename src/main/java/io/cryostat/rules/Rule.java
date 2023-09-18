@@ -185,13 +185,45 @@ public class Rule {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public boolean equals(Object other) {
+        if (other == null) {
+            return false;
+        }
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof Rule)) {
+            return false;
+        }
+        Rule r = (Rule) other;
+        // ignore the enabled state
+        return new EqualsBuilder()
+                .append(name, r.name)
+                .append(description, r.description)
+                .append(matchExpression, r.matchExpression)
+                .append(eventSpecifier, r.eventSpecifier)
+                .append(archivalPeriodSeconds, r.archivalPeriodSeconds)
+                .append(initialDelaySeconds, r.initialDelaySeconds)
+                .append(preservedArchives, r.preservedArchives)
+                .append(maxAgeSeconds, r.maxAgeSeconds)
+                .append(maxSizeBytes, r.maxSizeBytes)
+                .build();
     }
 
     @Override
     public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
+        // ignore the enabled state
+        return new HashCodeBuilder()
+                .append(name)
+                .append(description)
+                .append(matchExpression)
+                .append(eventSpecifier)
+                .append(archivalPeriodSeconds)
+                .append(initialDelaySeconds)
+                .append(preservedArchives)
+                .append(maxAgeSeconds)
+                .append(maxSizeBytes)
+                .toHashCode();
     }
 
     public static class Builder {

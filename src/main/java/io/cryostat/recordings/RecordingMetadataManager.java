@@ -412,8 +412,11 @@ public class RecordingMetadataManager extends AbstractVerticle
                             // ID and inform us of that occurrence, and use that invalidation
                             // message to clear our stored metadata
                             break;
+                        case MODIFIED:
+                            handleFoundTarget(tde.getServiceRef());
+                            break;
                         default:
-                            throw new UnsupportedOperationException(tde.getEventKind().toString());
+                            break;
                     }
                 });
     }
