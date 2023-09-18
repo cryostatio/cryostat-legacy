@@ -861,6 +861,10 @@
 
     **The request may include the following fields:**
 
+    `restart`: Whether to restart the recording if one already exists with the same name. **DEPRECATED**: See `replace` below.
+
+    `replace`: The replacement policy if a recording already exists with the same name. Policies can be `ALWAYS` (i.e. `restart=true`), `NEVER` (i.e.`restart=false`), and `STOPPED` (restart only when the existing one is stopped).
+
     `duration` - The duration of the recording, in seconds.
     If this field is not set, or if it is set to zero,
     the recording will be continuous,

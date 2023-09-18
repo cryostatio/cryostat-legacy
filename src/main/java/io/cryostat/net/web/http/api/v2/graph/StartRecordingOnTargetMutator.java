@@ -111,15 +111,20 @@ class StartRecordingOnTargetMutator
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    ReplacementPolicy replace = ReplacementPolicy.NEVER;
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(conn.getService())
                                     .name((String) settings.get("name"));
 
+                    ReplacementPolicy replace = ReplacementPolicy.NEVER;
+                    if (settings.containsKey("restart")) {
+                        replace =
+                                Boolean.TRUE.equals(settings.get("restart"))
+                                        ? ReplacementPolicy.ALWAYS
+                                        : ReplacementPolicy.NEVER;
+                    }
                     if (settings.containsKey("replace")) {
-                        String replaceValue = (String) settings.get("replace");
-                        replace = ReplacementPolicy.fromString(replaceValue);
+                        replace = ReplacementPolicy.fromString((String) settings.get("replace"));
                     }
                     if (settings.containsKey("duration")) {
                         builder =
