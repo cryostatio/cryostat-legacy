@@ -21,20 +21,19 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-import javax.management.ObjectName;
 import javax.script.ScriptException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IConstraint;
+import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.common.unit.SimpleConstrainedMap;
-import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.flightrecorder.configuration.internal.EventTypeIDV2;
@@ -45,10 +44,14 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.MBeanMetrics;
+import io.cryostat.core.serialization.SerializableRecordingDescriptor;
+import io.cryostat.net.AgentJFRService.StartRecordingRequest;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -57,6 +60,8 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
+import jdk.jfr.RecordingState;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.auth.InvalidCredentialsException;
 
@@ -99,38 +104,196 @@ public class AgentClient {
 
     Future<MBeanMetrics> mbeanMetrics() {
         Future<HttpResponse<String>> f =
-                invoke(HttpMethod.GET, "/mbean-metrics", BodyCodec.string());
+                invoke(HttpMethod.GET, "/mbean-metrics/", BodyCodec.string());
         return f.map(HttpResponse::body)
                 // uses Gson rather than Vertx's Jackson because Gson is able to handle MBeanMetrics
                 // with no additional fuss. Jackson complains about private final fields.
                 .map(s -> gson.fromJson(s, MBeanMetrics.class));
     }
 
+    Future<IRecordingDescriptor> startRecording(StartRecordingRequest req) {
+        Future<HttpResponse<String>> f =
+                invoke(
+                        HttpMethod.POST,
+                        "/recordings/",
+                        Buffer.buffer(gson.toJson(req)),
+                        BodyCodec.string());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        String body = resp.body();
+                        return gson.fromJson(body, SerializableRecordingDescriptor.class)
+                                .toJmcForm();
+                    } else if (statusCode == 403) {
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("startRecording"));
+                    } else {
+                        throw new AgentApiException(statusCode);
+                    }
+                });
+    }
+
+    Future<IRecordingDescriptor> startSnapshot() {
+        StartRecordingRequest snapshotReq = new StartRecordingRequest("snapshot", "", "", 0, 0, 0);
+
+        Future<HttpResponse<String>> f =
+                invoke(
+                        HttpMethod.POST,
+                        "/recordings/",
+                        Buffer.buffer(gson.toJson(snapshotReq)),
+                        BodyCodec.string());
+
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        String body = resp.body();
+                        return gson.fromJson(body, SerializableRecordingDescriptor.class)
+                                .toJmcForm();
+                    } else if (statusCode == 403) {
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("startSnapshot"));
+                    } else {
+                        throw new AgentApiException(statusCode);
+                    }
+                });
+    }
+
+    Future<Void> updateRecordingOptions(long id, IConstrainedMap<String> newSettings) {
+        JsonObject jsonSettings = new JsonObject();
+        for (String key : newSettings.keySet()) {
+            Object value = newSettings.get(key);
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof String && StringUtils.isBlank((String) value)) {
+                continue;
+            }
+            jsonSettings.put(key, value);
+        }
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.PATCH,
+                        String.format("/recordings/%d", id),
+                        jsonSettings.toBuffer(),
+                        BodyCodec.none());
+
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return null;
+                    } else if (statusCode == 403) {
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("updateRecordingOptions"));
+                    } else {
+                        throw new AgentApiException(statusCode);
+                    }
+                });
+    }
+
+    Future<Buffer> openStream(long id) {
+        Future<HttpResponse<Buffer>> f =
+                invoke(HttpMethod.GET, "/recordings/" + id, BodyCodec.buffer());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return resp.body();
+                    } else if (statusCode == 403) {
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("openStream"));
+                    } else {
+                        throw new AgentApiException(statusCode);
+                    }
+                });
+    }
+
+    Future<Void> stopRecording(long id) {
+        // FIXME this is a terrible hack, the interfaces here should not require only an
+        // IConstrainedMap with IOptionDescriptors but allow us to pass other and more simply
+        // serializable data to the Agent, such as this recording state entry
+        IConstrainedMap<String> map =
+                new IConstrainedMap<String>() {
+                    @Override
+                    public Set<String> keySet() {
+                        return Set.of("state");
+                    }
+
+                    @Override
+                    public Object get(String key) {
+                        return RecordingState.STOPPED.name();
+                    }
+
+                    @Override
+                    public IConstraint<?> getConstraint(String key) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public String getPersistableString(String key) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public IMutableConstrainedMap<String> emptyWithSameConstraints() {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public IMutableConstrainedMap<String> mutableCopy() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+        return updateRecordingOptions(id, map);
+    }
+
+    Future<Void> deleteRecording(long id) {
+        Future<HttpResponse<Void>> f =
+                invoke(
+                        HttpMethod.DELETE,
+                        String.format("/recordings/%d", id),
+                        Buffer.buffer(),
+                        BodyCodec.none());
+        return f.map(
+                resp -> {
+                    int statusCode = resp.statusCode();
+                    if (HttpStatusCodeIdentifier.isSuccessCode(statusCode)) {
+                        return null;
+                    } else if (statusCode == 403) {
+                        throw new AuthorizationErrorException(
+                                new UnsupportedOperationException("deleteRecording"));
+                    } else {
+                        throw new AgentApiException(statusCode);
+                    }
+                });
+    }
+
     Future<List<IRecordingDescriptor>> activeRecordings() {
-        Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/recordings", BodyCodec.jsonArray());
+        Future<HttpResponse<String>> f = invoke(HttpMethod.GET, "/recordings/", BodyCodec.string());
         return f.map(HttpResponse::body)
                 .map(
-                        arr ->
-                                arr.stream()
-                                        .map(
-                                                o ->
-                                                        (IRecordingDescriptor)
-                                                                new AgentRecordingDescriptor(
-                                                                        (JsonObject) o))
-                                        .toList());
+                        s ->
+                                (List<SerializableRecordingDescriptor>)
+                                        gson.fromJson(
+                                                s,
+                                                new TypeToken<
+                                                        List<
+                                                                SerializableRecordingDescriptor>>() {}.getType()))
+                .map(arr -> arr.stream().map(SerializableRecordingDescriptor::toJmcForm).toList());
     }
 
     Future<Collection<? extends IEventTypeInfo>> eventTypes() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-types", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-types/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
                 .map(arr -> arr.stream().map(o -> new AgentEventTypeInfo((JsonObject) o)).toList());
     }
 
     Future<IConstrainedMap<EventOptionID>> eventSettings() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-settings", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-settings/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body)
                 .map(
                         arr -> {
@@ -184,11 +347,16 @@ public class AgentClient {
 
     Future<List<String>> eventTemplates() {
         Future<HttpResponse<JsonArray>> f =
-                invoke(HttpMethod.GET, "/event-templates", BodyCodec.jsonArray());
+                invoke(HttpMethod.GET, "/event-templates/", BodyCodec.jsonArray());
         return f.map(HttpResponse::body).map(arr -> arr.stream().map(Object::toString).toList());
     }
 
     private <T> Future<HttpResponse<T>> invoke(HttpMethod mtd, String path, BodyCodec<T> codec) {
+        return invoke(mtd, path, null, codec);
+    }
+
+    private <T> Future<HttpResponse<T>> invoke(
+            HttpMethod mtd, String path, Buffer payload, BodyCodec<T> codec) {
         return Future.fromCompletionStage(
                 CompletableFuture.supplyAsync(
                                 () -> {
@@ -223,14 +391,21 @@ public class AgentClient {
                                                                 credentials.getPassword()));
                                     } catch (ScriptException | InvalidCredentialsException e) {
                                         logger.error(e);
-                                        throw new RuntimeException(e);
+                                        throw new IllegalStateException(e);
                                     }
 
                                     try {
-                                        return req.send()
-                                                .toCompletionStage()
-                                                .toCompletableFuture()
-                                                .get();
+                                        if (payload != null) {
+                                            return req.sendBuffer(payload)
+                                                    .toCompletionStage()
+                                                    .toCompletableFuture()
+                                                    .get();
+                                        } else {
+                                            return req.send()
+                                                    .toCompletionStage()
+                                                    .toCompletableFuture()
+                                                    .get();
+                                        }
                                     } catch (InterruptedException | ExecutionException e) {
                                         logger.error(e);
                                         throw new RuntimeException(e);
@@ -270,97 +445,6 @@ public class AgentClient {
         AgentClient create(URI agentUri) {
             return new AgentClient(
                     executor, gson, httpTimeout, webClient, credentialsManager, agentUri, logger);
-        }
-    }
-
-    private static class AgentRecordingDescriptor implements IRecordingDescriptor {
-
-        final JsonObject json;
-
-        AgentRecordingDescriptor(JsonObject json) {
-            this.json = json;
-        }
-
-        @Override
-        public IQuantity getDataStartTime() {
-            return getStartTime();
-        }
-
-        @Override
-        public IQuantity getDataEndTime() {
-            if (isContinuous()) {
-                return UnitLookup.EPOCH_MS.quantity(0);
-            }
-            return getDataStartTime().add(getDuration());
-        }
-
-        @Override
-        public IQuantity getDuration() {
-            return UnitLookup.MILLISECOND.quantity(json.getLong("duration"));
-        }
-
-        @Override
-        public Long getId() {
-            return json.getLong("id");
-        }
-
-        @Override
-        public IQuantity getMaxAge() {
-            return UnitLookup.MILLISECOND.quantity(json.getLong("maxAge"));
-        }
-
-        @Override
-        public IQuantity getMaxSize() {
-            return UnitLookup.BYTE.quantity(json.getLong("maxSize"));
-        }
-
-        @Override
-        public String getName() {
-            return json.getString("name");
-        }
-
-        @Override
-        public ObjectName getObjectName() {
-            return null;
-        }
-
-        @Override
-        public Map<String, ?> getOptions() {
-            return json.getJsonObject("options").getMap();
-        }
-
-        @Override
-        public IQuantity getStartTime() {
-            return UnitLookup.EPOCH_MS.quantity(json.getLong("startTime"));
-        }
-
-        @Override
-        public RecordingState getState() {
-            // avoid using Enum.valueOf() since that throws an exception if the name isn't part of
-            // the type, and it's nicer to not throw and catch exceptions
-            String state = json.getString("state");
-            switch (state) {
-                case "CREATED":
-                    return RecordingState.CREATED;
-                case "RUNNING":
-                    return RecordingState.RUNNING;
-                case "STOPPING":
-                    return RecordingState.STOPPING;
-                case "STOPPED":
-                    return RecordingState.STOPPED;
-                default:
-                    return RecordingState.RUNNING;
-            }
-        }
-
-        @Override
-        public boolean getToDisk() {
-            return json.getBoolean("toDisk");
-        }
-
-        @Override
-        public boolean isContinuous() {
-            return json.getBoolean("isContinuous");
         }
     }
 

@@ -15,10 +15,14 @@
  */
 package io.cryostat.util;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import javax.management.remote.JMXServiceURL;
+
+import io.cryostat.core.net.JFRConnection;
+import io.cryostat.net.AgentConnection;
 
 public class URIUtil {
     private URIUtil() {}
@@ -47,5 +51,15 @@ public class URIUtil {
             throw new IllegalArgumentException(serviceUrl.getURLPath());
         }
         return new URI(pathPart.substring("/jndi/".length(), pathPart.length()));
+    }
+
+    public static URI getConnectionUri(JFRConnection connection) throws IOException {
+        // TODO this is a hack, the JFRConnection interface should be refactored to expose a more
+        // general connection URL / targetId method since the JMX implementation is now only one
+        // possible implementation
+        if (connection instanceof AgentConnection) {
+            return ((AgentConnection) connection).getUri();
+        }
+        return URI.create(connection.getJMXURL().toString());
     }
 }

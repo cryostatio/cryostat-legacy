@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,12 +29,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
+import io.cryostat.core.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -167,12 +165,7 @@ public class RecordingTargetHelper {
                     IRecordingDescriptor desc =
                             connection
                                     .getService()
-                                    .start(
-                                            recordingOptions,
-                                            enableEvents(
-                                                    connection,
-                                                    templateName,
-                                                    preferredTemplateType));
+                                    .start(recordingOptions, templateName, preferredTemplateType);
                     String targetId = connectionDescriptor.getTargetId();
 
                     Map<String, String> labels = metadata.getLabels();
@@ -240,21 +233,16 @@ public class RecordingTargetHelper {
                     targetConnectionManager.executeConnectedTask(
                             connectionDescriptor,
                             conn ->
-                                    conn.getService().getAvailableRecordings().stream()
-                                            .filter(r -> Objects.equals(recordingName, r.getName()))
+                                    getDescriptorByName(conn, recordingName)
                                             .map(
                                                     desc -> {
                                                         try {
                                                             return conn.getService()
                                                                     .openStream(desc, false);
                                                         } catch (Exception e) {
-                                                            logger.error(e);
-                                                            return null;
+                                                            throw new RuntimeException(e);
                                                         }
-                                                    })
-                                            .filter(Objects::nonNull)
-                                            .findFirst());
-
+                                                    }));
             future.complete(recording);
         } catch (Exception e) {
             future.completeExceptionally(e);
@@ -280,9 +268,7 @@ public class RecordingTargetHelper {
                 connectionDescriptor,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
-                            connection.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recording.getName().equals(recordingName))
-                                    .findFirst();
+                            getDescriptorByName(connection, recordingName);
                     if (descriptor.isPresent()) {
                         IRecordingDescriptor d = descriptor.get();
                         if (d.getState().equals(RecordingState.STOPPED) && quiet) {
@@ -530,30 +516,6 @@ public class RecordingTargetHelper {
                 String.format("Invalid/unknown event template %s", templateName));
     }
 
-    private IConstrainedMap<EventOptionID> enableEvents(
-            JFRConnection connection, String templateName, TemplateType templateType)
-            throws Exception {
-        if (templateName.equals("ALL")) {
-            return enableAllEvents(connection);
-        }
-        // if template type not specified, try to find a Custom template by that name. If none,
-        // fall back on finding a Target built-in template by the name. If not, throw an
-        // exception and bail out.
-        TemplateType type = getPreferredTemplateType(connection, templateName, templateType);
-        return connection.getTemplateService().getEvents(templateName, type).get();
-    }
-
-    private IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
-            throws Exception {
-        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
-
-        for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
-            builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
-        }
-
-        return builder.build();
-    }
-
     private void scheduleRecordingTasks(
             String recordingName,
             long delay,
@@ -595,7 +557,11 @@ public class RecordingTargetHelper {
                                                                                 connection, name));
                                                 return linked;
                                             }
-                                            return null;
+                                            throw new IllegalStateException(
+                                                    String.format(
+                                                            "Could not find expected recording"
+                                                                    + " named \"%s\" in target %s",
+                                                            recordingName, targetId));
                                         });
                         promise.complete(linkedDesc);
                     } catch (Exception e) {

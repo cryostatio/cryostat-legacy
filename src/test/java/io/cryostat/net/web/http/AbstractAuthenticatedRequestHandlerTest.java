@@ -87,7 +87,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     @Test
-    void shouldThrow401IfAuthFails() {
+    void shouldThrow401IfAuthorizationFails() {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
@@ -96,7 +96,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     @Test
-    void shouldThrow401IfAuthFails2() {
+    void shouldThrow403IfAuthenticationFails() {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
@@ -104,11 +104,11 @@ class AbstractAuthenticatedRequestHandlerTest {
                                         "namespace", "resourc.group", "verb", "reason")));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test
-    void shouldThrow401IfAuthFails3() {
+    void shouldThrow401IfAuthenticationFails2() {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
 
@@ -117,7 +117,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     @Test
-    void shouldThrow401IfAuthFails4() {
+    void shouldThrow403IfAuthorizationFails2() {
         // Check a doubly-nested PermissionDeniedException
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(
@@ -127,11 +127,11 @@ class AbstractAuthenticatedRequestHandlerTest {
                                                 "namespace", "resource.group", "verb", "reason"))));
 
         HttpException ex = Assertions.assertThrows(HttpException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(403));
     }
 
     @Test
-    void shouldThrow401IfAuthFails5() {
+    void shouldThrow401IfAuthenticationFails3() {
         // Check doubly-nested KubernetesClientException with its own cause
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(

@@ -15,8 +15,8 @@
  */
 package io.cryostat.net;
 
-public class AuthorizationErrorException extends RuntimeException {
-    public AuthorizationErrorException(Throwable cause) {
-        super(cause);
+public class AgentApiException extends RuntimeException {
+    public AgentApiException(int statusCode) {
+        super(String.format("Unexpected HTTP response code %d", statusCode));
     }
 }
